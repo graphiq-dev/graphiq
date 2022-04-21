@@ -14,11 +14,12 @@
 # import sys
 # sys.path.insert(0, os.path.abspath('.'))
 
-
-# -- Project information -----------------------------------------------------
 import pathlib
 import sys
 sys.path.insert(0, pathlib.Path(__file__).parents[2].resolve().as_posix())
+
+# -- Project information -----------------------------------------------------
+
 
 
 project = 'Graph-Compiler'
@@ -35,6 +36,7 @@ extensions = [
     'sphinx.ext.doctest',
     'sphinx.ext.autodoc',
     'sphinx.ext.autosummary',
+    'sphinx.ext.viewcode',
 ]
 
 # Add any paths that contain templates here, relative to this directory.

@@ -35,6 +35,7 @@ API ASSUMPTIONS
 
 Operation class is called Operation
 Operations CAN be classical or quantum
+Operations has a "qudits" field and a "cbit" field which return tuples of relevant registers
 """
 
 
@@ -89,11 +90,35 @@ class CircuitDAG(Circuit):
         self.n_quantum = n_quantum
         self.n_classical = n_classical
         self.DAG = nx.DiGraph()
-        self._node_name = 0
+        self._node_id = 0
         self._initialize_circuit()
 
     def add_op(self, operation: Operation):
-        raise NotImplementedError('')
+        """
+        Add an operation to the circuit
+        :param operation: Operation (gate and qubit/classical bit register) to add to the graph
+        """
+        new_id = self.unique_node_id()
+        self.DAG.add_node(new_id, op=operation)
+
+        # get all edges that will need to be removed (i.e. the edges on which the Operation is being added)
+        relevant_outputs = [f'q{q}_out' for q in operation.qudits] + [f'c{c}_out' for c in operation.cbits]
+        output_edges = []
+        for output in relevant_outputs:
+            output_edges.extend([edge for edge in self.DAG.in_edges(output)])
+
+        # get all nodes we will need to connect to the Operation node
+
+        preceding_nodes = [edge[0] for edge in output_edges]
+        self.DAG.remove_edges_from(output_edges)
+
+        for reg_index, node in zip([f'q{q}' for q in operation.qudits] +
+                                   [f'c{c}' for c in operation.cbits], preceding_nodes):
+            self.DAG.add_edge(node, new_id, bit=reg_index)
+
+        for output in relevant_outputs:
+            edge_name = output.removesuffix('_out')
+            self.DAG.add_edge(new_id, output, bit=edge_name)
 
     def validate(self):
         """
@@ -103,13 +128,13 @@ class CircuitDAG(Circuit):
         """
         assert nx.is_directed_acyclic_graph(self.DAG)
 
-        input_nodes = [node for node, in_degree in self.DAG.in_degree_iter() if in_degree == 0]
+        input_nodes = [node for node, in_degree in self.DAG.in_degree() if in_degree == 0]
         for input_node in input_nodes:
-            assert isinstance(input_node['op'].name, Input)
+            assert isinstance(self.DAG.nodes[input_node]['op'], Input)
 
-        output_nodes = [node for node, out_degree in self.DAG.out_degree_iter() if out_degree == 0]
+        output_nodes = [node for node, out_degree in self.DAG.out_degree() if out_degree == 0]
         for output_node in output_nodes:
-            assert isinstance(output_node['op'].name, Output)
+            assert isinstance(self.DAG.nodes[output_node]['op'], Output)
 
     def collect_parameters(self):
         raise NotImplementedError('')
@@ -144,3 +169,7 @@ class CircuitDAG(Circuit):
             self.DAG.add_node(f'c{c}_in', op=Input())
             self.DAG.add_node(f'c{c}_out', op=Output())
             self.DAG.add_edge(f'c{c}_in', f'c{c}_out', bit=f'c{c}')
+
+    def unique_node_id(self):
+        self._node_id += 1
+        return self._node_id

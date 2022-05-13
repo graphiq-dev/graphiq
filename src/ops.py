@@ -6,7 +6,7 @@ class Operation:
     """
 
     """
-    def __init__(self, qudits=(0,), cbits=tuple()):
+    def __init__(self, qudits=tuple(), cbits=tuple()):
         self.qudits = qudits
         self.cbits = cbits
 

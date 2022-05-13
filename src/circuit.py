@@ -137,10 +137,11 @@ class CircuitDAG(Circuit):
             assert isinstance(self.DAG.nodes[output_node]['op'], Output)
 
     def collect_parameters(self):
+        # TODO: actually I think this might be more of a compiler task
         raise NotImplementedError('')
 
     def operation_list(self):
-        raise NotImplementedError('')
+        return [self.DAG.nodes[node]['op'] for node in nx.topological_sort(self.DAG)]
 
     def compile(self, parameters):
         raise NotImplementedError('')

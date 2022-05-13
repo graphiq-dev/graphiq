@@ -29,3 +29,9 @@ circuit4.add_op(Operation(qudits=(0,), cbits=(0,)))
 circuit4.add_op(Operation(qudits=(1,), cbits=(0, 1, 2)))
 circuit4.show()
 circuit4.validate()
+
+# test topological order operation list
+print(circuit1.operation_list())
+print(circuit2.operation_list())
+print(circuit3.operation_list())
+print(circuit4.operation_list())

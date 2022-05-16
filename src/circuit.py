@@ -22,51 +22,50 @@ It should support the following functionalities:
 
 Resources: https://qiskit.org/documentation/stubs/qiskit.converters.circuit_to_dag.html
 """
-
 import networkx as nx
 import matplotlib.pyplot as plt
+from abc import ABC, abstractmethod
 
 from src.ops import Operation
 from src.ops import Input
 from src.ops import Output
-# TODO: verify that the API assumptions below are accurate to what others have implemented
-# TODO: dynamically allocate qudits / register numbers
 
 
-class Circuit:
+class CircuitBase(ABC):
     """
     Base class (interface) for circuit representation
-
-    TODO: treat abstract class with decorators (see StrawberryFields) as example. [MVP: ?, MVP sprint: no]
     """
-    def __init__(self, n_quantum, n_classical):
+    def __init__(self, *args, **kwargs):
         """
-        Construct an empty DAG circuit
-        :param n_quantum: the number of qudits in the system
-        :param n_classical: the number of classical bits in the system
+        Construct an empty circuit
         """
-        raise ValueError('Base class circuit is abstract: it does not support function calls')
+        pass
 
+    @abstractmethod
     def add(self, operation: Operation):
         raise ValueError('Base class circuit is abstract: it does not support function calls')
 
+    @abstractmethod
     def validate(self):
         raise ValueError('Base class circuit is abstract: it does not support function calls')
 
     def collect_parameters(self):
-        raise ValueError('Base class circuit is abstract: it does not support function calls')
+        raise NotImplementedError('Implementation is still under consideration')
 
+    @abstractmethod
     def sequence(self):
         raise ValueError('Base class circuit is abstract: it does not support function calls')
 
+    @abstractmethod
     def compile(self, parameters):
-        raise ValueError('Base class circuit is abstract: it does not support function calls')
+        raise NotImplementedError('Base class circuit is abstract: it does not support function calls')
 
+    @abstractmethod
     def to_openqasm(self):
         raise ValueError('Base class circuit is abstract: it does not support function calls')
 
 
-class CircuitDAG(Circuit):
+class CircuitDAG(CircuitBase):
     """
     Directed Acyclic Graph (DAG) based circuit implementation
 
@@ -75,12 +74,13 @@ class CircuitDAG(Circuit):
 
     Each connecting edge of the graph corresponds to a qudit or classical bit
     """
-    def __init__(self, n_quantum, n_classical):
+    def __init__(self, n_quantum=0, n_classical=0, *args, **kwargs):
         """
         Construct an empty DAG circuit
         :param n_quantum: the number of qudits in the system
         :param n_classical: the number of classical bits in the system
         """
+        super().__init__(*args, **kwargs)
         self.dag = nx.DiGraph()
         self._node_id = 0
         self.q_registers = set()
@@ -158,8 +158,8 @@ class CircuitDAG(Circuit):
 
     def _add(self, operation: Operation):
         """
-        Add an operation to the circuit
-        :param operation: Operation (gate and qubit/classical bit register) to add to the graph
+        Add an operation to the circuit, assuming that all registers used by operation are already in place
+        :param operation: Operation (gate and register) to add to the graph
         """
         new_id = self._unique_node_id()
         self.dag.add_node(new_id, op=operation)

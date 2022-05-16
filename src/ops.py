@@ -1,8 +1,9 @@
 """
 """
+from abc import ABC, abstractmethod
 
 
-class Operation:
+class OperationBase(ABC):
     """
 
     """
@@ -11,13 +12,37 @@ class Operation:
         self.c_registers = c_registers
 
 
-class Input(Operation):
-    """
-
-    """
+""" Quantum gates """
 
 
-class Output(Operation):
-    """
+class CNOT(OperationBase):
+    def __init__(self, control=None, target=None, *args, **kwargs):
+        super().__init__(q_registers=(control, target), *args, **kwargs)
+        self.control = control
+        self.target = target
 
-    """
+
+class Hadamard(OperationBase):
+    def __init__(self, register=None, *args, **kwargs):
+        super().__init__(q_registers=(register,), *args, **kwargs)
+        self.register = register
+
+
+class PauliX(OperationBase):
+    def __init__(self, register=None, *args, **kwargs):
+        super().__init__(q_registers=(register,), *args, **kwargs)
+        self.register = register
+
+
+class Input(OperationBase):
+    def __init__(self, register=None, *args, **kwargs):
+        super().__init__(q_registers=(register,), *args, **kwargs)
+        self.register = register
+
+
+class Output(OperationBase):
+    def __init__(self, register=None, *args, **kwargs):
+        super().__init__(q_registers=(register,), *args, **kwargs)
+        self.register = register
+
+

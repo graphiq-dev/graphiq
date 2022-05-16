@@ -7,9 +7,9 @@ class OperationBase(ABC):
     """
 
     """
-    def __init__(self, qudits=tuple(), cbits=tuple()):
-        self.qudits = qudits  # TODO: it doesn't make sense to have qudits and cbits. something like qregister and cregister make more sense
-        self.cbits = cbits
+    def __init__(self, q_registers=tuple(), c_registers=tuple()):
+        self.q_registers = q_registers
+        self.c_registers = c_registers
 
 
 """ Quantum gates """

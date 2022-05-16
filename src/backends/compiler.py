@@ -6,6 +6,7 @@ from abc import ABC, abstractmethod
 import warnings
 import logging
 from functools import reduce
+import copy
 
 import numpy as np
 
@@ -77,18 +78,36 @@ class DensityMatrixCompiler(CompilerBase):
             if type(op) is ops.Input:
                 pass
 
-            if type(op) is ops.Hadamard:
+            elif type(op) is ops.Hadamard:
                 q = op.register
                 h = np.array([[1, 1], [1, -1]]).astype("complex64") / np.sqrt(2)
                 us = (q - 1) * [np.identity(2)] + [h] + (circuit.n_quantum - q - 1) * [np.identity(2)]
                 u = reduce(np.kron, us)
                 state = u @ state @ np.conjugate(u).T
 
-            if type(op) is ops.PauliX:
+            elif type(op) is ops.PauliX:
                 q = op.register
                 sx = np.array([[0, 1], [1, 0]]).astype("complex64")
                 us = (q - 1) * [np.identity(2)] + [sx] + (circuit.n_quantum - q - 1) * [np.identity(2)]
                 u = reduce(np.kron, us)
                 state = u @ state @ np.conjugate(u).T
+
+            elif type(op) is ops.CNOT:
+                c, t = op.control, op.target
+                c0 = np.array([[1, 0], [0, 0]])
+                c1 = np.array([[0, 0], [0, 1]])
+
+                sx = np.array([[0, 1], [1, 0]]).astype("complex64")
+                us = circuit.n_quantum * [np.identity(2)]
+
+                us0 = copy.deepcopy(us)
+                us0[c] = np.array([[1, 0], [0, 0]])
+
+                us1 = copy.deepcopy(us)
+                us1[c] = np.array([[0, 0], [0, 1]])
+                us1[t] = np.array([[0, 1], [1, 0]])
+
+                u = reduce(np.kron, us0) + reduce(np.kron, us1)
+                print(u)
 
         print(state)

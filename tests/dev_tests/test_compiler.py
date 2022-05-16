@@ -10,7 +10,7 @@ if __name__ == "__main__":
     circuit.add(Hadamard(register=0))
     circuit.add(CNOT(control=0, target=1))
     # circuit.add(Output(0))
-    # circuit.show()
+    circuit.show()
 
     compiler = DensityMatrixCompiler()
     compiler.compile(circuit)

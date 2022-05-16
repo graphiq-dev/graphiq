@@ -58,19 +58,16 @@ class DensityMatrixCompiler(CompilerBase):
     def compile(self, circuit: CircuitDAG):
 
         sources = [x for x in circuit.dag.nodes() if circuit.dag.in_degree(x) == 0]
-        print(sources)
+        # print(sources)
         # state = circuit.initial_state()  # TODO: how to get the initial state?
 
         # TODO: make this more general, but for now we assume all registers are initialized to |0>
         init = np.outer(np.array([1, 0]), np.array([1, 0])).astype('complex64')  # initialization of quantum registers
         state = reduce(np.kron, len(sources)*[init])  # generates the tensor product input density matrix
-        print(state)
+        # print(state)
 
         seq = circuit.sequence()
         for op in seq:
-            # print(op)
-            # print(op.register)
-
             if type(op) not in self.ops:
                 raise RuntimeError(f"The {op.__class__.__name__} is not valid with "
                                    f"the {self.__class__.__name__} compiler")
@@ -80,24 +77,20 @@ class DensityMatrixCompiler(CompilerBase):
 
             elif type(op) is ops.Hadamard:
                 q = op.register
-                h = np.array([[1, 1], [1, -1]]).astype("complex64") / np.sqrt(2)
-                us = (q - 1) * [np.identity(2)] + [h] + (circuit.n_quantum - q - 1) * [np.identity(2)]
+                us = circuit.n_quantum * [np.identity(2)]
+                us[q] = np.array([[1, 1], [1, -1]]).astype("complex64") / np.sqrt(2)
                 u = reduce(np.kron, us)
                 state = u @ state @ np.conjugate(u).T
 
             elif type(op) is ops.PauliX:
                 q = op.register
-                sx = np.array([[0, 1], [1, 0]]).astype("complex64")
-                us = (q - 1) * [np.identity(2)] + [sx] + (circuit.n_quantum - q - 1) * [np.identity(2)]
+                us = circuit.n_quantum * [np.identity(2)]
+                us[q] = np.array([[0, 1], [1, 0]]).astype("complex64")
                 u = reduce(np.kron, us)
                 state = u @ state @ np.conjugate(u).T
 
             elif type(op) is ops.CNOT:
                 c, t = op.control, op.target
-                c0 = np.array([[1, 0], [0, 0]])
-                c1 = np.array([[0, 0], [0, 1]])
-
-                sx = np.array([[0, 1], [1, 0]]).astype("complex64")
                 us = circuit.n_quantum * [np.identity(2)]
 
                 us0 = copy.deepcopy(us)
@@ -108,6 +101,6 @@ class DensityMatrixCompiler(CompilerBase):
                 us1[t] = np.array([[0, 1], [1, 0]])
 
                 u = reduce(np.kron, us0) + reduce(np.kron, us1)
-                print(u)
+                state = u @ state @ np.conjugate(u).T
 
-        print(state)
+        return state

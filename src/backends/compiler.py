@@ -10,11 +10,8 @@ from functools import reduce
 import numpy as np
 
 import src.ops as ops
-from src.circuit import Circuit, CircuitDAG
+from src.circuit import CircuitDAG
 
-__all__ = [
-
-]
 
 class CompilerBase(ABC):
     """
@@ -60,13 +57,38 @@ class DensityMatrixCompiler(CompilerBase):
     def compile(self, circuit: CircuitDAG):
 
         sources = [x for x in circuit.dag.nodes() if circuit.dag.in_degree(x) == 0]
+        print(sources)
         # state = circuit.initial_state()  # TODO: how to get the initial state?
 
-        init = np.outer(np.array([1, 1]/np.sqrt(2)), np.array([1, 1])/np.sqrt(2)).astype('complex64')
-        # init = np.outer(np.array([1, 0]), np.array([1, 0])).astype('complex64')
-        state = reduce(np.kron, 4*[init])
+        # TODO: make this more general, but for now we assume all registers are initialized to |0>
+        init = np.outer(np.array([1, 0]), np.array([1, 0])).astype('complex64')  # initialization of quantum registers
+        state = reduce(np.kron, len(sources)*[init])  # generates the tensor product input density matrix
         print(state)
+
         seq = circuit.sequence()
         for op in seq:
-            if type(op) is ops.OperationBase:  # TODO:
-                print(op)
+            # print(op)
+            # print(op.register)
+
+            if type(op) not in self.ops:
+                raise RuntimeError(f"The {op.__class__.__name__} is not valid with "
+                                   f"the {self.__class__.__name__} compiler")
+
+            if type(op) is ops.Input:
+                pass
+
+            if type(op) is ops.Hadamard:
+                q = op.register
+                h = np.array([[1, 1], [1, -1]]).astype("complex64") / np.sqrt(2)
+                us = (q - 1) * [np.identity(2)] + [h] + (circuit.n_quantum - q - 1) * [np.identity(2)]
+                u = reduce(np.kron, us)
+                state = u @ state @ np.conjugate(u).T
+
+            if type(op) is ops.PauliX:
+                q = op.register
+                sx = np.array([[0, 1], [1, 0]]).astype("complex64")
+                us = (q - 1) * [np.identity(2)] + [sx] + (circuit.n_quantum - q - 1) * [np.identity(2)]
+                u = reduce(np.kron, us)
+                state = u @ state @ np.conjugate(u).T
+
+        print(state)

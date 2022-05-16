@@ -26,7 +26,7 @@ Resources: https://qiskit.org/documentation/stubs/qiskit.converters.circuit_to_d
 import networkx as nx
 import matplotlib.pyplot as plt
 
-from src.ops import Operation
+from src.ops import OperationBase
 from src.ops import Input
 from src.ops import Output
 # TODO: verify that the API assumptions below are accurate to what others have implemented
@@ -47,7 +47,7 @@ class Circuit:
         """
         raise ValueError('Base class circuit is abstract: it does not support function calls')
 
-    def add(self, operation: Operation):
+    def add(self, operation: OperationBase):
         raise ValueError('Base class circuit is abstract: it does not support function calls')
 
     def validate(self):
@@ -87,7 +87,7 @@ class CircuitDAG(Circuit):
         self.c_registers = set()
         self._add_reg(range(n_quantum), range(n_classical))
 
-    def add(self, operation: Operation):
+    def add(self, operation: OperationBase):
         """
         Add an operation to the circuit
         :param operation: Operation (gate and register) to add to the graph
@@ -147,16 +147,16 @@ class CircuitDAG(Circuit):
         self.c_registers = self.c_registers.union(new_c_reg)
 
         for q in new_q_reg:
-            self.dag.add_node(f'q{q}_in', op=Input())
-            self.dag.add_node(f'q{q}_out', op=Output())
+            self.dag.add_node(f'q{q}_in', op=Input(register=q))
+            self.dag.add_node(f'q{q}_out', op=Output(register=q))
             self.dag.add_edge(f'q{q}_in', f'q{q}_out', bit=f'q{q}')
 
         for c in new_c_reg:
-            self.dag.add_node(f'c{c}_in', op=Input())
-            self.dag.add_node(f'c{c}_out', op=Output())
+            self.dag.add_node(f'c{c}_in', op=Input(register=c))
+            self.dag.add_node(f'c{c}_out', op=Output(register=c))
             self.dag.add_edge(f'c{c}_in', f'c{c}_out', bit=f'c{c}')
 
-    def _add(self, operation: Operation):
+    def _add(self, operation: OperationBase):
         """
         Add an operation to the circuit
         :param operation: Operation (gate and qubit/classical bit register) to add to the graph

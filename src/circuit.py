@@ -81,38 +81,19 @@ class CircuitDAG(Circuit):
         :param n_quantum: the number of qudits in the system
         :param n_classical: the number of classical bits in the system
         """
-        self.n_quantum = n_quantum
-        self.n_classical = n_classical
         self.dag = nx.DiGraph()
         self._node_id = 0
-        self._initialize_circuit()
+        self.q_registers = set()
+        self.c_registers = set()
+        self._add_reg(range(n_quantum), range(n_classical))
 
     def add(self, operation: Operation):
         """
         Add an operation to the circuit
-        :param operation: Operation (gate and qubit/classical bit register) to add to the graph
+        :param operation: Operation (gate and register) to add to the graph
         """
-        new_id = self.unique_node_id()
-        self.dag.add_node(new_id, op=operation)
-
-        # get all edges that will need to be removed (i.e. the edges on which the Operation is being added)
-        relevant_outputs = [f'q{q}_out' for q in operation.q_registers] + [f'c{c}_out' for c in operation.c_registers]
-        output_edges = []
-        for output in relevant_outputs:
-            output_edges.extend([edge for edge in self.dag.in_edges(output)])
-
-        # get all nodes we will need to connect to the Operation node
-
-        preceding_nodes = [edge[0] for edge in output_edges]
-        self.dag.remove_edges_from(output_edges)
-
-        for reg_index, node in zip([f'q{q}' for q in operation.q_registers] +
-                                   [f'c{c}' for c in operation.c_registers], preceding_nodes):
-            self.dag.add_edge(node, new_id, bit=reg_index)
-
-        for output in relevant_outputs:
-            edge_name = output.removesuffix('_out')
-            self.dag.add_edge(new_id, output, bit=edge_name)
+        self._add_reg(operation.q_registers, operation.c_registers)  # register will be added only if it does not exist
+        self._add(operation)
 
     def validate(self):
         """
@@ -151,20 +132,57 @@ class CircuitDAG(Circuit):
         nx.draw(self.dag, pos=pos, with_labels=True)
         plt.show()
 
-    def _initialize_circuit(self):
-        """
-        Helper function to create input and output nodes
-        """
-        for q in range(self.n_quantum):
+    @property
+    def n_quantum(self):
+        return len(self.q_registers)
+
+    @property
+    def n_classical(self):
+        return len(self.c_registers)
+
+    def _add_reg(self, q_reg, c_reg):
+        new_q_reg = set(q_reg) - self.q_registers
+        self.q_registers = self.q_registers.union(new_q_reg)
+        new_c_reg = set(c_reg) - self.c_registers
+        self.c_registers = self.c_registers.union(new_c_reg)
+
+        for q in new_q_reg:
             self.dag.add_node(f'q{q}_in', op=Input())
             self.dag.add_node(f'q{q}_out', op=Output())
             self.dag.add_edge(f'q{q}_in', f'q{q}_out', bit=f'q{q}')
 
-        for c in range(self.n_classical):
+        for c in new_c_reg:
             self.dag.add_node(f'c{c}_in', op=Input())
             self.dag.add_node(f'c{c}_out', op=Output())
             self.dag.add_edge(f'c{c}_in', f'c{c}_out', bit=f'c{c}')
 
-    def unique_node_id(self):
+    def _add(self, operation: Operation):
+        """
+        Add an operation to the circuit
+        :param operation: Operation (gate and qubit/classical bit register) to add to the graph
+        """
+        new_id = self._unique_node_id()
+        self.dag.add_node(new_id, op=operation)
+
+        # get all edges that will need to be removed (i.e. the edges on which the Operation is being added)
+        relevant_outputs = [f'q{q}_out' for q in operation.q_registers] + [f'c{c}_out' for c in operation.c_registers]
+        output_edges = []
+        for output in relevant_outputs:
+            output_edges.extend([edge for edge in self.dag.in_edges(output)])
+
+        # get all nodes we will need to connect to the Operation node
+
+        preceding_nodes = [edge[0] for edge in output_edges]
+        self.dag.remove_edges_from(output_edges)
+
+        for reg_index, node in zip([f'q{q}' for q in operation.q_registers] +
+                                   [f'c{c}' for c in operation.c_registers], preceding_nodes):
+            self.dag.add_edge(node, new_id, bit=reg_index)
+
+        for output in relevant_outputs:
+            edge_name = output.removesuffix('_out')
+            self.dag.add_edge(new_id, output, bit=edge_name)
+
+    def _unique_node_id(self):
         self._node_id += 1
         return self._node_id

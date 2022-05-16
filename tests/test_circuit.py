@@ -2,7 +2,7 @@ import pytest
 import random
 
 from src.circuit import CircuitDAG
-from src.ops import Operation
+from src.ops import OperationBase
 
 
 @pytest.mark.parametrize("n_quantum, n_classical", [(1, 0), (0, 4), (3, 6), (24, 63)])
@@ -24,10 +24,10 @@ def test_add_op_1():
     op_q0_out = dag.dag.nodes['q0_out']['op']
     op_q1_out = dag.dag.nodes['q1_out']['op']
 
-    op1 = Operation(q_registers=(0,))
-    op2 = Operation(q_registers=(0,))
-    op3 = Operation(q_registers=(0,))
-    op4 = Operation(q_registers=(1,))
+    op1 = OperationBase(q_registers=(0,))
+    op2 = OperationBase(q_registers=(0,))
+    op3 = OperationBase(q_registers=(0,))
+    op4 = OperationBase(q_registers=(1,))
     dag.add(op1)
     dag.add(op2)
     dag.add(op3)
@@ -65,13 +65,13 @@ def test_add_op2():
     op_c0_out = dag.dag.nodes['c0_out']['op']
     op_c1_out = dag.dag.nodes['c1_out']['op']
 
-    op1 = Operation(q_registers=(1,))
-    op2 = Operation(q_registers=(1, 0))
-    op3 = Operation(q_registers=(1,), c_registers=(0,))
-    op4 = Operation(c_registers=(1,))
-    op5 = Operation(c_registers=(0, 1))
-    op6 = Operation(q_registers=(0, 1), c_registers=(0, 1))
-    op7 = Operation(q_registers=(0,))
+    op1 = OperationBase(q_registers=(1,))
+    op2 = OperationBase(q_registers=(1, 0))
+    op3 = OperationBase(q_registers=(1,), c_registers=(0,))
+    op4 = OperationBase(c_registers=(1,))
+    op5 = OperationBase(c_registers=(0, 1))
+    op6 = OperationBase(q_registers=(0, 1), c_registers=(0, 1))
+    op7 = OperationBase(q_registers=(0,))
     dag.add(op1)
     dag.add(op2)
     dag.add(op3)
@@ -105,9 +105,9 @@ def test_validate_correct():
     """
     dag = CircuitDAG(2, 2)
 
-    op1 = Operation(q_registers=(1,))
-    op2 = Operation(q_registers=(1, 0))
-    op3 = Operation(q_registers=(1,), c_registers=(0,))
+    op1 = OperationBase(q_registers=(1,))
+    op2 = OperationBase(q_registers=(1, 0))
+    op3 = OperationBase(q_registers=(1,), c_registers=(0,))
     dag.add(op1)
     dag.add(op2)
     dag.add(op3)
@@ -131,7 +131,7 @@ def test_random_graph(seed):
         q_registers = tuple(set([random.randint(0, q - 1) for _ in range(q_register_num_max)]))
         c_registers = tuple(set([random.randint(0, c - 1) for _ in range(c_register_num_max)]))
 
-        dag.add(Operation(q_registers=q_registers, c_registers=c_registers))
+        dag.add(OperationBase(q_registers=q_registers, c_registers=c_registers))
 
     dag.validate()
 
@@ -141,9 +141,9 @@ def test_dynamic_registers_1():
     Check with single-register gates only
     """
     dag = CircuitDAG(1, 0)
-    op1 = Operation(q_registers=(1,))
-    op2 = Operation(q_registers=(2,))
-    op3 = Operation(c_registers=(5,))
+    op1 = OperationBase(q_registers=(1,))
+    op2 = OperationBase(q_registers=(2,))
+    op3 = OperationBase(c_registers=(5,))
     dag.add(op1)
     dag.validate()
     dag.add(op2)
@@ -180,9 +180,9 @@ def test_dynamic_register_2():
     Same test, allowing 2 qubit gates
     """
     dag = CircuitDAG(1, 0)
-    op1 = Operation(q_registers=(1, 2))
-    op2 = Operation(q_registers=(2,))
-    op3 = Operation(q_registers=(0,), c_registers=(5, 0))
+    op1 = OperationBase(q_registers=(1, 2))
+    op2 = OperationBase(q_registers=(2,))
+    op3 = OperationBase(q_registers=(0,), c_registers=(5, 0))
     dag.add(op1)
     dag.add(op2)
     dag.add(op3)
@@ -226,7 +226,7 @@ def test_random_graph(seed):
 
         q_registers = tuple(set([random.randint(0, 150) for _ in range(q_register_num)]))
         c_registers = tuple(set([random.randint(0, 120) for _ in range(c_register_num)]))
-        dag.add(Operation(q_registers=q_registers, c_registers=c_registers))
+        dag.add(OperationBase(q_registers=q_registers, c_registers=c_registers))
 
     dag.validate()
 

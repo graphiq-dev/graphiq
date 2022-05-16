@@ -39,7 +39,8 @@ class CircuitBase(ABC):
         """
         Construct an empty circuit
         """
-        pass
+        self.q_registers = set()
+        self.c_registers = set()
 
     @abstractmethod
     def add(self, operation: OperationBase):
@@ -64,6 +65,14 @@ class CircuitBase(ABC):
     def to_openqasm(self):
         raise ValueError('Base class circuit is abstract: it does not support function calls')
 
+    @property
+    def n_quantum(self):
+        return len(self.q_registers)
+
+    @property
+    def n_classical(self):
+        return len(self.c_registers)
+
 
 class CircuitDAG(CircuitBase):
     """
@@ -83,8 +92,6 @@ class CircuitDAG(CircuitBase):
         super().__init__(*args, **kwargs)
         self.dag = nx.DiGraph()
         self._node_id = 0
-        self.q_registers = set()
-        self.c_registers = set()
         self._add_reg(range(n_quantum), range(n_classical))
 
     def add(self, operation: OperationBase):
@@ -131,14 +138,6 @@ class CircuitDAG(CircuitBase):
         pos = nx.spring_layout(self.dag, seed=0)  # Seed layout for reproducibility
         nx.draw(self.dag, pos=pos, with_labels=True)
         plt.show()
-
-    @property
-    def n_quantum(self):
-        return len(self.q_registers)
-
-    @property
-    def n_classical(self):
-        return len(self.c_registers)
 
     def _add_reg(self, q_reg, c_reg):
         new_q_reg = set(q_reg) - self.q_registers

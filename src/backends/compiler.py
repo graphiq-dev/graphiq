@@ -73,7 +73,7 @@ class DensityMatrixCompiler(CompilerBase):
                                    f"the {self.__class__.__name__} compiler")
 
             if type(op) is ops.Input:
-                pass
+                pass  # TODO: should think about best way to handle inputs/outputs
 
             elif type(op) is ops.Hadamard:
                 q = op.register

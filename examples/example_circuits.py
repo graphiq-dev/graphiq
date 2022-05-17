@@ -1,5 +1,5 @@
 """
-
+Examples of defining and simulating quantum circuits for a variety of small quantum states
 """
 import numpy as np
 

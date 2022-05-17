@@ -4,3 +4,4 @@ scipy
 networkx~=2.7.1
 autograd
 pytest
+pandas

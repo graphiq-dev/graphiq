@@ -46,6 +46,7 @@ class RandomSearchSolver(SolverBase):
 
             # TODO: compile/simulate the newly evolved circuit
             state = self.compiler.compile(circuit)
+            print(state)
 
             # TODO: evaluate the state/circuit of the newly evolved circuit
             self.metric.evaluate(state, circuit)

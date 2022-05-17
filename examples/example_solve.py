@@ -3,8 +3,9 @@ Example of using a solver to discover circuits to generate a target state
 """
 import numpy as np
 
-from src import solver, metrics, backends, circuit, ops
+from src import solvers, metrics, backends, circuit, ops
 from src.backends import compiler
+
 
 if __name__ == "__main__":
     # start by defining an initial circuit
@@ -20,7 +21,7 @@ if __name__ == "__main__":
     metric = metrics.MetricFidelity()
 
     # define the solver (all methods are encapsulated in the class definition)
-    solver = solver.RandomSearchSolver(target=None, metric=metric, compiler=compiler)
+    solver = solvers.RandomSearchSolver(target=None, metric=metric, compiler=compiler)
 
     # call .solve to implement the solver algorithm
     solver.solve(circuit)

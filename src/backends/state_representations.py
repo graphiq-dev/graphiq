@@ -18,7 +18,7 @@ class StateRepresentation:
     """
     Base class for state representation
     """
-    def __init__(self,state_data,*args, **kwargs):
+    def __init__(self,state_data, state_id, *args, **kwargs):
         """
         Construct an empty state representation
         :param state_data: some input data about the state
@@ -41,10 +41,15 @@ class GraphRep(StateRepresentation):
     we may need to keep track of local cliffcords that convert the state to the graph state represented by the graph
     """
 
-    def __init__(self, state_data, initial_counter, root_node_id):
-        self.initial_counter = initial_counter
-        self.root_node, self.node_dict, self.rep = gf.convert_data_to_graph(root_node_id,initial_counter,state_data)
-        self.local_cliffords = None
+    def __init__(self, state_data, state_id, root_node_id):
+        """
+        :params state_data: data used to construct the representation
+        :params state_id: a unique identifier for the state
+        :params root_node_id: a node id for the root node
+        """
+        self.state_id = state_id
+        self.root_node, self.node_dict, self.rep = gf.convert_data_to_graph(root_node_id,state_id,state_data)
+        self.local_cliffords = None # set this later
 
     def add_node(self, node_to_add):
         """
@@ -56,7 +61,7 @@ class GraphRep(StateRepresentation):
         """
         if isinstance(node_to_add, QuNode):
             node_id = node_to_add.get_id()
-            node_to_add.set_id_with_prefix(self.initial_counter, node_id)
+            node_to_add.set_id_with_prefix(self.state_id, node_id)
             if node_id not in self.node_dict.keys():
                 self.node_dict[node_id] = node_to_add
                 self.rep.add_node(node_to_add)
@@ -65,7 +70,7 @@ class GraphRep(StateRepresentation):
         elif isinstance(node_to_add, int):
             # node_to_add is just a node id; create the node first if it does not exist
             if node_to_add not in self.node_dict.keys():
-                tmp_node = QuNode(self.initial_counter + node_to_add)
+                tmp_node = QuNode(self.state_id + node_to_add)
                 self.node_dict[node_to_add] = tmp_node
                 self.graph.add_node(tmp_node)
             else:
@@ -73,7 +78,7 @@ class GraphRep(StateRepresentation):
         elif isinstance(node_to_add, frozenset):
             if node_to_add not in self.node_dict.keys():
                 tmp_node = QuNode(node_to_add)
-                tmp_node.set_id_with_prefix(self.initial_counter, node_to_add)
+                tmp_node.set_id_with_prefix(self.state_id, node_to_add)
                 self.node_dict[node_to_add] = tmp_node
                 self.rep.add_node(tmp_node)
             else:
@@ -97,16 +102,16 @@ class GraphRep(StateRepresentation):
             raise ValueError('Not supporting input data type')
 
         if isinstance(node_id1,int):
-            node_index1 = node_id1 - self.initial_counter
+            node_index1 = node_id1 - self.state_id
         else:
             tmp_id_list = list(node_id1)
-            tmp_id_list2 = [id - self.initial_counter for id in tmp_id_list]
+            tmp_id_list2 = [id - self.state_id for id in tmp_id_list]
             node_index1 = frozenset(tmp_id_list2)
         if isinstance(node_id1,int):
-            node_index2 = node_id2 - self.initial_counter
+            node_index2 = node_id2 - self.state_id
         else:
             tmp_id_list = list(node_id2)
-            tmp_id_list2 = [id - self.initial_counter for id in tmp_id_list]
+            tmp_id_list2 = [id - self.state_id for id in tmp_id_list]
             node_index2 = frozenset(tmp_id_list2)
 
         if node_index1 in self.node_dict.keys() and node_index2 in self.node_dict.keys():
@@ -123,7 +128,7 @@ class GraphRep(StateRepresentation):
             raise KeyError('Node does not exist')
         if new_node_id in self.node_dict.keys():
             raise KeyError('New identifier already in use')
-        self.node_dict[old_node_id].set_id_with_prefix(self.initial_counter,new_node_id)
+        self.node_dict[old_node_id].set_id_with_prefix(self.state_id, new_node_id)
         self.node_dict[new_node_id] = self.node_dict.pop(old_node_id)
 
 
@@ -147,7 +152,7 @@ class GraphRep(StateRepresentation):
                 new_id = list()
                 new_id_short = list()
                 for id in node_id:
-                    new_id.append(counter+new_state_id)
+                    new_id.append(counter + new_state_id)
                     new_id_short.append(counter)
                     counter += 1
                 new_id = frozenset(new_id)
@@ -179,7 +184,7 @@ class GraphRep(StateRepresentation):
         return [(e[0].get_id(),e[1].get_id()) for e in self.rep.edges]
 
     def get_edges_simple_id_form(self):
-        return [(e[0].get_id_wo_prefix(self.initial_counter),e[1].get_id_wo_prefix(self.initial_counter)) for e in self.graph.edges]
+        return [(e[0].get_id_wo_prefix(self.state_id),e[1].get_id_wo_prefix(self.state_id)) for e in self.graph.edges]
 
     def get_nodes_id_form(self):
         return [node.get_id() for node in self.rep.nodes]
@@ -298,11 +303,12 @@ class DensityMatrix(StateRepresentation):
     """
     Density matrix of a graph state
     """
-    def __init__(self,state_data,*args, **kwargs):
+    def __init__(self,state_data, state_id, *args, **kwargs):
         """
         Construct a DensityMatrix object and calculate the density matrix from state_data
         :param state_data: density matrix or a networkx graph
         """
+        self.state_id = state_id
         if isinstance(state_data,np.matrix) or isinstance(state_data,np.ndarray):
             # state_data is a numpy matrix or numpy ndarray
 
@@ -343,7 +349,7 @@ class DensityMatrix(StateRepresentation):
 
 
 class Stabilizer(StateRepresentation):
-    def __init__(self,state_data,*args, **kwargs):
+    def __init__(self, state_data, state_id, *args, **kwargs):
         # to be implemented
         raise NotImplementedError('')
     def get_rep(self):

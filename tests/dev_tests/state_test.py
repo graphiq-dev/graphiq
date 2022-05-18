@@ -4,11 +4,11 @@ import numpy as np
 import networkx as nx
 
 
-state_rep1 = DensityMatrix(np.eye(2))
+state_rep1 = DensityMatrix(np.eye(2),1000)
 
 graph1 = nx.Graph([(1,2),(1,3)])
 
-state_rep2 = DensityMatrix(graph1)
+state_rep2 = DensityMatrix(graph1,1001)
 
 
 print(state_rep1.get_rep())

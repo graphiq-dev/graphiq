@@ -10,24 +10,35 @@ It should support the following functionalities:
                             tweak designs output by the system)
 2. Circuit topology can be modified by the solver [MVP: yes, MVP initial sprint: no]
         Purpose: allows the circuit structure to be modified and optimized
-3. Circuit can provide a list of its tunable parameters
-   [MVP: <groundwork should exist, not necessarily implemented>, MVP initial sprint: no]
-        Purpose (example): allows for parameter optimization of the circuit via external optimization libraries
-4. Circuit can be compressed into a list of Operation objects [MVP: yes, MVP initial sprint: yes]
+3. Circuit can be compressed into a list of Operation objects [MVP: yes, MVP initial sprint: yes]
         Purpose (example): use at compilation step, use for compatibility with other software (e.g. openQASM)
-5. Circuit can be compiled using the Compiler [MVP: yes, MVP initial sprint: yes]
+4. Circuit can be compiled using the Compiler [MVP: yes, MVP initial sprint: yes]
         Purpose: allows the circuit to be simulated
-6. Circuit can be sent to an openQASM script [MVP: yes, MVP initial sprint: if time]
+5. Circuit can be sent to an openQASM script [MVP: yes, MVP initial sprint: if time]
         Purpose: method of saving circuit (ideal), compatibility with other software, visualization
 
 Resources: https://qiskit.org/documentation/stubs/qiskit.converters.circuit_to_dag.html
 Visualizing openQASM: https://www.media.mit.edu/quanta/qasm2circ/ <-- use this
 
-TODO: cleanup classical and quantum registers duplicate code
-name (consolidate to a single helper function to which we can pass "quantum" or "classical")
+DYNAMIC CIRCUIT BUILDING: if we think of the solver trying to create a certain graph state, it's not necessarily
+obvious how many qubits and classical bits we'll need for that. Hence, we expect to be able to add qubits/classical bits
+"live" (as we keep editing the circuit).
+1. We can therefore add an Operation on register 2 even if register 2 did not previously exist--however we only accept
+continuous numbering of registers, so register 1 must exist beforehand
+2. The number of registers can be queried (e.g. by the solver) to add the correct numbered register
 
-USER WARNING: if you expand a register AFTER using an Operation which applied to the full register, the Operation will
-NOT retroactively apply
+
+REGISTER HANDLING:
+
+In qiskit and openQASM, for example, you can apply operations on either a specific qubit in a specific register OR
+on the full register (see ops.py for an explanation of how registers are applied).
+1. Each operation received (whether or not it applies to full registers) is broken down into a set of operations that
+apply between a specific number of qubits (i.e. an operation for each qubit of the register).
+2. Registers can be added/expanded via provided methods.
+
+USER WARNINGS:
+1. if you expand a register AFTER using an Operation which applied to the full register, the Operation will
+NOT retroactively apply to the added qubits
 """
 import copy
 import itertools
@@ -93,15 +104,14 @@ class CircuitBase(ABC):
         Adds a quantum register, and returns the index of said register
         :return: index of added quantum register
         """
-        self._add_register(size, True)
+        return self._add_register(size, True)
 
     def add_classical_register(self, size=1):
         """
         Adds a classical register, and returns the index of said register
         :return: index of added classical register
         """
-        self._add_register(size, False)
-
+        return self._add_register(size, False)
 
     def _add_register(self, size, is_quantum):
         if is_quantum:
@@ -204,31 +214,27 @@ class CircuitDAG(CircuitBase):
         nx.draw(self.dag, pos=pos, with_labels=True)
         plt.show()
 
-    def add_quantum_register(self, size=1):
-        """
-        Adds a quantum register, and returns the index of said register
-        :return: index of added quantum register
-        """
-        # TODO:
-        pass
+    def _add_register(self, size, is_quantum):
+        reg_description = 'Quantum' if is_quantum else 'Classical'
+        if size < 1:
+            raise ValueError(f'{reg_description} register size must be at least one')
 
-    def add_classical_register(self, size=1):
-        """
-        Adds a classical register, and returns the index of said register
-        :return: index of added classical register
-        """
-        # TODO:
-        pass
+        if is_quantum:
+            self._add_reg((len(self.q_registers),), tuple(), size=size)
+        else:
+            self._add_reg(tuple(), (len(self.c_registers),), size=size)
+        return size
 
-    def expand_quantum_register(self, register, new_size):
-        # TODO:
-        pass
+    def _expand_register(self, register, new_size, is_quantum):
+        old_size = self.q_registers[register] if is_quantum else self.c_registers[register]
+        # super()._expand_register(register, new_size, is_quantum)
+        for i in range(old_size, new_size):
+            if is_quantum:
+                self._add_reg((register, i), tuple())
+            else:
+                self._add_reg(tuple(), (register, i))
 
-    def expand_classical_register(self, register, new_size):
-        # TODO:
-        pass
-
-    def _add_reg(self, q_reg, c_reg):
+    def _add_reg(self, q_reg, c_reg, size=1):
         # add registers as needed
         def update_registers(reg, is_quantum):
             if is_quantum:
@@ -243,10 +249,16 @@ class CircuitDAG(CircuitBase):
                     raise ValueError(f"Register numbering must be continuous. Quantum register {a} cannot be added."
                                      f"Next register that can be added is {len(curr_register)}")
                 if a == len(curr_register):
-                    curr_register.append(1)  # we initialize the register to have a single qubit here
+                    curr_register.append(size)  # we initialize the register to have a single qubit here
+                else:
+                    pass
+                    # curr_register
 
         update_registers(q_reg, True)
         update_registers(c_reg, False)
+        print('q and c registers')
+        print(self.q_registers)
+        print(self.c_registers)
 
         def update_graph(reg, is_quantum):
             # TODO: consider whether this is worth optimizing

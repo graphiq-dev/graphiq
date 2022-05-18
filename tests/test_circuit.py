@@ -209,6 +209,7 @@ def test_continuous_indices_registers():
     with pytest.raises(ValueError):
         dag.add(op3)
 
+
 def test_dynamic_register_2():
     """
     Same test, allowing 2 qubit gates
@@ -269,7 +270,69 @@ def test_random_graph(seed):
     dag.validate()
 
 
+def test_add_register_1():
+    """
+    Test the fact we can't add registers of size 0
+    """
+    dag = CircuitDAG(0, 0)
+    dag.validate()
+    with pytest.raises(ValueError):
+        dag.add_quantum_register(0)
+
+
+def test_add_register_2():
+    dag = CircuitDAG(2, 2)
+    dag.validate()
+    dag.add_quantum_register()
+    dag.add(OperationBase(q_registers=(0,)))
+    dag.validate()
+    dag.add(OperationBase(q_registers=(1, 0)))
+    dag.add_classical_register(2)
+    dag.validate()
+
+    assert dag.n_quantum == 3
+    assert dag.n_classical == 3
+    assert dag.dag.number_of_nodes() == 16
+    assert dag.dag.number_of_edges() == 10
+
+
+def test_expand_register_1():
+    """
+    Test that you get an error when you try to expand a register that
+    does not exist
+    """
+    dag = CircuitDAG(1, 1)
+    dag.validate()
+    with pytest.raises(IndexError):
+        dag.expand_quantum_register(1, 3)
+
+
+def test_expand_register_2():
+    """
+    Test that you get an error when you try to shrink or not expand a register
+    """
+    dag = CircuitDAG(1, 1)
+    dag.validate()
+    with pytest.raises(ValueError):
+        dag.expand_quantum_register(0, 0)
+
+    with pytest.raises(ValueError):
+        dag.expand_quantum_register(0, 1)
+
+    dag.expand_quantum_register(0, 5)
+    with pytest.raises(ValueError):
+        dag.expand_quantum_register(0, 3)
+
+    with pytest.raises(ValueError):
+        dag.expand_quantum_register(0, 5)
+
+    dag.expand_quantum_register(0, 7)
+
+    assert dag.n_quantum == 1
+    assert dag.n_classical == 1
+    assert dag.dag.number_of_nodes() == 16
+    assert dag.dag.number_of_edges() == 8
+
 # TODO: test registers, including tests to make sure the indices are continuous
 
-
-
+# TODO: test registers of different sizes

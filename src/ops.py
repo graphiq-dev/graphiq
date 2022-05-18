@@ -1,4 +1,22 @@
 """
+The Operation objects are objects which tell the compiler what gate to apply on which registers / qubits
+
+They serve two purposes:
+1. They are used to build our circuit: circuit.add(OperationObj). The circuit constructs the DAG structure from the
+connectivity information in OperationObj
+2. They are passed as an iterable to the compiler, such that the compiler can perform the correct series of information
+
+REGISTERS VS QUDITS/CBITS: following qiskit/openQASM and other softwares, we allow a distinction between registers
+and qudits/qubits (where one register can contain a number of qubits / qudits).
+
+IF an operation is given q_registers=(a, b), the circuit takes it to apply between registers a and b (that is,
+it applies between all qubits a[j], b[j] for 0 < j < n with a, b having length n)
+
+If an operation is given q_registers=((a, b), (c, d)), the circuit takes it to apply between qubit b of register a,
+and qubit d of register c.
+
+We can also use a mixture of registers an qubits: q_registers(a, (b, c)) means that the operation will be applied
+between EACH QUBIT of register a, and qubit c of register b
 """
 from abc import ABC
 

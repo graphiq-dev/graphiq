@@ -42,23 +42,20 @@ def ghz3_state_circuit():
     circuit.add(CNOT(control=3, target=0))
     circuit.add(CNOT(control=3, target=1))
     circuit.add(CNOT(control=3, target=2))
-    # circuit.add(Hadamard(register=1))
-    # circuit.add(Hadamard(register=2))
     circuit.add(Hadamard(register=3))
     circuit.add(CNOT(control=3, target=2))
+    # TODO: Add measurement operation
 
     circuit.show()
 
     compiler = DensityMatrixCompiler()
     state = compiler.compile(circuit)
-    partial_trace(state, keep=[0, 1, 2], dims=[2, 2, 2, 2])
     print(ideal)
     print(state)
+    return state, ideal
 
 
 if __name__ == "__main__":
 
-    state, ideal = bell_state_circuit()
-    # pstate = partial_trace(state, keep=[0], dims=[2, 2])
-    # print(pstate)
-    # ghz3_state_circuit()
+    # state, ideal = bell_state_circuit()
+    state, ideal = ghz3_state_circuit()

@@ -2,6 +2,7 @@
 Example of using a solver to discover circuits to generate a target state
 """
 import numpy as np
+import matplotlib.pyplot as plt
 
 from src import solvers, metrics, backends, circuit, ops
 from src.backends import compiler
@@ -28,3 +29,6 @@ if __name__ == "__main__":
 
     # we now have access to the metrics (don't need to pass anything back, as we are logging it in the Metric instance)
     print(metric.log)
+
+    plt.plot(metric.log)
+    plt.show()

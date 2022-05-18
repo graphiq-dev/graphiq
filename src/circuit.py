@@ -18,7 +18,7 @@ It should support the following functionalities:
 5. Circuit can be compiled using the Compiler [MVP: yes, MVP initial sprint: yes]
         Purpose: allows the circuit to be simulated
 6. Circuit can be sent to an openQASM script [MVP: yes, MVP initial sprint: if time]
-        Purpose: method of saving circuit (ideal), compatibility with other software, visualization
+        Purpose: method of saving circuit (ideal), compatibility with other software, visualizers
 
 Resources: https://qiskit.org/documentation/stubs/qiskit.converters.circuit_to_dag.html
 """
@@ -29,6 +29,8 @@ from abc import ABC, abstractmethod
 from src.ops import OperationBase
 from src.ops import Input
 from src.ops import Output
+
+from src.visualizers.dag import dag_topology_pos
 
 
 class CircuitBase(ABC):
@@ -133,11 +135,12 @@ class CircuitDAG(CircuitBase):
 
     def show(self):
         """
-        Shows circuit DAG (for debugging purposes)
+        Shows circuit DAG
         """
-        # pos = nx.spring_layout(self.dag, seed=0)  # Seed layout for reproducibility
-        pos = topo_pos(self.dag)
-        nx.draw(self.dag, pos=pos, with_labels=True)
+        pos = dag_topology_pos(self.dag, method="topology")
+
+        fig, ax = plt.subplots()
+        nx.draw(self.dag, pos=pos, ax=ax, with_labels=True)
         plt.show()
 
     def _add_reg(self, q_reg, c_reg):
@@ -187,13 +190,3 @@ class CircuitDAG(CircuitBase):
         self._node_id += 1
         return self._node_id
 
-
-def topo_pos(dag):
-    """Display in topological order, with simple offsetting for legibility"""
-    pos_dict = {}
-    for i, node_list in enumerate(nx.topological_generations(dag)):
-        x_offset = len(node_list) / 2
-        y_offset = 0.1
-        for j, name in enumerate(node_list):
-            pos_dict[name] = (j - x_offset, -i + j * y_offset)
-    return pos_dict

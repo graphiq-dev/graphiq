@@ -2,15 +2,14 @@
 Examples of defining and simulating quantum circuits for a variety of small quantum states
 """
 import numpy as np
+import matplotlib.pyplot as plt
 
 from src.circuit import CircuitDAG
 from src.ops import *
 from src.backends.compiler import DensityMatrixCompiler
 
 from src.backends.density_matrix_functions import ketz0_state, ketz1_state, tensor, partial_trace, ket2dm
-
-import networkx as nx
-import matplotlib.pyplot as plt
+from src.visualizers.density_matrix import density_matrix_bars
 
 
 def bell_state_circuit():
@@ -59,3 +58,7 @@ if __name__ == "__main__":
 
     # state, ideal = bell_state_circuit()
     state, ideal = ghz3_state_circuit()
+    # plt.show()
+
+    density_matrix_bars(state.rep)
+    plt.show()

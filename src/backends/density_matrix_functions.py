@@ -1,8 +1,9 @@
 """
 Helper functions for density matrix calculation.
 """
-import math
 import numpy as np
+from functools import reduce
+
 
 def sigmax():
     """
@@ -10,36 +11,49 @@ def sigmax():
     :return: sigma X matrix
     :rtype: numpy.matrix
     """
-    return  np.matrix([[0,1],[1,0]])
+    return np.array([[0, 1], [1, 0]])
 
 
 def sigmay():
     """
     Return sigma Y matrix
     :return: sigma Y matrix
-    :rtype: numpy.matrix
+    :rtype: numpy.array
     """
-    return  np.matrix([[0,-1j],[1j,0]])
+    return np.array([[0, -1j], [1j, 0]])
+
 
 def sigmaz():
     """
     Return sigma Z matrix
     :return: sigma Z matrix
-    :rtype: numpy.matrix
+    :rtype: numpy.array
     """
-    return  np.matrix([[1,0],[0,-1]])
+    return np.array([[1, 0], [0, -1]])
+
+
+def hadamard():
+    """
+    Return the Hadamard matrix for a qubit
+    :return: sigma X matrix
+    :rtype: numpy.array
+    """
+    return np.array([[1, 1], [1, -1]]) / np.sqrt(2)
+
 
 def ketx0_state():
     """
     Return normalized eigenvector of sigma x matrix with eigenvalue +1
     """
-    return 1/np.sqrt(2)*np.array([[1], [1]])
+    return 1/np.sqrt(2) * np.array([[1], [1]])
+
 
 def ketx1_state():
     """
     Return normalized eigenvector of sigma x matrix with eigenvalue -1
     """
-    return 1/np.sqrt(2)*np.array([[1], [-1]])
+    return 1/np.sqrt(2) * np.array([[1], [-1]])
+
 
 def ketz0_state():
     """
@@ -47,28 +61,29 @@ def ketz0_state():
     """
     return np.array([[1], [0]])
 
+
 def ketz1_state():
     """"
     Return normalized eigenvector of sigma z matrix with eigenvalue -1
     """
     return np.array([[0], [1]])
 
+
 def kety0_state():
     """
     Return normalized eigenvector of sigma y matrix with eigenvalue +1
     """
-    return 1/np.sqrt(2)*np.array([[1],[1j]])
+    return 1/np.sqrt(2) * np.array([[1], [1j]])
+
 
 def kety1_state():
     """
     Return normalized eigenvector of sigma y matrix with eigenvalue -1
     """
-    return 1/np.sqrt(2)*np.array([[1],[-1j]])
+    return 1/np.sqrt(2) * np.array([[1], [-1j]])
 
 
-
-
-def get_controlled_gate(number_qubits,control_qubit,target_qubit, target_gate):
+def get_controlled_gate(number_qubits, control_qubit, target_qubit, target_gate):
     """
     Define a controlled unitary gate
     :params number_qubits: specify the number of qubits in the system
@@ -78,7 +93,7 @@ def get_controlled_gate(number_qubits,control_qubit,target_qubit, target_gate):
     :type number_qubits: int
     :type control_qubit: int
     :type target_qubit: int
-    :type target_gate: numpy.matrix
+    :type target_gate: numpy.array
     """
     gate_cond0 = np.array([[1]])
     gate_cond1 = np.array([[1]])
@@ -121,9 +136,10 @@ def get_controlled_gate(number_qubits,control_qubit,target_qubit, target_gate):
         gate_cond1 = np.kron(gate_cond1,np.identity(2**(number_qubits-control_qubit-1)))
     else:
         raise ValueError('Control qubit and target qubit cannot be the same qubit!')
-    return np.matrix(gate_cond0 + gate_cond1)
+    return gate_cond0 + gate_cond1
 
-def get_single_qubit_gate(number_qubits,qubit_position,target_gate):
+
+def get_single_qubit_gate(number_qubits, qubit_position, target_gate):
     """
     A helper function to obtain the resulting matrix after tensoring the necessary identities
     :param number_qubits: number of qubits in the system
@@ -133,9 +149,8 @@ def get_single_qubit_gate(number_qubits,qubit_position,target_gate):
     :return: This function returns the resulting matrix that acts on the whole state
     """
 
-    final_gate = np.kron(np.identity(2**qubit_position),target_gate)
-
-    final_gate = np.matrix(np.kron(final_gate, np.identity(2**(number_qubits-qubit_position-1))))
+    final_gate = np.kron(np.identity(2**qubit_position), target_gate)
+    final_gate = np.kron(final_gate, np.identity(2**(number_qubits-qubit_position-1)))
     return final_gate
 
 
@@ -153,18 +168,19 @@ def swap_two_qubits(state_matrix, qubit1_position, qubit2_position):
     final_state = swap @ state_matrix @ np.transpose(np.conjugate(swap))
     return final_state
 
+
 def trace_out_qubit(state_matrix, qubit_position):
     """
     Trace out the specified qubit from the density matrix.
     Assuming state_matrix is a valid density matrix
     """
     number_qubits = int(np.log2(np.sqrt(state_matrix.size)))
-    target_op1 = np.transpose(np.conjugate(ketzero_state()))
-    target_op2 = np.transpose(np.conjugate(ketone_state()))
-    k0 = get_single_qubit_gate(number_qubits,qubit_position,target_op1)
-    k1 = get_single_qubit_gate(number_qubits,qubit_position,target_op2)
+    target_op1 = np.transpose(np.conjugate(ketz0_state()))
+    target_op2 = np.transpose(np.conjugate(ketz1_state()))
+    k0 = get_single_qubit_gate(number_qubits, qubit_position, target_op1)
+    k1 = get_single_qubit_gate(number_qubits, qubit_position, target_op2)
     final_state = (k0 @ state_matrix @ np.transpose(np.conjugate(k0))
-                  + k1 @ state_matrix @ np.transpose(np.conjugate(k1)))
+                   + k1 @ state_matrix @ np.transpose(np.conjugate(k1)))
     return final_state
 
 
@@ -172,13 +188,12 @@ def is_hermitian(input_matrix):
     """
     Check if a matrix is Hermitian
     :params input_matrix: an input matrix for checking Hermitianity
-    :type input_matrix: numpy.matrix
+    :type input_matrix: numpy.array
     :return: True or False
     :rtype: bool
     """
 
     return np.array_equal(input_matrix, np.conjugate(input_matrix.T))
-
 
 
 def is_psd(input_matrix):
@@ -205,23 +220,65 @@ def is_psd(input_matrix):
         return False
 
 
-
 def create_n_plus_state(number_qubits):
     """
-    Create a prudct state that consists n tensor factors of the ket plus state
+    Create a product state that consists n tensor factors of the ket plus state
     """
     final_state = np.array([[1]])
-    rho_init = np.matrix(np.matmul(ketx0_state(),np.transpose(np.conjugate(ketx0_state()))))
+    rho_init = np.matmul(ketx0_state(),np.transpose(np.conjugate(ketx0_state())))
     for i in range(number_qubits):
         final_state = np.kron(final_state, rho_init)
     return final_state
 
 
+# def apply_CZ(state_matrix, control_qubit, target_qubit):
+#     """
+#     Compute the density matrix after applying the controlled-Z gate
+#     """
+#     number_qubits = int(np.log2(np.sqrt(state_matrix.size)))
+#     cz = get_controlled_gate(number_qubits, control_qubit, target_qubit, sigmaz())
+#     return cz @ state_matrix @ np.transpose(np.conjugate(cz))
 
-def apply_CZ(state_matrix,control_qubit,target_qubit):
+
+def tensor(arr):
+    return reduce(np.kron, arr)
+
+
+def ket2dm(ket):
+    return np.outer(ket, ket)
+
+
+def partial_trace(rho, keep, dims, optimize=False):
+    """Calculate the partial trace
+
+    ρ_a = Tr_b(ρ)
+
+    Parameters
+    ----------
+    ρ : 2D array
+        Matrix to trace
+    keep : array
+        An array of indices of the spaces to keep after
+        being traced. For instance, if the space is
+        A x B x C x D and we want to trace out B and D,
+        keep = [0,2]
+    dims : array
+        An array of the dimensions of each space.
+        For instance, if the space is A x B x C x D,
+        dims = [dim_A, dim_B, dim_C, dim_D]
+
+    Returns
+    -------
+    ρ_a : 2D array
+        Traced matrix
     """
-    Compute the density matrix after applying the controlled-Z gate
-    """
-    number_qubits = int(np.log2(np.sqrt(state_matrix.size)))
-    cz = get_controlled_gate(number_qubits,control_qubit,target_qubit, sigmaz())
-    return cz @ state_matrix @ np.transpose(np.conjugate(cz))
+    keep = np.asarray(keep)
+    dims = np.asarray(dims)
+    Ndim = dims.size
+    Nkeep = np.prod(dims[keep])
+
+    idx1 = [i for i in range(Ndim)]
+    idx2 = [Ndim + i if i in keep else i for i in range(Ndim)]
+    rho_a = rho.reshape(np.tile(dims, 2))
+    rho_a = np.einsum(rho_a, idx1 + idx2, optimize=optimize)
+    return rho_a.reshape(Nkeep, Nkeep)

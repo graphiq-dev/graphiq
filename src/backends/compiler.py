@@ -12,6 +12,8 @@ import numpy as np
 
 import src.ops as ops
 from src.circuit import CircuitDAG
+import src.backends.density_matrix_functions as dmf
+from src.backends.state_representations import DensityMatrix
 
 
 class CompilerBase(ABC):
@@ -58,13 +60,10 @@ class DensityMatrixCompiler(CompilerBase):
     def compile(self, circuit: CircuitDAG):
 
         sources = [x for x in circuit.dag.nodes() if circuit.dag.in_degree(x) == 0]
-        # print(sources)
-        # state = circuit.initial_state()  # TODO: how to get the initial state?
-
         # TODO: make this more general, but for now we assume all registers are initialized to |0>
         init = np.outer(np.array([1, 0]), np.array([1, 0])).astype('complex64')  # initialization of quantum registers
-        state = reduce(np.kron, len(sources)*[init])  # generates the tensor product input density matrix
-        # print(state)
+
+        state = DensityMatrix(state_data=reduce(np.kron, len(sources) * [init]), state_id=0)  # TODO: state_id? what should it be? There should be a default.
 
         seq = circuit.sequence()
         for op in seq:
@@ -76,31 +75,15 @@ class DensityMatrixCompiler(CompilerBase):
                 pass  # TODO: should think about best way to handle inputs/outputs
 
             elif type(op) is ops.Hadamard:
-                q = op.register
-                us = circuit.n_quantum * [np.identity(2)]
-                us[q] = np.array([[1, 1], [1, -1]]).astype("complex64") / np.sqrt(2)
-                u = reduce(np.kron, us)
-                state = u @ state @ np.conjugate(u).T
+                unitary = dmf.get_single_qubit_gate(circuit.n_quantum, op.register, dmf.hadamard())
+                state.apply_unitary(unitary)
 
             elif type(op) is ops.PauliX:
-                q = op.register
-                us = circuit.n_quantum * [np.identity(2)]
-                us[q] = np.array([[0, 1], [1, 0]]).astype("complex64")
-                u = reduce(np.kron, us)
-                state = u @ state @ np.conjugate(u).T
+                unitary = dmf.get_single_qubit_gate(circuit.n_quantum, op.register, dmf.sigmax())
+                state.apply_unitary(unitary)
 
             elif type(op) is ops.CNOT:
-                c, t = op.control, op.target
-                us = circuit.n_quantum * [np.identity(2)]
-
-                us0 = copy.deepcopy(us)
-                us0[c] = np.array([[1, 0], [0, 0]])
-
-                us1 = copy.deepcopy(us)
-                us1[c] = np.array([[0, 0], [0, 1]])
-                us1[t] = np.array([[0, 1], [1, 0]])
-
-                u = reduce(np.kron, us0) + reduce(np.kron, us1)
-                state = u @ state @ np.conjugate(u).T
+                unitary = dmf.get_controlled_gate(circuit.n_quantum, op.control, op.target, dmf.sigmax())
+                state.apply_unitary(unitary)
 
         return state

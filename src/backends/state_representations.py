@@ -4,6 +4,7 @@ State representations:
 2. Density matrix
 3. Stabilizer
 """
+from abc import ABC, abstractmethod
 import networkx as nx
 import numpy as np
 import warnings
@@ -14,16 +15,21 @@ import src.backends.density_matrix_functions as dmf
 import src.backends.graph_functions as gf
 
 
-class StateRepresentation:
+class StateRepresentationBase(ABC):
     """
     Base class for state representation
     """
-    def __init__(self,state_data, state_id, *args, **kwargs):
+    def __init__(self, state_data, state_id, *args, **kwargs):
         """
         Construct an empty state representation
         :param state_data: some input data about the state
         """
-        raise ValueError('Base class StateRepresentation is abstract: it does not support function calls')
+        self.state_data = state_data
+        self.state_id = state_id
+
+    def __str__(self):
+        return f"{self.__class__.__name__}\n{self.rep}"
+
     def get_rep(self):
         """
         Return the representation of the state
@@ -31,10 +37,7 @@ class StateRepresentation:
         raise ValueError('Base class StateRepresentation is abstract: it does not support function calls')
 
 
-
-
-
-class GraphRep(StateRepresentation):
+class GraphRep(StateRepresentationBase):
     """
     Graph representation of a graph state.
     As the intermediate states of the process may not be graph states (but assuming still stabilizer states),
@@ -131,7 +134,6 @@ class GraphRep(StateRepresentation):
         self.node_dict[old_node_id].set_id_with_prefix(self.state_id, new_node_id)
         self.node_dict[new_node_id] = self.node_dict.pop(old_node_id)
 
-
     def reassign_all_node_id(self,mapping):
         # mapping uses the old id as key and new id as value
         if len(self.node_dict) !=len(mapping):
@@ -165,7 +167,6 @@ class GraphRep(StateRepresentation):
             tmp_node.set_id(new_id)
             tmp_dict[new_id_short] = tmp_node
         self.node_dict = tmp_dict
-
 
 
     def get_edges(self):
@@ -247,7 +248,6 @@ class GraphRep(StateRepresentation):
                     neighbor_list.append(node)
         return neighbor_list
 
-
     def remove_node(self, node_id):
         if node_id in self.node_dict.keys():
             self.rep.remove_node(self.node_dict[node_id])
@@ -292,35 +292,37 @@ class GraphRep(StateRepresentation):
         """
         return self.rep
 
-    def draw(self,draw_ax):
+    def draw(self, draw_ax):
         """
         It allows one to draw the underlying networkX graph with matplotlib library.
         """
         nx.draw(self.rep, ax=draw_ax, with_labels=True, font_weight='bold')
 
 
-class DensityMatrix(StateRepresentation):
+class DensityMatrix(StateRepresentationBase):
     """
     Density matrix of a graph state
     """
-    def __init__(self,state_data, state_id, *args, **kwargs):
+    def __init__(self, state_data, state_id, *args, **kwargs):
         """
         Construct a DensityMatrix object and calculate the density matrix from state_data
         :param state_data: density matrix or a networkx graph
         """
-        self.state_id = state_id
-        if isinstance(state_data,np.matrix) or isinstance(state_data,np.ndarray):
-            # state_data is a numpy matrix or numpy ndarray
+        super().__init__(state_data, state_id, *args, **kwargs)
 
-            # check if state_data is positive semidefinite
+        self.state_id = state_id
+        if isinstance(state_data, np.ndarray):
+            # state_data is a numpy ndarray
+
+            # check if state_data is positive semi-definite
             if not dmf.is_psd(state_data):
                 raise ValueError('The input matrix is not a density matrix')
-            if not np.equal(np.trace(state_data),1):
+            if not np.equal(np.trace(state_data), 1):
                 state_data = state_data / np.trace(state_data)
 
-            self.rep = np.matrix(state_data)
+            self.rep = state_data
 
-        elif isinstance(state_data,nx.Graph):
+        elif isinstance(state_data, nx.Graph):
             # state_data is a networkx graph
             number_qubits = state_data.number_of_nodes()
             mapping = dict(zip(state_data.nodes(), range(0, number_qubits)))
@@ -336,26 +338,21 @@ class DensityMatrix(StateRepresentation):
     def get_rep(self):
         return self.rep
 
-    def apply_unitary(self,unitary_gate):
+    def apply_unitary(self, unitary_gate):
         """
         Apply a unitary gate on the state.
         Assuming the dimensions match; Otherwise, raise ValueError
         """
         if self.rep.shape == unitary_gate.shape:
-            self.rep = unitary_gate @ self.rep @ np.tranpose(np.conjugate(unitary_gate))
+            self.rep = unitary_gate @ self.rep @ np.transpose(np.conjugate(unitary_gate))
         else:
             raise ValueError('The density matrix of the state has a different size from the unitary gate to be applied.')
 
 
-
-class Stabilizer(StateRepresentation):
+class Stabilizer(StateRepresentationBase):
     def __init__(self, state_data, state_id, *args, **kwargs):
         # to be implemented
         raise NotImplementedError('')
+
     def get_rep(self):
         raise NotImplementedError('')
-
-
-
-
-# helper functions for density matrix related calculation below

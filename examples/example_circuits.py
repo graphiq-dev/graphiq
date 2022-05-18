@@ -7,48 +7,35 @@ from src.circuit import CircuitDAG
 from src.ops import *
 from src.backends.compiler import DensityMatrixCompiler
 
-from src.utils.matrix_funcs import tensor, partial_trace
+from src.backends.density_matrix_functions import ketz0_state, ketz1_state, tensor, partial_trace, ket2dm
 
-if __name__ == "__main__":
-    """
-    Two qubit Bell state
-    """
-    # b0 = np.array([[1, 0]])
-    # b1 = np.array([[0, 1]])
-    #
-    # bell_ideal = 0.5 * (
-    #         np.outer(tensor(2 * [b0]), tensor(2 * [b0]))
-    #         + np.outer(tensor(2 * [b0]), tensor(2 * [b1]))
-    #         + np.outer(tensor(2 * [b1]), tensor(2 * [b0]))
-    #         + np.outer(tensor(2 * [b1]), tensor(2 * [b1]))
-    # )
-    #
-    # print(bell_ideal)
-    #
-    # circuit = CircuitDAG(2, 0)
-    # circuit.add(Hadamard(register=0))
-    # circuit.add(CNOT(control=0, target=1))
-    # circuit.show()
-    #
-    # compiler = DensityMatrixCompiler()
-    # state = compiler.compile(circuit)
-    # print(state)
+import networkx as nx
+import matplotlib.pyplot as plt
 
+
+def bell_state_circuit():
+    """
+    Two qubit Bell state preparation circuit
+    """
+    ideal = ket2dm((tensor(2 * [ketz0_state()]) + tensor(2 * [ketz1_state()])) / np.sqrt(2))
+
+    circuit = CircuitDAG(2, 0)
+    circuit.add(Hadamard(register=0))
+    circuit.add(CNOT(control=0, target=1))
+    circuit.show()
+
+    compiler = DensityMatrixCompiler()
+    state = compiler.compile(circuit)
+    print(ideal)
+    print(state)
+    return state, ideal
+
+
+def ghz3_state_circuit():
     """
     Three qubit GHZ state
-    (not complete)
     """
-    b0 = np.array([[1, 0]])
-    b1 = np.array([[0, 1]])
-
-    rhoGHZ3_ideal = 0.5 * (
-        np.outer(tensor(3*[b0]), tensor(3*[b0]))
-        + np.outer(tensor(3*[b0]), tensor(3*[b1]))
-        + np.outer(tensor(3*[b1]), tensor(3*[b0]))
-        + np.outer(tensor(3*[b1]), tensor(3*[b1]))
-    )
-
-    print(rhoGHZ3_ideal)
+    ideal = ket2dm((tensor(3 * [ketz0_state()]) + tensor(3 * [ketz1_state()])) / np.sqrt(3))
 
     circuit = CircuitDAG(4, 0)
     circuit.add(Hadamard(register=3))
@@ -64,9 +51,14 @@ if __name__ == "__main__":
 
     compiler = DensityMatrixCompiler()
     state = compiler.compile(circuit)
+    partial_trace(state, keep=[0, 1, 2], dims=[2, 2, 2, 2])
+    print(ideal)
+    print(state)
 
-    # state = np.identity(2**4)
 
-    state_partial = partial_trace(state, keep=[0, 1, 2], dims=4*[2])
-    print(state_partial)
-    print(state_partial.shape)
+if __name__ == "__main__":
+
+    state, ideal = bell_state_circuit()
+    # pstate = partial_trace(state, keep=[0], dims=[2, 2])
+    # print(pstate)
+    # ghz3_state_circuit()

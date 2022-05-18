@@ -39,7 +39,7 @@ class RandomSearchSolver(SolverBase):
         super().__init__(target, metric, compiler, *args, **kwargs)
         self.name = "random-search"
 
-    def solve(self, circuit):
+    def solve(self, circuit):  # TODO: move circuit to init
         for i in range(self.n_stop):
             # TODO: evolve circuit in some defined way
             circuit = circuit

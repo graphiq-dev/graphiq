@@ -135,7 +135,8 @@ class CircuitDAG(CircuitBase):
         """
         Shows circuit DAG (for debugging purposes)
         """
-        pos = nx.spring_layout(self.dag, seed=0)  # Seed layout for reproducibility
+        # pos = nx.spring_layout(self.dag, seed=0)  # Seed layout for reproducibility
+        pos = topo_pos(self.dag)
         nx.draw(self.dag, pos=pos, with_labels=True)
         plt.show()
 
@@ -185,3 +186,14 @@ class CircuitDAG(CircuitBase):
     def _unique_node_id(self):
         self._node_id += 1
         return self._node_id
+
+
+def topo_pos(dag):
+    """Display in topological order, with simple offsetting for legibility"""
+    pos_dict = {}
+    for i, node_list in enumerate(nx.topological_generations(dag)):
+        x_offset = len(node_list) / 2
+        y_offset = 0.1
+        for j, name in enumerate(node_list):
+            pos_dict[name] = (j - x_offset, -i + j * y_offset)
+    return pos_dict

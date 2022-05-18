@@ -33,13 +33,13 @@ def ketx0_state():
     """
     Return normalized eigenvector of sigma x matrix with eigenvalue +1
     """
-    return 1/math.sqrt(2)*np.array([[1], [1]])
+    return 1/np.sqrt(2)*np.array([[1], [1]])
 
 def ketx1_state():
     """
     Return normalized eigenvector of sigma x matrix with eigenvalue -1
     """
-    return 1/math.sqrt(2)*np.array([[1], [-1]])
+    return 1/np.sqrt(2)*np.array([[1], [-1]])
 
 def ketz0_state():
     """
@@ -57,13 +57,13 @@ def kety0_state():
     """
     Return normalized eigenvector of sigma y matrix with eigenvalue +1
     """
-    return 1/math.sqrt(2)*np.array([[1],[1j]])
+    return 1/np.sqrt(2)*np.array([[1],[1j]])
 
 def kety1_state():
     """
     Return normalized eigenvector of sigma y matrix with eigenvalue -1
     """
-    return 1/math.sqrt(2)*np.array([[1],[-1j]])
+    return 1/np.sqrt(2)*np.array([[1],[-1j]])
 
 
 
@@ -144,7 +144,7 @@ def swap_two_qubits(state_matrix, qubit1_position, qubit2_position):
     Swap two qubits by three CNOT gates
     Assuming state_matrix is a valid density matrix
     """
-    number_qubits = int(math.log2(math.sqrt(state_matrix.size)))
+    number_qubits = int(np.log2(np.sqrt(state_matrix.size)))
     cnot12 = get_controlled_gate(number_qubits,qubit1_position, qubit2_position, sigmax())
     cnot21 = get_controlled_gate(number_qubits,qubit2_position, qubit1_position, sigmax())
 
@@ -158,7 +158,7 @@ def trace_out_qubit(state_matrix, qubit_position):
     Trace out the specified qubit from the density matrix.
     Assuming state_matrix is a valid density matrix
     """
-    number_qubits = int(math.log2(math.sqrt(state_matrix.size)))
+    number_qubits = int(np.log2(np.sqrt(state_matrix.size)))
     target_op1 = np.transpose(np.conjugate(ketzero_state()))
     target_op2 = np.transpose(np.conjugate(ketone_state()))
     k0 = get_single_qubit_gate(number_qubits,qubit_position,target_op1)
@@ -176,7 +176,7 @@ def is_hermitian(input_matrix):
     :return: True or False
     :rtype: bool
     """
-    
+
     return np.array_equal(input_matrix, np.conjugate(input_matrix.T))
 
 
@@ -187,7 +187,7 @@ def is_psd(input_matrix):
     This method works efficiently for positive definite matrix.
     For positive-semidefinite matrices, we add a small perturbation of the identity matrix.
     :params input_matrix: an input matrix for checking positive semidefiniteness
-    :type input_matrix: numpy.matrix
+    :type input_matrix: numpy.ndarray
     :return: True or False
     :rtype: bool
     """
@@ -211,7 +211,6 @@ def create_n_plus_state(number_qubits):
     Create a prudct state that consists n tensor factors of the ket plus state
     """
     final_state = np.array([[1]])
-    ketPlus = 1/math.sqrt(2)*np.array([[1], [1]])
     rho_init = np.matrix(np.matmul(ketx0_state(),np.transpose(np.conjugate(ketx0_state()))))
     for i in range(number_qubits):
         final_state = np.kron(final_state, rho_init)
@@ -223,6 +222,6 @@ def apply_CZ(state_matrix,control_qubit,target_qubit):
     """
     Compute the density matrix after applying the controlled-Z gate
     """
-    number_qubits = int(math.log2(math.sqrt(state_matrix.size)))
+    number_qubits = int(np.log2(np.sqrt(state_matrix.size)))
     cz = get_controlled_gate(number_qubits,control_qubit,target_qubit, sigmaz())
     return cz @ state_matrix @ np.transpose(np.conjugate(cz))

@@ -6,6 +6,8 @@ Note: this file should only be used for the state WRAPPER object
 import src.backends.state_representations as srep
 
 # Currently it does nothing other than initialization
+
+
 class QuantumState:
     """
     Base class for quantum state wrapper

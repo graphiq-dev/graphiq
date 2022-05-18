@@ -43,7 +43,6 @@ def test_add_op_1():
     op3 = dag.dag.nodes[3]['op']
     op4 = dag.dag.nodes[4]['op']
 
-
     op_order = dag.sequence()
     # check that topological order is correct
     assert op_order.index(op_q0_in) < op_order.index(op1) \
@@ -269,6 +268,7 @@ def test_random_graph(seed):
 
     dag.validate()
 
+# Test register implementations
 
 def test_add_register_1():
     """
@@ -278,6 +278,7 @@ def test_add_register_1():
     dag.validate()
     with pytest.raises(ValueError):
         dag.add_quantum_register(0)
+    dag.validate()
 
 
 def test_add_register_2():
@@ -296,7 +297,8 @@ def test_add_register_2():
     assert dag.dag.number_of_edges() == 10
 
 
-def test_expand_register_1():
+@pytest.mark.parametrize("is_quantum", [True, False])
+def test_expand_register_1(is_quantum):
     """
     Test that you get an error when you try to expand a register that
     does not exist
@@ -304,35 +306,268 @@ def test_expand_register_1():
     dag = CircuitDAG(1, 1)
     dag.validate()
     with pytest.raises(IndexError):
-        dag.expand_quantum_register(1, 3)
+        if is_quantum:
+            dag.expand_quantum_register(1, 3)
+        else:
+            dag.expand_classical_register(1, 3)
+
+    dag.validate()
 
 
-def test_expand_register_2():
+@pytest.mark.parametrize("is_quantum", [True, False])
+def test_expand_register_2(is_quantum):
     """
     Test that you get an error when you try to shrink or not expand a register
     """
     dag = CircuitDAG(1, 1)
     dag.validate()
     with pytest.raises(ValueError):
-        dag.expand_quantum_register(0, 0)
+        if is_quantum:
+            dag.expand_quantum_register(0, 0)
+        else:
+            dag.expand_classical_register(0, 0)
 
     with pytest.raises(ValueError):
-        dag.expand_quantum_register(0, 1)
+        if is_quantum:
+            dag.expand_quantum_register(0, 1)
+        else:
+            dag.expand_classical_register(0, 1)
 
-    dag.expand_quantum_register(0, 5)
-    with pytest.raises(ValueError):
-        dag.expand_quantum_register(0, 3)
-
-    with pytest.raises(ValueError):
+    if is_quantum:
         dag.expand_quantum_register(0, 5)
+    else:
+        dag.expand_classical_register(0, 5)
 
-    dag.expand_quantum_register(0, 7)
+    assert dag.n_quantum == 1
+    assert dag.n_classical == 1
+    if is_quantum:
+        assert dag.q_registers[0] == 5
+        assert dag.c_registers[0] == 1
+    else:
+        assert dag.c_registers[0] == 5
+        assert dag.q_registers[0] == 1
+
+    with pytest.raises(ValueError):
+        if is_quantum:
+            dag.expand_quantum_register(0, 3)
+        else:
+            dag.expand_classical_register(0, 3)
+
+    with pytest.raises(ValueError):
+        if is_quantum:
+            dag.expand_quantum_register(0, 5)
+        else:
+            dag.expand_classical_register(0, 5)
+
+    if is_quantum:
+        dag.expand_quantum_register(0, 7)
+        assert dag.q_registers[0] == 7
+        assert dag.c_registers[0] == 1
+    else:
+        dag.expand_classical_register(0, 7)
+        assert dag.c_registers[0] == 7
+        assert dag.q_registers[0] == 1
 
     assert dag.n_quantum == 1
     assert dag.n_classical == 1
     assert dag.dag.number_of_nodes() == 16
     assert dag.dag.number_of_edges() == 8
 
-# TODO: test registers, including tests to make sure the indices are continuous
+    dag.validate()
 
-# TODO: test registers of different sizes
+
+def test_nonconsecutive_register_qudit_indexing_1():
+    """
+    Verify that the quantum registers report an error when non-consecutive qudit indexing is used
+    """
+    dag = CircuitDAG(2, 0)
+    dag.expand_quantum_register(0, 2)
+    dag.add(OperationBase(q_registers=((0, 2),)))  # this should work because we've expanded the quantum register 0
+
+    with pytest.raises(ValueError):
+        dag.add(OperationBase(q_registers=((1, 2),)))  # this should not work, because we do not have a qubit 1 in reg 1
+
+    dag.validate()
+
+
+def test_nonconsecutive_register_cbit_indexing_2():
+    """
+    Verify that the quantum registers report an error when non-consecutive qudit indexing is used
+    """
+    dag = CircuitDAG(2, 2)
+    dag.expand_classical_register(0, 2)
+    dag.add(OperationBase(c_registers=((0, 2),)))  # this should work because we've expanded the classical register 0
+
+    with pytest.raises(ValueError):
+        dag.add(OperationBase(c_registers=((1, 2),)))  # this should not work, because we do not have a cbit 1 in reg 1
+
+    dag.validate()
+
+@pytest.mark.parametrize("is_quantum", [True, False])
+def test_dynamic_register_expansion_1(is_quantum):
+    """
+    Test that we get an error when non-continuous register numbers are provided (quantum and classical)
+    """
+    dag = CircuitDAG()
+
+    with pytest.raises(ValueError):
+        if is_quantum:
+            dag.add(OperationBase(q_registers=(1,)))
+        else:
+            dag.add(OperationBase(c_registers=(1,)))
+
+    if is_quantum:
+        dag.add(OperationBase(q_registers=(0, 0)))
+        dag.add(OperationBase(q_registers=((1, 0), (1, 1))))
+    else:
+        dag.add(OperationBase(c_registers=(0, 0)))
+        dag.add(OperationBase(c_registers=((1, 0), (1, 1))))
+
+    with pytest.raises(ValueError):
+        if is_quantum:
+            dag.add(OperationBase(q_registers=(3, )))
+        else:
+            dag.add(OperationBase(c_registers=(3, )))
+
+    with pytest.raises(ValueError):
+        if is_quantum:
+            dag.add(OperationBase(q_registers=((3, 0),)))
+        else:
+            dag.add(OperationBase(c_registers=((3, 0),)))
+
+    dag.validate()
+
+
+@pytest.mark.parametrize("is_quantum", [True, False])
+def test_dynamic_register_expansion_2(is_quantum):
+    """
+    Test that we get an error when non-continuous qudit/cbit numbers are provided (quantum and classical)
+    """
+    dag = CircuitDAG(2, 2)
+    if is_quantum:
+        dag.add(OperationBase(q_registers=((2, 0),)))
+    else:
+        dag.add(OperationBase(c_registers=((2, 0),)))
+
+    with pytest.raises(ValueError):
+        if is_quantum:
+            dag.add(OperationBase(q_registers=((2, 2),)))
+        else:
+            dag.add(OperationBase(c_registers=((2, 2),)))
+
+    dag.validate()
+
+
+def test_dynamic_register_expansion_3():
+    """
+    Test that it works alright with provided numbers. Confirm that topological order / number of nodes/edges are as
+    expected
+    """
+    dag = CircuitDAG(1, 0)
+    dag.add(OperationBase(q_registers=(0,), c_registers=((0, 0), (0, 1))))
+    dag.add(OperationBase(q_registers=(1,)))
+
+    op_q0_0_in = dag.dag.nodes['q0-0_in']['op']
+    op_q1_0_in = dag.dag.nodes['q1-0_in']['op']
+    op_c0_0_in = dag.dag.nodes['c0-0_in']['op']
+    op_c0_1_in = dag.dag.nodes['c0-1_in']['op']
+
+    op_q0_0_out = dag.dag.nodes['q0-0_out']['op']
+    op_q1_0_out = dag.dag.nodes['q1-0_out']['op']
+    op_c0_0_out = dag.dag.nodes['c0-0_out']['op']
+    op_c0_1_out = dag.dag.nodes['c0-1_out']['op']
+
+    op1 = dag.dag.nodes[1]['op']
+    op2 = dag.dag.nodes[2]['op']
+
+    # check topological order
+    op_order = dag.sequence()
+    assert op_order.index(op_q0_0_in) < op_order.index(op1) < op_order.index(op_q0_0_out)
+    assert op_order.index(op_q0_0_in) < op_order.index(op1) < op_order.index(op_c0_0_out)
+    assert op_order.index(op_q0_0_in) < op_order.index(op1) < op_order.index(op_c0_1_out)
+    assert op_order.index(op_c0_0_in) < op_order.index(op1) < op_order.index(op_q0_0_out)
+    assert op_order.index(op_c0_0_in) < op_order.index(op1) < op_order.index(op_c0_0_out)
+    assert op_order.index(op_c0_0_in) < op_order.index(op1) < op_order.index(op_c0_1_out)
+    assert op_order.index(op_c0_1_in) < op_order.index(op1) < op_order.index(op_q0_0_out)
+    assert op_order.index(op_c0_1_in) < op_order.index(op1) < op_order.index(op_c0_0_out)
+    assert op_order.index(op_c0_1_in) < op_order.index(op1) < op_order.index(op_c0_1_out)
+    assert op_order.index(op_q1_0_in) < op_order.index(op2) < op_order.index(op_q1_0_out)
+
+    assert dag.n_quantum == 2
+    assert dag.n_classical == 1
+    assert dag.dag.number_of_nodes() == 10
+    assert dag.dag.number_of_edges() == 8
+
+    dag.validate()
+
+
+def test_dynamic_register_expansion_4():
+    """
+    Test that it works with our next_cbit, next_qubit functions. Confirm that topological order / number of nodes/edges
+    are as expected
+    """
+    pass
+
+
+def test_dynamic_register_usage_0():
+    """
+    Confirm that we get an error when trying to apply register operations between 2 different sized registers
+    """
+    pass
+
+
+def test_dynamic_register_usage_0():
+    """
+    Confirm that we get the correct graph when applying a register-wide single-qudit/cbit gate
+    """
+    pass
+
+
+def test_dynamic_register_usage_2():
+    """
+    Confirm that we can apply 2 qubit gates between 2 registers of the same size
+    """
+    pass
+
+
+def test_dynamic_register_usage_3():
+    """
+    Confirm that we can apply 3 qubit gates between 3 registers of the same size
+    """
+    pass
+
+
+def test_dynamic_register_usage_3():
+    """
+    Confirm that we can apply 2 qubit gates between 3 registers of the same size
+    """
+    pass
+
+
+def test_dynamic_register_usage_4():
+    """
+    Confirm that a reg-qubit specific gate works correctly
+    """
+    pass
+
+
+def test_dynamic_register_usage_5():
+    """
+    Confirm that two qubit gate of form q/c_register=(a, (b, c)) works correctly
+    """
+    pass
+
+
+def test_dynamic_register_usage_6():
+    """
+    Confirm that two qubit gate of form q/c_register=((a, b), c) works correctly
+    """
+    pass
+
+
+def test_dynamic_register_usage_7():
+    """
+    Confirm that two qubit gate of form q/c_register=((a, b), (c,d)) works correctly
+    """
+    pass
+

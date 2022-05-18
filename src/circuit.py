@@ -163,14 +163,14 @@ class CircuitDAG(CircuitBase):
         super().__init__(*args, **kwargs)
         self.dag = nx.DiGraph()
         self._node_id = 0
-        self._add_reg(range(n_quantum), range(n_classical))
+        self._add_reg_if_absent(range(n_quantum), range(n_classical))
 
     def add(self, operation: OperationBase):
         """
         Add an operation to the circuit
         :param operation: Operation (gate and register) to add to the graph
         """
-        self._add_reg(operation.q_registers, operation.c_registers)  # register will be added only if it does not exist
+        self._add_reg_if_absent(operation.q_registers, operation.c_registers)  # register will be added only if it does not exist
         for q_reg_bit, c_reg_bit in self._reg_bit_list(operation.q_registers, operation.c_registers):
             new_op = copy.deepcopy(operation)
             new_op.q_registers = q_reg_bit
@@ -220,23 +220,27 @@ class CircuitDAG(CircuitBase):
             raise ValueError(f'{reg_description} register size must be at least one')
 
         if is_quantum:
-            self._add_reg((len(self.q_registers),), tuple(), size=size)
+            self._add_reg_if_absent((len(self.q_registers),), tuple(), size=size)
         else:
-            self._add_reg(tuple(), (len(self.c_registers),), size=size)
+            self._add_reg_if_absent(tuple(), (len(self.c_registers),), size=size)
         return size
 
     def _expand_register(self, register, new_size, is_quantum):
         old_size = self.q_registers[register] if is_quantum else self.c_registers[register]
-        # super()._expand_register(register, new_size, is_quantum)
-        for i in range(old_size, new_size):
-            if is_quantum:
-                self._add_reg((register, i), tuple())
-            else:
-                self._add_reg(tuple(), (register, i))
+        if new_size <= old_size:
+            raise ValueError(f"New register size {new_size} is not greater than the current size {old_size}")
 
-    def _add_reg(self, q_reg, c_reg, size=1):
+        if is_quantum:
+            self._add_reg_if_absent((register,), tuple(), size=new_size)
+        else:
+            self._add_reg_if_absent(tuple(), (register, ), size=new_size)
+
+    def _add_reg_if_absent(self, q_reg, c_reg, size=1):
+        """
+        Size option is useful for expanding registers without explicit qubits being specified
+        """
         # add registers as needed
-        def update_registers(reg, is_quantum):
+        def __update_registers(reg, is_quantum):
             if is_quantum:
                 curr_register = self.q_registers
             else:
@@ -250,19 +254,37 @@ class CircuitDAG(CircuitBase):
                                      f"Next register that can be added is {len(curr_register)}")
                 if a == len(curr_register):
                     curr_register.append(size)  # we initialize the register to have a single qubit here
-                else:
-                    pass
-                    # curr_register
+                elif size > curr_register[a]:
+                    curr_register[a] = size
 
-        update_registers(q_reg, True)
-        update_registers(c_reg, False)
-        print('q and c registers')
-        print(self.q_registers)
-        print(self.c_registers)
+        __update_registers(q_reg, True)
+        __update_registers(c_reg, False)
 
-        def update_graph(reg, is_quantum):
+        # Update qudit/classical bit numbers in each register
+
+        def __update_register_sizes(reg, is_quantum):
+            """ Verifies that there are no skip in qubit numbers, and that register sizes are properly incremented"""
+            curr_reg = self.q_registers if is_quantum else self.c_registers
+            for r in reg:
+                print("printing reg values and curr_reg[r[0]]!")
+                print(r)
+
+                if isinstance(r, int):
+                    continue
+
+                print(curr_reg[r[0]])
+                if r[1] > curr_reg[r[0]]:
+                    raise ValueError("Non-consecutive qudit/cbit indexing!")
+                elif r[1] == curr_reg[r[0]]:
+                    curr_reg[r[0]] += 1
+
+        __update_register_sizes(q_reg, True)
+        __update_register_sizes(c_reg, False)
+
+        # update graph
+
+        def __update_graph(reg, is_quantum):
             # TODO: consider whether this is worth optimizing
-            # TODO: add error (and test!) for non-consecutive registers OR qubits/cbits
             if is_quantum:
                 b = 'q'
                 curr_reg = self.q_registers
@@ -283,8 +305,8 @@ class CircuitDAG(CircuitBase):
                             self.dag.add_node(f'{bit_id}_in', op=Input(register=a))
                             self.dag.add_node(f'{bit_id}_out', op=Output(register=a))
                             self.dag.add_edge(f'{bit_id}_in', f'{bit_id}_out', bit=f'{bit_id}')
-        update_graph(q_reg, True)
-        update_graph(c_reg, False)
+        __update_graph(q_reg, True)
+        __update_graph(c_reg, False)
 
     def _add(self, operation: OperationBase, q_reg_bit, c_reg_bit):
         """
@@ -339,7 +361,7 @@ class CircuitDAG(CircuitBase):
                 for j in range(self.c_registers[c]):
                     total_reg_list[i + len(q_reg)].append((c, j))
             else:
-                total_reg_list[i + len(q_reg)].append(q)
+                total_reg_list[i + len(q_reg)].append(c)
 
         # get a list of each combination
         all_reg_combos = list(itertools.product(*total_reg_list))
@@ -347,34 +369,3 @@ class CircuitDAG(CircuitBase):
         all_c_regs = [t[len(q_reg):] for t in all_reg_combos]
 
         return zip(all_q_regs, all_c_regs)
-
-"""Registers """
-
-#
-# class RegisterBase(ABC):
-#     def __init__(self, num, size=1):
-#         self.num = num
-#         self.size = size
-#         self.indices = set(range(size))
-#
-#     def index(self, n):
-#         if n in self.indices:
-#             return self.num, n
-#         raise ValueError(f"No index {n} available in register {self.num}. Valid indices are 0 to {self.size - 1}")
-#
-#     def expand(self, n):
-#         self.indices = self.indices.union(set(range(self.size, self.size + n)))
-#         self.size += n
-#
-#
-# class ClassicalRegister(RegisterBase):
-#     """
-#     Classical register object
-#     """
-#
-#
-# class QuantumRegister(RegisterBase):
-#     """
-#     Quantum register object
-#     """
-#

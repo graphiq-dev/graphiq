@@ -18,7 +18,6 @@ and qubit d of register c.
 We can also use a mixture of registers an qubits: q_registers=(a, (b, c)) means that the operation will be applied
 between EACH QUBIT of register a, and qubit c of register b
 """
-import abc
 from abc import ABC
 
 
@@ -41,6 +40,7 @@ class OperationBase(ABC):
             assert isinstance(c, int) or \
                    (isinstance(c, tuple) and len(c) == 2 and isinstance(c[0], int) and isinstance(c[1], int)), \
                    f'Invalid c_register: c_register tuple must only contain tuples of length 2 or integers'
+
         self.q_registers = q_registers
         self.c_registers = c_registers
 
@@ -69,6 +69,30 @@ class SingleTargetOp(OperationBase):
 
     def assign_action_id(self, nums):
         self.register = nums[0]
+
+
+class SigmaX(SingleTargetOp):
+    """
+
+    """
+
+
+class SigmaY(SingleTargetOp):
+    """
+
+    """
+
+
+class SigmaZ(SingleTargetOp):
+    """
+
+    """
+
+
+class MeasurementZ(SingleTargetOp):
+    """
+
+    """
 
 
 class Hadamard(SingleTargetOp):

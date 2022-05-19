@@ -35,7 +35,7 @@ class MetricFidelity(MetricBase):
         self.differentiable = False
 
     def evaluate(self, state, circuit):
-        val = 1.0
+        val = np.random.random()
         self.increment()
 
         if self._inc % self.log_steps == 0:
@@ -50,7 +50,7 @@ class MetricCircuitDepth(MetricBase):
         self.differentiable = False
 
     def evaluate(self, state, circuit):
-        val = 1.0
+        val = np.random.random()
         self.increment()
 
         if self._inc % self.log_steps == 0:

@@ -1,72 +1,64 @@
 """
-
+Examples of defining and simulating quantum circuits for a variety of small quantum states
 """
 import numpy as np
+import matplotlib.pyplot as plt
 
 from src.circuit import CircuitDAG
 from src.ops import *
-from src.backends.compiler import DensityMatrixCompiler
+from src.backends.density_matrix.compiler import DensityMatrixCompiler
 
-from src.utils.matrix_funcs import tensor, partial_trace
+from src.backends.density_matrix.functions import ketz0_state, ketz1_state, tensor, ket2dm, partial_trace
+from src.visualizers.density_matrix import density_matrix_bars
 
-if __name__ == "__main__":
+
+def bell_state_circuit():
     """
-    Two qubit Bell state
+    Two qubit Bell state preparation circuit
     """
-    # b0 = np.array([[1, 0]])
-    # b1 = np.array([[0, 1]])
-    #
-    # bell_ideal = 0.5 * (
-    #         np.outer(tensor(2 * [b0]), tensor(2 * [b0]))
-    #         + np.outer(tensor(2 * [b0]), tensor(2 * [b1]))
-    #         + np.outer(tensor(2 * [b1]), tensor(2 * [b0]))
-    #         + np.outer(tensor(2 * [b1]), tensor(2 * [b1]))
-    # )
-    #
-    # print(bell_ideal)
-    #
-    # circuit = CircuitDAG(2, 0)
-    # circuit.add(Hadamard(register=0))
-    # circuit.add(CNOT(control=0, target=1))
-    # circuit.show()
-    #
-    # compiler = DensityMatrixCompiler()
-    # state = compiler.compile(circuit)
-    # print(state)
+    ideal = ket2dm((tensor(2 * [ketz0_state()]) + tensor(2 * [ketz1_state()])) / np.sqrt(2))
 
+    circuit = CircuitDAG(2, 0)
+    circuit.add(Hadamard(register=0))
+    circuit.add(CNOT(control=0, target=1))
+    circuit.show()
+
+    compiler = DensityMatrixCompiler()
+    state = compiler.compile(circuit)
+    print(ideal)
+    print(state)
+    return state, ideal
+
+
+def ghz3_state_circuit():
     """
     Three qubit GHZ state
-    (not complete)
     """
-    b0 = np.array([[1, 0]])
-    b1 = np.array([[0, 1]])
-
-    rhoGHZ3_ideal = 0.5 * (
-        np.outer(tensor(3*[b0]), tensor(3*[b0]))
-        + np.outer(tensor(3*[b0]), tensor(3*[b1]))
-        + np.outer(tensor(3*[b1]), tensor(3*[b0]))
-        + np.outer(tensor(3*[b1]), tensor(3*[b1]))
-    )
-
-    print(rhoGHZ3_ideal)
+    ideal = ket2dm((tensor(3 * [ketz0_state()]) + tensor(3 * [ketz1_state()])) / np.sqrt(3))
 
     circuit = CircuitDAG(4, 0)
     circuit.add(Hadamard(register=3))
     circuit.add(CNOT(control=3, target=0))
     circuit.add(CNOT(control=3, target=1))
     circuit.add(CNOT(control=3, target=2))
-    # circuit.add(Hadamard(register=1))
-    # circuit.add(Hadamard(register=2))
     circuit.add(Hadamard(register=3))
     circuit.add(CNOT(control=3, target=2))
+    # TODO: Add measurement operation
 
     circuit.show()
 
     compiler = DensityMatrixCompiler()
     state = compiler.compile(circuit)
+    print(ideal)
+    print(state)
+    return state, ideal
 
-    # state = np.identity(2**4)
 
-    state_partial = partial_trace(state, keep=[0, 1, 2], dims=4*[2])
-    print(state_partial)
-    print(state_partial.shape)
+if __name__ == "__main__":
+
+    # state, ideal = bell_state_circuit()
+    state, ideal = ghz3_state_circuit()
+    # plt.show()
+
+    density_matrix_bars(state.rep)
+    plt.show()

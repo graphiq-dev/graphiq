@@ -6,9 +6,9 @@ import matplotlib.pyplot as plt
 
 from src.circuit import CircuitDAG
 from src.ops import *
-from src.backends.compiler import DensityMatrixCompiler
+from src.backends.density_matrix.compiler import DensityMatrixCompiler
 
-from src.backends.density_matrix_functions import ketz0_state, ketz1_state, tensor, partial_trace, ket2dm
+from src.backends.density_matrix.functions import ketz0_state, ketz1_state, tensor, ket2dm, partial_trace
 from src.visualizers.density_matrix import density_matrix_bars
 
 

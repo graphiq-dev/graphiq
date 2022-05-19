@@ -1,13 +1,14 @@
 """
+
 """
-from abc import ABC, abstractmethod
+from abc import ABC
 
 
 class OperationBase(ABC):
     """
 
     """
-    def __init__(self, q_registers=tuple(), c_registers=tuple()):
+    def __init__(self, q_registers: tuple, c_registers: tuple):
         self.q_registers = q_registers
         self.c_registers = c_registers
 
@@ -28,7 +29,25 @@ class Hadamard(OperationBase):
         self.register = register
 
 
-class PauliX(OperationBase):
+class SigmaX(OperationBase):
+    def __init__(self, register=None, *args, **kwargs):
+        super().__init__(q_registers=(register,), *args, **kwargs)
+        self.register = register
+
+
+class SigmaY(OperationBase):
+    def __init__(self, register=None, *args, **kwargs):
+        super().__init__(q_registers=(register,), *args, **kwargs)
+        self.register = register
+
+
+class SigmaZ(OperationBase):
+    def __init__(self, register=None, *args, **kwargs):
+        super().__init__(q_registers=(register,), *args, **kwargs)
+        self.register = register
+
+
+class MeasurementZ(OperationBase):
     def __init__(self, register=None, *args, **kwargs):
         super().__init__(q_registers=(register,), *args, **kwargs)
         self.register = register

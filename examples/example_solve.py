@@ -4,8 +4,9 @@ Example of using a solver to discover circuits to generate a target state
 import numpy as np
 import matplotlib.pyplot as plt
 
+import src.backends.density_matrix.compiler
 from src import solvers, metrics, backends, circuit, ops
-from src.backends import compiler
+from src.backends import compiler_base
 
 
 if __name__ == "__main__":
@@ -16,7 +17,7 @@ if __name__ == "__main__":
     circuit.show()
 
     # we then need to select the backend to use (this could be hidden somewhere and not passed explicitly, if needed)
-    compiler = backends.compiler.DensityMatrixCompiler()
+    compiler = src.backends.density_matrix.compiler.DensityMatrixCompiler()
 
     # we pass one metric to use as the cost function. we can also pass more to be evaluated but not used as the cost
     metric = metrics.MetricFidelity()

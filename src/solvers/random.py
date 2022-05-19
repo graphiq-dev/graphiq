@@ -3,7 +3,7 @@
 from src.solvers.base import SolverBase
 from src.metrics import MetricBase
 from src.circuit import CircuitDAG, CircuitBase
-from src.backends.compiler import CompilerBase
+from src.backends.compiler_base import CompilerBase
 
 
 class RandomSearchSolver(SolverBase):
@@ -14,20 +14,19 @@ class RandomSearchSolver(SolverBase):
 
     n_stop = 100  # maximum number of iterations
 
-    def __init__(self, target, metric: MetricBase, compiler: CompilerBase, *args, **kwargs):
-        super().__init__(target, metric, compiler, *args, **kwargs)
+    def __init__(self, target, metric: MetricBase, circuit: CircuitBase, compiler: CompilerBase, *args, **kwargs):
+        super().__init__(target, metric, circuit, compiler, *args, **kwargs)
         self.name = "random-search"
 
-    def solve(self, circuit):  # TODO: move circuit to init
+    def solve(self):
         for i in range(self.n_stop):
             # TODO: evolve circuit in some defined way
-            circuit = circuit
 
             # TODO: compile/simulate the newly evolved circuit
-            state = self.compiler.compile(circuit)
+            state = self.compiler.compile(self.circuit)
             print(state)
 
             # TODO: evaluate the state/circuit of the newly evolved circuit
-            self.metric.evaluate(state, circuit)
+            self.metric.evaluate(state, self.circuit)
 
-        return circuit
+        return

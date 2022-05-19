@@ -4,14 +4,14 @@ State representations:
 2. Density matrix
 3. Stabilizer
 """
-from abc import ABC, abstractmethod
+from abc import ABC
 import networkx as nx
 import numpy as np
 import warnings
 
+from src.backends.density_matrix.functions import apply_CZ, create_n_plus_state, is_psd
 from src.backends.graph_functions import QuNode
 
-import src.backends.density_matrix_functions as dmf
 import src.backends.graph_functions as gf
 
 
@@ -315,7 +315,7 @@ class DensityMatrix(StateRepresentationBase):
             # state_data is a numpy ndarray
 
             # check if state_data is positive semi-definite
-            if not dmf.is_psd(state_data):
+            if not is_psd(state_data):
                 raise ValueError('The input matrix is not a density matrix')
             if not np.equal(np.trace(state_data), 1):
                 state_data = state_data / np.trace(state_data)
@@ -327,10 +327,10 @@ class DensityMatrix(StateRepresentationBase):
             number_qubits = state_data.number_of_nodes()
             mapping = dict(zip(state_data.nodes(), range(0, number_qubits)))
             edge_list = list(state_data.edges)
-            final_state = dmf.create_n_plus_state(number_qubits)
+            final_state = create_n_plus_state(number_qubits)
 
             for edge in edge_list:
-                final_state = dmf.apply_CZ(final_state, mapping[edge[0]], mapping[edge[1]])
+                final_state = apply_CZ(final_state, mapping[edge[0]], mapping[edge[1]])
             self.rep = final_state
         else:
             raise ValueError('Input data type is not supported for DensityMatrix.')

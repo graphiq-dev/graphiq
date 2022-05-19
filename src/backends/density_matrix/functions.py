@@ -1,8 +1,6 @@
-"""
-Helper functions for density matrix calculation.
-"""
-import numpy as np
 from functools import reduce
+
+import numpy as np
 
 
 def sigmax():
@@ -231,15 +229,6 @@ def create_n_plus_state(number_qubits):
     return final_state
 
 
-# def apply_CZ(state_matrix, control_qubit, target_qubit):
-#     """
-#     Compute the density matrix after applying the controlled-Z gate
-#     """
-#     number_qubits = int(np.log2(np.sqrt(state_matrix.size)))
-#     cz = get_controlled_gate(number_qubits, control_qubit, target_qubit, sigmaz())
-#     return cz @ state_matrix @ np.transpose(np.conjugate(cz))
-
-
 def tensor(arr):
     return reduce(np.kron, arr)
 
@@ -282,3 +271,14 @@ def partial_trace(rho, keep, dims, optimize=False):
     rho_a = rho.reshape(np.tile(dims, 2))
     rho_a = np.einsum(rho_a, idx1 + idx2, optimize=optimize)
     return rho_a.reshape(Nkeep, Nkeep)
+
+
+def apply_CZ(state_matrix, control_qubit, target_qubit):
+    """
+    Compute the density matrix after applying the controlled-Z gate
+    """
+    number_qubits = int(np.log2(np.sqrt(state_matrix.size)))
+    cz = get_controlled_gate(number_qubits, control_qubit, target_qubit, sigmaz())
+    return cz @ state_matrix @ np.transpose(np.conjugate(cz))
+
+

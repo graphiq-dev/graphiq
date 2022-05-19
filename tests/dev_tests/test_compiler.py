@@ -2,7 +2,7 @@ import numpy as np
 
 from src.circuit import CircuitDAG
 from src.ops import *
-from src.backends.compiler import DensityMatrixCompiler
+from src.backends.density_matrix.compiler import DensityMatrixCompiler
 from src.backends.state_representations import DensityMatrix
 
 

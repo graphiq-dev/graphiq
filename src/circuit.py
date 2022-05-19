@@ -350,30 +350,40 @@ class CircuitDAG(CircuitBase):
         return self._node_id
 
     def _reg_bit_list(self, q_reg, c_reg):
-        # https://stackoverflow.com/questions/798854/all-combinations-of-a-list-of-lists
-        # construct a list of reg-bit tuple lists to find every combination
-        total_reg_list = []
-        for i, q in enumerate(q_reg):
-            total_reg_list.append([])
-            if isinstance(q, int):  # if we're indexing the full register, add every register index
-                for j in range(self.q_registers[q]):
-                    total_reg_list[i].append((q, j))
-            else:
-                total_reg_list[i].append(q)
-        for i, c in enumerate(c_reg):
-            total_reg_list.append([])
-            if isinstance(c, int):  # if we're indexing the full register, add every register index
-                for j in range(self.c_registers[c]):
-                    total_reg_list[i + len(q_reg)].append((c, j))
-            else:
-                total_reg_list[i + len(q_reg)].append(c)
+        # find the first element if q_reg or c_reg which is a full register instead of a register-bit pair
+        # make sure all registers have the same length
+        max_length = 1
+        for r in q_reg:
+            if isinstance(r, int):
+                if max_length != 1:
+                    assert max_length == self.q_registers[r], f'All register lengths must match!'
+                else:
+                    max_length = self.q_registers[r]
+        for r in c_reg:
+            if isinstance(r, int):
+                if max_length != 1:
+                    assert max_length == self.c_registers[r], f'All register lengths must match!'
+                else:
+                    max_length = self.c_registers[r]
 
-        # get a list of each combination
-        all_reg_combos = list(itertools.product(*total_reg_list))
-        all_q_regs = [t[0:len(q_reg)] for t in all_reg_combos]
-        all_c_regs = [t[len(q_reg):] for t in all_reg_combos]
+        # Send each register value to a list of the correct length
+        all_registers = []
+        for i in range(max_length):
+            q_reg_list = []
+            c_reg_list = []
+            for r in q_reg:
+                if isinstance(r, tuple):
+                    q_reg_list.append(r)
+                else:
+                    q_reg_list.append((r, i))
+            for r in c_reg:
+                if isinstance(r, tuple):
+                    c_reg_list.append(r)
+                else:
+                    c_reg_list.append((r, i))
+            all_registers.append((tuple(q_reg_list), tuple(c_reg_list)))
 
-        return zip(all_q_regs, all_c_regs)
+        return all_registers
 
     def _set_gate_action_indices(self):
         q_reg = np.array(self.q_registers)

@@ -404,6 +404,7 @@ def test_nonconsecutive_register_cbit_indexing_2():
 
     dag.validate()
 
+
 @pytest.mark.parametrize("is_quantum", [True, False])
 def test_dynamic_register_expansion_1(is_quantum):
     """
@@ -542,11 +543,11 @@ def test_dynamic_register_usage_0():
     dag.expand_quantum_register(0, 3)
     dag.expand_quantum_register(1, 2)
 
-    with pytest.raises(ValueError):
+    with pytest.raises(AssertionError):
         dag.add(CNOT(control=0, target=1))
 
 
-def test_dynamic_register_usage_0():
+def test_dynamic_register_usage_1():
     """
     Confirm that we get the correct graph when applying a register-wide single-qudit/cbit gate
     """
@@ -577,7 +578,7 @@ def test_dynamic_register_usage_0():
     assert dag.dag.number_of_nodes() == 9
     assert dag.dag.number_of_edges() == 6
 
-@pytest.mark.xfail
+
 def test_dynamic_register_usage_2():
     """
     Confirm that we can apply 2 qubit gates between 2 registers of the same size
@@ -600,7 +601,6 @@ def test_dynamic_register_usage_2():
 
     op1 = dag.dag.nodes[1]['op']
     op2 = dag.dag.nodes[2]['op']
-    op3 = dag.dag.nodes[3]['op']
 
     op_order = dag.sequence()
     assert op_order.index(op_q0_0_in) < op_order.index(op1) < op_order.index(op_q0_0_out)
@@ -614,7 +614,7 @@ def test_dynamic_register_usage_2():
     assert dag.dag.number_of_edges() == 8
 
 
-def test_dynamic_register_usage_4():
+def test_dynamic_register_usage_3():
     """
     Confirm that a reg-qubit specific gate works correctly
     """
@@ -645,7 +645,7 @@ def test_dynamic_register_usage_4():
     assert dag.dag.number_of_edges() == 6
 
 
-def test_dynamic_register_usage_5():
+def test_dynamic_register_usage_4():
     """
     Confirm that two qubit gate of form q/c_register=(a, (b, c)) works correctly
     """
@@ -667,7 +667,6 @@ def test_dynamic_register_usage_5():
     op1 = dag.dag.nodes[1]['op']
     op2 = dag.dag.nodes[2]['op']
 
-
     op_order = dag.sequence()
 
     assert op_order.index(op_q0_0_in) < op_order.index(op1) < op_order.index(op_q0_0_out)
@@ -682,7 +681,7 @@ def test_dynamic_register_usage_5():
     assert dag.dag.number_of_edges() == 8
 
 
-def test_dynamic_register_usage_6():
+def test_dynamic_register_usage_5():
     """
     Confirm that two qubit gate of form q/c_register=((a, b), c) works correctly
     """

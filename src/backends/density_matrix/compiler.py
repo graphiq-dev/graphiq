@@ -43,6 +43,9 @@ class DensityMatrixCompiler(CompilerBase):
             if type(op) is ops.Input:
                 pass  # TODO: should think about best way to handle inputs/outputs
 
+            elif type(op) is ops.Output:
+                pass
+
             elif type(op) is ops.Hadamard:
                 unitary = src.backends.density_matrix.functions.get_single_qubit_gate(circuit.n_quantum, op.register, src.backends.density_matrix.functions.hadamard())
                 state.apply_unitary(unitary)
@@ -69,6 +72,6 @@ class DensityMatrixCompiler(CompilerBase):
                 state.apply_unitary(unitary)
 
             else:
-                raise RuntimeError("An invalid operation is contained in the circuit.")
+                raise RuntimeError(f"An invalid operation, {type(op)} is contained in the circuit.")
 
         return state

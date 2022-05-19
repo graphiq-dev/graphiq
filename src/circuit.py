@@ -10,21 +10,45 @@ It should support the following functionalities:
                             tweak designs output by the system)
 2. Circuit topology can be modified by the solver [MVP: yes, MVP initial sprint: no]
         Purpose: allows the circuit structure to be modified and optimized
-3. Circuit can provide a list of its tunable parameters
-   [MVP: <groundwork should exist, not necessarily implemented>, MVP initial sprint: no]
-        Purpose (example): allows for parameter optimization of the circuit via external optimization libraries
-4. Circuit can be compressed into a list of Operation objects [MVP: yes, MVP initial sprint: yes]
+3. Circuit can be compressed into a list of Operation objects [MVP: yes, MVP initial sprint: yes]
         Purpose (example): use at compilation step, use for compatibility with other software (e.g. openQASM)
-5. Circuit can be compiled using the Compiler [MVP: yes, MVP initial sprint: yes]
+4. Circuit can be compiled using the Compiler [MVP: yes, MVP initial sprint: yes]
         Purpose: allows the circuit to be simulated
-6. Circuit can be sent to an openQASM script [MVP: yes, MVP initial sprint: if time]
+5. Circuit can be sent to an openQASM script [MVP: yes, MVP initial sprint: if time]
         Purpose: method of saving circuit (ideal), compatibility with other software, visualizers
 
 Resources: https://qiskit.org/documentation/stubs/qiskit.converters.circuit_to_dag.html
+Visualizing openQASM: https://www.media.mit.edu/quanta/qasm2circ/ <-- use this
+
+DYNAMIC CIRCUIT BUILDING: if we think of the solver trying to create a certain graph state, it's not necessarily
+obvious how many qubits and classical bits we'll need for that. Hence, we expect to be able to add qubits/classical bits
+"live" (as we keep editing the circuit).
+1. We can therefore add an Operation on register 2 even if register 2 did not previously exist--however we only accept
+continuous numbering of registers, so register 1 must exist beforehand
+2. The number of registers can be queried (e.g. by the solver) to add the correct numbered register
+
+
+REGISTER HANDLING:
+
+In qiskit and openQASM, for example, you can apply operations on either a specific qubit in a specific register OR
+on the full register (see ops.py for an explanation of how registers are applied).
+1. Each operation received (whether or not it applies to full registers) is broken down into a set of operations that
+apply between a specific number of qubits (i.e. an operation for each qubit of the register).
+2. Registers can be added/expanded via provided methods.
+
+USER WARNINGS:
+1. if you expand a register AFTER using an Operation which applied to the full register, the Operation will
+NOT retroactively apply to the added qubits
+
+# TODO: fix the (a, b) register issue
+# TODO: add check that registers are ok (you can't aim a register at itself)
 """
+import copy
+import itertools
 import networkx as nx
 import matplotlib.pyplot as plt
 from abc import ABC, abstractmethod
+import numpy as np
 
 from src.ops import OperationBase
 from src.ops import Input
@@ -41,8 +65,8 @@ class CircuitBase(ABC):
         """
         Construct an empty circuit
         """
-        self.q_registers = set()
-        self.c_registers = set()
+        self.q_registers = []
+        self.c_registers = []
 
     @abstractmethod
     def add(self, operation: OperationBase):
@@ -75,6 +99,57 @@ class CircuitBase(ABC):
     def n_classical(self):
         return len(self.c_registers)
 
+    def next_qubit(self, register):
+        return self.q_registers[register]
+
+    def next_cbit(self, register):
+        return self.c_registers[register]
+
+    def add_quantum_register(self, size=1):
+        """
+        Adds a quantum register, and returns the index of said register
+        :return: index of added quantum register
+        """
+        return self._add_register(size, True)
+
+    def add_classical_register(self, size=1):
+        """
+        Adds a classical register, and returns the index of said register
+        :return: index of added classical register
+        """
+        return self._add_register(size, False)
+
+    def _add_register(self, size, is_quantum):
+        if is_quantum:
+            curr_reg = self.q_registers
+            reg_description = 'Quantum'
+        else:
+            curr_reg = self.c_registers
+            reg_description = 'Classical'
+
+        if size < 1:
+            raise ValueError(f'{reg_description} register size must be at least one')
+
+        curr_reg.append(size)
+        return size
+
+    def expand_quantum_register(self, register, new_size):
+        self._expand_register(register, new_size, True)
+
+    def expand_classical_register(self, register, new_size):
+        self._expand_register(register, new_size, False)
+
+    def _expand_register(self, register, new_size, is_quantum):
+        if is_quantum:
+            curr_reg = self.q_registers
+        else:
+            curr_reg = self.c_registers
+
+        curr_size = curr_reg[register]
+        if new_size <= curr_size:
+            raise ValueError(f"New register size {new_size} is not greater than the current size {curr_size}")
+        curr_reg[register] = new_size
+
 
 class CircuitDAG(CircuitBase):
     """
@@ -94,15 +169,19 @@ class CircuitDAG(CircuitBase):
         super().__init__(*args, **kwargs)
         self.dag = nx.DiGraph()
         self._node_id = 0
-        self._add_reg(range(n_quantum), range(n_classical))
+        self._add_reg_if_absent(range(n_quantum), range(n_classical))
 
     def add(self, operation: OperationBase):
         """
         Add an operation to the circuit
         :param operation: Operation (gate and register) to add to the graph
         """
-        self._add_reg(operation.q_registers, operation.c_registers)  # register will be added only if it does not exist
-        self._add(operation)
+        self._add_reg_if_absent(operation.q_registers, operation.c_registers)  # register will be added only if it does not exist
+        for q_reg_bit, c_reg_bit in self._reg_bit_list(operation.q_registers, operation.c_registers):
+            new_op = copy.deepcopy(operation)
+            new_op.q_registers = q_reg_bit
+            new_op.c_registers = c_reg_bit
+            self._add(new_op, c_reg_bit=c_reg_bit, q_reg_bit=q_reg_bit)
 
     def validate(self):
         """
@@ -125,6 +204,7 @@ class CircuitDAG(CircuitBase):
         raise NotImplementedError('')
 
     def sequence(self):
+        self._set_gate_action_indices()
         return [self.dag.nodes[node]['op'] for node in nx.topological_sort(self.dag)]
 
     def compile(self, parameters):
@@ -143,32 +223,111 @@ class CircuitDAG(CircuitBase):
         nx.draw(self.dag, pos=pos, ax=ax, with_labels=True)
         plt.show()
 
-    def _add_reg(self, q_reg, c_reg):
-        new_q_reg = set(q_reg) - self.q_registers
-        self.q_registers = self.q_registers.union(new_q_reg)
-        new_c_reg = set(c_reg) - self.c_registers
-        self.c_registers = self.c_registers.union(new_c_reg)
+    def _add_register(self, size, is_quantum):
+        reg_description = 'Quantum' if is_quantum else 'Classical'
+        if size < 1:
+            raise ValueError(f'{reg_description} register size must be at least one')
 
-        for q in new_q_reg:
-            self.dag.add_node(f'q{q}_in', op=Input(register=q))
-            self.dag.add_node(f'q{q}_out', op=Output(register=q))
-            self.dag.add_edge(f'q{q}_in', f'q{q}_out', bit=f'q{q}')
+        if is_quantum:
+            self._add_reg_if_absent((len(self.q_registers),), tuple(), size=size)
+        else:
+            self._add_reg_if_absent(tuple(), (len(self.c_registers),), size=size)
+        return size
 
-        for c in new_c_reg:
-            self.dag.add_node(f'c{c}_in', op=Input(register=c))
-            self.dag.add_node(f'c{c}_out', op=Output(register=c))
-            self.dag.add_edge(f'c{c}_in', f'c{c}_out', bit=f'c{c}')
+    def _expand_register(self, register, new_size, is_quantum):
+        old_size = self.q_registers[register] if is_quantum else self.c_registers[register]
+        if new_size <= old_size:
+            raise ValueError(f"New register size {new_size} is not greater than the current size {old_size}")
 
-    def _add(self, operation: OperationBase):
+        if is_quantum:
+            self._add_reg_if_absent((register,), tuple(), size=new_size)
+        else:
+            self._add_reg_if_absent(tuple(), (register, ), size=new_size)
+
+    def _add_reg_if_absent(self, q_reg, c_reg, size=1):
+        """
+        Size option is useful for expanding registers without explicit qubits being specified
+        """
+        # add registers as needed
+        def __update_registers(reg, is_quantum):
+            if is_quantum:
+                curr_register = self.q_registers
+            else:
+                curr_register = self.c_registers
+
+            reg_only = [a[0] if isinstance(a, tuple) else a for a in reg]
+            reg_only.sort()  # sort
+            for a in reg_only:
+                if a > len(curr_register):
+                    raise ValueError(f"Register numbering must be continuous. Quantum register {a} cannot be added."
+                                     f"Next register that can be added is {len(curr_register)}")
+                if a == len(curr_register):
+                    curr_register.append(size)  # we initialize the register to have a single qubit here
+                elif size > curr_register[a]:
+                    curr_register[a] = size
+
+        __update_registers(q_reg, True)
+        __update_registers(c_reg, False)
+
+        # Update qudit/classical bit numbers in each register
+
+        def __update_register_sizes(reg, is_quantum):
+            """ Verifies that there are no skip in qubit numbers, and that register sizes are properly incremented"""
+            curr_reg = self.q_registers if is_quantum else self.c_registers
+            for r in reg:
+
+                if isinstance(r, int):
+                    continue
+
+                if r[1] > curr_reg[r[0]]:
+                    raise ValueError("Non-consecutive qudit/cbit indexing!")
+                elif r[1] == curr_reg[r[0]]:
+                    curr_reg[r[0]] += 1
+
+        __update_register_sizes(q_reg, True)
+        __update_register_sizes(c_reg, False)
+
+        # update graph
+
+        def __update_graph(reg, is_quantum):
+            # TODO: consider whether this is worth optimizing
+            if is_quantum:
+                b = 'q'
+                curr_reg = self.q_registers
+            else:
+                b = 'c'
+                curr_reg = self.c_registers
+            for a in reg:
+                if isinstance(a, tuple):
+                    bit_id = f'{b}{a[0]}-{a[1]}'
+                    if f'{bit_id}_in' not in self.dag.nodes:
+                        self.dag.add_node(f'{bit_id}_in', op=Input(register=a, reg_type=b), reg=a[0], bit=a[1])
+                        self.dag.add_node(f'{bit_id}_out', op=Output(register=a, reg_type=b), reg=a[0], bit=a[1])
+                        self.dag.add_edge(f'{bit_id}_in', f'{bit_id}_out', reg_type=b, reg=a[0], bit=a[1])
+                elif isinstance(a, int):
+                    for i in range(curr_reg[a]):  # for each qubit in the register
+                        bit_id = f'{b}{a}-{i}'
+                        if f'{bit_id}_in' not in self.dag.nodes:
+                            self.dag.add_node(f'{bit_id}_in', op=Input(register=(a, i), reg_type=b), reg=a, bit=i)
+                            self.dag.add_node(f'{bit_id}_out', op=Output(register=(a, i), reg_type=b), reg=a, bit=i)
+                            self.dag.add_edge(f'{bit_id}_in', f'{bit_id}_out', reg_type=b, reg=a, bit=i)
+        __update_graph(q_reg, True)
+        __update_graph(c_reg, False)
+
+    def _add(self, operation: OperationBase, q_reg_bit, c_reg_bit):
         """
         Add an operation to the circuit, assuming that all registers used by operation are already in place
+
+        NOTE: we must create new OperationBase objects
         :param operation: Operation (gate and register) to add to the graph
         """
         new_id = self._unique_node_id()
-        self.dag.add_node(new_id, op=operation)
+        targets_reg_bit = (operation.q_registers == q_reg_bit) and (operation.c_registers == c_reg_bit)
+        if targets_reg_bit:
+            self.dag.add_node(new_id, op=operation)
 
         # get all edges that will need to be removed (i.e. the edges on which the Operation is being added)
-        relevant_outputs = [f'q{q}_out' for q in operation.q_registers] + [f'c{c}_out' for c in operation.c_registers]
+        relevant_outputs = [f'q{q[0]}-{q[1]}_out' for q in q_reg_bit] + [f'c{c[0]}-{c[1]}_out' for c in c_reg_bit]
         output_edges = []
         for output in relevant_outputs:
             output_edges.extend([edge for edge in self.dag.in_edges(output)])
@@ -178,15 +337,84 @@ class CircuitDAG(CircuitBase):
         preceding_nodes = [edge[0] for edge in output_edges]
         self.dag.remove_edges_from(output_edges)
 
-        for reg_index, node in zip([f'q{q}' for q in operation.q_registers] +
-                                   [f'c{c}' for c in operation.c_registers], preceding_nodes):
+        for reg_index, node in zip([f'q{q[0]}-{q[1]}' for q in q_reg_bit] +
+                                   [f'c{c[0]}-{c[1]}' for c in c_reg_bit], preceding_nodes):
             self.dag.add_edge(node, new_id, bit=reg_index)
 
         for output in relevant_outputs:
             edge_name = output.removesuffix('_out')
-            self.dag.add_edge(new_id, output, bit=edge_name)
+            reg_type = edge_name[0]
+            reg_bit_str = edge_name[1:].partition('-')
+            reg = int(reg_bit_str[0])
+            bit = int(reg_bit_str[2])
+            self.dag.add_edge(new_id, output, reg_type=reg_type, reg=reg, bit=bit)
 
     def _unique_node_id(self):
         self._node_id += 1
         return self._node_id
 
+    def _reg_bit_list(self, q_reg, c_reg):
+        # find the first element if q_reg or c_reg which is a full register instead of a register-bit pair
+        # make sure all registers have the same length
+        max_length = 1
+        for r in q_reg:
+            if isinstance(r, int):
+                if max_length != 1:
+                    assert max_length == self.q_registers[r], f'All register lengths must match!'
+                else:
+                    max_length = self.q_registers[r]
+        for r in c_reg:
+            if isinstance(r, int):
+                if max_length != 1:
+                    assert max_length == self.c_registers[r], f'All register lengths must match!'
+                else:
+                    max_length = self.c_registers[r]
+
+        # Send each register value to a list of the correct length
+        all_registers = []
+        for i in range(max_length):
+            q_reg_list = []
+            c_reg_list = []
+            for r in q_reg:
+                if isinstance(r, tuple):
+                    q_reg_list.append(r)
+                else:
+                    q_reg_list.append((r, i))
+            for r in c_reg:
+                if isinstance(r, tuple):
+                    c_reg_list.append(r)
+                else:
+                    c_reg_list.append((r, i))
+            all_registers.append((tuple(q_reg_list), tuple(c_reg_list)))
+
+        return all_registers
+
+    def _set_gate_action_indices(self):
+        q_reg = np.array(self.q_registers)
+        c_reg = np.array(self.c_registers)
+        cumulative_num_q = np.cumsum(q_reg)
+        q_reg_bit_num = np.sum(q_reg)
+        cumulative_num_c = np.cumsum(c_reg) + q_reg_bit_num
+
+        print(q_reg)
+        print(c_reg)
+        print(cumulative_num_q)
+        print(cumulative_num_c)
+
+        for node in self.dag.nodes:
+            op = self.dag.nodes[node]['op']
+            action_indices = []
+            for qreg, qbit in op.q_registers:
+                if qreg == 0:
+                    action_index = qbit
+                else:
+                    action_index = cumulative_num_q[qreg - 1] + qbit
+                action_indices.append(action_index)
+            for creg, cbit in op.c_registers:
+                if creg == 0:
+                    action_index = q_reg_bit_num + cbit
+                else:
+                    action_index = cumulative_num_c[creg - 1]
+                action_indices.append(action_index)
+
+            op.assign_action_id(action_indices)

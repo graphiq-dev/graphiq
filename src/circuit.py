@@ -39,12 +39,16 @@ apply between a specific number of qubits (i.e. an operation for each qubit of t
 USER WARNINGS:
 1. if you expand a register AFTER using an Operation which applied to the full register, the Operation will
 NOT retroactively apply to the added qubits
+
+# TODO: fix the (a, b) register issue
+# TODO: add check that registers are ok (you can't aim a register at itself)
 """
 import copy
 import itertools
 import networkx as nx
 import matplotlib.pyplot as plt
 from abc import ABC, abstractmethod
+import numpy as np
 
 from src.ops import OperationBase
 from src.ops import Input
@@ -198,6 +202,7 @@ class CircuitDAG(CircuitBase):
         raise NotImplementedError('')
 
     def sequence(self):
+        self._set_gate_action_indices()
         return [self.dag.nodes[node]['op'] for node in nx.topological_sort(self.dag)]
 
     def compile(self, parameters):
@@ -266,13 +271,10 @@ class CircuitDAG(CircuitBase):
             """ Verifies that there are no skip in qubit numbers, and that register sizes are properly incremented"""
             curr_reg = self.q_registers if is_quantum else self.c_registers
             for r in reg:
-                print("printing reg values and curr_reg[r[0]]!")
-                print(r)
 
                 if isinstance(r, int):
                     continue
 
-                print(curr_reg[r[0]])
                 if r[1] > curr_reg[r[0]]:
                     raise ValueError("Non-consecutive qudit/cbit indexing!")
                 elif r[1] == curr_reg[r[0]]:
@@ -295,16 +297,16 @@ class CircuitDAG(CircuitBase):
                 if isinstance(a, tuple):
                     bit_id = f'{b}{a[0]}-{a[1]}'
                     if f'{bit_id}_in' not in self.dag.nodes:
-                        self.dag.add_node(f'{bit_id}_in', op=Input(register=a))
-                        self.dag.add_node(f'{bit_id}_out', op=Output(register=a))
-                        self.dag.add_edge(f'{bit_id}_in', f'{bit_id}_out', bit=f'{bit_id}')
+                        self.dag.add_node(f'{bit_id}_in', op=Input(register=a, reg_type=b), reg=a[0], bit=a[1])
+                        self.dag.add_node(f'{bit_id}_out', op=Output(register=a, reg_type=b), reg=a[0], bit=a[1])
+                        self.dag.add_edge(f'{bit_id}_in', f'{bit_id}_out', reg_type=b, reg=a[0], bit=a[1])
                 elif isinstance(a, int):
                     for i in range(curr_reg[a]):  # for each qubit in the register
                         bit_id = f'{b}{a}-{i}'
                         if f'{bit_id}_in' not in self.dag.nodes:
-                            self.dag.add_node(f'{bit_id}_in', op=Input(register=a))
-                            self.dag.add_node(f'{bit_id}_out', op=Output(register=a))
-                            self.dag.add_edge(f'{bit_id}_in', f'{bit_id}_out', bit=f'{bit_id}')
+                            self.dag.add_node(f'{bit_id}_in', op=Input(register=(a, i), reg_type=b), reg=a, bit=i)
+                            self.dag.add_node(f'{bit_id}_out', op=Output(register=(a, i), reg_type=b), reg=a, bit=i)
+                            self.dag.add_edge(f'{bit_id}_in', f'{bit_id}_out', reg_type=b, reg=a, bit=i)
         __update_graph(q_reg, True)
         __update_graph(c_reg, False)
 
@@ -337,7 +339,11 @@ class CircuitDAG(CircuitBase):
 
         for output in relevant_outputs:
             edge_name = output.removesuffix('_out')
-            self.dag.add_edge(new_id, output, bit=edge_name)
+            reg_type = edge_name[0]
+            reg_bit_str = edge_name[1:].partition('-')
+            reg = int(reg_bit_str[0])
+            bit = int(reg_bit_str[2])
+            self.dag.add_edge(new_id, output, reg_type=reg_type, reg=reg, bit=bit)
 
     def _unique_node_id(self):
         self._node_id += 1
@@ -345,7 +351,6 @@ class CircuitDAG(CircuitBase):
 
     def _reg_bit_list(self, q_reg, c_reg):
         # https://stackoverflow.com/questions/798854/all-combinations-of-a-list-of-lists
-
         # construct a list of reg-bit tuple lists to find every combination
         total_reg_list = []
         for i, q in enumerate(q_reg):
@@ -369,3 +374,33 @@ class CircuitDAG(CircuitBase):
         all_c_regs = [t[len(q_reg):] for t in all_reg_combos]
 
         return zip(all_q_regs, all_c_regs)
+
+    def _set_gate_action_indices(self):
+        q_reg = np.array(self.q_registers)
+        c_reg = np.array(self.c_registers)
+        cumulative_num_q = np.cumsum(q_reg)
+        q_reg_bit_num = np.sum(q_reg)
+        cumulative_num_c = np.cumsum(c_reg) + q_reg_bit_num
+
+        print(q_reg)
+        print(c_reg)
+        print(cumulative_num_q)
+        print(cumulative_num_c)
+
+        for node in self.dag.nodes:
+            op = self.dag.nodes[node]['op']
+            action_indices = []
+            for qreg, qbit in op.q_registers:
+                if qreg == 0:
+                    action_index = qbit
+                else:
+                    action_index = cumulative_num_q[qreg - 1] + qbit
+                action_indices.append(action_index)
+            for creg, cbit in op.c_registers:
+                if creg == 0:
+                    action_index = q_reg_bit_num + cbit
+                else:
+                    action_index = cumulative_num_c[creg - 1]
+                action_indices.append(action_index)
+
+            op.assign_action_id(action_indices)

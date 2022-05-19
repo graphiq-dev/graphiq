@@ -1,7 +1,7 @@
 import networkx as nx
 
 from src.circuit import CircuitDAG
-from src.ops import OperationBase
+from src.ops import OperationBase, CNOT
 
 # Test initialization
 circuit1 = CircuitDAG(2, 0)
@@ -53,4 +53,12 @@ dag.add_quantum_register()
 dag.add(OperationBase(q_registers=(0,)))
 dag.add(OperationBase(q_registers=(1, 0)))
 dag.add_classical_register(2)
+dag.show()
+
+# Test registers
+dag = CircuitDAG(2, 0)
+dag.expand_quantum_register(0, 2)
+dag.expand_quantum_register(1, 2)
+dag.add(CNOT(control=0, target=1))
+dag.validate()
 dag.show()

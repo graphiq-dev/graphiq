@@ -2,7 +2,7 @@ import pytest
 import random
 
 from src.circuit import CircuitDAG
-from src.ops import OperationBase
+from src.ops import OperationBase, CNOT, PauliX
 
 
 @pytest.mark.parametrize("n_quantum, n_classical", [(1, 0), (0, 4), (3, 6), (24, 63)])
@@ -270,6 +270,7 @@ def test_random_graph(seed):
 
 # Test register implementations
 
+
 def test_add_register_1():
     """
     Test the fact we can't add registers of size 0
@@ -506,68 +507,269 @@ def test_dynamic_register_expansion_4():
     Test that it works with our next_cbit, next_qubit functions. Confirm that topological order / number of nodes/edges
     are as expected
     """
-    pass
+    dag = CircuitDAG(0, 0)
+    next_reg = dag.n_classical
+    dag.add(OperationBase(q_registers=((next_reg, 0),)))
+    dag.add(OperationBase(q_registers=((next_reg, dag.next_qubit(next_reg)),)))
+
+    op1 = dag.dag.nodes[1]['op']
+    op2 = dag.dag.nodes[2]['op']
+
+    assert op1.q_registers == ((0, 0),)
+    assert op2.q_registers == ((0, 1),)
+
+
+def test_dynamic_register_expansion_5():
+    """
+    Confirm that it does not let you query next_qubit for a register that does not exist
+    """
+    dag = CircuitDAG(0, 0)
+    next_reg = dag.n_classical
+    dag.add(OperationBase(q_registers=((next_reg, 0),)))
+
+    with pytest.raises(IndexError):
+        dag.next_cbit(0)
+
+    with pytest.raises(IndexError):
+        dag.next_qubit(1)
 
 
 def test_dynamic_register_usage_0():
     """
     Confirm that we get an error when trying to apply register operations between 2 different sized registers
     """
-    pass
+    dag = CircuitDAG(2, 0)
+    dag.expand_quantum_register(0, 3)
+    dag.expand_quantum_register(1, 2)
+
+    with pytest.raises(ValueError):
+        dag.add(CNOT(control=0, target=1))
 
 
 def test_dynamic_register_usage_0():
     """
     Confirm that we get the correct graph when applying a register-wide single-qudit/cbit gate
     """
-    pass
+    dag = CircuitDAG(1, 0)
+    dag.expand_quantum_register(0, 3)
+    dag.add(PauliX(register=0))
+    dag.validate()
 
+    op_order = dag.sequence()
 
+    op_q0_0_in = dag.dag.nodes['q0-0_in']['op']
+    op_q0_1_in = dag.dag.nodes['q0-1_in']['op']
+    op_q0_2_in = dag.dag.nodes['q0-2_in']['op']
+    op_q0_0_out = dag.dag.nodes['q0-0_out']['op']
+    op_q0_1_out = dag.dag.nodes['q0-1_out']['op']
+    op_q0_2_out = dag.dag.nodes['q0-2_out']['op']
+
+    op1 = dag.dag.nodes[1]['op']
+    op2 = dag.dag.nodes[2]['op']
+    op3 = dag.dag.nodes[3]['op']
+
+    assert op_order.index(op_q0_0_in) < op_order.index(op1) < op_order.index(op_q0_0_out)
+    assert op_order.index(op_q0_1_in) < op_order.index(op2) < op_order.index(op_q0_1_out)
+    assert op_order.index(op_q0_2_in) < op_order.index(op3) < op_order.index(op_q0_2_out)
+
+    assert dag.n_quantum == 1
+    assert dag.n_classical == 0
+    assert dag.dag.number_of_nodes() == 9
+    assert dag.dag.number_of_edges() == 6
+
+@pytest.mark.xfail
 def test_dynamic_register_usage_2():
     """
     Confirm that we can apply 2 qubit gates between 2 registers of the same size
     """
-    pass
+    dag = CircuitDAG(2, 0)
+    dag.expand_quantum_register(0, 2)
+    dag.expand_quantum_register(1, 2)
+    dag.add(CNOT(control=0, target=1))
+    dag.validate()
 
+    op_q0_0_in = dag.dag.nodes['q0-0_in']['op']
+    op_q0_1_in = dag.dag.nodes['q0-1_in']['op']
+    op_q0_0_out = dag.dag.nodes['q0-0_out']['op']
+    op_q0_1_out = dag.dag.nodes['q0-1_out']['op']
 
-def test_dynamic_register_usage_3():
-    """
-    Confirm that we can apply 3 qubit gates between 3 registers of the same size
-    """
-    pass
+    op_q1_0_in = dag.dag.nodes['q1-0_in']['op']
+    op_q1_1_in = dag.dag.nodes['q1-1_in']['op']
+    op_q1_0_out = dag.dag.nodes['q1-0_out']['op']
+    op_q1_1_out = dag.dag.nodes['q1-1_out']['op']
 
+    op1 = dag.dag.nodes[1]['op']
+    op2 = dag.dag.nodes[2]['op']
+    op3 = dag.dag.nodes[3]['op']
 
-def test_dynamic_register_usage_3():
-    """
-    Confirm that we can apply 2 qubit gates between 3 registers of the same size
-    """
-    pass
+    op_order = dag.sequence()
+    assert op_order.index(op_q0_0_in) < op_order.index(op1) < op_order.index(op_q0_0_out)
+    assert op_order.index(op_q0_1_in) < op_order.index(op2) < op_order.index(op_q0_1_out)
+    assert op_order.index(op_q1_0_in) < op_order.index(op1) < op_order.index(op_q1_0_out)
+    assert op_order.index(op_q1_1_in) < op_order.index(op2) < op_order.index(op_q1_1_out)
+
+    assert dag.n_quantum == 2
+    assert dag.n_classical == 0
+    assert dag.dag.number_of_nodes() == 10
+    assert dag.dag.number_of_edges() == 8
 
 
 def test_dynamic_register_usage_4():
     """
     Confirm that a reg-qubit specific gate works correctly
     """
-    pass
+    dag = CircuitDAG(2, 0)
+    dag.expand_quantum_register(0, 2)
+    dag.add(PauliX(register=(0, 0)))
+    dag.add(CNOT(control=(0, 0), target=(0, 1)))
+
+    op_q0_0_in = dag.dag.nodes['q0-0_in']['op']
+    op_q0_1_in = dag.dag.nodes['q0-1_in']['op']
+    op_q0_0_out = dag.dag.nodes['q0-0_out']['op']
+    op_q0_1_out = dag.dag.nodes['q0-1_out']['op']
+    op_q1_0_in = dag.dag.nodes['q1-0_in']['op']
+    op_q1_0_out = dag.dag.nodes['q1-0_out']['op']
+
+    op1 = dag.dag.nodes[1]['op']
+    op2 = dag.dag.nodes[2]['op']
+
+    dag.validate()
+    op_order = dag.sequence()
+    assert op_order.index(op_q0_0_in) < op_order.index(op1) < op_order.index(op2) < op_order.index(op_q0_0_out)
+    assert op_order.index(op_q0_1_in) < op_order.index(op2) < op_order.index(op_q0_1_out)
+    assert op_order.index(op_q1_0_in) < op_order.index(op_q1_0_out)
+
+    assert dag.n_quantum == 2
+    assert dag.n_classical == 0
+    assert dag.dag.number_of_nodes() == 8
+    assert dag.dag.number_of_edges() == 6
 
 
 def test_dynamic_register_usage_5():
     """
     Confirm that two qubit gate of form q/c_register=(a, (b, c)) works correctly
     """
-    pass
+    dag = CircuitDAG(2, 0)
+    dag.expand_quantum_register(0, 2)
+    dag.add(CNOT(control=0, target=(1, 1)))
+
+    dag.validate()
+
+    op_q0_0_in = dag.dag.nodes['q0-0_in']['op']
+    op_q0_0_out = dag.dag.nodes['q0-0_out']['op']
+    op_q0_1_in = dag.dag.nodes['q0-1_in']['op']
+    op_q0_1_out = dag.dag.nodes['q0-1_out']['op']
+    op_q1_0_in = dag.dag.nodes['q1-0_in']['op']
+    op_q1_0_out = dag.dag.nodes['q1-0_out']['op']
+    op_q1_1_in = dag.dag.nodes['q1-1_in']['op']
+    op_q1_1_out = dag.dag.nodes['q1-1_out']['op']
+
+    op1 = dag.dag.nodes[1]['op']
+    op2 = dag.dag.nodes[2]['op']
+
+
+    op_order = dag.sequence()
+
+    assert op_order.index(op_q0_0_in) < op_order.index(op1) < op_order.index(op_q0_0_out)
+    assert op_order.index(op_q0_1_in) < op_order.index(op2) < op_order.index(op_q0_1_out)
+    assert op_order.index(op_q1_0_in) < op_order.index(op_q1_0_out)
+    assert op_order.index(op_q1_1_in) < op_order.index(op1) < op_order.index(op_q1_1_out)
+    assert op_order.index(op_q1_1_in) < op_order.index(op2) < op_order.index(op_q1_1_out)
+
+    assert dag.n_quantum == 2
+    assert dag.n_classical == 0
+    assert dag.dag.number_of_nodes() == 10
+    assert dag.dag.number_of_edges() == 8
 
 
 def test_dynamic_register_usage_6():
     """
     Confirm that two qubit gate of form q/c_register=((a, b), c) works correctly
     """
-    pass
+    dag = CircuitDAG(1, 1)
+    dag.add(OperationBase(q_registers=(0, ), c_registers=((0, 0),)))
+
+    dag.validate()
+
+    op_q0_0_in = dag.dag.nodes['q0-0_in']['op']
+    op_q0_0_out = dag.dag.nodes['q0-0_out']['op']
+    op_c0_0_in = dag.dag.nodes['c0-0_in']['op']
+    op_c0_0_out = dag.dag.nodes['c0-0_out']['op']
+    op1 = dag.dag.nodes[1]['op']
+
+    op_order = dag.sequence()
+
+    assert op_order.index(op_q0_0_in) < op_order.index(op1) < op_order.index(op_q0_0_out)
+    assert op_order.index(op_c0_0_in) < op_order.index(op1) < op_order.index(op_c0_0_out)
+
+    assert dag.n_quantum == 1
+    assert dag.n_classical == 1
+    assert dag.dag.number_of_nodes() == 5
+    assert dag.dag.number_of_edges() == 4
 
 
-def test_dynamic_register_usage_7():
-    """
-    Confirm that two qubit gate of form q/c_register=((a, b), (c,d)) works correctly
-    """
-    pass
+def test_action_id_assignment_1():
+    dag = CircuitDAG(1, 1)
+    dag.add(PauliX(register=0))
+    dag.add(PauliX(register=0))
+    op_order = dag.sequence()
+
+    op_q0_0_in = dag.dag.nodes['q0-0_in']['op']
+    op_c0_0_in = dag.dag.nodes['c0-0_in']['op']
+    op_q0_0_out = dag.dag.nodes['q0-0_out']['op']
+    op_c0_0_out = dag.dag.nodes['c0-0_out']['op']
+
+    op1 = dag.dag.nodes[1]['op']
+    op2 = dag.dag.nodes[2]['op']
+
+    # check topological order
+    assert op_order.index(op_q0_0_in) < op_order.index(op1) < op_order.index(op2) < op_order.index(op_q0_0_out)
+    assert op_order.index(op_c0_0_in) < op_order.index(op_c0_0_out)
+
+    # Test that the action id has been assigned to 1
+    assert op_q0_0_in.register == 0
+    assert op1.register == 0
+    assert op2.register == 0
+    assert op_q0_0_out.register == 0
+    assert op_c0_0_in.register == 1
+    assert op_c0_0_out.register == 1
+
+
+def test_action_id_assignment_2():
+    dag = CircuitDAG(2, 1)
+    dag.expand_quantum_register(0, 3)
+    dag.add(PauliX(register=0))
+    dag.add(CNOT(control=(0, 0), target=(1, 0)))
+    dag.add(OperationBase(c_registers=(1,)))
+
+    op_order = dag.sequence()
+
+    op_q0_0_in = dag.dag.nodes['q0-0_in']['op']
+    op_q0_1_in = dag.dag.nodes['q0-1_in']['op']
+    op_q0_2_in = dag.dag.nodes['q0-2_in']['op']
+    op_q1_0_in = dag.dag.nodes['q1-0_in']['op']
+    op_c0_0_in = dag.dag.nodes['c0-0_in']['op']
+    op_c1_0_in = dag.dag.nodes['c1-0_in']['op']
+
+    op_q0_0_out = dag.dag.nodes['q0-0_out']['op']
+    op_q0_1_out = dag.dag.nodes['q0-1_out']['op']
+    op_q0_2_out = dag.dag.nodes['q0-2_out']['op']
+    op_q1_0_out = dag.dag.nodes['q1-0_out']['op']
+    op_c0_0_out = dag.dag.nodes['c0-0_out']['op']
+    op_c1_0_out = dag.dag.nodes['c1-0_out']['op']
+
+    op123 = [dag.dag.nodes[i]['op'] for i in [1, 2, 3]]
+    op4 = dag.dag.nodes[4]['op']
+    op5 = dag.dag.nodes[5]['op']
+
+    # Test that the action ids have been assigned correctly
+    assert op_q0_0_in.register == op_q0_0_out.register == 0
+    assert op_q0_1_in.register == op_q0_1_out.register == 1
+    assert op_q0_2_in.register == op_q0_2_out.register == 2
+    assert op_q1_0_in.register == op_q1_0_out.register == 3
+    assert op_c0_0_in.register == op_c0_0_out.register == 4
+    assert op_c1_0_in.register == op_c1_0_out.register == 5
+
+    for i, op in enumerate(op123):
+        assert op.register == i
 

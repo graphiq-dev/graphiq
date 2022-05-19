@@ -18,6 +18,7 @@ and qubit d of register c.
 We can also use a mixture of registers an qubits: q_registers=(a, (b, c)) means that the operation will be applied
 between EACH QUBIT of register a, and qubit c of register b
 """
+import abc
 from abc import ABC
 
 
@@ -43,6 +44,9 @@ class OperationBase(ABC):
         self.q_registers = q_registers
         self.c_registers = c_registers
 
+    def assign_action_id(self, nums):
+        pass
+
 
 """ Quantum gates """
 
@@ -53,26 +57,51 @@ class CNOT(OperationBase):
         self.control = control
         self.target = target
 
+    def assign_action_id(self, nums):
+        self.control = nums[0]
+        self.target = nums[1]
 
-class Hadamard(OperationBase):
+
+class SingleTargetOp(OperationBase):
     def __init__(self, register=None, *args, **kwargs):
         super().__init__(q_registers=(register,), *args, **kwargs)
         self.register = register
 
+    def assign_action_id(self, nums):
+        self.register = nums[0]
 
-class PauliX(OperationBase):
-    def __init__(self, register=None, *args, **kwargs):
-        super().__init__(q_registers=(register,), *args, **kwargs)
+
+class Hadamard(SingleTargetOp):
+    """
+
+    """
+
+
+class PauliX(SingleTargetOp):
+    """
+
+    """
+
+
+class IOGate(OperationBase):
+    def __init__(self, register, reg_type='q', *args, **kwargs):
+        if reg_type == 'q':
+            super().__init__(q_registers=(register, ), *args, **kwargs)
+        else:
+            super().__init__(c_registers=(register, ), *args, **kwargs)
         self.register = register
 
-
-class Input(OperationBase):
-    def __init__(self, register=None, *args, **kwargs):
-        super().__init__(q_registers=(register,), *args, **kwargs)
-        self.register = register
+    def assign_action_id(self, nums):
+        self.register = nums[0]
 
 
-class Output(OperationBase):
-    def __init__(self, register=None, *args, **kwargs):
-        super().__init__(q_registers=(register,), *args, **kwargs)
-        self.register = register
+class Input(IOGate):
+    """
+
+    """
+
+
+class Output(IOGate):
+    """
+
+    """

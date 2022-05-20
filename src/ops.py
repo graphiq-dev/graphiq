@@ -42,23 +42,35 @@ class OperationBase(ABC):
                    (isinstance(c, tuple) and len(c) == 2 and isinstance(c[0], int) and isinstance(c[1], int)), \
                    f'Invalid c_register: c_register tuple must only contain tuples of length 2 or integers'
 
-        self.q_registers = q_registers
-        self.c_registers = c_registers
+        self._q_registers = q_registers
+        self._c_registers = c_registers
 
-    def update_register_indices(self, q_registers, c_registers):
-        """
-        This function exists to allow "dynamic" allocation of register sizes. If we expand
-        previous registers, the actual index of a given qubit might change (even if it
-        remains the xth qubit of the register in which it's found, its overall index
-        changes.
 
-        Since the compiler needs to know the overall index of qubits/cbits, we provide a
-        function to update the indices before simulation
+    @property
+    def q_registers(self):
+        return self._q_registers
 
-        :param q_registers: list of overall indices for the qubits used by the operation
-        :param c_registers: list of overall indices for the cbits used by the operation
-        """
-        pass
+    @property
+    def c_registers(self):
+        return self._c_registers
+
+    @q_registers.setter
+    def q_registers(self, q_reg):
+        self._update_q_reg(q_reg)
+
+    @c_registers.setter
+    def c_registers(self, c_reg):
+        self._update_c_reg(c_reg)
+
+    def _update_q_reg(self, q_reg):
+        if len(q_reg) != len(self._q_registers):
+            raise ValueError(f'The number of quantum registers on which the operation acts cannot be changed!')
+        self._q_registers = q_reg
+
+    def _update_c_reg(self, c_reg):
+        if len(c_reg) != len(self._c_registers):
+            raise ValueError(f'The number of classical registers on which the operation acts cannot be changed!')
+        self._c_registers = c_reg
 
 
 class SingleQubitOperationBase(OperationBase):
@@ -66,8 +78,10 @@ class SingleQubitOperationBase(OperationBase):
         super().__init__(q_registers=(register,), *args, **kwargs)
         self.register = register
 
-    def update_register_indices(self, q_registers, c_registers):
-        self.register = q_registers[0]
+    @OperationBase.q_registers.setter
+    def q_registers(self, q_reg):
+        self._update_q_reg(q_reg)
+        self.register = q_reg[0]
 
 
 class InputOutputOperationBase(OperationBase):
@@ -81,11 +95,50 @@ class InputOutputOperationBase(OperationBase):
         self.reg_type = reg_type
         self.register = register
 
-    def update_register_indices(self, q_registers, c_registers):
+
+    @OperationBase.q_registers.setter
+    def q_registers(self, q_reg):
+        self._update_q_reg(q_reg)
         if self.reg_type == 'q':
-            self.register = q_registers[0]
-        else:
-            self.register = c_registers[0]
+            self.register = q_reg[0]
+
+    @OperationBase.c_registers.setter
+    def c_registers(self, c_reg):
+        self._update_c_reg(c_reg)
+        if self.reg_type == 'c':
+            self.register = c_reg[0]
+
+
+class ControlledPairOperationBase(OperationBase):
+    def __init__(self, control=None, target=None, **kwargs):
+        super().__init__(q_registers=(control, target), **kwargs)
+        self.control = control
+        self.target = target
+
+    @OperationBase.q_registers.setter
+    def q_registers(self, q_reg):
+        self._update_q_reg(q_reg)
+        self.control = q_reg[0]
+        self.target = q_reg[1]
+
+
+class ClassicalControlledPairOperationBase(OperationBase):
+    def __init__(self, control=None, target=None, c_register=None, **kwargs):
+        super().__init__(q_registers=(control, target,), c_registers=(c_register,), **kwargs)
+        self.control = control
+        self.target = target
+        self.c_register = c_register
+
+    @OperationBase.q_registers.setter
+    def q_registers(self, q_reg):
+        self._update_q_reg(q_reg)
+        self.control = q_reg[0]
+        self.target = q_reg[1]
+
+    @OperationBase.c_registers.setter
+    def c_registers(self, c_reg):
+        self._update_c_reg(c_reg)
+        self.c_register = c_reg[0]
 
 
 """ Quantum gates """
@@ -111,52 +164,28 @@ class SigmaZ(SingleQubitOperationBase):
         super().__init__(register=register, **kwargs)
 
 
-class CNOT(OperationBase):
-    def __init__(self, control=None, target=None, **kwargs):
-        super().__init__(q_registers=(control, target), **kwargs)
-        self.control = control
-        self.target = target
+class CNOT(ControlledPairOperationBase):
+    """
 
-    def update_register_indices(self, q_registers, c_registers):
-        self.control = q_registers[0]
-        self.target = q_registers[1]
+    """
 
 
-class CPhase(OperationBase):
-    def __init__(self, control=None, target=None, **kwargs):
-        super().__init__(q_registers=(control, target), **kwargs)
-        self.control = control
-        self.target = target
+class CPhase(ControlledPairOperationBase):
+    """
 
-    def update_register_indices(self, q_registers, c_registers):
-        self.control = q_registers[0]
-        self.target = q_registers[1]
+    """
 
 
-class ClassicalCNOT(OperationBase):
-    def __init__(self, control=None, target=None, c_register=None, **kwargs):
-        super().__init__(q_registers=(control, target,), c_registers=(c_register,), **kwargs)
-        self.control = control
-        self.target = target
-        self.c_register = c_register
+class ClassicalCNOT(ClassicalControlledPairOperationBase):
+    """
 
-    def update_register_indices(self, q_registers, c_registers):
-        self.control = q_registers[0]
-        self.target = q_registers[1]
-        self.c_register = c_registers[0]
+    """
 
 
-class ClassicalCPhase(OperationBase):
-    def __init__(self, control=None, target=None, c_register=None, **kwargs):
-        super().__init__(q_registers=(control, target,), c_registers=(c_register,), **kwargs)
-        self.control = control
-        self.target = target
-        self.c_register = c_register
+class ClassicalCPhase(ClassicalControlledPairOperationBase):
+    """
 
-    def update_register_indices(self, q_registers, c_registers):
-        self.control = q_registers[0]
-        self.target = q_registers[1]
-        self.c_register = c_registers[0]
+    """
 
 
 class MeasurementZ(OperationBase):
@@ -164,10 +193,6 @@ class MeasurementZ(OperationBase):
         super().__init__(q_registers=(register,), c_registers=(c_register,), **kwargs)
         self.register = register
         self.c_register = c_register
-
-    def update_register_indices(self, q_registers, c_registers):
-        self.register = q_registers[0]
-        self.c_register = c_registers[0]
 
 
 class Input(InputOutputOperationBase):

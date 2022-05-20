@@ -181,7 +181,7 @@ class CircuitDAG(CircuitBase):
             new_op = copy.deepcopy(operation)
             new_op.q_registers = q_reg_bit
             new_op.c_registers = c_reg_bit
-            self._add(new_op, c_reg_bit=c_reg_bit, q_reg_bit=q_reg_bit)
+            self._add(new_op, q_reg_bit, c_reg_bit)
 
     def validate(self):
         """
@@ -204,7 +204,6 @@ class CircuitDAG(CircuitBase):
         raise NotImplementedError('')
 
     def sequence(self):
-        self._set_gate_action_indices()
         return [self.dag.nodes[node]['op'] for node in nx.topological_sort(self.dag)]
 
     def compile(self, parameters):

@@ -2,7 +2,7 @@ import pytest
 import random
 
 from src.circuit import CircuitDAG
-from src.ops import OperationBase, CNOT, PauliX
+from src.ops import OperationBase, CNOT, SigmaX
 
 
 @pytest.mark.parametrize("n_quantum, n_classical", [(1, 0), (0, 4), (3, 6), (24, 63)])
@@ -553,7 +553,7 @@ def test_dynamic_register_usage_1():
     """
     dag = CircuitDAG(1, 0)
     dag.expand_quantum_register(0, 3)
-    dag.add(PauliX(register=0))
+    dag.add(SigmaX(register=0))
     dag.validate()
 
     op_order = dag.sequence()
@@ -620,7 +620,7 @@ def test_dynamic_register_usage_3():
     """
     dag = CircuitDAG(2, 0)
     dag.expand_quantum_register(0, 2)
-    dag.add(PauliX(register=(0, 0)))
+    dag.add(SigmaX(register=(0, 0)))
     dag.add(CNOT(control=(0, 0), target=(0, 1)))
 
     op_q0_0_in = dag.dag.nodes['q0-0_in']['op']
@@ -709,8 +709,8 @@ def test_dynamic_register_usage_5():
 
 def test_action_id_assignment_1():
     dag = CircuitDAG(1, 1)
-    dag.add(PauliX(register=0))
-    dag.add(PauliX(register=0))
+    dag.add(SigmaX(register=0))
+    dag.add(SigmaX(register=0))
     op_order = dag.sequence()
 
     op_q0_0_in = dag.dag.nodes['q0-0_in']['op']
@@ -730,14 +730,14 @@ def test_action_id_assignment_1():
     assert op1.register == 0
     assert op2.register == 0
     assert op_q0_0_out.register == 0
-    assert op_c0_0_in.register == 1
-    assert op_c0_0_out.register == 1
+    assert op_c0_0_in.register == 0
+    assert op_c0_0_out.register == 0
 
 
 def test_action_id_assignment_2():
     dag = CircuitDAG(2, 1)
     dag.expand_quantum_register(0, 3)
-    dag.add(PauliX(register=0))
+    dag.add(SigmaX(register=0))
     dag.add(CNOT(control=(0, 0), target=(1, 0)))
     dag.add(OperationBase(c_registers=(1,)))
 
@@ -766,8 +766,8 @@ def test_action_id_assignment_2():
     assert op_q0_1_in.register == op_q0_1_out.register == 1
     assert op_q0_2_in.register == op_q0_2_out.register == 2
     assert op_q1_0_in.register == op_q1_0_out.register == 3
-    assert op_c0_0_in.register == op_c0_0_out.register == 4
-    assert op_c1_0_in.register == op_c1_0_out.register == 5
+    assert op_c0_0_in.register == op_c0_0_out.register == 0
+    assert op_c1_0_in.register == op_c1_0_out.register == 1
 
     for i, op in enumerate(op123):
         assert op.register == i

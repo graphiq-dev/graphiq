@@ -15,5 +15,4 @@ print(state_rep1.get_rep())
 print(state_rep2.get_rep())
 print(src.backends.density_matrix.functions.is_psd(state_rep2.get_rep()))
 print(src.backends.density_matrix.functions.get_single_qubit_gate(3, 0, src.backends.density_matrix.functions.sigmaz()))
-print(
-    src.backends.density_matrix.functions.get_controlled_gate(3, 0, 1, src.backends.density_matrix.functions.sigmax()))
+print(src.backends.density_matrix.functions.get_controlled_gate(3, 0, 1, src.backends.density_matrix.functions.sigmax()))

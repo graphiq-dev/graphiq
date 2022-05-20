@@ -338,15 +338,30 @@ class DensityMatrix(StateRepresentationBase):
     def get_rep(self):
         return self.rep
 
-    def apply_unitary(self, unitary_gate):
+    def apply_unitary(self, unitary):
         """
-        Apply a unitary gate on the state.
+        Apply a unitary on the state.
         Assuming the dimensions match; Otherwise, raise ValueError
         """
-        if self.rep.shape == unitary_gate.shape:
-            self.rep = unitary_gate @ self.rep @ np.transpose(np.conjugate(unitary_gate))
+        if self.rep.shape == unitary.shape:
+            self.rep = unitary @ self.rep @ np.transpose(np.conjugate(unitary))
         else:
             raise ValueError('The density matrix of the state has a different size from the unitary gate to be applied.')
+
+    def apply_measurement(self, projectors):
+        if self.rep.shape == projectors[0].shape:
+            probs = [np.real(np.trace(self.rep @ m)) for m in projectors]
+
+            outcome = np.random.choice([0, 1], p=probs/np.sum(probs))
+            m, norm = projectors[outcome], probs[outcome]
+            # this is the dm CONDITIONED on the measurement outcome
+            # this assumes that m = sqrt(m) and m = m.dag()
+            self.rep = (m @ self.rep @ np.transpose(np.conjugate(m))) / norm
+
+            # self.rep = sum([m @ self.rep @ m for m in projectors])  # TODO: this is the dm unconditioned on the outcome
+        else:
+            raise ValueError('The density matrix of the state has a different size from the POVM elements.')
+        return outcome
 
 
 class Stabilizer(StateRepresentationBase):

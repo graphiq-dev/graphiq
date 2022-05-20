@@ -231,15 +231,18 @@ class CircuitDAG(CircuitBase):
         raise NotImplementedError('')
 
     def to_openqasm(self):
-        header_info = oq_lib.openqasm_header() + '\n\n' + '\n'.join(self.openqasm_imports.keys()) + '\n\n' \
+        header_info = oq_lib.openqasm_header() + '\n' + '\n'.join(self.openqasm_imports.keys()) + '\n' \
             + '\n'.join(self.openqasm_defs.keys())
 
-        openqasm_str = [header_info, oq_lib.register_initialization_string(self.q_registers, self.c_registers)]
+        openqasm_str = [header_info, oq_lib.register_initialization_string(self.q_registers, self.c_registers) + '\n']
 
         for op in self.sequence():
             oq_info = op.openqasm_info()
-            openqasm_str.append(oq_info.use_gate(op.q_registers, op.c_registers))
+            gate_application = oq_info.use_gate(op.q_registers, op.c_registers)
+            if gate_application is not "":
+                openqasm_str.append(gate_application)
 
+        print(openqasm_str)
         return '\n'.join(openqasm_str)
 
     def show(self):

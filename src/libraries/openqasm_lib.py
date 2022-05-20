@@ -23,7 +23,7 @@ class OpenQASMInfo:
 
     @property
     def import_string(self):
-        return "\n".join(f'import {self.imports};')
+        return "\n".join([f'import {i};' for i in self.imports])
 
     @property
     def define_gate(self):

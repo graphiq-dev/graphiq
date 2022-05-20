@@ -2,6 +2,9 @@
 Note: this file should only be used for the state WRAPPER object
       (individual implementations should be placed in backend:
       state_representations.py)
+
+# TODO: check whether representations are valid for what you're trying to do
+# TODO: handle some IO functionalities (calling on the io library?) for loading in states
 """
 import src.backends.state_representations as srep
 
@@ -23,4 +26,5 @@ class QuantumState:
         self.state_id = state_id
         self.state_properties = state_properties
         self.state_rep = state_rep
-    
+
+

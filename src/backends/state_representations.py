@@ -10,9 +10,9 @@ import numpy as np
 import warnings
 
 from src.backends.density_matrix.functions import apply_CZ, create_n_plus_state, is_psd
-from src.backends.graph_functions import QuNode
+from src.backends.graph.functions import QuNode
 
-import src.backends.graph_functions as gf
+import src.backends.graph.functions as gf
 
 
 class StateRepresentationBase(ABC):
@@ -26,6 +26,7 @@ class StateRepresentationBase(ABC):
         """
         self.state_data = state_data
         self.state_id = state_id
+        self.rep = None
 
     def __str__(self):
         return f"{self.__class__.__name__}\n{self.rep}"
@@ -34,7 +35,7 @@ class StateRepresentationBase(ABC):
         """
         Return the representation of the state
         """
-        raise ValueError('Base class StateRepresentation is abstract: it does not support function calls')
+        return self.rep
 
 
 class GraphRep(StateRepresentationBase):
@@ -44,19 +45,19 @@ class GraphRep(StateRepresentationBase):
     we may need to keep track of local cliffcords that convert the state to the graph state represented by the graph
     """
 
-    def __init__(self, state_data, state_id, root_node_id):
+    def __init__(self, state_data, root_node_id, *args, **kwargs):
         """
         :params state_data: data used to construct the representation
         :params state_id: a unique identifier for the state
         :params root_node_id: a node id for the root node
         """
-        self.state_id = state_id
-        self.root_node, self.node_dict, self.rep = gf.convert_data_to_graph(root_node_id,state_id,state_data)
+
+        self.root_node, self.node_dict, self.rep = gf.convert_data_to_graph(state_data,root_node_id)
         self.local_cliffords = None # set this later
 
     def add_node(self, node_to_add):
         """
-        Adds a node to the graph.
+        Add a node to the graph.
         It allows node_to_add to be one of following types:
             QuNode
             int
@@ -64,24 +65,15 @@ class GraphRep(StateRepresentationBase):
         """
         if isinstance(node_to_add, QuNode):
             node_id = node_to_add.get_id()
-            node_to_add.set_id_with_prefix(self.state_id, node_id)
             if node_id not in self.node_dict.keys():
                 self.node_dict[node_id] = node_to_add
                 self.rep.add_node(node_to_add)
             else:
                 warnings.warn('Node already in the graph. Check node identifier.')
-        elif isinstance(node_to_add, int):
+        elif isinstance(node_to_add, int) or isinstance(node_to_add, frozenset):
             # node_to_add is just a node id; create the node first if it does not exist
             if node_to_add not in self.node_dict.keys():
-                tmp_node = QuNode(self.state_id + node_to_add)
-                self.node_dict[node_to_add] = tmp_node
-                self.graph.add_node(tmp_node)
-            else:
-                warnings.warn('Node already in the graph. Check node identifier.')
-        elif isinstance(node_to_add, frozenset):
-            if node_to_add not in self.node_dict.keys():
                 tmp_node = QuNode(node_to_add)
-                tmp_node.set_id_with_prefix(self.state_id, node_to_add)
                 self.node_dict[node_to_add] = tmp_node
                 self.rep.add_node(tmp_node)
             else:
@@ -91,6 +83,9 @@ class GraphRep(StateRepresentationBase):
             raise ValueError('Invalid data for the node to be added.')
 
     def add_edge(self,first_node,second_node):
+        """
+        Add an edge between two nodes. If any of these two nodes does not exist, no edge is added.
+        """
         if isinstance(first_node,QuNode):
             node_id1 = first_node.get_id()
         elif isinstance(first_node,int) or isinstance(first_node,frozenset):
@@ -104,69 +99,14 @@ class GraphRep(StateRepresentationBase):
         else:
             raise ValueError('Not supporting input data type')
 
-        if isinstance(node_id1,int):
-            node_index1 = node_id1 - self.state_id
-        else:
-            tmp_id_list = list(node_id1)
-            tmp_id_list2 = [id - self.state_id for id in tmp_id_list]
-            node_index1 = frozenset(tmp_id_list2)
-        if isinstance(node_id1,int):
-            node_index2 = node_id2 - self.state_id
-        else:
-            tmp_id_list = list(node_id2)
-            tmp_id_list2 = [id - self.state_id for id in tmp_id_list]
-            node_index2 = frozenset(tmp_id_list2)
 
-        if node_index1 in self.node_dict.keys() and node_index2 in self.node_dict.keys():
-            self.rep.add_edge(self.node_dict[node_index1],self.node_dict[node_index2])
+        if node_id1 in self.node_dict.keys() and node_id2 in self.node_dict.keys():
+            self.rep.add_edge(self.node_dict[node_id1],self.node_dict[node_id2])
         else:
             warnings.warn('At least one of nodes do not exist. Not adding an edge.')
 
-    def update_node_id(self,old_node_id,new_node_id):
-        """
-        Update the id of a node.
-        """
-        # update node id for a single node
-        if old_node_id not in self.node_dict.keys():
-            raise KeyError('Node does not exist')
-        if new_node_id in self.node_dict.keys():
-            raise KeyError('New identifier already in use')
-        self.node_dict[old_node_id].set_id_with_prefix(self.state_id, new_node_id)
-        self.node_dict[new_node_id] = self.node_dict.pop(old_node_id)
 
-    def reassign_all_node_id(self,mapping):
-        # mapping uses the old id as key and new id as value
-        if len(self.node_dict) !=len(mapping):
-            raise ValueError('Not all nodes are included.')
-        if set(self.node_dict.keys()) != set(mapping.keys()):
-            raise ValueError('Wrong node ids are included.')
-        new_node_dict = dict()
-        for key in mapping.keys():
-            self.node_dict[key].set_id(mapping[key])
-            new_node_dict[mapping[key]] =  self.node_dict[key]
-        self.node_dict = new_node_dict
 
-    def reassign_all_node_integer_id(self,starting_id, new_state_id):
-        counter = starting_id
-        tmp_dict = dict()
-        for node_id in self.node_dict.keys():
-            if isinstance(node_id,frozenset):
-                new_id = list()
-                new_id_short = list()
-                for id in node_id:
-                    new_id.append(counter + new_state_id)
-                    new_id_short.append(counter)
-                    counter += 1
-                new_id = frozenset(new_id)
-                new_id_short = frozenset(new_id_short)
-            else:
-                new_id = counter + new_state_id
-                new_id_short = counter
-                counter +=1
-            tmp_node = self.node_dict[node_id]
-            tmp_node.set_id(new_id)
-            tmp_dict[new_id_short] = tmp_node
-        self.node_dict = tmp_dict
 
 
     def get_edges(self):
@@ -184,14 +124,11 @@ class GraphRep(StateRepresentationBase):
     def get_edges_id_form(self):
         return [(e[0].get_id(),e[1].get_id()) for e in self.rep.edges]
 
-    def get_edges_simple_id_form(self):
-        return [(e[0].get_id_wo_prefix(self.state_id),e[1].get_id_wo_prefix(self.state_id)) for e in self.graph.edges]
 
     def get_nodes_id_form(self):
         return [node.get_id() for node in self.rep.nodes]
 
-    def get_nodes_simple_id_form(self):
-        return list(self.node_dict.keys())
+
 
     def get_root_node(self):
         return self.root_node
@@ -226,13 +163,6 @@ class GraphRep(StateRepresentationBase):
                 tmp_graph.add_node(node)
         return tmp_graph
 
-    def get_graph_simple_id_form(self):
-        tmp_graph = nx.Graph(self.get_edges_simple_id_form())
-        nodelist = self.get_node_simple_id_form()
-        if set(nodelist) != set(tmp_graph.nodes()):
-            for node in nodelist:
-                tmp_graph.add_node(node)
-        return tmp_graph
 
     def get_neighbors(self,node_id):
         """
@@ -249,12 +179,19 @@ class GraphRep(StateRepresentationBase):
         return neighbor_list
 
     def remove_node(self, node_id):
+        """
+        Remove a node from the graph and remove all edges of the node
+        """
         if node_id in self.node_dict.keys():
             self.rep.remove_node(self.node_dict[node_id])
         else:
             warnings.warn('No node is removed since node id does not exist.')
 
     def remove_id_from_redundancy(self, node_id, removal_id=None):
+        """
+        Remove a photon from the redunantly encoded node.
+        If no photon id is specified, then the first photon in the node is removed.
+        """
         if node_id in self.node_dict.keys():
             if isinstance(node_id,frozenset):
                 node = self.get_node_by_id(node_id)
@@ -275,6 +212,11 @@ class GraphRep(StateRepresentationBase):
             warnings.warn('No node is removed since node id does not exist.')
 
     def measureX(self, node_id):
+        """
+        Measure a given node in the X basis.
+        If the node contains a single photon, this measurement removes the node and disconnects all edges of this node.
+        If the node is redunantly encoded, this measurement removes one photon from the node.
+        """
         if node_id in self.node_dict.keys():
             cnode = self.node_dict[node_id]
             if cnode.count_redundancy() == 1:
@@ -286,11 +228,13 @@ class GraphRep(StateRepresentationBase):
         else:
             warnings.warn('No action is applied since node id does not exist.')
 
-    def get_rep(self):
-        """
-        Return the representation of the state
-        """
-        return self.rep
+    def measureY(self, node_id):
+        # TODO
+        raise NotImplementedError('To do')
+
+    def measureZ(self, node_id):
+        # TODO
+        raise NotImplementedError('To do')
 
     def draw(self, draw_ax):
         """
@@ -322,8 +266,12 @@ class DensityMatrix(StateRepresentationBase):
 
             self.rep = state_data
 
-        elif isinstance(state_data, nx.Graph):
+        elif isinstance(state_data, nx.Graph) or isinstance(state_data,GraphRep):
             # state_data is a networkx graph
+            if isinstance(state_data,GraphRep):
+                graph_data = state_data.get_rep()
+            else:
+                graph_data = state_data
             number_qubits = state_data.number_of_nodes()
             mapping = dict(zip(state_data.nodes(), range(0, number_qubits)))
             edge_list = list(state_data.edges)
@@ -332,11 +280,12 @@ class DensityMatrix(StateRepresentationBase):
             for edge in edge_list:
                 final_state = apply_CZ(final_state, mapping[edge[0]], mapping[edge[1]])
             self.rep = final_state
+
+
         else:
             raise ValueError('Input data type is not supported for DensityMatrix.')
 
-    def get_rep(self):
-        return self.rep
+
 
     def apply_unitary(self, unitary):
         """

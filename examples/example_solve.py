@@ -23,10 +23,10 @@ if __name__ == "__main__":
     metric = metrics.MetricFidelity()
 
     # define the solver (all methods are encapsulated in the class definition)
-    solver = solvers.RandomSearchSolver(target=None, metric=metric, compiler=compiler)
+    solver = solvers.RandomSearchSolver(target=None, metric=metric, compiler=compiler, circuit=circuit)
 
     # call .solve to implement the solver algorithm
-    solver.solve(circuit)
+    solver.solve()
 
     # we now have access to the metrics (don't need to pass anything back, as we are logging it in the Metric instance)
     print(metric.log)

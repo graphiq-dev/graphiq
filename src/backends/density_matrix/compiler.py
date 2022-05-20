@@ -48,6 +48,9 @@ class DensityMatrixCompiler(CompilerBase):
             if type(op) is ops.Input:
                 pass  # TODO: should think about best way to handle inputs/outputs
 
+            elif type(op) is ops.Output:
+                pass
+
             elif type(op) is ops.Hadamard:
                 unitary = dm.get_single_qubit_gate(circuit.n_quantum, op.register, dm.hadamard())
                 state.apply_unitary(unitary)

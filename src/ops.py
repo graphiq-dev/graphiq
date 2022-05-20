@@ -26,6 +26,8 @@ class OperationBase(ABC):
     """
 
     """
+    _openqasm_info = None
+
     def __init__(self, q_registers=tuple(), c_registers=tuple()):
         """
         We assume that tuples refer only to single-qubit registers, by default
@@ -45,27 +47,29 @@ class OperationBase(ABC):
         self.q_registers = q_registers
         self.c_registers = c_registers
 
-        self._openqasm_info = None
-
     def assign_action_id(self, nums):
         pass
 
-    @property
-    def openqasm_info(self):
-        if self._openqasm_info is None:
+    @classmethod
+    def openqasm_info(cls):
+        if cls._openqasm_info is None:
             raise ValueError("Operation does not have an openQASM translation")
-        return self._openqasm_imports
+        return cls._openqasm_info
 
 
 """ Quantum gates """
 
 
 class CNOT(OperationBase):
+    """
+
+    """
+    _openqasm_info = oq_lib.cnot_info()
+
     def __init__(self, control=None, target=None, *args, **kwargs):
         super().__init__(q_registers=(control, target), *args, **kwargs)
         self.control = control
         self.target = target
-        self._openqasm_info = oq_lib.cnot_info()
 
     def assign_action_id(self, nums):
         self.control = nums[0]
@@ -85,27 +89,30 @@ class SigmaX(SingleTargetOp):
     """
 
     """
+    _openqasm_info = oq_lib.sigma_x_info()
+
     def __init__(self, register=None, *args, **kwargs):
         super().__init__(register, *args, **kwargs)
-        self._openqasm_info = oq_lib.sigma_x_info()
 
 
 class SigmaY(SingleTargetOp):
     """
 
     """
+    _openqasm_info = oq_lib.sigma_y_info()
+
     def __init__(self, register=None, *args, **kwargs):
         super().__init__(register, *args, **kwargs)
-        self._openqasm_info = oq_lib.sigma_y_info()
 
 
 class SigmaZ(SingleTargetOp):
     """
 
     """
+    _openqasm_info = oq_lib.sigma_z_info()
+
     def __init__(self, register=None, *args, **kwargs):
         super().__init__(register, *args, **kwargs)
-        self._openqasm_info = oq_lib.sigma_z_info()
 
 
 class MeasurementZ(SingleTargetOp):
@@ -119,9 +126,10 @@ class Hadamard(SingleTargetOp):
     """
 
     """
+    _openqasm_info = oq_lib.hadamard_info()
+
     def __init__(self, register=None, *args, **kwargs):
         super().__init__(register, *args, **kwargs)
-        self._openqasm_info = oq_lib.hadamard_info()
 
 
 class PauliX(SingleTargetOp):
@@ -132,15 +140,15 @@ class PauliX(SingleTargetOp):
 
 
 class IOGate(OperationBase):
+    # IO gates don't need to take inputs/outputs
+    _openqasm_info = oq_lib.empty_info()
+
     def __init__(self, register, reg_type='q', *args, **kwargs):
         if reg_type == 'q':
             super().__init__(q_registers=(register, ), *args, **kwargs)
         else:
             super().__init__(c_registers=(register, ), *args, **kwargs)
         self.register = register
-
-        # IO gates don't need to take inputs/outputs
-        self._openqasm_info = oq_lib.empty_info()
 
     def assign_action_id(self, nums):
         self.register = nums[0]

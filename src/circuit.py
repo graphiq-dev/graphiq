@@ -44,15 +44,16 @@ NOT retroactively apply to the added qubits
 # TODO: add check that registers are ok (you can't aim a register at itself)
 """
 import copy
-import itertools
 import networkx as nx
 import matplotlib.pyplot as plt
 from abc import ABC, abstractmethod
 import numpy as np
+import warnings
 
 from src.ops import OperationBase
 from src.ops import Input
 from src.ops import Output
+import src.libraries.openqasm_lib as oq_lib
 
 from src.visualizers.dag import dag_topology_pos
 
@@ -61,12 +62,22 @@ class CircuitBase(ABC):
     """
     Base class (interface) for circuit representation
     """
-    def __init__(self, *args, **kwargs):
+    def __init__(self, openqasm_imports={}, openqasm_defs={}, *args, **kwargs):
         """
         Construct an empty circuit
+
+        :param openqasm_imports: an (ordered) dictionary, where the keys are import strings for openqasm
+                                 we would ideally like an ordered set, but this works well in python
+                                 THIS IS MEANT TO ALLOW imports WHICH MUST OCCUR IN SPECIFIC ORDERS
+        :param openqasm_imports: an (ordered) dictionary, where the keys are definition strings for gates in openqasm
+                                 we would ideally like an ordered set, but this works well in python
+                                 THIS IS MEANT TO ALLOW GATE DEFINITIONS WHICH MUST OCCUR IN SPECIFIC ORDERS
         """
         self.q_registers = []
         self.c_registers = []
+
+        self.openqasm_imports = openqasm_imports
+        self.openqasm_defs = openqasm_defs
 
     @abstractmethod
     def add(self, operation: OperationBase):
@@ -160,13 +171,14 @@ class CircuitDAG(CircuitBase):
 
     Each connecting edge of the graph corresponds to a qudit or classical bit
     """
-    def __init__(self, n_quantum=0, n_classical=0, *args, **kwargs):
+    def __init__(self, n_quantum=0, n_classical=0, openqasm_imports={}, openqasm_defs={},
+                 *args, **kwargs):
         """
         Construct an empty DAG circuit
         :param n_quantum: the number of qudits in the system
         :param n_classical: the number of classical bits in the system
         """
-        super().__init__(*args, **kwargs)
+        super().__init__(openqasm_imports=openqasm_imports, openqasm_defs=openqasm_defs, *args, **kwargs)
         self.dag = nx.DiGraph()
         self._node_id = 0
         self._add_reg_if_absent(range(n_quantum), range(n_classical))
@@ -176,7 +188,15 @@ class CircuitDAG(CircuitBase):
         Add an operation to the circuit
         :param operation: Operation (gate and register) to add to the graph
         """
-        self._add_reg_if_absent(operation.q_registers, operation.c_registers)  # register will be added only if it does not exist
+        # add openqasm info
+        try:
+            oq_info = operation.openqasm_info()
+            self.openqasm_imports[oq_info.import_string] = 1
+            self.openqasm_defs[oq_info.define_gate] = 1
+        except ValueError:
+            warnings.warn(UserWarning(f"No openqasm definition for operation {type(operation)}"))
+        # update system representation
+        self._add_reg_if_absent(operation.q_registers, operation.c_registers)  # register added if it does not exist
         for q_reg_bit, c_reg_bit in self._reg_bit_list(operation.q_registers, operation.c_registers):
             new_op = copy.deepcopy(operation)
             new_op.q_registers = q_reg_bit
@@ -211,7 +231,16 @@ class CircuitDAG(CircuitBase):
         raise NotImplementedError('')
 
     def to_openqasm(self):
-        raise NotImplementedError('')
+        header_info = oq_lib.openqasm_header() + '\n\n' + '\n'.join(self.openqasm_imports.keys()) + '\n\n' \
+            + '\n'.join(self.openqasm_defs.keys())
+
+        openqasm_str = [header_info, oq_lib.register_initialization_string(self.q_registers, self.c_registers)]
+
+        for op in self.sequence():
+            oq_info = op.openqasm_info()
+            openqasm_str.append(oq_info.use_gate(op.q_registers, op.c_registers))
+
+        return '\n'.join(openqasm_str)
 
     def show(self):
         """
@@ -395,11 +424,6 @@ class CircuitDAG(CircuitBase):
         cumulative_num_q = np.cumsum(q_reg)
         q_reg_bit_num = np.sum(q_reg)
         cumulative_num_c = np.cumsum(c_reg) + q_reg_bit_num
-
-        print(q_reg)
-        print(c_reg)
-        print(cumulative_num_q)
-        print(cumulative_num_c)
 
         for node in self.dag.nodes:
             op = self.dag.nodes[node]['op']

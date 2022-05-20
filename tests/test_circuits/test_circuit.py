@@ -1,8 +1,11 @@
 import pytest
 import random
+import warnings
 
 from src.circuit import CircuitDAG
 from src.ops import OperationBase, CNOT, PauliX
+
+pytestmark = pytest.mark.filterwarnings("ignore::UserWarning")
 
 
 @pytest.mark.parametrize("n_quantum, n_classical", [(1, 0), (0, 4), (3, 6), (24, 63)])
@@ -271,11 +274,10 @@ def test_random_graph(seed):
 # Test register implementations
 
 
-def test_add_register_1():
+def test_add_register_1(dag):
     """
     Test the fact we can't add registers of size 0
     """
-    dag = CircuitDAG(0, 0)
     dag.validate()
     with pytest.raises(ValueError):
         dag.add_quantum_register(0)
@@ -406,12 +408,10 @@ def test_nonconsecutive_register_cbit_indexing_2():
 
 
 @pytest.mark.parametrize("is_quantum", [True, False])
-def test_dynamic_register_expansion_1(is_quantum):
+def test_dynamic_register_expansion_1(is_quantum, dag):
     """
     Test that we get an error when non-continuous register numbers are provided (quantum and classical)
     """
-    dag = CircuitDAG()
-
     with pytest.raises(ValueError):
         if is_quantum:
             dag.add(OperationBase(q_registers=(1,)))
@@ -503,12 +503,11 @@ def test_dynamic_register_expansion_3():
     dag.validate()
 
 
-def test_dynamic_register_expansion_4():
+def test_dynamic_register_expansion_4(dag):
     """
     Test that it works with our next_cbit, next_qubit functions. Confirm that topological order / number of nodes/edges
     are as expected
     """
-    dag = CircuitDAG(0, 0)
     next_reg = dag.n_classical
     dag.add(OperationBase(q_registers=((next_reg, 0),)))
     dag.add(OperationBase(q_registers=((next_reg, dag.next_qubit(next_reg)),)))
@@ -520,11 +519,10 @@ def test_dynamic_register_expansion_4():
     assert op2.q_registers == ((0, 1),)
 
 
-def test_dynamic_register_expansion_5():
+def test_dynamic_register_expansion_5(dag):
     """
     Confirm that it does not let you query next_qubit for a register that does not exist
     """
-    dag = CircuitDAG(0, 0)
     next_reg = dag.n_classical
     dag.add(OperationBase(q_registers=((next_reg, 0),)))
 

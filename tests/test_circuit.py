@@ -775,4 +775,3 @@ def test_action_id_assignment_2():
     assert ops[5].target == (1, 0)
     assert ops[6].control == (0, 2)
     assert ops[6].target == (1, 0)
-

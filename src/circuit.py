@@ -387,29 +387,3 @@ class CircuitDAG(CircuitBase):
             all_registers.append((tuple(q_reg_list), tuple(c_reg_list)))
 
         return all_registers
-
-    def _set_gate_action_indices(self):
-        q_reg = np.array(self.q_registers)
-        c_reg = np.array(self.c_registers)
-        cumulative_num_q = np.cumsum(q_reg)
-        q_reg_bit_num = np.sum(q_reg)
-        cumulative_num_c = np.cumsum(c_reg)
-
-        for node in self.dag.nodes:
-            op = self.dag.nodes[node]['op']
-            q_registers = []
-            c_registers = []
-            for qreg, qbit in op.q_registers:
-                if qreg == 0:
-                    action_index = qbit
-                else:
-                    action_index = cumulative_num_q[qreg - 1] + qbit
-                q_registers.append(action_index)
-            for creg, cbit in op.c_registers:
-                if creg == 0:
-                    action_index = cbit
-                else:
-                    action_index = cumulative_num_c[creg - 1]
-                c_registers.append(action_index)
-
-            op.update_register_indices(q_registers, c_registers)

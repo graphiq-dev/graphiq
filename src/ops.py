@@ -194,6 +194,16 @@ class MeasurementZ(OperationBase):
         self.register = register
         self.c_register = c_register
 
+    @OperationBase.q_registers.setter
+    def q_registers(self, q_reg):
+        self._update_q_reg(q_reg)
+        self.register = q_reg[0]
+
+    @OperationBase.c_registers.setter
+    def c_registers(self, c_reg):
+        self._update_c_reg(c_reg)
+        self.c_register = c_reg[0]
+
 
 class Input(InputOutputOperationBase):
     def __init__(self, register=None, *args, **kwargs):

@@ -73,25 +73,25 @@ class DensityMatrixCompiler(CompilerBase):
                 state.apply_unitary(unitary)
 
             elif type(op) is ops.ClassicalCNOT:
+                # TODO: handle conditioned vs unconditioned density operators on the measurement outcome
                 projectors = dm.projectors_zbasis(circuit.n_quantum, op.control)
                 outcome = state.apply_measurement(projectors)
-                print(outcome)
                 if outcome == 1:  # condition an X gate on the target qubit based on the measurement outcome
                     unitary = dm.get_single_qubit_gate(circuit.n_quantum, op.target, dm.sigmax())
                     state.apply_unitary(unitary)
 
             elif type(op) is ops.ClassicalCPhase:
+                # TODO: handle conditioned vs unconditioned density operators on the measurement outcome
                 projectors = dm.projectors_zbasis(circuit.n_quantum, op.control)
                 outcome = state.apply_measurement(projectors)
-                print(outcome)
                 if outcome == 1:  # condition a Z gate on the target qubit based on the measurement outcome
                     unitary = dm.get_single_qubit_gate(circuit.n_quantum, op.target, dm.sigmaz())
                     state.apply_unitary(unitary)
 
             elif type(op) is ops.MeasurementZ:
+                # TODO: handle conditioned vs unconditioned density operators on the measurement outcome
                 projectors = dm.projectors_zbasis(circuit.n_quantum, op.register)
                 outcome = state.apply_measurement(projectors)
-                print(outcome)
                 classical_registers[op.c_register] = outcome
 
             elif type(op) is ops.Output:

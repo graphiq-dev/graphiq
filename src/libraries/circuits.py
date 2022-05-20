@@ -3,14 +3,11 @@ Common circuits for testing
 
 """
 import numpy as np
-import matplotlib.pyplot as plt
 
 from src.circuit import CircuitDAG
 from src.ops import *
-from src.backends.density_matrix.compiler import DensityMatrixCompiler
 
 from src.backends.density_matrix.functions import ketz0_state, ketz1_state, tensor, ket2dm, partial_trace
-from src.visualizers.density_matrix import density_matrix_bars
 
 
 def bell_state_circuit():
@@ -28,7 +25,7 @@ def bell_state_circuit():
 
 def ghz3_state_circuit():
     """
-    Three qubit GHZ state
+    Three qubit GHZ state, see examples in literature folder
     """
     ideal_state = dict(
         dm=ket2dm((tensor(3 * [ketz0_state()]) + tensor(3 * [ketz1_state()])) / np.sqrt(2)),
@@ -38,17 +35,17 @@ def ghz3_state_circuit():
     circuit.add(Hadamard(register=3))
     circuit.add(CNOT(control=3, target=0))
     circuit.add(CNOT(control=3, target=1))
-    # circuit.add(Hadamard(register=1))
+    circuit.add(Hadamard(register=1))
+    circuit.add(Hadamard(register=1))
 
     circuit.add(CNOT(control=3, target=2))
-    # circuit.add(Hadamard(register=2))
-
+    circuit.add(Hadamard(register=2))
     circuit.add(Hadamard(register=3))
 
-    # circuit.add(ClassicalCNOT(control=3, target=2, c_register=0))
+    circuit.add(CNOT(control=3, target=2))
 
-    # circuit.add(CNOT(control=3, target=2))
-    circuit.add(CPhase(control=3, target=2))
+    circuit.add(Hadamard(register=2))
+
     circuit.add(MeasurementZ(register=3, c_register=0))
 
     return circuit, ideal_state
@@ -56,7 +53,7 @@ def ghz3_state_circuit():
 
 def ghz4_state_circuit():
     """
-    Four qubit GHZ state
+    Four qubit GHZ state, see examples in literature folder
     """
     ideal_state = dict(
         dm=ket2dm((tensor(4 * [ketz0_state()]) + tensor(4 * [ketz1_state()])) / np.sqrt(2)),
@@ -66,22 +63,18 @@ def ghz4_state_circuit():
     circuit.add(Hadamard(register=4))
     circuit.add(CNOT(control=4, target=0))
     circuit.add(CNOT(control=4, target=1))
-    # circuit.add(Hadamard(register=1))
+    circuit.add(Hadamard(register=1))
+    circuit.add(Hadamard(register=1))
+
     circuit.add(CNOT(control=4, target=2))
-    # circuit.add(Hadamard(register=2))
+    circuit.add(Hadamard(register=2))
+    circuit.add(Hadamard(register=2))
+
     circuit.add(CNOT(control=4, target=3))
-    # circuit.add(Hadamard(register=3))
+    circuit.add(Hadamard(register=3))
+
     circuit.add(Hadamard(register=4))
-    circuit.add(ClassicalCPhase(control=4, target=3, c_register=0))
+    circuit.add(CNOT(control=4, target=3, c_register=0))
+    circuit.add(Hadamard(register=3))
 
     return circuit, ideal_state
-
-
-if __name__ == "__main__":
-
-    # state, ideal = bell_state_circuit()
-    state, ideal = ghz3_state_circuit()
-    # plt.show()
-
-    density_matrix_bars(state.rep)
-    plt.show()

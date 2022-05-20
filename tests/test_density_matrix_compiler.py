@@ -12,7 +12,7 @@ from src.backends.state_representations import DensityMatrix
 from src.libraries.circuits import ghz3_state_circuit, bell_state_circuit, ghz4_state_circuit
 from src.visualizers.density_matrix import density_matrix_bars
 
-plot = True
+plot = False
 
 
 def fidelity(rho, sigma):
@@ -91,7 +91,7 @@ def test_ghz4_circuit():
         fig, ax = density_matrix_bars(ideal_state['dm'])
         fig.suptitle("Ideal density matrix")
         plt.show()
-        
+
     assert np.isclose(1.0, f)
 
 

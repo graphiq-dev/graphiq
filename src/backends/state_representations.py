@@ -354,8 +354,8 @@ class DensityMatrix(StateRepresentationBase):
 
             outcome = np.random.choice([0, 1], p=probs/np.sum(probs))
             m, norm = projectors[outcome], probs[outcome]
-            # this is the dm CONDITIONED on the measurement outcome
-            # this assumes that m = sqrt(m) and m = m.dag()
+            # TODO: this is the dm CONDITIONED on the measurement outcome
+            # this assumes that the projector, m, has the properties: m = sqrt(m) and m = m.dag()
             self.rep = (m @ self.rep @ np.transpose(np.conjugate(m))) / norm
 
             # self.rep = sum([m @ self.rep @ m for m in projectors])  # TODO: this is the dm unconditioned on the outcome

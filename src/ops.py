@@ -21,14 +21,15 @@ between EACH QUBIT of register a, and qubit c of register b
 from abc import ABC
 
 
+""" Base classes from which operations will inherit """
+
+
 class OperationBase(ABC):
     """
-
     """
     def __init__(self, q_registers=tuple(), c_registers=tuple()):
         """
         We assume that tuples refer only to single-qubit registers, by default
-
         :param q_registers: (a, b, c) indexes
         :param c_registers:
         """
@@ -41,45 +42,64 @@ class OperationBase(ABC):
                    (isinstance(c, tuple) and len(c) == 2 and isinstance(c[0], int) and isinstance(c[1], int)), \
                    f'Invalid c_register: c_register tuple must only contain tuples of length 2 or integers'
 
-    def __init__(self, q_registers=tuple(), c_registers=tuple(), **kwargs):
         self.q_registers = q_registers
         self.c_registers = c_registers
 
-    def assign_action_id(self, nums):
+    def update_register_indices(self, q_registers, c_registers):
         pass
+
+
+class SingleQubitOperationBase(OperationBase):
+    def __init__(self, register=None, *args, **kwargs):
+        super().__init__(q_registers=(register,), *args, **kwargs)
+        self.register = register
+
+    def update_register_indices(self, q_registers, c_registers):
+        self.register = q_registers[0]
+        self.q_registers = q_registers
+        self.c_registers = c_registers
+
+
+class InputOutputOperationBase(OperationBase):
+    def __init__(self, register, reg_type='q', *args, **kwargs):
+        if reg_type == 'q':
+            super().__init__(q_registers=(register, ), *args, **kwargs)
+        else:
+            super().__init__(c_registers=(register, ), *args, **kwargs)
+        self.register = register
+
+    def update_register_indices(self, q_registers, c_registers):
+        self.register = q_registers[0]
+        self.q_registers = q_registers
+        self.c_registers = c_registers
 
 
 """ Quantum gates """
 
 
-class Hadamard(OperationBase):
-    def __init__(self, register=None, **kwargs):
-        super().__init__(q_registers=(register,), **kwargs)
-        self.register = register
-
-    def assign_action_id(self, nums):
-        self.register = nums[0]
-
-class SigmaX(OperationBase):
-    def __init__(self, register=None, **kwargs):
-        super().__init__(q_registers=(register,), **kwargs)
-        self.register = register
-
-class SigmaX(SingleTargetOp):
-    """
-
-class SigmaY(OperationBase):
+class Hadamard(SingleQubitOperationBase):
     def __init__(self, register=None, **kwargs):
         super().__init__(q_registers=(register,), **kwargs)
         self.register = register
 
 
-class SigmaZ(OperationBase):
+class SigmaX(SingleQubitOperationBase):
     def __init__(self, register=None, **kwargs):
         super().__init__(q_registers=(register,), **kwargs)
         self.register = register
 
-    """
+
+class SigmaY(SingleQubitOperationBase):
+    def __init__(self, register=None, **kwargs):
+        super().__init__(q_registers=(register,), **kwargs)
+        self.register = register
+
+
+class SigmaZ(SingleQubitOperationBase):
+    def __init__(self, register=None, **kwargs):
+        super().__init__(q_registers=(register,), **kwargs)
+        self.register = register
+
 
 class CNOT(OperationBase):
     def __init__(self, control=None, target=None, **kwargs):
@@ -87,12 +107,24 @@ class CNOT(OperationBase):
         self.control = control
         self.target = target
 
+    def update_register_indices(self, q_registers, c_registers):
+        self.control = q_registers[0]
+        self.target = q_registers[1]
+        self.q_registers = q_registers
+        self.c_registers = c_registers
+
 
 class CPhase(OperationBase):
     def __init__(self, control=None, target=None, **kwargs):
         super().__init__(q_registers=(control, target), **kwargs)
         self.control = control
         self.target = target
+
+    def update_register_indices(self, q_registers, c_registers):
+        self.control = q_registers[0]
+        self.target = q_registers[1]
+        self.q_registers = q_registers
+        self.c_registers = c_registers
 
 
 class ClassicalCNOT(OperationBase):
@@ -102,6 +134,14 @@ class ClassicalCNOT(OperationBase):
         self.target = target
         self.c_register = c_register
 
+    def update_register_indices(self, q_registers, c_registers):
+        self.control = q_registers[0]
+        self.target = q_registers[1]
+        self.c_register = c_registers[0]
+
+        self.q_registers = q_registers
+        self.c_registers = c_registers
+
 
 class ClassicalCPhase(OperationBase):
     def __init__(self, control=None, target=None, c_register=None, **kwargs):
@@ -110,6 +150,14 @@ class ClassicalCPhase(OperationBase):
         self.target = target
         self.c_register = c_register
 
+    def update_register_indices(self, q_registers, c_registers):
+        self.control = q_registers[0]
+        self.target = q_registers[1]
+        self.c_register = c_registers[0]
+
+        self.q_registers = q_registers
+        self.c_registers = c_registers
+
 
 class MeasurementZ(OperationBase):
     def __init__(self, register=None, c_register=None, **kwargs):
@@ -117,16 +165,24 @@ class MeasurementZ(OperationBase):
         self.register = register
         self.c_register = c_register
 
-class SigmaZ(SingleTargetOp):
-    """
+    def update_register_indices(self, q_registers, c_registers):
+        self.register = q_registers[0]
+        self.c_register = c_registers[0]
 
-class Input(OperationBase):
+        self.q_registers = q_registers
+        self.c_registers = c_registers
+
+
+class Input(InputOutputOperationBase):
     def __init__(self, register=None, **kwargs):
         super().__init__(q_registers=(register,), **kwargs)
         self.register = register
 
+    # TODO: update_register_indices here??
 
-class Output(OperationBase):
+
+class Output(InputOutputOperationBase):
     def __init__(self, register=None, **kwargs):
         super().__init__(q_registers=(register,), **kwargs)
         self.register = register
+    # TODO: update_register_indices here??

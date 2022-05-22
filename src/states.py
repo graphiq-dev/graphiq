@@ -37,12 +37,6 @@ class StateRepresentationBase(ABC):
     def data(self, data):
         self._data = data
 
-    def get_rep(self):
-        """
-        Return the representation of the state
-        """
-        return self.rep
-
 
 class GraphState(StateRepresentationBase):
     """

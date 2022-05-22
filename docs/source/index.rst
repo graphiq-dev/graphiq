@@ -15,6 +15,8 @@ Contents
 
 .. toctree::
    api
+   backends
+   guidelines
 
 
 

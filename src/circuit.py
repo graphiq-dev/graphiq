@@ -3,8 +3,8 @@ Experimental circuit which maps out input state (encoded in the circuit) to an o
 
 It should support the following functionalities:
 
-1. Circuit can be manually constructed (program instructions can be added to the "back" of the circuit,
-   as in most quantum circuit simulation software). [MVP: yes, MVP initial sprint: yes]
+1. Circuit can be manually constructed (program instructions can be added to the "back" of the circuit, as in most
+    quantum circuit simulation software). [MVP: yes, MVP initial sprint: yes]
         Purpose (example): unit testing, initializing solver with a particular circuit,
                             regular simulation (useful to have the functionality integrated, in case people want to
                             tweak designs output by the system)

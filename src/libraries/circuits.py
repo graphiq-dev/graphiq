@@ -77,4 +77,6 @@ def ghz4_state_circuit():
     circuit.add(CNOT(control=4, target=3))
     circuit.add(Hadamard(register=3))
 
+    circuit.add(MeasurementZ(register=4, c_register=0))
+
     return circuit, ideal_state

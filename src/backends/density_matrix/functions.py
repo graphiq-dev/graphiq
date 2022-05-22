@@ -1,6 +1,7 @@
 from functools import reduce
 
 import numpy as np
+from scipy.linalg import sqrtm
 
 
 def sigmax():
@@ -248,7 +249,7 @@ def tensor(arr):
 
 
 def ket2dm(ket):
-    return np.outer(ket, ket)
+    return ket @ np.transpose(np.conjugate(ket))
 
 
 def partial_trace(rho, keep, dims, optimize=False):
@@ -302,6 +303,10 @@ def projectors_zbasis(number_qubits, measure_register):
     m0 = reduce(np.kron, [projectorz0() if i == measure_register else np.identity(2) for i in range(number_qubits)])
     m1 = reduce(np.kron, [projectorz1() if i == measure_register else np.identity(2) for i in range(number_qubits)])
     return [m0, m1]
+
+
+def fidelity(rho, sigma):
+    return np.real(np.trace(sqrtm(sqrtm(rho) @ sigma @ sqrtm(rho))) ** 2)
 
 
 if __name__ == "__main__":

@@ -1,22 +1,12 @@
-import pytest
-
-from scipy.linalg import sqrtm
 import numpy as np
 import matplotlib.pyplot as plt
 
-from src.circuit import CircuitDAG
-from src.ops import *
 from src.backends.density_matrix.compiler import DensityMatrixCompiler
-from src.backends.density_matrix.functions import partial_trace
-from src.backends.state_representations import DensityMatrix
+from src.backends.density_matrix.functions import partial_trace, fidelity
 from src.libraries.circuits import ghz3_state_circuit, bell_state_circuit, ghz4_state_circuit
 from src.visualizers.density_matrix import density_matrix_bars
 
 plot = False
-
-
-def fidelity(rho, sigma):
-    return np.trace(sqrtm(sqrtm(rho) @ sigma @ sqrtm(rho))) ** 2
 
 
 def test_bell_circuit():

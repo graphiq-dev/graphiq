@@ -132,3 +132,6 @@ dmypy.json
 
 # scratch folders
 .scratch/
+
+# default data directory
+data/

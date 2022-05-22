@@ -1,13 +1,10 @@
 """
 Example of using a solver to discover circuits to generate a target state
 """
-import numpy as np
 import matplotlib.pyplot as plt
 
 import src.backends.density_matrix.compiler
-from src import solvers, metrics, backends, circuit, ops
-from src.backends import compiler_base
-
+from src import solvers, metrics, circuit, ops
 
 if __name__ == "__main__":
     # start by defining an initial circuit

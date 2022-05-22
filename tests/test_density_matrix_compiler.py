@@ -15,7 +15,7 @@ def test_bell_circuit():
     compiler = DensityMatrixCompiler()
     state = compiler.compile(circuit)
 
-    state = state.rep
+    state = state.data
 
     f = fidelity(state, ideal_state['dm'])
 
@@ -40,7 +40,7 @@ def test_ghz3_circuit():
     compiler = DensityMatrixCompiler()
     state = compiler.compile(circuit)
 
-    state = partial_trace(state.rep, keep=(0, 1, 2), dims=4*[2])  # trace out the ancilla qubit
+    state = partial_trace(state.data, keep=(0, 1, 2), dims=4 * [2])  # trace out the ancilla qubit
 
     f = fidelity(state, ideal_state['dm'])
 
@@ -66,7 +66,7 @@ def test_ghz4_circuit():
     compiler = DensityMatrixCompiler()
     state = compiler.compile(circuit)
 
-    state = partial_trace(state.rep, keep=(0, 1, 2, 3), dims=5*[2])  # trace out the ancilla qubit
+    state = partial_trace(state.data, keep=(0, 1, 2, 3), dims=5 * [2])  # trace out the ancilla qubit
 
     f = fidelity(state, ideal_state['dm'])
 

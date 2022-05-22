@@ -60,5 +60,5 @@ if __name__ == "__main__":
     state, ideal = ghz3_state_circuit()
     # plt.show()
 
-    density_matrix_bars(state.rep)
+    density_matrix_bars(state.data)
     plt.show()

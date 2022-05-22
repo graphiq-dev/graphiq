@@ -3,6 +3,7 @@ import networkx as nx
 from src.circuit import CircuitDAG
 from src.ops import OperationBase, CNOT
 
+
 # Test initialization
 circuit1 = CircuitDAG(2, 0)
 # circuit1.show()
@@ -27,7 +28,7 @@ circuit4.add(OperationBase(q_registers=(0,)))
 circuit4.add(OperationBase(q_registers=(0, 1)))
 circuit4.add(OperationBase(q_registers=(0,), c_registers=(0,)))
 circuit4.add(OperationBase(q_registers=(1,), c_registers=(0, 1, 2)))
-circuit4.show()
+# circuit4.show()
 circuit4.validate()
 
 # test topological order operation list
@@ -45,7 +46,7 @@ dag.add(op1)
 dag.add(op2)
 dag.add(op3)
 dag.validate()
-dag.show()
+# dag.show()
 
 # test initializing registers (copied from test_circuit)
 dag = CircuitDAG(2, 2)
@@ -53,7 +54,7 @@ dag.add_quantum_register()
 dag.add(OperationBase(q_registers=(0,)))
 dag.add(OperationBase(q_registers=(1, 0)))
 dag.add_classical_register(2)
-dag.show()
+# dag.show()
 
 # Test registers
 dag = CircuitDAG(2, 0)
@@ -61,4 +62,4 @@ dag.expand_quantum_register(0, 2)
 dag.expand_quantum_register(1, 2)
 dag.add(CNOT(control=0, target=1))
 dag.validate()
-dag.show()
+# dag.show()

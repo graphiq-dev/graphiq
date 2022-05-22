@@ -4,8 +4,8 @@ import numpy as np
 
 import src.backends.density_matrix.functions as dm
 from src import ops as ops
-from src.backends.compiler_base import CompilerBase
-from src.backends.state_representations import DensityMatrix
+from src.compiler import CompilerBase
+from src.states import DensityMatrix
 from src.circuit import CircuitDAG
 
 
@@ -28,6 +28,7 @@ def reg_to_index_func(reg_list):
             return cumulative_num_reg[reg[0] - 1] + reg[1]
 
     return reg_to_index
+
 
 class DensityMatrixCompiler(CompilerBase):
 
@@ -56,7 +57,7 @@ class DensityMatrixCompiler(CompilerBase):
         init = np.outer(np.array([1, 0]), np.array([1, 0])).astype('complex64')  # initialization of quantum registers
 
         # TODO: state_id? what should it be? There should be a default.
-        state = DensityMatrix(state_data=reduce(np.kron, circuit.n_quantum * [init]), state_id=0)
+        state = DensityMatrix(data=reduce(np.kron, circuit.n_quantum * [init]), state_id=0)
         classical_registers = np.zeros(circuit.n_classical)
 
         # TODO: support self-defined mapping functions later instead of using the default above?

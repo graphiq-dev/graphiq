@@ -7,12 +7,10 @@ we could just have a quantum-specific escape character, and a classical-specific
 character
 
 TODO: consider what to do if we move onto qudits?
-
-NOTE: gate definitions drawn from openQASM 3
 """
 
 OPENQASM_ESCAPE_STR = '%%%'
-
+STD_GATE_LIB = '"stdgates.inc"'
 
 class OpenQASMInfo:
     """
@@ -47,17 +45,17 @@ class OpenQASMInfo:
 
 
 def openqasm_header():
-    return 'OPENQASM 2.0;'
+    return 'OPENQASM 3.0;'
 
 
 def register_initialization_string(q_registers, c_registers):
     register_strs = []
     for r, b in enumerate(q_registers):
-        q_str = f'qreg q{r}[{b}];'
+        q_str = f'qubit[{b}] q{r};'
         register_strs.append(q_str)
 
     for r, b in enumerate(c_registers):
-        c_str = f'creg c{r} [{b}];'
+        c_str = f'bit[{b}] c{r};'
         register_strs.append(c_str)
 
     return '\n'.join(register_strs)
@@ -66,40 +64,40 @@ def register_initialization_string(q_registers, c_registers):
 # --------------------- Gate Specific Definitions -------------------------------
 
 def cnot_info():
-    imports = []
+    imports = [STD_GATE_LIB]
     definition = ""
-    usage = f"CX {OPENQASM_ESCAPE_STR}, {OPENQASM_ESCAPE_STR};"
+    usage = f"cx {OPENQASM_ESCAPE_STR}, {OPENQASM_ESCAPE_STR};"
 
     return OpenQASMInfo(imports, definition, usage)
 
 
 def sigma_x_info():
-    imports = []
-    definition = "gate x a { U(pi, 0, pi) a; }"
+    imports = [STD_GATE_LIB]
+    definition = ""
     usage = f"x {OPENQASM_ESCAPE_STR};"
 
     return OpenQASMInfo(imports, definition, usage)
 
 
 def sigma_y_info():
-    imports = []
-    definition = "gate y a { U(pi, pi / 2, pi / 2) a; }"
+    imports = [STD_GATE_LIB]
+    definition = ""
     usage = f"y {OPENQASM_ESCAPE_STR};"
 
     return OpenQASMInfo(imports, definition, usage)
 
 
 def sigma_z_info():
-    imports = []
-    definition = "gate z a { U(0, pi/2, pi/2) a; }"
+    imports = [STD_GATE_LIB]
+    definition = ""
     usage = f"z {OPENQASM_ESCAPE_STR};"
 
     return OpenQASMInfo(imports, definition, usage)
 
 
 def hadamard_info():
-    imports = []
-    definition = "gate h a { U(pi/2, 0, pi) a; }"
+    imports = [STD_GATE_LIB]
+    definition = ""
     usage = f"h {OPENQASM_ESCAPE_STR};"
 
     return OpenQASMInfo(imports, definition, usage)

@@ -239,10 +239,9 @@ class CircuitDAG(CircuitBase):
         for op in self.sequence():
             oq_info = op.openqasm_info()
             gate_application = oq_info.use_gate(op.q_registers, op.c_registers)
-            if gate_application is not "":
+            if gate_application != "":
                 openqasm_str.append(gate_application)
 
-        print(openqasm_str)
         return '\n'.join(openqasm_str)
 
     def show(self):

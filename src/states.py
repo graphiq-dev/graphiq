@@ -36,11 +36,11 @@ class StateRepresentationBase(ABC):
         self._data = data
 
 
-class GraphState(StateRepresentationBase):
+class Graph(StateRepresentationBase):
     """
     Graph representation of a graph state.
     As the intermediate states of the process may not be graph states (but assuming still stabilizer states),
-    we may need to keep track of local cliffcords that convert the state to the graph state represented by the graph
+    we may need to keep track of local Cliffords that convert the state to the graph state represented by the graph
     """
 
     def __init__(self, data, root_node_id, *args, **kwargs):
@@ -148,7 +148,7 @@ class GraphState(StateRepresentationBase):
 
     def get_graph_id_form(self):
         tmp_graph = nx.Graph(self.get_edges_id_form())
-        nodelist = self.get_node_id_form()
+        nodelist = self.get_nodes_id_form()
         if set(nodelist) != set(tmp_graph.nodes()):
             for node in nodelist:
                 tmp_graph.add_node(node)
@@ -226,11 +226,11 @@ class GraphState(StateRepresentationBase):
         # TODO
         raise NotImplementedError('To do')
 
-    def draw(self, draw_ax):
+    def draw(self):
         """
         It allows one to draw the underlying networkX graph with matplotlib library.
         """
-        nx.draw(self.data, ax=draw_ax, with_labels=True, font_weight='bold')
+        nx.draw(self.get_graph_id_form(), with_labels=True, font_weight='bold')
 
 
 class StabilizerRepresentation(StateRepresentationBase):

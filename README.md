@@ -16,7 +16,7 @@ To build html locally, you need to run the following commands in Terminal/ comma
 1. set up a Python virtual environment and install the required tools
 ```
 $ python3 -m venv .venv
-$ source .ven/bin/activate
+$ source .venv/bin/activate
 (.venv) $ python3 -m pip install sphinx
 ```
 2. Then to build HTML, you need to run the following command in the first time.

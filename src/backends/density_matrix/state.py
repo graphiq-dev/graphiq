@@ -2,7 +2,7 @@ import networkx as nx
 import numpy as np
 
 from src.backends.density_matrix.functions import is_psd, create_n_plus_state, apply_CZ
-from src.states import StateRepresentationBase, GraphState
+from src.states import StateRepresentationBase, Graph
 
 
 class DensityMatrix(StateRepresentationBase):
@@ -32,7 +32,7 @@ class DensityMatrix(StateRepresentationBase):
     def from_graph(cls, graph):
         if isinstance(graph, nx.Graph):
             graph_data = graph
-        elif isinstance(graph, GraphState):
+        elif isinstance(graph, Graph):
             graph_data = graph.data()
         else:
             raise TypeError("Input state must be GraphState object or NetworkX graph.")

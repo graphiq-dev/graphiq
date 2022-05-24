@@ -3,11 +3,13 @@ Common circuits for testing
 
 """
 import numpy as np
+import networkx as nx
 
 from src.circuit import CircuitDAG
 from src.ops import *
 
 from src.backends.density_matrix.functions import ketz0_state, ketz1_state, tensor, ket2dm, partial_trace
+from src.backends.density_matrix.state import DensityMatrix
 
 
 def bell_state_circuit():
@@ -77,6 +79,62 @@ def ghz4_state_circuit():
     circuit.add(CNOT(control=4, target=3))
     circuit.add(Hadamard(register=3))
 
+    circuit.add(MeasurementZ(register=4, c_register=0))
+
+    return circuit, ideal_state
+
+
+def linear_cluster_3qubit_circuit():
+    """
+    Three qubit linear cluster state, see examples in literature folder
+    """
+
+    graph = nx.Graph([(1, 2), (2, 3)])
+    state = DensityMatrix.from_graph(graph)
+    ideal_state = dict(
+        dm=state.data,
+    )
+
+    circuit = CircuitDAG(4, 1)
+    circuit.add(Hadamard(register=3))
+    circuit.add(CNOT(control=3, target=0))
+    circuit.add(Hadamard(register=3))
+    circuit.add(CNOT(control=3, target=1))
+    circuit.add(CNOT(control=3, target=2))
+    circuit.add(Hadamard(register=2))
+    circuit.add(Hadamard(register=3))
+
+    circuit.add(CNOT(control=3, target=2))
+
+    circuit.add(MeasurementZ(register=3, c_register=0))
+
+    return circuit, ideal_state
+
+
+def linear_cluster_4qubit_circuit():
+    """
+    Four qubit linear cluster state, see examples in literature folder
+    """
+
+    graph = nx.Graph([(1, 2), (2, 3), (3, 4)])
+    state = DensityMatrix.from_graph(graph)
+    ideal_state = dict(
+        dm=state.data,
+    )
+
+    circuit = CircuitDAG(5, 1)
+    circuit.add(Hadamard(register=4))
+    circuit.add(CNOT(control=4, target=0))
+    circuit.add(Hadamard(register=4))
+    circuit.add(CNOT(control=4, target=1))
+    circuit.add(Hadamard(register=4))
+    circuit.add(CNOT(control=4, target=2))
+    circuit.add(CNOT(control=4, target=3))
+
+    circuit.add(Hadamard(register=3))
+    circuit.add(Hadamard(register=4))
+
+    circuit.add(CNOT(control=4, target=3))
     circuit.add(MeasurementZ(register=4, c_register=0))
 
     return circuit, ideal_state

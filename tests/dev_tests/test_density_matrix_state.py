@@ -1,5 +1,5 @@
 import src.backends.density_matrix.functions
-from src.states import DensityMatrix
+from src.backends.density_matrix.state import DensityMatrix
 import numpy as np
 import networkx as nx
 

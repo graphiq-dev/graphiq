@@ -5,7 +5,7 @@ import numpy as np
 import src.backends.density_matrix.functions as dm
 from src import ops as ops
 from src.compiler import CompilerBase
-from src.states import DensityMatrix
+from src.backends.density_matrix.state import DensityMatrix
 from src.circuit import CircuitDAG
 
 
@@ -57,7 +57,7 @@ class DensityMatrixCompiler(CompilerBase):
         init = np.outer(np.array([1, 0]), np.array([1, 0])).astype('complex64')  # initialization of quantum registers
 
         # TODO: state_id? what should it be? There should be a default.
-        state = DensityMatrix(data=reduce(np.kron, circuit.n_quantum * [init]), state_id=0)
+        state = DensityMatrix(data=reduce(np.kron, circuit.n_quantum * [init]))
         classical_registers = np.zeros(circuit.n_classical)
 
         # TODO: support self-defined mapping functions later instead of using the default above?
@@ -123,9 +123,6 @@ class DensityMatrixCompiler(CompilerBase):
                 projectors = dm.projectors_zbasis(circuit.n_quantum, q_index(op.register))
                 outcome = state.apply_measurement(projectors)
                 classical_registers[c_index(op.c_register)] = outcome
-
-            elif type(op) is ops.Output:
-                pass  # TODO: should there be more interaction with input/output nodes?
 
             else:
                 raise RuntimeError(f"{type(op)} is invalid or not implemented for {self.__class__.__name__}.")

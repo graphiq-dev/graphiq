@@ -19,6 +19,7 @@ We can also use a mixture of registers an qubits: q_registers=(a, (b, c)) means 
 between EACH QUBIT of register a, and qubit c of register b
 """
 from abc import ABC
+import src.libraries.openqasm_lib as oq_lib
 
 
 """ Base classes from which operations will inherit """
@@ -27,6 +28,8 @@ from abc import ABC
 class OperationBase(ABC):
     """
     """
+    _openqasm_info = None
+
     def __init__(self, q_registers=tuple(), c_registers=tuple()):
         """
         We assume that tuples refer only to single-qubit registers, by default
@@ -45,6 +48,11 @@ class OperationBase(ABC):
         self._q_registers = q_registers
         self._c_registers = c_registers
 
+    @classmethod
+    def openqasm_info(cls):
+        if cls._openqasm_info is None:
+            raise ValueError("Operation does not have an openQASM translation")
+        return cls._openqasm_info
 
     @property
     def q_registers(self):
@@ -85,6 +93,9 @@ class SingleQubitOperationBase(OperationBase):
 
 
 class InputOutputOperationBase(OperationBase):
+    # IO gates don't need to take inputs/outputs
+    _openqasm_info = oq_lib.empty_info()
+
     def __init__(self, register, reg_type='q', *args, **kwargs):
         if reg_type == 'q':
             super().__init__(q_registers=(register, ), *args, **kwargs)
@@ -94,7 +105,6 @@ class InputOutputOperationBase(OperationBase):
             raise ValueError("Register type must be either quantum (reg_type='q') or classical (reg_type='c')")
         self.reg_type = reg_type
         self.register = register
-
 
     @OperationBase.q_registers.setter
     def q_registers(self, q_reg):
@@ -145,21 +155,29 @@ class ClassicalControlledPairOperationBase(OperationBase):
 
 
 class Hadamard(SingleQubitOperationBase):
+    _openqasm_info = oq_lib.hadamard_info()
+
     def __init__(self, register=None, **kwargs):
         super().__init__(register=register, **kwargs)
 
 
 class SigmaX(SingleQubitOperationBase):
+    _openqasm_info = oq_lib.sigma_x_info()
+
     def __init__(self, register=None, **kwargs):
         super().__init__(register=register, **kwargs)
 
 
 class SigmaY(SingleQubitOperationBase):
+    _openqasm_info = oq_lib.sigma_y_info()
+
     def __init__(self, register=None, **kwargs):
         super().__init__(register=register, **kwargs)
 
 
 class SigmaZ(SingleQubitOperationBase):
+    _openqasm_info = oq_lib.sigma_z_info()
+
     def __init__(self, register=None, **kwargs):
         super().__init__(register=register, **kwargs)
 
@@ -168,27 +186,33 @@ class CNOT(ControlledPairOperationBase):
     """
 
     """
+    _openqasm_info = oq_lib.cnot_info()
 
 
 class CPhase(ControlledPairOperationBase):
     """
 
     """
+    _openqasm_info = oq_lib.cphase_info()
 
 
 class ClassicalCNOT(ClassicalControlledPairOperationBase):
     """
 
     """
+    # _openqasm_info = oq_lib.classical_cnot_info()
 
 
 class ClassicalCPhase(ClassicalControlledPairOperationBase):
     """
 
     """
+    # _openqasm_info = oq_lib.classical_cphase_info()
 
 
 class MeasurementZ(OperationBase):
+    _openqasm_info = oq_lib.z_measurement_info()
+
     def __init__(self, register=None, c_register=None, **kwargs):
         super().__init__(q_registers=(register,), c_registers=(c_register,), **kwargs)
         self.register = register

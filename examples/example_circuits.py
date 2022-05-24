@@ -14,6 +14,8 @@ from src.visualizers.density_matrix import density_matrix_bars
 from src.libraries.circuits import bell_state_circuit, ghz3_state_circuit, ghz4_state_circuit, \
     linear_cluster_3qubit_circuit, linear_cluster_4qubit_circuit
 
+from src.visualizers.openqasm_visualization import draw_openqasm
+
 
 if __name__ == "__main__":
     # example_circuit = bell_state_circuit
@@ -24,6 +26,11 @@ if __name__ == "__main__":
 
     circuit, ideal_state = example_circuit()
 
+    # Visualize
+    circuit.show()  # DAG visualization
+    draw_openqasm(circuit.to_openqasm(), show=True)  # circuit visualization (qiskit visualizer)
+
+    # Compile
     compiler = DensityMatrixCompiler()
     state = compiler.compile(circuit)
 

@@ -193,21 +193,26 @@ class CPhase(ControlledPairOperationBase):
     """
 
     """
+    _openqasm_info = oq_lib.cphase_info()
 
 
 class ClassicalCNOT(ClassicalControlledPairOperationBase):
     """
 
     """
+    # _openqasm_info = oq_lib.classical_cnot_info()
 
 
 class ClassicalCPhase(ClassicalControlledPairOperationBase):
     """
 
     """
+    # _openqasm_info = oq_lib.classical_cphase_info()
 
 
 class MeasurementZ(OperationBase):
+    _openqasm_info = oq_lib.z_measurement_info()
+
     def __init__(self, register=None, c_register=None, **kwargs):
         super().__init__(q_registers=(register,), c_registers=(c_register,), **kwargs)
         self.register = register

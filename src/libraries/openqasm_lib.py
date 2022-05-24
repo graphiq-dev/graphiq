@@ -12,6 +12,7 @@ TODO: gate definitions drawn from openQASM 3, so there's actually a global phase
 in openQASM 2.0 due to the ways in which things were implemented. We should fix that if we ever want to use
 openQASM for anything other than visualization purposes
 """
+import warnings
 
 OPENQASM_ESCAPE_STR = '%%%'
 
@@ -20,7 +21,7 @@ class OpenQASMInfo:
     """
     OpenQASM information manager
     """
-    def __init__(self, imports:list, definition:str, usage: str):
+    def __init__(self, imports:list, definition:str, usage: str, implemented=True):
         self.imports = list(imports)
         self.definition = definition
         self.usage = usage
@@ -103,6 +104,36 @@ def hadamard_info():
     imports = []
     definition = "gate h a { U(pi/2, 0, pi) a; }"
     usage = f"h {OPENQASM_ESCAPE_STR};"
+
+    return OpenQASMInfo(imports, definition, usage)
+
+
+def cphase_info():
+    imports = []
+    definition = "gate cz a, b { U(pi/2, 0, pi) b; CX a, b; U(pi/2, 0, pi) b; }"  # H on target, CX, H on target
+    usage = f"cz {OPENQASM_ESCAPE_STR}, {OPENQASM_ESCAPE_STR};"
+
+    return OpenQASMInfo(imports, definition, usage)
+
+
+def classical_cnot_info():
+    imports = []
+    definition = "gate cCX a, b, c { }"
+    usage = f"cCX {OPENQASM_ESCAPE_STR}, {OPENQASM_ESCAPE_STR} -> {OPENQASM_ESCAPE_STR};"
+    raise NotImplementedError("Classical-quantum gates not particularly compatible with openQASM 2.0, not implemented yet")
+
+
+def classical_cphase_info():
+    imports = []
+    definition = "gate ccphase a, b, c { }"
+    usage = f"ccphase {OPENQASM_ESCAPE_STR}, {OPENQASM_ESCAPE_STR} -> {OPENQASM_ESCAPE_STR};"
+    raise NotImplementedError("Classical-quantum gates not particularly compatible with openQASM 2.0, not implemented yet")
+
+
+def z_measurement_info():
+    imports = []
+    definition = ""
+    usage = f"measure {OPENQASM_ESCAPE_STR} -> {OPENQASM_ESCAPE_STR};"
 
     return OpenQASMInfo(imports, definition, usage)
 

@@ -6,7 +6,6 @@ import src.libraries.openqasm_lib as oq_lib
 
 # Empty openQASM
 dag = CircuitDAG()
-print(dag.to_openqasm())
 draw_openqasm(dag.to_openqasm())
 
 # no operations, but some registers
@@ -21,7 +20,6 @@ plt.show()
 dag.add(ops.CNOT(control=1, target=0))
 dag.validate()
 openqasm = dag.to_openqasm()
-print(openqasm)
 draw_openqasm(openqasm)
 plt.show()
 
@@ -29,6 +27,22 @@ plt.show()
 dag.add(ops.SigmaX(register=(0, 0)))
 dag.add(ops.Hadamard(register=1))
 openqasm = dag.to_openqasm()
-print(openqasm)
 draw_openqasm(openqasm)
+plt.show()
+
+# Create a dag with every gate once
+full_dag = CircuitDAG()
+full_dag.add_quantum_register(1)
+full_dag.add_quantum_register(1)
+full_dag.add_classical_register(1)
+
+full_dag.add(ops.Hadamard(register=0))
+full_dag.add(ops.SigmaX(register=0))
+full_dag.add(ops.SigmaY(register=0))
+full_dag.add(ops.SigmaZ(register=0))
+full_dag.add(ops.CNOT(control=0, target=1))
+full_dag.add(ops.CPhase(control=1, target=0))
+full_dag.add(ops.MeasurementZ(register=0, c_register=0))
+full_open_qasm = full_dag.to_openqasm()
+draw_openqasm(full_open_qasm)
 plt.show()

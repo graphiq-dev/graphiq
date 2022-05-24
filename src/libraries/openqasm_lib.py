@@ -8,7 +8,9 @@ character
 
 TODO: consider what to do if we move onto qudits?
 
-NOTE: gate definitions drawn from openQASM 3
+TODO: gate definitions drawn from openQASM 3, so there's actually a global phase shift in the implementations
+in openQASM 2.0 due to the ways in which things were implemented. We should fix that if we ever want to use
+openQASM for anything other than visualization purposes
 """
 
 OPENQASM_ESCAPE_STR = '%%%'

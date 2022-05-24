@@ -3,8 +3,8 @@ Experimental circuit which maps out input state (encoded in the circuit) to an o
 
 It should support the following functionalities:
 
-1. Circuit can be manually constructed (program instructions can be added to the "back" of the circuit,
-   as in most quantum circuit simulation software). [MVP: yes, MVP initial sprint: yes]
+1. Circuit can be manually constructed (program instructions can be added to the "back" of the circuit, as in most
+    quantum circuit simulation software). [MVP: yes, MVP initial sprint: yes]
         Purpose (example): unit testing, initializing solver with a particular circuit,
                             regular simulation (useful to have the functionality integrated, in case people want to
                             tweak designs output by the system)
@@ -47,7 +47,6 @@ import copy
 import networkx as nx
 import matplotlib.pyplot as plt
 from abc import ABC, abstractmethod
-import numpy as np
 import warnings
 
 from src.ops import OperationBase
@@ -62,7 +61,7 @@ class CircuitBase(ABC):
     """
     Base class (interface) for circuit representation
     """
-    def __init__(self, openqasm_imports={}, openqasm_defs={}, *args, **kwargs):
+    def __init__(self, openqasm_imports=None, openqasm_defs=None, *args, **kwargs):
         """
         Construct an empty circuit
 
@@ -76,8 +75,15 @@ class CircuitBase(ABC):
         self.q_registers = []
         self.c_registers = []
 
-        self.openqasm_imports = openqasm_imports
-        self.openqasm_defs = openqasm_defs
+        if openqasm_imports is None:
+            self.openqasm_imports = {}
+        else:
+            self.openqasm_imports = openqasm_imports
+
+        if openqasm_defs is None:
+            self.openqasm_defs = {}
+        else:
+            self.openqasm_defs = openqasm_defs
 
     @abstractmethod
     def add(self, operation: OperationBase):
@@ -171,7 +177,7 @@ class CircuitDAG(CircuitBase):
 
     Each connecting edge of the graph corresponds to a qudit or classical bit
     """
-    def __init__(self, n_quantum=0, n_classical=0, openqasm_imports={}, openqasm_defs={},
+    def __init__(self, n_quantum=0, n_classical=0, openqasm_imports=None, openqasm_defs=None,
                  *args, **kwargs):
         """
         Construct an empty DAG circuit
@@ -201,7 +207,7 @@ class CircuitDAG(CircuitBase):
             new_op = copy.deepcopy(operation)
             new_op.q_registers = q_reg_bit
             new_op.c_registers = c_reg_bit
-            self._add(new_op, c_reg_bit=c_reg_bit, q_reg_bit=q_reg_bit)
+            self._add(new_op, q_reg_bit, c_reg_bit)
 
     def validate(self):
         """
@@ -224,7 +230,6 @@ class CircuitDAG(CircuitBase):
         raise NotImplementedError('')
 
     def sequence(self):
-        self._set_gate_action_indices()
         return [self.dag.nodes[node]['op'] for node in nx.topological_sort(self.dag)]
 
     def compile(self, parameters):
@@ -419,28 +424,3 @@ class CircuitDAG(CircuitBase):
             all_registers.append((tuple(q_reg_list), tuple(c_reg_list)))
 
         return all_registers
-
-    def _set_gate_action_indices(self):
-        q_reg = np.array(self.q_registers)
-        c_reg = np.array(self.c_registers)
-        cumulative_num_q = np.cumsum(q_reg)
-        q_reg_bit_num = np.sum(q_reg)
-        cumulative_num_c = np.cumsum(c_reg) + q_reg_bit_num
-
-        for node in self.dag.nodes:
-            op = self.dag.nodes[node]['op']
-            action_indices = []
-            for qreg, qbit in op.q_registers:
-                if qreg == 0:
-                    action_index = qbit
-                else:
-                    action_index = cumulative_num_q[qreg - 1] + qbit
-                action_indices.append(action_index)
-            for creg, cbit in op.c_registers:
-                if creg == 0:
-                    action_index = q_reg_bit_num + cbit
-                else:
-                    action_index = cumulative_num_c[creg - 1]
-                action_indices.append(action_index)
-
-            op.assign_action_id(action_indices)

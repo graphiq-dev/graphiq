@@ -17,7 +17,7 @@ def current_time():
     -------
     Current date and time in a consistent format, used for monitoring long-running measurements
     """
-    return datetime.now().strftime("%d/%m/%Y, %H:%M:%S")
+    return datetime.datetime.now().strftime("%d/%m/%Y, %H:%M:%S")
 
 
 class IO:
@@ -35,7 +35,7 @@ class IO:
     """
 
     # default save path always points to `data/` no matter where this repository is located
-    default_path = pathlib.Path(__file__).parent.parent.parent.joinpath('data')
+    default_path = pathlib.Path(__file__).parent.parent.joinpath('data')
 
     def __init__(self, path=None, verbose=True):
         self.verbose = verbose
@@ -50,14 +50,14 @@ class IO:
         return
 
     @classmethod
-    def create_new_save_folder(cls, path=None, folder="",
-                               include_date=False, include_uuid=False, verbose=True):
+    def new_directory(cls, path=None, folder="",
+                      include_date=False, include_id=False, verbose=True):
         """
 
         :param path: The parent folder. Should be a string of pathlib.Path object.
         :param folder: The main, descriptive folder name.
         :param include_date: boolean. Add the date to the front of the path.
-        :param include_uuid: boolean. Add a random string of characters to the end of the path.
+        :param include_id: boolean. Add a random string of characters to the end of the path.
         :param verbose: boolean. If True, will print out the path of each saved/loaded file.
         :return: A new IO class instance
         """
@@ -70,11 +70,11 @@ class IO:
         date = datetime.date.today().isoformat()
         if not folder:  # if empty string
             warnings.warn("No folder entered. Saving to a folder with a unique identifier")
-            include_data, include_uuid, verbose = True, True, True
+            include_data, include_id, verbose = True, True, True
 
         if include_date:
             folder = date + " " + folder
-        if include_uuid:
+        if include_id:
             folder = folder + " - " + "".join(random.choice(string.hexdigits) for _ in range(4))
 
         path = path.joinpath(folder)

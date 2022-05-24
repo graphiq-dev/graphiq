@@ -1,6 +1,7 @@
 from functools import reduce
 
 import numpy as np
+from scipy.linalg import sqrtm
 
 
 def sigmax():
@@ -9,7 +10,7 @@ def sigmax():
     :return: sigma X matrix
     :rtype: numpy.matrix
     """
-    return np.array([[0, 1], [1, 0]])
+    return np.array([[0.0, 1.0], [1.0, 0.0]])
 
 
 def sigmay():
@@ -18,7 +19,7 @@ def sigmay():
     :return: sigma Y matrix
     :rtype: numpy.array
     """
-    return np.array([[0, -1j], [1j, 0]])
+    return np.array([[0.0, -1.0j], [1.0j, 0.0]])
 
 
 def sigmaz():
@@ -27,7 +28,7 @@ def sigmaz():
     :return: sigma Z matrix
     :rtype: numpy.array
     """
-    return np.array([[1, 0], [0, -1]])
+    return np.array([[1.0, 0.0], [0.0, -1.0]])
 
 
 def hadamard():
@@ -36,49 +37,63 @@ def hadamard():
     :return: sigma X matrix
     :rtype: numpy.array
     """
-    return np.array([[1, 1], [1, -1]]) / np.sqrt(2)
+    return np.array([[1.0, 1.0], [1.0, -1.0]]) / np.sqrt(2)
 
 
 def ketx0_state():
     """
     Return normalized eigenvector of sigma x matrix with eigenvalue +1
     """
-    return 1/np.sqrt(2) * np.array([[1], [1]])
+    return 1/np.sqrt(2) * np.array([[1.0], [1.0]])
 
 
 def ketx1_state():
     """
     Return normalized eigenvector of sigma x matrix with eigenvalue -1
     """
-    return 1/np.sqrt(2) * np.array([[1], [-1]])
+    return 1/np.sqrt(2) * np.array([[1.0], [-1.0]])
 
 
 def ketz0_state():
     """
     Return normalized eigenvector of sigma z matrix with eigenvalue +1
     """
-    return np.array([[1], [0]])
+    return np.array([[1.0], [0.0]])
 
 
 def ketz1_state():
     """"
     Return normalized eigenvector of sigma z matrix with eigenvalue -1
     """
-    return np.array([[0], [1]])
+    return np.array([[0.0], [1.0]])
 
 
 def kety0_state():
     """
     Return normalized eigenvector of sigma y matrix with eigenvalue +1
     """
-    return 1/np.sqrt(2) * np.array([[1], [1j]])
+    return 1/np.sqrt(2) * np.array([[1.0], [1.0j]])
 
 
 def kety1_state():
     """
     Return normalized eigenvector of sigma y matrix with eigenvalue -1
     """
-    return 1/np.sqrt(2) * np.array([[1], [-1j]])
+    return 1/np.sqrt(2) * np.array([[1.0], [-1.0j]])
+
+
+def projectorz0():
+    """
+    Returns the projector in the 0 computational basis for a single qubit
+    """
+    return np.array([[1.0, 0.0], [0.0, 0.0]])
+
+
+def projectorz1():
+    """
+    Returns the projector in the 1 computational basis for a single qubit
+    """
+    return np.array([[0.0, 0.0], [0.0, 1.0]])
 
 
 def get_controlled_gate(number_qubits, control_qubit, target_qubit, target_gate):
@@ -223,7 +238,7 @@ def create_n_plus_state(number_qubits):
     Create a product state that consists n tensor factors of the ket plus state
     """
     final_state = np.array([[1]])
-    rho_init = np.matmul(ketx0_state(),np.transpose(np.conjugate(ketx0_state())))
+    rho_init = np.matmul(ketx0_state(), np.transpose(np.conjugate(ketx0_state())))
     for i in range(number_qubits):
         final_state = np.kron(final_state, rho_init)
     return final_state
@@ -234,7 +249,7 @@ def tensor(arr):
 
 
 def ket2dm(ket):
-    return np.outer(ket, ket)
+    return ket @ np.transpose(np.conjugate(ket))
 
 
 def partial_trace(rho, keep, dims, optimize=False):
@@ -282,3 +297,42 @@ def apply_CZ(state_matrix, control_qubit, target_qubit):
     return cz @ state_matrix @ np.transpose(np.conjugate(cz))
 
 
+def projectors_zbasis(number_qubits, measure_register):
+    if not (0 <= measure_register < number_qubits):
+        raise ValueError("Register index must be between less than the number of qubit registers")
+    m0 = reduce(np.kron, [projectorz0() if i == measure_register else np.identity(2) for i in range(number_qubits)])
+    m1 = reduce(np.kron, [projectorz1() if i == measure_register else np.identity(2) for i in range(number_qubits)])
+    return [m0, m1]
+
+
+def fidelity(rho, sigma):
+    return np.real(np.trace(sqrtm(sqrtm(rho) @ sigma @ sqrtm(rho))) ** 2)
+
+
+if __name__ == "__main__":
+    n_qubit = 3
+    register = 0
+    # state = ketx0_state()
+    # state = reduce(np.kron, n_qubit * [state @ np.conjugate(state.T)])
+
+    state = (reduce(np.kron, n_qubit * [ketz0_state()]) + reduce(np.kron, n_qubit * [ketz1_state()])) / np.sqrt(2)
+    state = state @ np.conjugate(state.T)
+
+    m0, m1 = projectors_zbasis(n_qubit, register)
+
+    # print(m0)
+    # print(m1)
+    print(state)
+    res = np.trace(state @ m0)
+    print(res)
+    res = np.trace(state @ m1)
+    print(res)
+
+    out = m0 @ state @ m0 + m1 @ state @ m1
+    print(out)
+
+    # print(partial_trace(state, keep=list(set(range(n_qubit)) - register, dims=n_qubit * [2])))
+
+    projectors = projectors_zbasis(n_qubit, register)
+    out = sum([m @ state @ m for m in projectors])
+    print(out)

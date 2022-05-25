@@ -6,3 +6,6 @@ autograd
 pytest
 pandas
 seaborn
+qiskit
+qutip
+pylatexenc

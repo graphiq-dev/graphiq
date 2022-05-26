@@ -34,8 +34,11 @@ if __name__ == "__main__":
     compiler = DensityMatrixCompiler()
     state = compiler.compile(circuit)
 
-    # trace out the ancilla qubit (note, comment this out if running the Bell-state circuit
-    state = partial_trace(state.data, keep=list(range(0, circuit.n_quantum-1)), dims=circuit.n_quantum * [2])
+    if example_circuit is bell_state_circuit:
+        state = state.data
+    else:
+        # trace out the ancilla qubit
+        state = partial_trace(state.data, keep=list(range(0, circuit.n_quantum-1)), dims=circuit.n_quantum * [2])
 
     f = fidelity(state, ideal_state['dm'])
     print(f"Fidelity with the ideal state is {f}")

@@ -1,6 +1,12 @@
 # Ki3-QBT Graph Compiler
 
-This project is to create an optimization algorithm to find a resource-efficient scheme for graph state generation. This is a collaboration between Ki3 and QBT through US Air Force project.
+This project is to create an optimization algorithm to find a resource-efficient scheme for graph state generation.
+This is a collaboration between Ki3 and QBT through US Air Force project.
+
+## Onboarding
+
+Please begin by reading through `examples/implementer_startup.ipynb`.
+This will introduce the most important classes in the software.
 
 ## Coding Style Guidelines
 

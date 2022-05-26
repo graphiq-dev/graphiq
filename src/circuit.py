@@ -101,10 +101,6 @@ class CircuitBase(ABC):
         raise ValueError('Base class circuit is abstract: it does not support function calls')
 
     @abstractmethod
-    def compile(self, parameters):
-        raise NotImplementedError('Base class circuit is abstract: it does not support function calls')
-
-    @abstractmethod
     def to_openqasm(self):
         raise ValueError('Base class circuit is abstract: it does not support function calls')
 
@@ -231,9 +227,6 @@ class CircuitDAG(CircuitBase):
 
     def sequence(self):
         return [self.dag.nodes[node]['op'] for node in nx.topological_sort(self.dag)]
-
-    def compile(self, parameters):
-        raise NotImplementedError('')
 
     def to_openqasm(self):
         header_info = oq_lib.openqasm_header() + '\n' + '\n'.join(self.openqasm_imports.keys()) + '\n' \

@@ -5,6 +5,8 @@ from src.backends.density_matrix.functions import is_psd, create_n_plus_state, a
 from src.backends.state_base import StateRepresentationBase
 from src.backends.graph.state import Graph
 
+# TODO: accept single input (# of qubits) as input and initialize as unentangled qubits
+
 
 class DensityMatrix(StateRepresentationBase):
     """
@@ -34,7 +36,7 @@ class DensityMatrix(StateRepresentationBase):
         if isinstance(graph, nx.Graph):
             graph_data = graph
         elif isinstance(graph, Graph):
-            graph_data = graph.data()
+            graph_data = graph.data
         else:
             raise TypeError("Input state must be GraphState object or NetworkX graph.")
 

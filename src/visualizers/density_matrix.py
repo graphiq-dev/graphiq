@@ -6,6 +6,8 @@ import numpy as np
 cmap_uni = sns.color_palette("crest", as_cmap=True)
 cmap_div = sns.diverging_palette(220, 20, as_cmap=True)
 
+# TODO: change this function so that it takes a DensityMatrix object, not the data
+
 
 def density_matrix_heatmap(rho):
     """

@@ -101,6 +101,14 @@ class QuantumState:
                                       'representation is consistent with other object representations'))
         self._stabilizer = new_stabilizer
 
+    def show(self, representation='all'):
+        """
+        Shows the desired representations (all by default)
+        :param representation: representations to show (string or list)
+        :return:
+        """
+        raise NotImplementedError()
+
     def _initialize_dm(self, data):
         """
         Initializes density matrix based on the data

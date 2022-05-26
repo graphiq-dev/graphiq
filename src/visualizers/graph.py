@@ -4,6 +4,8 @@ Graph representation visualization
 import networkx as nx
 import matplotlib.pyplot as plt
 
+# TODO: change all plotting functions to have the same API (you can pass in axes, will return ax/fig otherwise)
+
 
 def draw_graph(state_graph, show=False):
     """

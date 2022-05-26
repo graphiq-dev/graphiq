@@ -57,6 +57,8 @@ class DensityMatrixCompiler(CompilerBase):
         init = np.outer(np.array([1, 0]), np.array([1, 0])).astype('complex64')  # initialization of quantum registers
 
         # TODO: state_id? what should it be? There should be a default.
+
+        # TODO: refactor to be a QuantumState object which contains a density matrix
         state = DensityMatrix(data=reduce(np.kron, circuit.n_quantum * [init]))
         classical_registers = np.zeros(circuit.n_classical)
 

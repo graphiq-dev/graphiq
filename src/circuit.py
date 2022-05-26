@@ -52,7 +52,7 @@ import warnings
 from src.ops import OperationBase
 from src.ops import Input
 from src.ops import Output
-import src.libraries.openqasm_lib as oq_lib
+import src.visualizers.openqasm.openqasm_lib as oq_lib
 
 from src.visualizers.dag import dag_topology_pos
 

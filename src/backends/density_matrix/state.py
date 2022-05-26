@@ -2,7 +2,8 @@ import networkx as nx
 import numpy as np
 
 from src.backends.density_matrix.functions import is_psd, create_n_plus_state, apply_CZ
-from src.states import StateRepresentationBase, Graph
+from src.backends.state_base import StateRepresentationBase
+from src.backends.graph.state import Graph
 
 
 class DensityMatrix(StateRepresentationBase):

@@ -2,7 +2,6 @@ from src.visualizers.openqasm_visualization import draw_openqasm
 from src.circuit import CircuitDAG
 import matplotlib.pyplot as plt
 import src.ops as ops
-import src.libraries.openqasm_lib as oq_lib
 
 # Empty openQASM
 dag = CircuitDAG()

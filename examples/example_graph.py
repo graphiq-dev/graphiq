@@ -1,9 +1,7 @@
 """
 Example of constructing a graph representation and visualizing using matplotlib
 """
-from src.states import *
-import networkx as nx
-import matplotlib.pyplot as plt
+from src.backends.graph.state import Graph
 from src.visualizers.graph import *
 
 graph1 = nx.Graph([(1, 2), (2, 3),(1,4),(1,5),(3,6),(3,7)])

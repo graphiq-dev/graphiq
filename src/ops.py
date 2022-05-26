@@ -19,7 +19,7 @@ We can also use a mixture of registers an qubits: q_registers=(a, (b, c)) means 
 between EACH QUBIT of register a, and qubit c of register b
 """
 from abc import ABC
-import src.libraries.openqasm_lib as oq_lib
+import src.visualizers.openqasm.openqasm_lib as oq_lib
 
 
 """ Base classes from which operations will inherit """

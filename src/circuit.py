@@ -73,7 +73,7 @@ class CircuitBase(ABC):
                                  THIS IS MEANT TO ALLOW GATE DEFINITIONS WHICH MUST OCCUR IN SPECIFIC ORDERS
         :type openqasm_defs: a dictionary (with str keys) or None
         :return: this function returns nothing
-        :rtype: not applicable
+        :rtype: None
         """
         self.q_registers = []
         self.c_registers = []
@@ -208,7 +208,7 @@ class CircuitBase(ABC):
         :type new_size: int
         :raises ValueError: if new_size is not greater than the current register size
         :return: this function returns nothing
-        :rtype: not applicable
+        :rtype: None
         """
         self._expand_register(register, new_size, True)
 
@@ -223,7 +223,7 @@ class CircuitBase(ABC):
         :type new_size: int
         :raises ValueError: if new_size is not greater than the current register size
         :return: this function returns nothing
-        :rtype: not applicable
+        :rtype: None
         """
         self._expand_register(register, new_size, False)
 
@@ -239,7 +239,7 @@ class CircuitBase(ABC):
         :type is_quantum: bool
         :raises ValueError: if new_size is not greater than the current register size
         :return: this function returns nothing
-        :rtype: not applicable
+        :rtype: None
         """
         if is_quantum:
             curr_reg = self.q_registers
@@ -272,12 +272,12 @@ class CircuitDAG(CircuitBase):
         :param n_classical: the number of classical bits in the system
         :type n_classical: int
         :return: this function does not return anything
-        :rtype: not applicable
+        :rtype: None
         """
         super().__init__(openqasm_imports=openqasm_imports, openqasm_defs=openqasm_defs, *args, **kwargs)
         self.dag = nx.DiGraph()
         self._node_id = 0
-        self._add_reg_if_absent(range(n_quantum), range(n_classical))
+        self._add_reg_if_absent(tuple(range(n_quantum)), tuple(range(n_classical)))
 
     def add(self, operation: OperationBase):
         """
@@ -287,7 +287,7 @@ class CircuitDAG(CircuitBase):
         :type operation: OperationBase type (or a subclass of it)
         :raise UserWarning: if no openqasm definition exists for operation
         :return: this function returns nothing
-        :rtype: not applicable
+        :rtype: None
         """
         # add openqasm info
         try:
@@ -319,7 +319,7 @@ class CircuitDAG(CircuitBase):
 
         :raise AssertionError: if the circuit is not valid
         :return: this function returns nothing
-        :rtype: not applicable
+        :rtype: None
         """
         assert nx.is_directed_acyclic_graph(self.dag)  # check DAG is correct
 
@@ -435,7 +435,7 @@ class CircuitDAG(CircuitBase):
         :param is_quantum: True if we're expanding a quantum register, False otherwise
         :type is_quantum: bool
         :return: the function returns nothing
-        :rtype: not applicable
+        :rtype: None
         """
         old_size = self.q_registers[register] if is_quantum else self.c_registers[register]
         if new_size <= old_size:
@@ -460,7 +460,7 @@ class CircuitDAG(CircuitBase):
         :raise ValueError: if a non-continuous register or qubit index is provided (i.e. indexing would mean circuit
                            indexing is non-continuous, and thus is rejected)
         :return: the function returns nothing
-        :rtype: not applicable
+        :rtype: None
         """
         # add registers as needed/expands the size of registers
         def __update_registers(reg, is_quantum):
@@ -540,7 +540,7 @@ class CircuitDAG(CircuitBase):
         :param c_reg_bit: cbit indexing ((creg0, cbit0), (creg1, cbit1), ...) on which the oepration must be applied
         :type c_reg_bit: tuple of tuples (the inner tuples must be of length 2 and contain integers)
         :return: the function returns nothing
-        :rtype: not applicable
+        :rtype: None
         """
         new_id = self._unique_node_id()
         targets_reg_bit = (operation.q_registers == q_reg_bit) and (operation.c_registers == c_reg_bit)

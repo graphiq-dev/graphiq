@@ -4,7 +4,7 @@ import numpy as np
 
 import src.backends.density_matrix.functions as dm
 from src import ops as ops
-from src.compiler import CompilerBase
+from src.backends.compiler_base import CompilerBase
 from src.backends.density_matrix.state import DensityMatrix
 from src.circuit import CircuitDAG
 

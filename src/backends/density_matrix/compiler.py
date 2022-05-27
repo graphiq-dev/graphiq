@@ -8,11 +8,13 @@ from src.backends.compiler_base import CompilerBase
 from src.backends.density_matrix.state import DensityMatrix
 from src.circuit import CircuitDAG
 
+# TODO: refactor to return a QuantumState / SystemState object
+
 
 def reg_to_index_func(reg_list):
     """
     Returns function which map a (reg, bit) tuple pair into an index between 0 and N - 1
-    :param reg: a list, where reg[i] = <# of qudits/cbits in register i>
+    :param reg_list: a list, where reg[i] = <# of qudits/cbits in register i>
     :return: A function which maps an input tuple (reg, bit) to an index between
              0 and N - 1, where N is the total number of elements across all registers
              (i.e. is the sum of reg)

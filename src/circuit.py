@@ -41,6 +41,7 @@ USER WARNINGS:
 NOT retroactively apply to the added qubits
 
 # TODO: add check that the same qubit cannot be used twice in a 2 qubit gate
+# TODO: add a function to query circuit depth (should be easy)
 """
 import copy
 import networkx as nx

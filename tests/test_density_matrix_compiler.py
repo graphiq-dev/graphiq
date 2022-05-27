@@ -21,7 +21,7 @@ def test_bell_circuit():
 
     if plot:
         print(f"Fidelity is {f}")
-        circuit.show()
+        circuit.draw_dag()
 
         fig, ax = density_matrix_bars(state)
         fig.suptitle("Simulated circuit density matrix")
@@ -46,7 +46,7 @@ def test_ghz3_circuit():
 
     if plot:
         print(f"Fidelity is {f}")
-        circuit.show()
+        circuit.draw_dag()
 
         fig, ax = density_matrix_bars(state)
         fig.suptitle("Simulated circuit density matrix")
@@ -72,7 +72,7 @@ def test_ghz4_circuit():
 
     if plot:
         print(f"Fidelity is {f}")
-        circuit.show()
+        circuit.draw_dag()
 
         fig, ax = density_matrix_bars(state)
         fig.suptitle("Simulated circuit density matrix")

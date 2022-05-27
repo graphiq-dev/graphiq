@@ -23,8 +23,8 @@ if __name__ == "__main__":
     circuit, ideal_state = example_circuit()
 
     # Visualize
-    circuit.show()  # DAG visualization
-    draw_openqasm(circuit.to_openqasm(), show=True)  # circuit visualization (qiskit visualizer)
+    circuit.draw_dag()  # DAG visualization
+    circuit.draw_circuit()  # circuit visualization (qiskit visualizer)
 
     # Compile
     compiler = DensityMatrixCompiler()

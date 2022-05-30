@@ -1,3 +1,7 @@
+"""
+Compilation tools for simulating a circuit with a purely Density Matrix based backend
+"""
+
 from functools import reduce
 
 import numpy as np
@@ -6,23 +10,26 @@ import src.backends.density_matrix.functions as dm
 from src import ops as ops
 from src.backends.compiler_base import CompilerBase
 from src.backends.density_matrix.state import DensityMatrix
-from src.circuit import CircuitDAG
-
-# TODO: refactor to return a QuantumState / SystemState object
+from src.circuit import CircuitBase
 
 
 def reg_to_index_func(reg_list):
     """
     Returns function which map a (reg, bit) tuple pair into an index between 0 and N - 1
+    This allows the compiler to correctly assign a unique index to each qubit/cbit in each register
+
     :param reg_list: a list, where reg[i] = <# of qudits/cbits in register i>
+    :type reg_list: list (of ints)
     :return: A function which maps an input tuple (reg, bit) to an index between
              0 and N - 1, where N is the total number of elements across all registers
              (i.e. is the sum of reg)
+    :rtype: function
     """
     reg_array = np.array(reg_list)
     cumulative_num_reg = np.cumsum(reg_array)
 
     def reg_to_index(reg):
+        """ Function which maps (reg, bit) to a unique index """
         assert isinstance(reg, tuple) and len(reg) == 2, f'Register must be provided as a tuple of length 2'
         if reg[0] == 0:
             return reg[1]
@@ -33,8 +40,20 @@ def reg_to_index_func(reg_list):
 
 
 class DensityMatrixCompiler(CompilerBase):
+    """
+    Compiler which deals exclusively with the DensityMatrix state representation.
+    Currently creates a DensityMatrix state object and applies the circuit Operations to it in order
 
+    # TODO: refactor to return a QuantumState object rather than a DensityMatrix object
+    # TODO: [longer term] refactor to take a QuantumState object input instead of creating its own initial state?
+    """
     def __init__(self, *args, **kwargs):
+        """
+        Create a compiler which acts on a DensityMatrix state representation
+
+        :return: function returns nothing
+        :rtype: None
+        """
         super().__init__(*args, **kwargs)
         self.name = "density_matrix"
         self.ops = [  # the accepted operations for a given compiler
@@ -51,7 +70,19 @@ class DensityMatrixCompiler(CompilerBase):
             ops.Output,
         ]
 
-    def compile(self, circuit: CircuitDAG):
+    def compile(self, circuit: CircuitBase):
+        """
+        Compiles (i.e. produces an output state) circuit, in density matrix representation.
+        This involves sequentially applying each operation of the circuit on the initial state
+
+        :param circuit: the circuit to compile
+        :type circuit: CircuitBase
+        :raises ValueError: if there is a circuit Operation which is incompatible with this compiler
+        :return: the state produced by the circuit
+        :rtype: DensityMatrix
+
+        TODO: return a QuantumState object instead
+        """
         # TODO: using just the source nodes doesn't distinguish classical and quantum
         # sources = [x for x in circuit.dag.nodes() if circuit.dag.in_degree(x) == 0]
 
@@ -64,7 +95,8 @@ class DensityMatrixCompiler(CompilerBase):
         state = DensityMatrix(data=reduce(np.kron, circuit.n_quantum * [init]))
         classical_registers = np.zeros(circuit.n_classical)
 
-        # TODO: support self-defined mapping functions later instead of using the default above?
+        # TODO: support self-defined mapping functions later instead of using the default above
+        # Get functions which will map from registers to a unique index
         q_index = reg_to_index_func(circuit.q_registers)
         c_index = reg_to_index_func(circuit.c_registers)
 
@@ -129,6 +161,6 @@ class DensityMatrixCompiler(CompilerBase):
                 classical_registers[c_index(op.c_register)] = outcome
 
             else:
-                raise RuntimeError(f"{type(op)} is invalid or not implemented for {self.__class__.__name__}.")
+                raise ValueError(f"{type(op)} is invalid or not implemented for {self.__class__.__name__}.")
 
         return state

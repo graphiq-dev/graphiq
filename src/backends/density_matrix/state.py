@@ -1,7 +1,10 @@
+"""
+Density Matrix representation for states
+"""
 import networkx as nx
 import numpy as np
 
-from src.backends.density_matrix.functions import is_psd, create_n_plus_state, apply_CZ
+from src.backends.density_matrix.functions import is_psd, create_n_plus_state, apply_cz
 from src.backends.state_base import StateRepresentationBase
 from src.backends.graph.state import Graph
 
@@ -15,17 +18,21 @@ class DensityMatrix(StateRepresentationBase):
     def __init__(self, data, *args, **kwargs):
         """
         Construct a DensityMatrix object and calculate the density matrix from state_data
+
         :param data: density matrix or a networkx graph
+        :type data: numpy.ndarray
+        :return: function returnns nothing
+        :rtype: None
         """
         super().__init__(data, *args, **kwargs)
 
         if not isinstance(data, np.ndarray):
-            raise TypeError("Input must be a np array")
-
+            raise TypeError("Input must be a np ndarray")
         else:
             # check if state_data is positive semi-definite
             if not is_psd(data):
                 raise ValueError('The input matrix is not a valid density matrix')
+
             if not np.equal(np.trace(data), 1):
                 data = data / np.trace(data)
 
@@ -33,6 +40,15 @@ class DensityMatrix(StateRepresentationBase):
 
     @classmethod
     def from_graph(cls, graph):
+        """
+        Builds a density matrix representation from a graph (either nx.graph or a Graph state representation)
+
+        :param graph: the graph from which we will builda density matrix
+        :type graph: networkx.Graph OR Graph
+        :return: a DensityMatrix representation with the data contained by graph
+        :rtype: DensityMatrix
+        """
+        # TODO: port this implementation into a conversion-specific python document
         if isinstance(graph, nx.Graph):
             graph_data = graph
         elif isinstance(graph, Graph):
@@ -46,7 +62,7 @@ class DensityMatrix(StateRepresentationBase):
         final_state = create_n_plus_state(number_qubits)
 
         for edge in edge_list:
-            final_state = apply_CZ(final_state, mapping[edge[0]], mapping[edge[1]])
+            final_state = apply_cz(final_state, mapping[edge[0]], mapping[edge[1]])
         data = final_state
 
         return cls(data)
@@ -54,7 +70,12 @@ class DensityMatrix(StateRepresentationBase):
     def apply_unitary(self, unitary):
         """
         Apply a unitary on the state.
-        Assuming the dimensions match; Otherwise, raise ValueError
+        Assumes the dimensions match; Otherwise, raise ValueError
+
+        :param unitary: unitary matrix to apply
+        :type unitary: numpy.ndarray
+        :return: function returns nothing
+        :rtype: None
         """
         if self._data.shape == unitary.shape:
             self._data = unitary @ self._data @ np.transpose(np.conjugate(unitary))
@@ -62,6 +83,14 @@ class DensityMatrix(StateRepresentationBase):
             raise ValueError('The density matrix of the state has a different size from the unitary gate to be applied.')
 
     def apply_measurement(self, projectors):
+        """
+        Apply the projectors measurement onto the density matrix representation of the state
+
+        :param projectors: the projector which is the measurement to apply
+        :type projectors: numpy.ndarray
+        :return: the measurement outcome
+        :rtype: int
+        """
         if self._data.shape == projectors[0].shape:
             probs = [np.real(np.trace(self._data @ m)) for m in projectors]
 
@@ -75,4 +104,5 @@ class DensityMatrix(StateRepresentationBase):
             # self._data = sum([m @ self._data @ m for m in projectors])
         else:
             raise ValueError('The density matrix of the state has a different size from the POVM elements.')
+
         return outcome

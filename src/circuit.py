@@ -302,7 +302,7 @@ class CircuitDAG(CircuitBase):
 
         :param operation: Operation (gate and register) to add to the graph
         :type operation: OperationBase type (or a subclass of it)
-        :raise UserWarning: if no openqasm definition exists for operation
+        :raises UserWarning: if no openqasm definition exists for operation
         :return: this function returns nothing
         :rtype: None
         """
@@ -334,7 +334,7 @@ class CircuitDAG(CircuitBase):
         without input edges are input nodes, all nodes without output edges
         are output nodes)
 
-        :raise AssertionError: if the circuit is not valid
+        :raises AssertionError: if the circuit is not valid
         :return: this function returns nothing
         :rtype: None
         """
@@ -454,7 +454,7 @@ class CircuitDAG(CircuitBase):
         :type c_reg: tuple or int
         :param size: size of the register to add
         :type size: int
-        :raise ValueError: if a non-continuous register or qubit index is provided (i.e. indexing would mean circuit
+        :raises ValueError: if a non-continuous register or qubit index is provided (i.e. indexing would mean circuit
                            indexing is non-continuous, and thus is rejected)
         :return: the function returns nothing
         :rtype: None
@@ -593,7 +593,7 @@ class CircuitDAG(CircuitBase):
         :param c_reg: sequence of either registers, or cbits (indexed by reg and cbit #) on which an operator
                       should be applied.
         :type c_reg: tuple containing either length 2 tuples (reg, cbit), or ints (reg)
-        :raise AssertionError: if q_reg, c_reg use full-register notation and the registers are of differing lengths
+        :raises AssertionError: if q_reg, c_reg use full-register notation and the registers are of differing lengths
         :return: A list of (reg, qubit) groups on which to apply an Operation
         :rtype: a list, containing tuples of length 2, themselves containing tuples describing the qubits to use
         """

@@ -47,7 +47,7 @@ class OperationBase(ABC):
         :type q_registers: tuple (tuple of: integers OR tuples of length 2)
         :param c_registers: same as q_registers, but for the classical registers
         :type c_registers: tuple (tuple of: integers OR tuples of length 2)
-        :raise AssertionError: if q_registers, c_registers are not tuples, OR if the elements of the tuple
+        :raises AssertionError: if q_registers, c_registers are not tuples, OR if the elements of the tuple
                                do not correspond to the notation described above
         :return: the function returns nothing
         :rtype: None
@@ -111,7 +111,7 @@ class OperationBase(ABC):
 
         :param q_reg: new q_register which the operation should target
         :type q_reg: tuple
-        :raise ValueError: if the new q_reg object does not match the length of self.q_registers (Operations
+        :raises ValueError: if the new q_reg object does not match the length of self.q_registers (Operations
                            should not have variable register numbers)
         :return: function returns nothing
         :rtype: None
@@ -129,7 +129,7 @@ class OperationBase(ABC):
 
         :param c_reg: new c_register which the operation should target
         :type c_reg: tuple
-        :raise ValueError: if the new q_reg object does not match the length of self.q_registers (Operations
+        :raises ValueError: if the new q_reg object does not match the length of self.q_registers (Operations
                            should not have variable register numbers)
         :return: function returns nothing
         :rtype: None
@@ -144,7 +144,7 @@ class OperationBase(ABC):
 
         :param q_reg: new q_register which the operation should target
         :type q_reg: tuple
-        :raise ValueError: if the new q_reg object does not match the length of self.q_registers (Operations
+        :raises ValueError: if the new q_reg object does not match the length of self.q_registers (Operations
                            should not have variable register numbers)
         :return: function returns nothing
         :rtype: None
@@ -161,7 +161,7 @@ class OperationBase(ABC):
 
         :param c_reg: new c_register which the operation should target
         :type c_reg: tuple
-        :raise ValueError: if the new c_reg object does not match the length of self.c_registers (Operations
+        :raises ValueError: if the new c_reg object does not match the length of self.c_registers (Operations
                            should not have variable register numbers)
         :return: function returns nothing
         :rtype: None
@@ -195,7 +195,7 @@ class SingleQubitOperationBase(OperationBase):
         self.register field
 
         :param q_reg: the new q_register value to set
-        :raise ValueError: if the new q_reg object does not have a length of 1
+        :raises ValueError: if the new q_reg object does not have a length of 1
         :return: function returns nothing
         :rtype: None
         """
@@ -237,7 +237,7 @@ class InputOutputOperationBase(OperationBase):
         self.register field, if the I/O is quantum
 
         :param q_reg: the new q_register value to set (if any)
-        :raise ValueError: if the new q_reg object does not match the length of self.q_registers (Operations
+        :raises ValueError: if the new q_reg object does not match the length of self.q_registers (Operations
                            should not have variable register numbers)
         :return: function returns nothing
         :rtype: None
@@ -253,7 +253,7 @@ class InputOutputOperationBase(OperationBase):
         self.register field, if the I/O is classical
 
         :param c_reg: the new c_register value to set (if any)
-        :raise ValueError: if the new c_reg object does not match the length of self.c_registers (Operations
+        :raises ValueError: if the new c_reg object does not match the length of self.c_registers (Operations
                            should not have variable register numbers)
         :return: function returns nothing
         :rtype: None
@@ -290,7 +290,7 @@ class ControlledPairOperationBase(OperationBase):
         self.control, self.target fields
 
         :param q_reg: the new q_register value to set
-        :raise ValueError: if the new q_reg object does not have a length of 2
+        :raises ValueError: if the new q_reg object does not have a length of 2
         :return: function returns nothing
         :rtype: None
         """
@@ -330,7 +330,7 @@ class ClassicalControlledPairOperationBase(OperationBase):
         self.control, self.target fields
 
         :param q_reg: the new q_register value to set
-        :raise ValueError: if the new q_reg object does not have a length of 2
+        :raises ValueError: if the new q_reg object does not have a length of 2
         :return: function returns nothing
         :rtype: None
         """
@@ -345,7 +345,7 @@ class ClassicalControlledPairOperationBase(OperationBase):
         self.c_register field
 
         :param c_reg: the new c_register value to set
-        :raise ValueError: if the new c_reg object does not have a length of 1
+        :raises ValueError: if the new c_reg object does not have a length of 1
         :return: function returns nothing
         :rtype: None
         """
@@ -455,7 +455,7 @@ class MeasurementZ(OperationBase):
         self.register field
 
         :param q_reg: the new q_register value to set
-        :raise ValueError: if the new q_reg object does not have a length of 1
+        :raises ValueError: if the new q_reg object does not have a length of 1
         :return: function returns nothing
         :rtype: None
         """
@@ -469,7 +469,7 @@ class MeasurementZ(OperationBase):
         self.c_register field
 
         :param c_reg: the new c_register value to set
-        :raise ValueError: if the new c_reg object does not have a length of 1
+        :raises ValueError: if the new c_reg object does not have a length of 1
         :return: function returns nothing
         :rtype: None
         """

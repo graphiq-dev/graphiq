@@ -70,7 +70,7 @@ class QuantumState:
         """
         Density matrix representation of our quantum state
 
-        :raise ValueError: if existing representations within the QuantumState object cannot be sent to a
+        :raises ValueError: if existing representations within the QuantumState object cannot be sent to a
                            density matrix representation AND no density matrix representation is saved
         :return: density matrix representation
         :rtype: DensityMatrix
@@ -101,7 +101,7 @@ class QuantumState:
         """
         Graph representation of our quantum state
 
-        :raise ValueError: if existing representations within the QuantumState object cannot be sent to a
+        :raises ValueError: if existing representations within the QuantumState object cannot be sent to a
                            graph representation AND no graph representation is saved
         :return: graph representation
         :rtype: Graph
@@ -132,7 +132,7 @@ class QuantumState:
         """
         Stabilizer Formalism representation of our quantum state
 
-        :raise ValueError: if existing representations within the QuantumState object cannot be sent to a
+        :raises ValueError: if existing representations within the QuantumState object cannot be sent to a
                            stabilizer representation AND no stabilizer representation is saved
         :return: stabilizer representation
         :rtype: Stabilizer
@@ -180,7 +180,7 @@ class QuantumState:
 
         :param data: either a graph or ndarray matrix
         :type data: Graph OR nx.Graph OR numpy.ndarray
-        :raise AssertionError: if the density matrix being initialized does not have self.n_qubit
+        :raises AssertionError: if the density matrix being initialized does not have self.n_qubit
         :return: function returns nothing
         :rtype: None
         """
@@ -197,12 +197,13 @@ class QuantumState:
 
         :param data: data to construct the Graph representation
         :type data: nx.Graph OR int OR frozenset
-        :raise AssertionError: if the graph being initialized does not have self.n_qubit
+        :raises AssertionError: if the graph being initialized does not have self.n_qubit
         :return: function returns nothing
         :rtype: None
         """
         self._graph = Graph(data, 1)  # TODO: adjust root_node_id field once we've figured out how we want to use it
-        assert self._graph.n_qubit() == self.n_qubit, f'Expected {self.n_qubit} qubits, graph representation has {self._graph.n_qubit}'
+        assert self._graph.n_qubit() == self.n_qubit, f'Expected {self.n_qubit} qubits, ' \
+                                                      f'graph representation has {self._graph.n_qubit}'
 
     def _initialize_representation(self, representation, data):
         """
@@ -212,7 +213,7 @@ class QuantumState:
         :type representation: str
         :param data: data with which the representation should be initialized
         :type data: int OR frozenset OR Graph OR nx.Graph OR numpy.ndarray
-        :raise ValueError: if representation is invalid
+        :raises ValueError: if representation is invalid
         :return: function returns nothing
         :rtype: None
         """

@@ -71,7 +71,7 @@ class DensityMatrixCompiler(CompilerBase):
         seq = circuit.sequence()
         for op in seq:
             if type(op) not in self.ops:
-                raise RuntimeError(f"The {op.__class__.__name__} is not valid with "
+                raise RuntimeError(f"The Operation class {op.__class__.__name__} is not valid with "
                                    f"the {self.__class__.__name__} compiler")
 
             if type(op) is ops.Input:

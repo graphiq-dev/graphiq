@@ -31,23 +31,23 @@ def reg_to_index_func(reg_list):
 
 
 class DensityMatrixCompiler(CompilerBase):
+    name = "density_matrix"
+    ops = [  # the accepted operations for a given compiler
+        ops.Input,
+        ops.Hadamard,
+        ops.SigmaX,
+        ops.SigmaY,
+        ops.SigmaZ,
+        ops.CNOT,
+        ops.CPhase,
+        ops.ClassicalCNOT,
+        ops.ClassicalCPhase,
+        ops.MeasurementZ,
+        ops.Output,
+    ]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.name = "density_matrix"
-        self.ops = [  # the accepted operations for a given compiler
-            ops.Input,
-            ops.Hadamard,
-            ops.SigmaX,
-            ops.SigmaY,
-            ops.SigmaZ,
-            ops.CNOT,
-            ops.CPhase,
-            ops.ClassicalCNOT,
-            ops.ClassicalCPhase,
-            ops.MeasurementZ,
-            ops.Output,
-        ]
 
     def compile(self, circuit: CircuitDAG):
         # TODO: using just the source nodes doesn't distinguish classical and quantum

@@ -1,6 +1,5 @@
-import pytest
 import src.ops as ops
-import src.libraries.openqasm_lib as oq_lib
+import src.visualizers.openqasm.openqasm_lib as oq_lib
 
 OPENQASM_V = 2
 

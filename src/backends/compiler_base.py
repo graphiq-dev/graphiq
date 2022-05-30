@@ -11,11 +11,14 @@ from src.circuit import CircuitBase
 
 class CompilerBase(ABC):
     """
-    Compiles a circuit using a specific representation for the underlying quantum state
-
+    Base class for compiler implementations.
+    In general, compilers compile circuits using a specific representation(s) for the underlying quantum state
     """
 
     def __init__(self, *args, **kwargs):
+        """
+        Initializes CompilerBase fields
+        """
         self.name = "base"
         self.ops = [  # the accepted operations for a given compiler
             ops.OperationBase
@@ -25,13 +28,23 @@ class CompilerBase(ABC):
     def compile(self, circuit: CircuitBase):
         raise NotImplementedError("Please select a valid compiler")
 
-    def check(self, circuit):
+    def validate_ops(self, circuit):
+        """
+        Verifies that all operations of a circuit are valid for the selected compiler
+
+        :param circuit: the circuit for which we are assessing validity of operations with this compiler
+        :type circuit: CircuitBase (or some subclass of it)
+        :return: True if all operations are valid, False otherwise
+        :rtype: bool
+        """
         seq = circuit.sequence()
+        valid = True
 
         for i, op in enumerate(seq):
             if type(op) in self.ops:
                 logging.info(f"Operation {i} {type(op).__name__} is valid with {type(self).__name__}")
             else:
                 logging.error(f"Error: Operation {i} {type(op).__name__} is not valid with {type(self).__name__}")
+                valid = False
 
-
+        return valid

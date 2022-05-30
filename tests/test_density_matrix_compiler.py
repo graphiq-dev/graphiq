@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 
 from src.backends.density_matrix.compiler import DensityMatrixCompiler
 from src.backends.density_matrix.functions import partial_trace, fidelity
-from src.libraries.circuits import ghz3_state_circuit, bell_state_circuit, ghz4_state_circuit
+from benchmarks.circuits import ghz3_state_circuit, bell_state_circuit, ghz4_state_circuit
 from src.visualizers.density_matrix import density_matrix_bars
 
 plot = False
@@ -21,7 +21,7 @@ def test_bell_circuit():
 
     if plot:
         print(f"Fidelity is {f}")
-        circuit.show()
+        circuit.draw_dag()
 
         fig, ax = density_matrix_bars(state)
         fig.suptitle("Simulated circuit density matrix")
@@ -46,7 +46,7 @@ def test_ghz3_circuit():
 
     if plot:
         print(f"Fidelity is {f}")
-        circuit.show()
+        circuit.draw_dag()
 
         fig, ax = density_matrix_bars(state)
         fig.suptitle("Simulated circuit density matrix")
@@ -72,7 +72,7 @@ def test_ghz4_circuit():
 
     if plot:
         print(f"Fidelity is {f}")
-        circuit.show()
+        circuit.draw_dag()
 
         fig, ax = density_matrix_bars(state)
         fig.suptitle("Simulated circuit density matrix")

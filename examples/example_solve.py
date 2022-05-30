@@ -11,7 +11,7 @@ if __name__ == "__main__":
     circuit = circuit.CircuitDAG(2, 0)
     circuit.add(ops.Hadamard(register=0))
     circuit.add(ops.CNOT(control=0, target=1))
-    circuit.show()
+    circuit.draw_dag()
 
     # we then need to select the backend to use (this could be hidden somewhere and not passed explicitly, if needed)
     compiler = src.backends.density_matrix.compiler.DensityMatrixCompiler()

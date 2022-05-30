@@ -3,6 +3,7 @@ This file contains helper functions for graph representation
 """
 import networkx as nx
 
+
 def convert_data_to_graph(graph_data,root_id):
     """
     A helper function for graph constructor.

@@ -4,15 +4,17 @@ import numpy as np
 
 import src.backends.density_matrix.functions as dm
 from src import ops as ops
-from src.compiler import CompilerBase
+from src.backends.compiler_base import CompilerBase
 from src.backends.density_matrix.state import DensityMatrix
 from src.circuit import CircuitDAG
+
+# TODO: refactor to return a QuantumState / SystemState object
 
 
 def reg_to_index_func(reg_list):
     """
     Returns function which map a (reg, bit) tuple pair into an index between 0 and N - 1
-    :param reg: a list, where reg[i] = <# of qudits/cbits in register i>
+    :param reg_list: a list, where reg[i] = <# of qudits/cbits in register i>
     :return: A function which maps an input tuple (reg, bit) to an index between
              0 and N - 1, where N is the total number of elements across all registers
              (i.e. is the sum of reg)
@@ -57,6 +59,8 @@ class DensityMatrixCompiler(CompilerBase):
         init = np.outer(np.array([1, 0]), np.array([1, 0])).astype('complex64')  # initialization of quantum registers
 
         # TODO: state_id? what should it be? There should be a default.
+
+        # TODO: refactor to be a QuantumState object which contains a density matrix
         state = DensityMatrix(data=reduce(np.kron, circuit.n_quantum * [init]))
         classical_registers = np.zeros(circuit.n_classical)
 

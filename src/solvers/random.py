@@ -5,7 +5,7 @@ import networkx as nx
 from src.solvers.base import SolverBase
 from src.metrics import MetricBase
 from src.circuit import CircuitBase
-from src.compiler import CompilerBase
+from src.backends.compiler_base import CompilerBase
 
 from src.circuit import CircuitDAG
 from src import ops

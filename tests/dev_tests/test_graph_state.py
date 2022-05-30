@@ -1,6 +1,4 @@
-from src.states import *
-import networkx as nx
-import matplotlib.pyplot as plt
+from src.backends.graph.state import Graph
 from src.visualizers.graph import *
 
 graph1 = nx.Graph([(1, 2), (2, 3)])

@@ -14,6 +14,9 @@ class Graph(StateRepresentationBase):
     Graph representation of a graph state.
     As the intermediate states of the process may not be graph states (but assuming still stabilizer states),
     we may need to keep track of local Cliffords that convert the state to the graph state represented by the graph
+
+    # TODO: set default root_node_id if the user doesn't specify one?
+    # We should figure out how to handle cases where the root node is not obvious
     """
 
     def __init__(self, data, root_node_id, *args, **kwargs):

@@ -22,6 +22,7 @@ circuit3.add(OperationBase(q_registers=(0, 1)))
 circuit3.validate()
 # circuit3.show()
 
+
 # Test add comp: qiskit example https://qiskit.org/documentation/stubs/qiskit.converters.circuit_to_dag.html
 circuit4 = CircuitDAG(3, 3)
 circuit4.add(OperationBase(q_registers=(0,)))
@@ -46,6 +47,7 @@ dag.add(op1)
 dag.add(op2)
 dag.add(op3)
 dag.validate()
+
 # dag.show()
 
 # test initializing registers (copied from test_circuit)
@@ -63,3 +65,6 @@ dag.expand_quantum_register(1, 2)
 dag.add(CNOT(control=0, target=1))
 dag.validate()
 # dag.show()
+for edge in dag.dag.edges:
+    print(edge)
+    print(dag.dag.edges[edge])

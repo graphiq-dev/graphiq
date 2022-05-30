@@ -559,9 +559,10 @@ class CircuitDAG(CircuitBase):
         self.dag.remove_edges_from(output_edges)  # remove the edges that need to be removed
 
         # add new edges which connect from the preceding node to the operation node
-        for reg_index, node in zip([f'q{q[0]}-{q[1]}' for q in q_reg_bit] +
-                                   [f'c{c[0]}-{c[1]}' for c in c_reg_bit], preceding_nodes):
-            self.dag.add_edge(node, new_id, bit=reg_index)
+        for reg_type, reg_bit, node in zip(['q'] * len(q_reg_bit) + ['c'] * len(c_reg_bit),
+                                           [q for q in q_reg_bit] + [c for c in c_reg_bit],
+                                           preceding_nodes):
+            self.dag.add_edge(node, new_id, reg_type=reg_type, reg=reg_bit[0], bit=reg_bit[1])
 
         # add new edges which connects the operation node to the output nodes
         for output in relevant_outputs:

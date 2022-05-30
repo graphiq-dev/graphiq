@@ -104,9 +104,25 @@ class CircuitBase(ABC):
     def sequence(self):
         raise ValueError('Base class circuit is abstract: it does not support function calls')
 
-    @abstractmethod
     def to_openqasm(self):
-        raise ValueError('Base class circuit is abstract: it does not support function calls')
+        """
+        Creates the openQASM script equivalent to the circuit (if possible--some Operations are not properly supported).
+
+        :return: the openQASM script equivalent to our circuit (on a logical level)
+        :rtype: str
+        """
+        header_info = oq_lib.openqasm_header() + '\n' + '\n'.join(self.openqasm_imports.keys()) + '\n' \
+            + '\n'.join(self.openqasm_defs.keys())
+
+        openqasm_str = [header_info, oq_lib.register_initialization_string(self.q_registers, self.c_registers) + '\n']
+
+        for op in self.sequence():
+            oq_info = op.openqasm_info()
+            gate_application = oq_info.use_gate(op.q_registers, op.c_registers)
+            if gate_application != "":
+                openqasm_str.append(gate_application)
+
+        return '\n'.join(openqasm_str)
 
     @property
     def n_quantum(self):
@@ -346,26 +362,6 @@ class CircuitDAG(CircuitBase):
         :rtype: list (of OperationBase subclass objects)
         """
         return [self.dag.nodes[node]['op'] for node in nx.topological_sort(self.dag)]
-
-    def to_openqasm(self):
-        """
-        Creates the openQASM script equivalent to the circuit (if possible--some Operations are not properly supported).
-
-        :return: the openQASM script equivalent to our circuit (on a logical level)
-        :rtype: str
-        """
-        header_info = oq_lib.openqasm_header() + '\n' + '\n'.join(self.openqasm_imports.keys()) + '\n' \
-            + '\n'.join(self.openqasm_defs.keys())
-
-        openqasm_str = [header_info, oq_lib.register_initialization_string(self.q_registers, self.c_registers) + '\n']
-
-        for op in self.sequence():
-            oq_info = op.openqasm_info()
-            gate_application = oq_info.use_gate(op.q_registers, op.c_registers)
-            if gate_application != "":
-                openqasm_str.append(gate_application)
-
-        return '\n'.join(openqasm_str)
 
     def draw_dag(self, show=True, fig=None, ax=None):
         """

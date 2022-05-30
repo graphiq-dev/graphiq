@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 
 import src.backends.density_matrix.compiler
 from src import solvers, metrics, circuit, ops
+from benchmarks.circuits import bell_state_circuit
 
 if __name__ == "__main__":
     # start by defining an initial circuit
@@ -17,7 +18,8 @@ if __name__ == "__main__":
     compiler = src.backends.density_matrix.compiler.DensityMatrixCompiler()
 
     # we pass one metric to use as the cost function. we can also pass more to be evaluated but not used as the cost
-    metric = metrics.MetricFidelity()
+    _, ideal_state = bell_state_circuit()
+    metric = metrics.MetricFidelity(ideal_state)
 
     # define the solver (all methods are encapsulated in the class definition)
     solver = solvers.RandomSearchSolver(target=None, metric=metric, compiler=compiler, circuit=circuit)

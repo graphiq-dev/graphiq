@@ -5,6 +5,8 @@ Classes to compute metrics on a circuit and/or system states
 from abc import ABC, abstractmethod
 import numpy as np
 
+from benchmarks.circuits import bell_state_circuit
+
 
 class MetricBase(ABC):
     """
@@ -109,10 +111,11 @@ class MetricCircuitDepth(MetricBase):
         """
         Calculates a scalar function of the circuit depth
 
-        :param state: state which was created by the circuit. 
-        :type state:
-        :param circuit:
-        :type circuit:
+        :param state: state which was created by the circuit. This is not actually used by this metric object,
+                      but is nonetheless provided to guarantee a uniform API between Metric-type objects
+        :type state: QuantumState
+        :param circuit: the circuit to evaluate
+        :type circuit: CircuitBase (or a subclass of it)
         :return: the scalar penalty resulting from circuit depth. By default, this is the circuit depth itself
         :rtype: float or int
         """
@@ -136,11 +139,18 @@ class Metrics(object):
         "circuit-depth": MetricCircuitDepth,
     }
 
-    def __init__(self, metrics: list):
+    def __init__(self, metrics_list: list):
+        """
+        Create a Metrics object which acts as a wrapper around Metric functions
 
+        :param metrics_list: metrics to evaluate
+        :type metrics_list: list of strings (strings should be metric names)
+        :return: function returns nothing
+        :rtype: None
+        """
         # pass in either list of either strings or of specific Metric instance (must be an accepted Metric)
         _metrics = []
-        for metric in metrics:
+        for metric in metrics_list:
             if metric.__class__ in self._all.values():
                 _metrics.append(metric)
             elif metric in self._all.keys():
@@ -150,26 +160,45 @@ class Metrics(object):
         self._metrics = _metrics
 
     def evaluate(self, state, circuit):
+        """
+        Evaluate each metric function contained by the Metrics object
+
+        :param state: the state on which to evaluate the metrics
+        :type state: QuantumState
+        :param circuit: the circuit on which to evaluate the metrics
+        :type circuit: CircuitBase (or a subclass of it)
+        :return: this function returns nothing
+        :rtype: None
+        """
         for i, metric in enumerate(self._metrics):
-            res = metric.evaluate(state, circuit)
+            metric.evaluate(state, circuit)
 
     @property
     def log(self):
+        """
+        The joint log of all metric functions
+
+        :return: the log itself
+        :rtype: dict (keys are metric class names, values are the logs)
+        """
         m = {}
         for i, metric in enumerate(self._metrics):
+            # TODO: switch the key to the strings provided in __init__ (abstracts things better from the user)
             m[metric.__class__.__name__] = metric.log
         return m
 
 
 if __name__ == "__main__":
-
+    """ Metric usage example """
     # set how often to log the metric evaluations
     MetricBase.log_steps = 3
     MetricFidelity.log_steps = 1
 
+    _, ideal_state = bell_state_circuit()
+
     metrics = Metrics([
         MetricCircuitDepth(),
-        MetricFidelity()
+        MetricFidelity(ideal_state)
     ])
 
     for _ in range(10):

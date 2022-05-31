@@ -385,20 +385,18 @@ class CircuitDAG(CircuitBase):
             plt.show()
         return fig, ax
 
-    def draw_circuit(self, show=True, fig=None, ax=None):
+    def draw_circuit(self, show=True, ax=None):
         """
         Draw conventional circuit representation
 
         :param show: if True, the circuit is displayed (shown). If False, the circuit is drawn but not displayed
         :type show: bool
-        :param fig: fig on which to draw the DAG (optional)
-        :type fig: None or matplotlib.pyplot.figure
         :param ax: ax on which to draw the DAG (optional)
         :type ax: None or matplotlib.pyplot.axes
         :return: fig, ax on which the circuit was drawn
         :rtype: matplotlib.pyplot.figure, matplotlib.pyplot.axes
         """
-        return draw_openqasm(self.to_openqasm(), show=show, fig=fig, ax=ax)
+        return draw_openqasm(self.to_openqasm(), show=show, ax=ax)
 
     def _add_register(self, size, is_quantum):
         """

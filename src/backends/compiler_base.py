@@ -1,6 +1,8 @@
 """
-Compiler which takes a circuit description and implements the mapping, given a specific representation of the
-underlying quantum state
+Compilers takes a circuit description and implements the mapping, given a specific representation of the
+underlying quantum state.
+
+The Base class defines an API which all compiler implementations should follow
 """
 from abc import ABC, abstractmethod
 import logging
@@ -18,6 +20,9 @@ class CompilerBase(ABC):
     def __init__(self, *args, **kwargs):
         """
         Initializes CompilerBase fields
+
+        :return: function returns nothing
+        :rtype: None
         """
         self.name = "base"
         self.ops = [  # the accepted operations for a given compiler

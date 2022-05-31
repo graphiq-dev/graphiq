@@ -7,6 +7,7 @@ import numpy as np
 from src.backends.density_matrix.functions import is_psd, create_n_plus_state, apply_cz
 from src.backends.state_base import StateRepresentationBase
 from src.backends.graph.state import Graph
+from src.visualizers.density_matrix import density_matrix_heatmap, density_matrix_bars
 
 # TODO: accept single input (# of qubits) as input and initialize as unentangled qubits
 
@@ -106,3 +107,23 @@ class DensityMatrix(StateRepresentationBase):
             raise ValueError('The density matrix of the state has a different size from the POVM elements.')
 
         return outcome
+
+    def draw(self, style='bar', show=True):
+        """
+        Draw a bar graph or heatmap of the DensityMatrix representation data
+
+        :param style: 'bar' for barplot, 'heat' for heatmap
+        :type style: str
+        :param show: if True, show the density matrix plot. Otherwise, draw the density matrix plot but do not show
+        :type show: bool
+        :return: fig, axes on which the state is drawn
+        :rtype: matplotlib.figure, matplotlib.axes
+
+        TODO: add a "ax" parameter to match the other viewing utils
+        """
+        if style == 'bar':
+            fig, axs = density_matrix_bars(self.data)
+        else:
+            fig, axs = density_matrix_heatmap(self.data)
+
+        return fig, axs

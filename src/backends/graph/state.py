@@ -3,7 +3,6 @@ Graph representation of quantum state
 """
 import networkx as nx
 import warnings
-import matplotlib.pyplot as plt
 
 from src.backends.state_base import StateRepresentationBase
 import src.backends.graph.functions as gf

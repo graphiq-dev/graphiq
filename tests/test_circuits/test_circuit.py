@@ -4,6 +4,7 @@ import warnings
 
 from src.circuit import CircuitDAG
 from src.ops import OperationBase, CNOT, SigmaX
+from tests.test_flags import visualization
 
 pytestmark = pytest.mark.filterwarnings("ignore::UserWarning")
 
@@ -773,3 +774,51 @@ def test_action_id_assignment_2():
     assert ops[5].target == (1, 0)
     assert ops[6].control == (0, 2)
     assert ops[6].target == (1, 0)
+
+
+@visualization
+def test_visualization_1(dag):
+    dag.validate()
+    dag.draw_dag()
+
+
+@visualization
+def test_visualization_2():
+    circuit2 = CircuitDAG(3, 2)
+    circuit2.validate()
+    circuit2.draw_dag()
+
+
+@visualization
+def test_visualization_3():
+    circuit3 = CircuitDAG(2, 0)
+    circuit3.add(OperationBase(q_registers=(0,)))
+    circuit3.validate()
+    circuit3.add(OperationBase(q_registers=(0, 1)))
+    circuit3.validate()
+    circuit3.draw_dag()
+
+
+@visualization
+def test_visualization_4():
+    circuit4 = CircuitDAG(3, 3)
+    circuit4.add(OperationBase(q_registers=(0,)))
+    circuit4.add(OperationBase(q_registers=(0, 1)))
+    circuit4.add(OperationBase(q_registers=(0,), c_registers=(0,)))
+    circuit4.add(OperationBase(q_registers=(1,), c_registers=(0, 1, 2)))
+    circuit4.validate()
+    circuit4.draw_dag()
+
+
+@visualization
+def test_visualization_5():
+    # test visualization when dynamic dealing with register number (copied from test_circuit)
+    dag = CircuitDAG(1, 0)
+    op1 = OperationBase(q_registers=(1, 2))
+    op2 = OperationBase(q_registers=(2,))
+    op3 = OperationBase(q_registers=(0,), c_registers=(1, 0))
+    dag.add(op1)
+    dag.add(op2)
+    dag.add(op3)
+    dag.validate()
+    dag.draw_dag()

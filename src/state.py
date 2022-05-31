@@ -202,7 +202,7 @@ class QuantumState:
         :rtype: None
         """
         self._graph = Graph(data, 1)  # TODO: adjust root_node_id field once we've figured out how we want to use it
-        assert self._graph.n_qubit() == self.n_qubit, f'Expected {self.n_qubit} qubits, ' \
+        assert self._graph.n_qubit == self.n_qubit, f'Expected {self.n_qubit} qubits, ' \
                                                       f'graph representation has {self._graph.n_qubit}'
 
     def _initialize_representation(self, representation, data):

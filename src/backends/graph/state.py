@@ -59,6 +59,8 @@ class Graph(StateRepresentationBase):
             else:
                 warnings.warn('Node already in the graph. Check node identifier.')
         elif isinstance(node_to_add, int) or isinstance(node_to_add, frozenset):
+            if isinstance(node_to_add, int):
+                node_to_add = frozenset([node_to_add])
             # node_to_add is just a node id; create the node first if it does not exist
             if node_to_add not in self.node_dict.keys():
                 tmp_node = QuNode(node_to_add)
@@ -81,6 +83,8 @@ class Graph(StateRepresentationBase):
         if isinstance(first_node, QuNode):
             node_id1 = first_node.get_id()
         elif isinstance(first_node, int) or isinstance(first_node, frozenset):
+            if isinstance(first_node, int):
+                first_node = frozenset([first_node])
             node_id1 = first_node
         else:
             raise ValueError('Not supporting input data type')
@@ -88,6 +92,8 @@ class Graph(StateRepresentationBase):
         if isinstance(second_node, QuNode):
             node_id2 = second_node.get_id()
         elif isinstance(second_node, int) or isinstance(second_node, frozenset):
+            if isinstance(second_node, int):
+                second_node = frozenset([second_node])
             node_id2 = second_node
         else:
             raise ValueError('Not supporting input data type')
@@ -124,6 +130,9 @@ class Graph(StateRepresentationBase):
         :return: the Graph node OR None (if no such ID exists)
         :rtype: QuNode OR None
         """
+        if isinstance(node_id, int):
+            node_id = frozenset([node_id])
+
         if node_id in self.node_dict:
             return self.node_dict[node_id]
         else:
@@ -169,10 +178,8 @@ class Graph(StateRepresentationBase):
         """
         number_qubit = 0
         for node_id in self.node_dict.keys():
-            if isinstance(node_id, frozenset):
-                number_qubit += len(frozenset)
-            else:
-                number_qubit += 1
+            number_qubit += len(node_id)
+
         return number_qubit
 
     @property
@@ -185,7 +192,7 @@ class Graph(StateRepresentationBase):
         """
         number_redundant_node = 0
         for photon_id in self.node_dict.keys():
-            if isinstance(photon_id, frozenset) and len(photon_id) > 1:
+            if len(photon_id) > 1:
                 number_redundant_node += 1
         return number_redundant_node
 
@@ -209,9 +216,14 @@ class Graph(StateRepresentationBase):
         """
         Return the list of all neighbors (i.e. nodes connected by an edge) of the node with node_id
 
+        :param node_id: the ID of the node which we want to find the neighbours of
+        :type node_id: frozenset OR int
         :return: a list of neighbours for the node with node_id
         :rtype: list
         """
+        # TODO: refactor to use https://networkx.org/documentation/stable/reference/classes/generated/networkx.Graph.neighbors.html
+        if isinstance(node_id, int):
+            node_id = frozenset([node_id])
         neighbor_list = list()
         if node_id in self.node_dict.keys():
             cnode = self.node_dict[node_id]
@@ -232,12 +244,34 @@ class Graph(StateRepresentationBase):
         :return: True if the node is successfully removed, False otherwise
         :rtype: bool
         """
+        if isinstance(node_id, int):
+            node_id = frozenset([node_id])
         if node_id in self.node_dict.keys():
             self.data.remove_node(self.node_dict[node_id])
             self.node_dict.pop(node_id, None)
             return True
         else:
             warnings.warn('No node is removed since node id does not exist.')
+            return False
+
+    def node_is_redundant(self, node_id):
+        """
+        Checks whether or not a given node is redundant (i.e. whether it contains more than 1 photon)
+        Will return True if it is redundant and False otherwise (which includes the case that the node_id
+        is not found in the Graph)
+
+        :param node_id: ID of the node for which we are checking redundancy
+        :type node_id: frozenset OR int
+        :return: True if the node exists and is redundant (i.e. has more than 1 photon). False otherwise.
+        :rtype: bool
+        """
+        if isinstance(node_id, int):
+            node_id = frozenset([node_id])
+
+        if node_id in self.node_dict.keys():
+            return self.node_dict[node_id].count_redundancy() > 1
+        else:
+            warnings.warn("Node does not exist")
             return False
 
     def remove_id_from_redundancy(self, node_id, removal_id=None):
@@ -252,22 +286,22 @@ class Graph(StateRepresentationBase):
         :return: function returns nothing
         :rtype: None
         """
+        if isinstance(node_id, int):
+            node_id = frozenset([node_id])
+
         if node_id in self.node_dict.keys():
-            if isinstance(node_id, frozenset):
-                node = self.get_node_by_id(node_id)
+            node = self.get_node_by_id(node_id)
+            if len(node_id) > 1:
                 if removal_id is None:
                     node.remove_first_id()
                 else:
                     node.remove_id(removal_id)
                 new_node_id = node.get_id()
-                if node.count_redundancy() == 0:
-                    self.data.remove_node(self.node_dict[node_id])
-                    self.node_dict.pop(node_id)
-                else:
-                    self.node_dict[new_node_id] = self.node_dict.pop(node_id)
-
+                self.node_dict[new_node_id] = self.node_dict.pop(node_id)
             else:
-                warnings.warn('No redundancy is removed since this node is not redundantly encoded.')
+                assert node.count_redundancy() == 1 # just to make sure
+                self.data.remove_node(self.node_dict[node_id])
+                self.node_dict.pop(node_id)
         else:
             warnings.warn('No node is removed since node id does not exist.')
 
@@ -282,6 +316,9 @@ class Graph(StateRepresentationBase):
         :return: function returns nothing
         :rtype: None
         """
+        if isinstance(node_id, int):
+            node_id = frozenset([node_id])
+
         if node_id in self.node_dict.keys():
             cnode = self.node_dict[node_id]
             if cnode.count_redundancy() == 1:

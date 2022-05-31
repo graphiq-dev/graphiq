@@ -19,8 +19,15 @@ def convert_data_to_graph(graph_data, root_id):
     # convert a list of edges to graph using input structure like networkx
     graph = nx.Graph()
     node_dict = dict()
+
+    # cast root_id to a frozenset if it's an int
+    if isinstance(root_id, int):
+        root_id = frozenset([root_id])
+
     if isinstance(graph_data, int):
         # graph_data is a single integer, meaning the graph contains only a single node
+        # To maintain a consistent ID representation across all nodes, we cast the int to a frozenset
+        graph_data = frozenset([graph_data])
         root_node = QuNode(graph_data)
         node_dict[graph_data] = root_node
         graph.add_node(root_node)
@@ -40,6 +47,8 @@ def convert_data_to_graph(graph_data, root_id):
                 node.set_id(node_id)
                 graph.add_node(node)
             elif isinstance(node, frozenset) or isinstance(node, int):
+                if isinstance(node, int):
+                    node = frozenset([node])  # cast int to frozenset
                 tmp_node = QuNode(node)
                 node_dict[node] = tmp_node
                 graph.add_node(tmp_node)
@@ -51,7 +60,13 @@ def convert_data_to_graph(graph_data, root_id):
                 graph.add_edge(node_dict[data_pair[0].get_id()], node_dict[data_pair[1].get_id()])
             elif (isinstance(data_pair[0], int) or isinstance(data_pair[0], frozenset)) and \
                  (isinstance(data_pair[1], int) or isinstance(data_pair[1], frozenset)):
-                graph.add_edge(node_dict[data_pair[0]], node_dict[data_pair[1]])
+                # Cast ints to frozensets if necessary
+                new_data_pair = [data_pair[0], data_pair[1]]
+                if isinstance(data_pair[0], int):
+                    new_data_pair[0] = frozenset([data_pair[0]])
+                if isinstance(data_pair[1], int):
+                    new_data_pair[1] = frozenset([data_pair[1]])
+                graph.add_edge(node_dict[new_data_pair[0]], node_dict[new_data_pair[1]])
             else:
                 raise ValueError("Edges contain invalid data type.")
 
@@ -62,18 +77,25 @@ def convert_data_to_graph(graph_data, root_id):
         else:
             for data_pair in graph_data:
                 # data_pair is a pair of vertices in a tuple
-                # first add vertices if not existed
-                if data_pair[0] not in node_dict.keys():
 
-                    tmp_node = QuNode(data_pair[0])
-                    node_dict[data_pair[0]] = tmp_node
+                # First, cast any ints to frozensets
+                new_data_pair = [data_pair[0], data_pair[1]]
+                if isinstance(data_pair[0], int):
+                    new_data_pair[0] = frozenset([data_pair[0]])
+                if isinstance(data_pair[1], int):
+                    new_data_pair[1] = frozenset([data_pair[1]])
+
+                # then add vertices if not existed
+                if new_data_pair[0] not in node_dict.keys():
+                    tmp_node = QuNode(new_data_pair[0])
+                    node_dict[new_data_pair[0]] = tmp_node
                     graph.add_node(tmp_node)
-                if data_pair[1] not in node_dict.keys():
-                    tmp_node = QuNode(data_pair[1])
-                    node_dict[data_pair[1]] = tmp_node
+                if new_data_pair[1] not in node_dict.keys():
+                    tmp_node = QuNode(new_data_pair[1])
+                    node_dict[new_data_pair[1]] = tmp_node
                     graph.add_node(tmp_node)
                 # add the edge
-                graph.add_edge(node_dict[data_pair[0]], node_dict[data_pair[1]])
+                graph.add_edge(node_dict[new_data_pair[0]], node_dict[new_data_pair[1]])
             root_node = node_dict[root_id]
 
     return root_node, node_dict, graph
@@ -95,8 +117,10 @@ class QuNode:
         :return: function returns nothing
         :rtype: None
         """
-        if isinstance(id_set, frozenset) or isinstance(id_set, int):
+        if isinstance(id_set, frozenset):
             self.id = id_set
+        elif isinstance(id_set, int):
+            self.id = frozenset([id_set])
         else:
             raise ValueError('QuNode only accepts frozenset and int as id.')
 
@@ -107,10 +131,7 @@ class QuNode:
         :return: the number of qubits in the redundant encoding
         :rtype: int
         """
-        if isinstance(self.id, frozenset):
-            return len(self.id)
-        else:
-            return 1
+        return len(self.id)
 
     def set_id(self, id_set):
         """
@@ -122,8 +143,10 @@ class QuNode:
         :return: function returns nothing
         :rtype: None
         """
-        if isinstance(id_set, frozenset) or isinstance(id_set, int):
+        if isinstance(id_set, frozenset):
             self.id = id_set
+        elif isinstance(id_set, int):
+            self.id = frozenset([id_set])
         else:
             raise ValueError('QuNode only accepts frozenset and int as id.')
 
@@ -137,12 +160,14 @@ class QuNode:
         :return: True if the photon of the given ID was removed, False otherwise
         :rtype: bool
         """
-        if isinstance(self.id, frozenset) and len(self.id) > 1:
-            if photon_id in self.id:
-                tmp_set = set(self.id)
-                tmp_set.remove(photon_id)
-                self.id = frozenset(tmp_set)
-                return True
+        if isinstance(photon_id, int):
+            photon_id = frozenset([photon_id])
+
+        if len(self.id) > 1 and photon_id in self.id:
+            tmp_set = set(self.id)
+            tmp_set.remove(photon_id)
+            self.id = frozenset(tmp_set)
+            return True
 
         return False
 
@@ -154,7 +179,7 @@ class QuNode:
         :return: True if an qubit is removed, False otherwise
         :rtype: bool
         """
-        if isinstance(self.id, frozenset) and len(self.id) > 1:
+        if len(self.id) > 1:
             tmp_set = set(self.id)
             tmp_set.pop()
             self.id = frozenset(tmp_set)
@@ -168,6 +193,6 @@ class QuNode:
         or a frozenset containing all photon IDs in this node
 
         :return: the photon(s) id(s)
-        :rtype: frozenset OR int
+        :rtype: frozenset
         """
         return self.id

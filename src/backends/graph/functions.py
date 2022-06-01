@@ -160,9 +160,6 @@ class QuNode:
         :return: True if the photon of the given ID was removed, False otherwise
         :rtype: bool
         """
-        if isinstance(photon_id, int):
-            photon_id = frozenset([photon_id])
-
         if len(self.id) > 1 and photon_id in self.id:
             tmp_set = set(self.id)
             tmp_set.remove(photon_id)

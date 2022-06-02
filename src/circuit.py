@@ -327,12 +327,14 @@ class CircuitDAG(CircuitBase):
         # check all "source" nodes to the DAG are Input operations
         input_nodes = [node for node, in_degree in self.dag.in_degree() if in_degree == 0]
         for input_node in input_nodes:
-            assert isinstance(self.dag.nodes[input_node]['op'], Input)
+            if not isinstance(self.dag.nodes[input_node]['op'], Input):
+                raise RuntimeError(f"Source node {input_node} in the DAG is not an Input operation")
 
         # check all "sink" nodes to the DAG are Output operations
         output_nodes = [node for node, out_degree in self.dag.out_degree() if out_degree == 0]
         for output_node in output_nodes:
-            assert isinstance(self.dag.nodes[output_node]['op'], Output)
+            if not isinstance(self.dag.nodes[output_node]['op'], Output):
+                raise RuntimeError(f"Sink node {output_node} in the DAG is not an Output operation")
 
     def collect_parameters(self):
         # TODO: actually I think this might be more of a compiler task. Figure out how to implement this

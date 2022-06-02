@@ -104,9 +104,25 @@ class CircuitBase(ABC):
     def sequence(self):
         raise ValueError('Base class circuit is abstract: it does not support function calls')
 
-    @abstractmethod
     def to_openqasm(self):
-        raise ValueError('Base class circuit is abstract: it does not support function calls')
+        """
+        Creates the openQASM script equivalent to the circuit (if possible--some Operations are not properly supported).
+
+        :return: the openQASM script equivalent to our circuit (on a logical level)
+        :rtype: str
+        """
+        header_info = oq_lib.openqasm_header() + '\n' + '\n'.join(self.openqasm_imports.keys()) + '\n' \
+            + '\n'.join(self.openqasm_defs.keys())
+
+        openqasm_str = [header_info, oq_lib.register_initialization_string(self.q_registers, self.c_registers) + '\n']
+
+        for op in self.sequence():
+            oq_info = op.openqasm_info()
+            gate_application = oq_info.use_gate(op.q_registers, op.c_registers)
+            if gate_application != "":
+                openqasm_str.append(gate_application)
+
+        return '\n'.join(openqasm_str)
 
     @property
     def n_quantum(self):
@@ -286,7 +302,7 @@ class CircuitDAG(CircuitBase):
 
         :param operation: Operation (gate and register) to add to the graph
         :type operation: OperationBase type (or a subclass of it)
-        :raise UserWarning: if no openqasm definition exists for operation
+        :raises UserWarning: if no openqasm definition exists for operation
         :return: this function returns nothing
         :rtype: None
         """
@@ -318,7 +334,7 @@ class CircuitDAG(CircuitBase):
         without input edges are input nodes, all nodes without output edges
         are output nodes)
 
-        :raise AssertionError: if the circuit is not valid
+        :raises AssertionError: if the circuit is not valid
         :return: this function returns nothing
         :rtype: None
         """
@@ -349,26 +365,6 @@ class CircuitDAG(CircuitBase):
         """
         return [self.dag.nodes[node]['op'] for node in nx.topological_sort(self.dag)]
 
-    def to_openqasm(self):
-        """
-        Creates the openQASM script equivalent to the circuit (if possible--some Operations are not properly supported).
-
-        :return: the openQASM script equivalent to our circuit (on a logical level)
-        :rtype: str
-        """
-        header_info = oq_lib.openqasm_header() + '\n' + '\n'.join(self.openqasm_imports.keys()) + '\n' \
-            + '\n'.join(self.openqasm_defs.keys())
-
-        openqasm_str = [header_info, oq_lib.register_initialization_string(self.q_registers, self.c_registers) + '\n']
-
-        for op in self.sequence():
-            oq_info = op.openqasm_info()
-            gate_application = oq_info.use_gate(op.q_registers, op.c_registers)
-            if gate_application != "":
-                openqasm_str.append(gate_application)
-
-        return '\n'.join(openqasm_str)
-
     def draw_dag(self, show=True, fig=None, ax=None):
         """
         Draws the circuit as a DAG
@@ -391,20 +387,18 @@ class CircuitDAG(CircuitBase):
             plt.show()
         return fig, ax
 
-    def draw_circuit(self, show=True, fig=None, ax=None):
+    def draw_circuit(self, show=True, ax=None):
         """
         Draw conventional circuit representation
 
         :param show: if True, the circuit is displayed (shown). If False, the circuit is drawn but not displayed
         :type show: bool
-        :param fig: fig on which to draw the DAG (optional)
-        :type fig: None or matplotlib.pyplot.figure
         :param ax: ax on which to draw the DAG (optional)
         :type ax: None or matplotlib.pyplot.axes
         :return: fig, ax on which the circuit was drawn
         :rtype: matplotlib.pyplot.figure, matplotlib.pyplot.axes
         """
-        return draw_openqasm(self.to_openqasm(), show=show, fig=fig, ax=ax)
+        return draw_openqasm(self.to_openqasm(), show=show, ax=ax)
 
     def _add_register(self, size, is_quantum):
         """
@@ -460,7 +454,7 @@ class CircuitDAG(CircuitBase):
         :type c_reg: tuple or int
         :param size: size of the register to add
         :type size: int
-        :raise ValueError: if a non-continuous register or qubit index is provided (i.e. indexing would mean circuit
+        :raises ValueError: if a non-continuous register or qubit index is provided (i.e. indexing would mean circuit
                            indexing is non-continuous, and thus is rejected)
         :return: the function returns nothing
         :rtype: None
@@ -600,7 +594,7 @@ class CircuitDAG(CircuitBase):
         :param c_reg: sequence of either registers, or cbits (indexed by reg and cbit #) on which an operator
                       should be applied.
         :type c_reg: tuple containing either length 2 tuples (reg, cbit), or ints (reg)
-        :raise AssertionError: if q_reg, c_reg use full-register notation and the registers are of differing lengths
+        :raises AssertionError: if q_reg, c_reg use full-register notation and the registers are of differing lengths
         :return: A list of (reg, qubit) groups on which to apply an Operation
         :rtype: a list, containing tuples of length 2, themselves containing tuples describing the qubits to use
         """

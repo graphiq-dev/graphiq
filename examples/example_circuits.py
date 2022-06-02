@@ -10,8 +10,6 @@ from src.visualizers.density_matrix import density_matrix_bars
 
 from benchmarks.circuits import bell_state_circuit, linear_cluster_4qubit_circuit
 
-from src.visualizers.openqasm_visualization import draw_openqasm
-
 
 if __name__ == "__main__":
     # example_circuit = bell_state_circuit
@@ -31,18 +29,18 @@ if __name__ == "__main__":
     state = compiler.compile(circuit)
 
     if example_circuit is bell_state_circuit:
-        state = state.data
+        state_data = state.data
     else:
         # trace out the ancilla qubit
-        state = partial_trace(state.data, keep=list(range(0, circuit.n_quantum-1)), dims=circuit.n_quantum * [2])
+        state_data = partial_trace(state.data, keep=list(range(0, circuit.n_quantum-1)), dims=circuit.n_quantum * [2])
 
-    f = fidelity(state, ideal_state['dm'])
+    f = fidelity(state_data, ideal_state['dm'])
     print(f"Fidelity with the ideal state is {f}")
 
     fig, axs = density_matrix_bars(ideal_state['dm'])
     fig.suptitle("Ideal density matrix")
 
-    fig, axs = density_matrix_bars(state)
+    fig, axs = state.draw(show=False)
     fig.suptitle("Simulated circuit density matrix")
 
     plt.show()

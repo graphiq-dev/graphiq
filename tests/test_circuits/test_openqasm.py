@@ -1,5 +1,8 @@
+import matplotlib.pyplot as plt
+
 import src.ops as ops
 import src.visualizers.openqasm.openqasm_lib as oq_lib
+from tests.test_flags import visualization
 
 OPENQASM_V = 2
 
@@ -51,3 +54,47 @@ def test_general_circuit_1(dag):
                   f'qreg q1[3]; creg c0[1];' \
                   'CX q1[0], q0[0]; CX q1[1], q0[1]; CX q1[2], q0[2]; x q0[0];'
     check_openqasm_equivalency(openqasm, expected)
+
+
+@visualization
+def test_visualization_1(dag):
+    # Empty openQASM
+    dag.draw_circuit()
+
+
+@visualization
+def test_visualization_2(dag):
+    # no operations, but some registers
+    dag.add_quantum_register(size=3)
+    dag.add_quantum_register(size=3)
+    dag.add_classical_register(size=1)
+
+    # Add CNOT operations
+    dag.add(ops.CNOT(control=1, target=0))
+
+    # Add unitary gates
+    dag.add(ops.SigmaX(register=(0, 0)))
+    dag.add(ops.Hadamard(register=1))
+    dag.validate()
+    dag.draw_circuit()
+
+
+@visualization
+def test_visualization_3(dag):
+    # Create a dag with every gate once
+    dag.add_quantum_register(1)
+    dag.add_quantum_register(1)
+    dag.add_classical_register(1)
+
+    dag.add(ops.Hadamard(register=0))
+    dag.add(ops.SigmaX(register=0))
+    dag.add(ops.SigmaY(register=0))
+    dag.add(ops.SigmaZ(register=0))
+    dag.add(ops.CNOT(control=0, target=1))
+    dag.add(ops.CPhase(control=1, target=0))
+    dag.add(ops.MeasurementZ(register=0, c_register=0))
+    fig, ax = dag.draw_circuit(show=False)
+    fig.suptitle("testing fig reception")
+    plt.show()
+
+

@@ -1,7 +1,7 @@
 """
 The QuantumState/GraphState classes mediates the interactions between different graph representations
 
-State representations currently implemented are
+State representations that we intend to support in the near future are:
 1. Graph representation
 2. Density matrix
 3. Stabilizer
@@ -16,22 +16,34 @@ import networkx as nx
 
 from src.backends.graph.state import Graph
 from src.backends.density_matrix.state import DensityMatrix
+from src.backends.stabilizer.state import Stabilizer
 
-DENSITY_MATRIX_QUBIT_THRESH = 10
+DENSITY_MATRIX_QUBIT_THRESH = 10  # threshold above which density matrix representation is discouraged
 
 
 class QuantumState:
     """
-    The QuantumState class is a wrapper class which contains all state objects
+    The QuantumState class is a wrapper class which contains all state objects. This includes
+    any state representation which we want active
+
+    It also should also be able to add (where possible) representation which were not present at
+    initialization.
+
+    TODO: add a handle to delete specific representations (may be useful to clear out memory)
     """
     def __init__(self, n_qubit, data, representation=None):
         """
         Creates the QuantumState class with certain initial representations
 
         :param n_qubit: number of qubits in the system (system size)
+        :type n_qubit: int
         :param data: valid data input for "representation". If representations are given as a list,
                      the data must be a list of the same length
-        :param representation: string or list of strings selecting the representations to initialize
+        :type data: list OR numpy.ndarray OR Graph OR nx.Graph
+        :param representation: selected representations to initialize
+        :type representation: str OR list of str
+        :return: function returns nothing
+        :rtype: None
         """
         self.n_qubit = n_qubit
 
@@ -43,7 +55,7 @@ class QuantumState:
             if n_qubit < DENSITY_MATRIX_QUBIT_THRESH:
                 self._initialize_dm(data)
             else:
-                # TODO: initialize with stabilizer once the stabilizer is implemented
+                # TODO: initialize with stabilizer representation once stabilizer is implemented?
                 self._initialize_graph(data)
         elif isinstance(representation, str):
             self._initialize_representation(representation, data)
@@ -55,14 +67,29 @@ class QuantumState:
 
     @property
     def dm(self):
+        """
+        Density matrix representation of our quantum state
+
+        :raises ValueError: if existing representations within the QuantumState object cannot be sent to a
+                           density matrix representation AND no density matrix representation is saved
+        :return: density matrix representation
+        :rtype: DensityMatrix
+        """
         if self._dm is not None:
             return self._dm
-        # TODO: ATTEMPT TO CONVERT EXISTING REPRESENTATION to dm
-        # This should /call on backend functions/ (the implementation should not be here)
+        # TODO: ATTEMPT TO CONVERT EXISTING REPRESENTATION to dm. This should call on backend functions
         raise ValueError("Cannot convert existing representation to density matrices")
 
     @dm.setter
     def dm(self, new_dm):
+        """
+        Allows the density matrix representation of our quantum state to be modified
+
+        :param new_dm: the updated density matrix
+        :type new_dm: DensityMatrix
+        :return: function returns nothing
+        :rtype: None
+        """
         if self._dm is None:
             warnings.warn(UserWarning('Density matrix representation being set is not compared to '
                                       'previously existing representations. Make sure the new'
@@ -71,14 +98,29 @@ class QuantumState:
 
     @property
     def graph(self):
+        """
+        Graph representation of our quantum state
+
+        :raises ValueError: if existing representations within the QuantumState object cannot be sent to a
+                           graph representation AND no graph representation is saved
+        :return: graph representation
+        :rtype: Graph
+        """
         if self._graph is not None:
             return self._graph
-        # TODO: ATTEMPT TO CONVERT EXISTING REPRESENTATION to graph
-        # This should /call on backend functions/ (the implementation should not be here)
+        # TODO: ATTEMPT TO CONVERT EXISTING REPRESENTATION to dm. This should call on backend functions
         raise ValueError("Cannot convert existing representation to graph representation")
 
     @graph.setter
     def graph(self, new_graph):
+        """
+        Allows the graph representation of our quantum state to be modified
+
+        :param new_graph: the updated graph representation
+        :type new_graph: Graph
+        :return: function returns nothing
+        :rtype: None
+        """
         if self._graph is None:
             warnings.warn(UserWarning('Graph representation being set is not compared to '
                                       'previously existing representations. Make sure the new'
@@ -87,32 +129,60 @@ class QuantumState:
 
     @property
     def stabilizer(self):
+        """
+        Stabilizer Formalism representation of our quantum state
+
+        :raises ValueError: if existing representations within the QuantumState object cannot be sent to a
+                           stabilizer representation AND no stabilizer representation is saved
+        :return: stabilizer representation
+        :rtype: Stabilizer
+        """
         if self._stabilizer is not None:
             return self._stabilizer
-        # TODO: ATTEMPT TO CONVERT EXISTING REPRESENTATION to stabilizer
-        # This should /call on backend functions/ (the implementation should not be here)
+        # TODO: ATTEMPT TO CONVERT EXISTING REPRESENTATION to dm. This should call on backend functions
         raise ValueError("Cannot convert existing representation to stabilizer representation")
 
     @stabilizer.setter
     def stabilizer(self, new_stabilizer):
+        """
+        Allows the stabilizer representation of our quantum state to be modified
+
+        :param new_stabilizer: the updated stabilizer representation
+        :type new_stabilizer: Stabilizer
+        :return: function returns nothing
+        :rtype: None
+        """
         if self._stabilizer is None:
             warnings.warn(UserWarning('Stabilizer representation being set is not compared to '
                                       'previously existing representations. Make sure the new'
                                       'representation is consistent with other object representations'))
         self._stabilizer = new_stabilizer
 
-    def show(self, representation='all'):
+    def show(self, representation='all', show=True, ax=None):
         """
-        Shows the desired representations (all by default)
-        :param representation: representations to show (string or list)
-        :return:
+        Plots the selected representations (all by default) using matplotlib formatting
+
+        :param representation: 'all' to show all possible representations,
+                               list of representation strings otherwise to show specific representations
+        :type representation: str OR list (of strs)
+        :param show: if True, the selected representations are plotted. Otherwise they are drawn but not plotted
+        :type show: bool
+        :param ax: axis/axes on which to plot the selected representations
+        :type ax: matplotlib.axis
+        :return: fig, ax (the figure and axes on which data was plotted)
+        :rtype: matplotlib.figure, matplotlib.axis
         """
         raise NotImplementedError()
 
     def _initialize_dm(self, data):
         """
-        Initializes density matrix based on the data
-        :param data: either graph data or ndarray
+        Initializes a density matrix based on the data
+
+        :param data: either a graph or ndarray matrix
+        :type data: Graph OR nx.Graph OR numpy.ndarray
+        :raises AssertionError: if the density matrix being initialized does not have self.n_qubit
+        :return: function returns nothing
+        :rtype: None
         """
         if isinstance(data, Graph) or isinstance(data, nx.Graph):
             self._dm = DensityMatrix.from_graph(data)
@@ -123,15 +193,30 @@ class QuantumState:
 
     def _initialize_graph(self, data):
         """
-        TODO: fill this out
-        :param data:
-        :return:
+        Initializes a graph based on the data
+
+        :param data: data to construct the Graph representation
+        :type data: nx.Graph OR int OR frozenset
+        :raises AssertionError: if the graph being initialized does not have self.n_qubit
+        :return: function returns nothing
+        :rtype: None
         """
-        # TODO: figure out how to deal with the root_node_id requirement
-        self._graph = Graph(data, 1)
-        assert self._graph.n_qubit() == self.n_qubit, f'Expected {self.n_qubit} qubits, graph representation has {self._graph.n_qubit}'
+        self._graph = Graph(data, 1)  # TODO: adjust root_node_id field once we've figured out how we want to use it
+        assert self._graph.n_qubit == self.n_qubit, f'Expected {self.n_qubit} qubits, ' \
+                                                      f'graph representation has {self._graph.n_qubit}'
 
     def _initialize_representation(self, representation, data):
+        """
+        Helper function to initialize any given representation
+
+        :param representation: representation to initialize
+        :type representation: str
+        :param data: data with which the representation should be initialized
+        :type data: int OR frozenset OR Graph OR nx.Graph OR numpy.ndarray
+        :raises ValueError: if representation is invalid
+        :return: function returns nothing
+        :rtype: None
+        """
         if representation == 'density matrix':
             if self.n_qubit > DENSITY_MATRIX_QUBIT_THRESH:
                 warnings.warn(UserWarning("Density matrix is not recommended for a state of this size"))

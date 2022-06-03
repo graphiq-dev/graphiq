@@ -482,8 +482,8 @@ class Input(InputOutputOperationBase):
     Input Operation. Serves as a placeholder in the circuit so that we know that this is where a given
     qubit/cbit is introduced (i.e. there are no prior operations on it)
     """
-    def __init__(self, register=None, *args, **kwargs):
-        super().__init__(register, *args, **kwargs)
+    def __init__(self, register=None, reg_type='q', *args, **kwargs):
+        super().__init__(register, reg_type=reg_type, *args, **kwargs)
 
 
 class Output(InputOutputOperationBase):
@@ -491,5 +491,5 @@ class Output(InputOutputOperationBase):
     Input Operation. Serves as a placeholder in the circuit so that we know that this is the final operation on a
     qubit/cbit (i.e. there are no subsequent operations on it)
     """
-    def __init__(self, register=None, *args, **kwargs):
-        super().__init__(register, *args, **kwargs)
+    def __init__(self, register=None, reg_type='q', *args, **kwargs):
+        super().__init__(register, reg_type=reg_type, *args, **kwargs)

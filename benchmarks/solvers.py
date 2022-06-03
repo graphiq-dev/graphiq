@@ -6,7 +6,7 @@ import networkx as nx
 from src.backends.density_matrix.compiler import DensityMatrixCompiler
 from src.solvers.random_solver import RandomSearchSolver
 from src.metrics import MetricFidelity
-from src.circuit import CircuitDAG
+from src.circuit import RegisterCircuitDAG
 
 from src import ops
 from benchmarks.circuits import bell_state_circuit
@@ -16,7 +16,7 @@ if __name__ == "__main__":
     n_qubits = 2
     _, target = bell_state_circuit()
 
-    circuit = CircuitDAG(n_qubits, 0)
+    circuit = RegisterCircuitDAG(n_qubits, 0)
     metric = MetricFidelity(target)
 
     compiler = DensityMatrixCompiler()

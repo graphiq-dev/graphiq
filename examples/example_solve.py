@@ -9,7 +9,7 @@ from benchmarks.circuits import bell_state_circuit
 
 if __name__ == "__main__":
     # start by defining an initial circuit
-    circuit = circuit.CircuitDAG(2, 0)
+    circuit = circuit.RegisterCircuitDAG(2, 0)
     circuit.add(ops.Hadamard(register=0))
     circuit.add(ops.CNOT(control=0, target=1))
     circuit.draw_dag()

@@ -28,7 +28,7 @@ continuous numbering of registers, so register 1 must exist beforehand
 2. The number of registers can be queried (e.g. by the solver) to add the correct numbered register
 
 
-REGISTER HANDLING:
+REGISTER HANDLING (only for RegisterCircuitDAG):
 
 In qiskit and openQASM, for example, you can apply operations on either a specific qubit in a specific register OR
 on the full register (see ops.py for an explanation of how registers are applied).
@@ -292,6 +292,230 @@ class CircuitDAG(CircuitBase):
         :rtype: None
         """
         super().__init__(openqasm_imports=openqasm_imports, openqasm_defs=openqasm_defs, *args, **kwargs)
+        self.dag = nx.MultiDiGraph()
+        self._node_id = 0
+        self._add_reg_if_absent(tuple(range(n_quantum)), tuple(range(n_classical)))
+
+    def add(self, operation: OperationBase):
+        """
+        Add an operation to the end of the circuit (i.e. to be applied after the pre-existing circuit operations
+
+        :param operation: Operation (gate and register) to add to the graph
+        :type operation: OperationBase type (or a subclass of it)
+        :raises UserWarning: if no openqasm definition exists for operation
+        :return: this function returns nothing
+        :rtype: None
+        """
+        # add openqasm info
+        try:
+            oq_info = operation.openqasm_info()
+            self.openqasm_imports[oq_info.import_string] = 1
+            self.openqasm_defs[oq_info.define_gate] = 1
+        except ValueError:
+            warnings.warn(UserWarning(f"No openqasm definition for operation {type(operation)}"))
+
+        # update registers (if the new operation is adding registers to the circuit)
+        self._add_reg_if_absent(operation.q_registers, operation.c_registers)  # register added if it does not exist
+        self._add(operation, operation.q_registers, operation.c_registers)
+
+    def validate(self):
+        """
+        Asserts that the circuit is valid (is a DAG, all nodes
+        without input edges are input nodes, all nodes without output edges
+        are output nodes)
+
+        :raises AssertionError: if the circuit is not valid
+        :return: this function returns nothing
+        :rtype: None
+        """
+        assert nx.is_directed_acyclic_graph(self.dag)  # check DAG is correct
+
+        # check all "source" nodes to the DAG are Input operations
+        input_nodes = [node for node, in_degree in self.dag.in_degree() if in_degree == 0]
+        for input_node in input_nodes:
+            if not isinstance(self.dag.nodes[input_node]['op'], Input):
+                raise RuntimeError(f"Source node {input_node} in the DAG is not an Input operation")
+
+        # check all "sink" nodes to the DAG are Output operations
+        output_nodes = [node for node, out_degree in self.dag.out_degree() if out_degree == 0]
+        for output_node in output_nodes:
+            if not isinstance(self.dag.nodes[output_node]['op'], Output):
+                raise RuntimeError(f"Sink node {output_node} in the DAG is not an Output operation")
+
+    def sequence(self):
+        """
+        Returns the sequence of operations composing this circuit
+
+        :return: the operations which compose this circuit, in the order they should be applied
+        :rtype: list (of OperationBase subclass objects)
+        """
+        return [self.dag.nodes[node]['op'] for node in nx.topological_sort(self.dag)]
+
+    def draw_dag(self, show=True, fig=None, ax=None):
+        """
+        Draws the circuit as a DAG
+
+        :param show: if True, the DAG is displayed (shown). If False, the DAG is drawn but not displayed
+        :type show: bool
+        :param fig: fig on which to draw the DAG (optional)
+        :type fig: None or matplotlib.pyplot.figure
+        :param ax: ax on which to draw the DAG (optional)
+        :type ax: None or matplotlib.pyplot.axes
+        :return: fig, ax on which the DAG was drawn
+        :rtype: matplotlib.pyplot.figure, matplotlib.pyplot.axes
+        """
+        # TODO: fix this such that we can see double edges properly!
+        pos = dag_topology_pos(self.dag, method="topology")
+
+        if ax is None or fig is None:
+            fig, ax = plt.subplots()
+        nx.draw(self.dag, pos=pos, ax=ax, with_labels=True)
+        if show:
+            plt.show()
+        return fig, ax
+
+    def draw_circuit(self, show=True, ax=None):
+        """
+        Draw conventional circuit representation
+
+        :param show: if True, the circuit is displayed (shown). If False, the circuit is drawn but not displayed
+        :type show: bool
+        :param ax: ax on which to draw the DAG (optional)
+        :type ax: None or matplotlib.pyplot.axes
+        :return: fig, ax on which the circuit was drawn
+        :rtype: matplotlib.pyplot.figure, matplotlib.pyplot.axes
+        """
+        return draw_openqasm(self.to_openqasm(), show=show, ax=ax)
+
+    def _add_register(self, size, is_quantum):
+        """
+        Helper function for adding a quantum/classical register of a certain size
+
+        :param is_quantum: True if adding a quantum register, False if adding a classical register
+        :type is_quantum: bool
+        :return: function returns nothing
+        :rtype: None
+        """
+        reg_description = 'Quantum' if is_quantum else 'Classical'
+        if size != 1:
+            raise ValueError(f'_add_register for this circuit class must only add registers of size 1')
+        if is_quantum:
+            self._add_reg_if_absent((len(self.q_registers),), tuple())
+        else:
+            self._add_reg_if_absent(tuple(), (len(self.c_registers),))
+
+    def _expand_register(self, register, new_size, is_quantum):
+        raise ValueError(f"Register size cannot be expanded in the {self.__class__.__name__} representation"
+                         f"(they must have a size of 1)")
+
+    def _add_reg_if_absent(self, q_reg, c_reg):
+        """
+
+        :param q_reg: quantum registers used by an operation. Must come in form (a, b, c)
+                      Does not support qubit-specific indexing, since each register is a
+                      single qubit register in this circuit representation
+        :type q_reg: tuple (of ints)
+        :param c_reg: classical register used by operation (same format as q_reg)
+        :type c_reg: tuple (of ints)
+        :return:
+        """
+        # add registers as needed
+        sorted_qreg = list(q_reg)
+        sorted_qreg.sort()
+        for q in sorted_qreg:  # we sort such that we can throw an error if we get discontinuous registers
+            if q == len(self.q_registers):
+                self.q_registers.append(1)
+            elif q > len(self.q_registers):
+                raise ValueError(f"Register numbering must be continuous. Quantum register {q} cannot be added."
+                                 f"Next register that can be added is {len(self.q_registers)}")
+
+        sorted_creg = list(c_reg)
+        sorted_creg.sort()
+        for c in sorted_creg:  # we sort such that we can throw an error if we get discontinuous registers
+            if c == len(self.c_registers):
+                self.c_registers.append(1)
+            elif c > len(self.c_registers):
+                raise ValueError(f"Register numbering must be continuous. Classical register {c} cannot be added."
+                                 f"Next register that can be added is {len(self.c_registers)}")
+
+        # Update graph to contain necessary registers
+        for q in q_reg:
+            if f'q{q}_in' not in self.dag.nodes:
+                self.dag.add_node(f'q{q}_in', op=Input(register=q, reg_type='q'), reg=q)
+                self.dag.add_node(f'q{q}_out', op=Output(register=q, reg_type='q'), reg=q)
+                self.dag.add_edge(f'q{q}_in', f'q{q}_out', key=f'q{q}', reg=q, reg_type='q')
+
+        for c in c_reg:
+            if f'c{c}_in' not in self.dag.nodes:
+                self.dag.add_node(f'c{c}_in', op=Input(register=c, reg_type='c'), reg=c)
+                self.dag.add_node(f'c{c}_out', op=Output(register=c, reg_type='c'), reg=c)
+                self.dag.add_edge(f'c{c}_in', f'c{c}_out', key=f'c{c}', reg=c, reg_type='c')
+
+    def _add(self, operation: OperationBase, q_reg, c_reg):
+        """
+        Add an operation to the circuit
+        This function assumes that all registers used by operation are already built
+
+        :param operation: Operation (gate and register) to add to the graph
+        :type operation: OperationBase (or a subclass thereof)
+        :param q_reg: qubit indexing (qreg0, qreg1, ...) on which the operation must be applied
+        :type q_reg: tuple (of ints)
+        :param c_reg: cbit indexing (creg0, creg1, ...) on which the operation must be applied
+        :type c_reg: tuple (of ints)
+        :return: the function returns nothing
+        :rtype: None
+        """
+        new_id = self._unique_node_id()
+        targets_reg_bit = (operation.q_registers == q_reg) and (operation.c_registers == c_reg)
+        if targets_reg_bit:
+            self.dag.add_node(new_id, op=operation)
+
+        # get all edges that will need to be removed (i.e. the edges on which the Operation is being added)
+        relevant_outputs = [f'q{q}_out' for q in q_reg] + [f'c{c}_out' for c in c_reg]
+
+        for output in relevant_outputs:
+            edges_to_remove = list(self.dag.in_edges(nbunch=output, keys=True, data=False))
+            for edge in edges_to_remove:
+                self.dag.add_edge(edge[0], new_id, key=edge[2]) # Add edge from preceding node to the new operation node
+                self.dag.add_edge(new_id, edge[1], key=edge[2]) # Add edge from the new operation node to the final node
+                self.dag.remove_edge(edge[0], edge[1], key=edge[2])  # remove the unecessary edges
+
+    def _unique_node_id(self):
+        """
+        Internally used to provide a unique ID to each node. Note that this assumes a single thread assigning IDs
+        :return: a new, unique node ID
+        """
+        self._node_id += 1
+        return self._node_id
+
+class RegisterCircuitDAG(CircuitDAG):
+    """
+    Directed Acyclic Graph (DAG) based circuit implementation
+
+    Each node of the graph contains an Operation (it is an input, output, or general Operation).
+    The Operations in the topological order of the DAG.
+
+    Each connecting edge of the graph corresponds to a qudit or classical bit of the circuit
+
+    In contrast to CircuitDAG above, this class allows operations on full registers
+
+    TODO: refactor DiGraph to MultiDiGraph
+    TODO: if we keep this, refactor to use methods from CircuitDAG where possible
+    """
+    def __init__(self, n_quantum=0, n_classical=0, openqasm_imports=None, openqasm_defs=None,
+                 *args, **kwargs):
+        """
+        Construct a DAG circuit with n_quantum single-qubit quantum registers,
+        and n_classical single-cbit classical registers.
+
+        :param n_quantum: the number of qudits in the system
+        :type n_quantum: int
+        :param n_classical: the number of classical bits in the system
+        :type n_classical: int
+        :return: this function does not return anything
+        :rtype: None
+        """
+        super().__init__(openqasm_imports=openqasm_imports, openqasm_defs=openqasm_defs, *args, **kwargs)
         self.dag = nx.DiGraph()
         self._node_id = 0
         self._add_reg_if_absent(tuple(range(n_quantum)), tuple(range(n_classical)))
@@ -328,77 +552,9 @@ class CircuitDAG(CircuitBase):
             new_op.c_registers = c_reg_bit
             self._add(new_op, q_reg_bit, c_reg_bit)
 
-    def validate(self):
-        """
-        Asserts that the circuit is valid (is a DAG, all nodes
-        without input edges are input nodes, all nodes without output edges
-        are output nodes)
-
-        :raises AssertionError: if the circuit is not valid
-        :return: this function returns nothing
-        :rtype: None
-        """
-        assert nx.is_directed_acyclic_graph(self.dag)  # check DAG is correct
-
-        # check all "source" nodes to the DAG are Input operations
-        input_nodes = [node for node, in_degree in self.dag.in_degree() if in_degree == 0]
-        for input_node in input_nodes:
-            if not isinstance(self.dag.nodes[input_node]['op'], Input):
-                raise RuntimeError(f"Source node {input_node} in the DAG is not an Input operation")
-
-        # check all "sink" nodes to the DAG are Output operations
-        output_nodes = [node for node, out_degree in self.dag.out_degree() if out_degree == 0]
-        for output_node in output_nodes:
-            if not isinstance(self.dag.nodes[output_node]['op'], Output):
-                raise RuntimeError(f"Sink node {output_node} in the DAG is not an Output operation")
-
     def collect_parameters(self):
         # TODO: actually I think this might be more of a compiler task. Figure out how to implement this
         raise NotImplementedError('')
-
-    def sequence(self):
-        """
-        Returns the sequence of operations composing this circuit
-
-        :return: the operations which compose this circuit, in the order they should be applied
-        :rtype: list (of OperationBase subclass objects)
-        """
-        return [self.dag.nodes[node]['op'] for node in nx.topological_sort(self.dag)]
-
-    def draw_dag(self, show=True, fig=None, ax=None):
-        """
-        Draws the circuit as a DAG
-
-        :param show: if True, the DAG is displayed (shown). If False, the DAG is drawn but not displayed
-        :type show: bool
-        :param fig: fig on which to draw the DAG (optional)
-        :type fig: None or matplotlib.pyplot.figure
-        :param ax: ax on which to draw the DAG (optional)
-        :type ax: None or matplotlib.pyplot.axes
-        :return: fig, ax on which the DAG was drawn
-        :rtype: matplotlib.pyplot.figure, matplotlib.pyplot.axes
-        """
-        pos = dag_topology_pos(self.dag, method="topology")
-
-        if ax is None or fig is None:
-            fig, ax = plt.subplots()
-        nx.draw(self.dag, pos=pos, ax=ax, with_labels=True)
-        if show:
-            plt.show()
-        return fig, ax
-
-    def draw_circuit(self, show=True, ax=None):
-        """
-        Draw conventional circuit representation
-
-        :param show: if True, the circuit is displayed (shown). If False, the circuit is drawn but not displayed
-        :type show: bool
-        :param ax: ax on which to draw the DAG (optional)
-        :type ax: None or matplotlib.pyplot.axes
-        :return: fig, ax on which the circuit was drawn
-        :rtype: matplotlib.pyplot.figure, matplotlib.pyplot.axes
-        """
-        return draw_openqasm(self.to_openqasm(), show=show, ax=ax)
 
     def _add_register(self, size, is_quantum):
         """
@@ -470,7 +626,7 @@ class CircuitDAG(CircuitBase):
             reg_only.sort()  # sort
             for a in reg_only:
                 if a > len(curr_register):
-                    raise ValueError(f"Register numbering must be continuous. Quantum register {a} cannot be added."
+                    raise ValueError(f"Register numbering must be continuous. Register {a} cannot be added."
                                      f"Next register that can be added is {len(curr_register)}")
                 if a == len(curr_register):
                     curr_register.append(size)
@@ -568,14 +724,6 @@ class CircuitDAG(CircuitBase):
             reg = int(reg_bit_str[0])
             bit = int(reg_bit_str[2])
             self.dag.add_edge(new_id, output, reg_type=reg_type, reg=reg, bit=bit)
-
-    def _unique_node_id(self):
-        """
-        Internally used to provide a unique ID to each node. Note that this assumes a single thread assigning IDs
-        :return: a new, unique node ID
-        """
-        self._node_id += 1
-        return self._node_id
 
     def _reg_bit_list(self, q_reg, c_reg):
         """

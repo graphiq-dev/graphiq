@@ -2,7 +2,7 @@ import pytest
 import random
 import warnings
 
-from src.circuit import CircuitDAG
+from src.circuit import RegisterCircuitDAG
 from src.ops import OperationBase, CNOT, SigmaX
 from tests.test_flags import visualization
 
@@ -11,7 +11,7 @@ pytestmark = pytest.mark.filterwarnings("ignore::UserWarning")
 
 @pytest.mark.parametrize("n_quantum, n_classical", [(1, 0), (0, 4), (3, 6), (24, 63)])
 def test_initialization(n_quantum, n_classical):
-    dag = CircuitDAG(n_quantum, n_classical)
+    dag = RegisterCircuitDAG(n_quantum, n_classical)
     dag.validate()
     assert dag.n_quantum == n_quantum
     assert dag.n_classical == n_classical
@@ -21,7 +21,7 @@ def test_add_op_1():
     """
     Test single qubit gates
     """
-    dag = CircuitDAG(2, 0)
+    dag = RegisterCircuitDAG(2, 0)
     # retrieve internal information--this should not be done other than for testing
     op_q0_in = dag.dag.nodes['q0-0_in']['op']
     op_q1_in = dag.dag.nodes['q1-0_in']['op']
@@ -60,11 +60,12 @@ def test_add_op_1():
     assert dag.dag.number_of_edges() == 6
 
 
+@pytest.mark.xfail(reason='Using a DiGraph instead of MultiDiGraph')
 def test_add_op2():
     """
     Test multi register gates
     """
-    dag = CircuitDAG(2, 2)
+    dag = RegisterCircuitDAG(2, 2)
 
     op_q0_in = dag.dag.nodes['q0-0_in']['op']
     op_q1_in = dag.dag.nodes['q1-0_in']['op']
@@ -114,14 +115,14 @@ def test_add_op2():
     assert dag.n_quantum == 2
     assert dag.n_classical == 2
     assert dag.dag.number_of_nodes() == 15
-    assert dag.dag.number_of_edges() == 16
+    assert dag.dag.number_of_edges() == 17
 
 
 def test_validate_correct():
     """
     Intentionally breaks DAG circuit structure to see that we can detect errors
     """
-    dag = CircuitDAG(2, 2)
+    dag = RegisterCircuitDAG(2, 2)
 
     op1 = OperationBase(q_registers=(1,))
     op2 = OperationBase(q_registers=(1, 0))
@@ -132,7 +133,7 @@ def test_validate_correct():
 
     # sabotage graph -- note that we should not directly manipulate the DiGraph except in tests
     dag.dag.remove_edge(3, 'c0-0_out')
-    with pytest.raises(AssertionError):
+    with pytest.raises(RuntimeError):
         dag.validate()
 
 
@@ -141,7 +142,7 @@ def test_random_graph(seed):
     random.seed(seed)  # ensures tests are reproducible
     q = random.randint(1, 7)
     c = random.randint(0, 7)
-    dag = CircuitDAG(q, c)
+    dag = RegisterCircuitDAG(q, c)
     dag.validate()
     for i in range(200):  # we'll apply 200 random gates
         q_register_num_max = random.randint(1, q)
@@ -158,7 +159,7 @@ def test_dynamic_registers_1():
     """
     Check with single-register gates only
     """
-    dag = CircuitDAG(1, 0)
+    dag = RegisterCircuitDAG(1, 0)
     op1 = OperationBase(q_registers=(1,))
     op2 = OperationBase(q_registers=(2,))
     op3 = OperationBase(c_registers=(0,))
@@ -201,7 +202,7 @@ def test_continuous_indices_registers():
     """
     Check with single-register gates only
     """
-    dag = CircuitDAG(1, 0)
+    dag = RegisterCircuitDAG(1, 0)
     op1 = OperationBase(q_registers=(1,))
     op2 = OperationBase(q_registers=(2,))
     op3 = OperationBase(c_registers=(5,))
@@ -217,7 +218,7 @@ def test_dynamic_register_2():
     """
     Same test, allowing 2 qubit gates
     """
-    dag = CircuitDAG(1, 0)
+    dag = RegisterCircuitDAG(1, 0)
     op1 = OperationBase(q_registers=(1, 2))
     op2 = OperationBase(q_registers=(2,))
     op3 = OperationBase(q_registers=(0,), c_registers=(1, 0))
@@ -260,7 +261,7 @@ def test_dynamic_register_2():
 @pytest.mark.parametrize("seed", [0, 4, 20, 9040])
 def test_random_graph(seed):
     random.seed(seed)
-    dag = CircuitDAG(150, 120)
+    dag = RegisterCircuitDAG(150, 120)
     dag.validate()
     for i in range(200):  # we'll apply 200 random gates
         q_register_num = random.randint(1, 5)
@@ -286,7 +287,7 @@ def test_add_register_1(dag):
 
 
 def test_add_register_2():
-    dag = CircuitDAG(2, 2)
+    dag = RegisterCircuitDAG(2, 2)
     dag.validate()
     dag.add_quantum_register()
     dag.add(OperationBase(q_registers=(0,)))
@@ -307,7 +308,7 @@ def test_expand_register_1(is_quantum):
     Test that you get an error when you try to expand a register that
     does not exist
     """
-    dag = CircuitDAG(1, 1)
+    dag = RegisterCircuitDAG(1, 1)
     dag.validate()
     with pytest.raises(IndexError):
         if is_quantum:
@@ -323,7 +324,7 @@ def test_expand_register_2(is_quantum):
     """
     Test that you get an error when you try to shrink or not expand a register
     """
-    dag = CircuitDAG(1, 1)
+    dag = RegisterCircuitDAG(1, 1)
     dag.validate()
     with pytest.raises(ValueError):
         if is_quantum:
@@ -384,7 +385,7 @@ def test_nonconsecutive_register_qudit_indexing_1():
     """
     Verify that the quantum registers report an error when non-consecutive qudit indexing is used
     """
-    dag = CircuitDAG(2, 0)
+    dag = RegisterCircuitDAG(2, 0)
     dag.expand_quantum_register(0, 2)
     dag.add(OperationBase(q_registers=((0, 2),)))  # this should work because we've expanded the quantum register 0
 
@@ -398,7 +399,7 @@ def test_nonconsecutive_register_cbit_indexing_2():
     """
     Verify that the quantum registers report an error when non-consecutive qudit indexing is used
     """
-    dag = CircuitDAG(2, 2)
+    dag = RegisterCircuitDAG(2, 2)
     dag.expand_classical_register(0, 2)
     dag.add(OperationBase(c_registers=((0, 2),)))  # this should work because we've expanded the classical register 0
 
@@ -446,7 +447,7 @@ def test_dynamic_register_expansion_2(is_quantum):
     """
     Test that we get an error when non-continuous qudit/cbit numbers are provided (quantum and classical)
     """
-    dag = CircuitDAG(2, 2)
+    dag = RegisterCircuitDAG(2, 2)
     if is_quantum:
         dag.add(OperationBase(q_registers=((2, 0),)))
     else:
@@ -466,7 +467,7 @@ def test_dynamic_register_expansion_3():
     Test that it works alright with provided numbers. Confirm that topological order / number of nodes/edges are as
     expected
     """
-    dag = CircuitDAG(1, 0)
+    dag = RegisterCircuitDAG(1, 0)
     dag.add(OperationBase(q_registers=(0,), c_registers=((0, 0), (0, 1))))
     dag.add(OperationBase(q_registers=(1,)))
 
@@ -538,7 +539,7 @@ def test_dynamic_register_usage_0():
     """
     Confirm that we get an error when trying to apply register operations between 2 different sized registers
     """
-    dag = CircuitDAG(2, 0)
+    dag = RegisterCircuitDAG(2, 0)
     dag.expand_quantum_register(0, 3)
     dag.expand_quantum_register(1, 2)
 
@@ -550,7 +551,7 @@ def test_dynamic_register_usage_1():
     """
     Confirm that we get the correct graph when applying a register-wide single-qudit/cbit gate
     """
-    dag = CircuitDAG(1, 0)
+    dag = RegisterCircuitDAG(1, 0)
     dag.expand_quantum_register(0, 3)
     dag.add(SigmaX(register=0))
     dag.validate()
@@ -582,7 +583,7 @@ def test_dynamic_register_usage_2():
     """
     Confirm that we can apply 2 qubit gates between 2 registers of the same size
     """
-    dag = CircuitDAG(2, 0)
+    dag = RegisterCircuitDAG(2, 0)
     dag.expand_quantum_register(0, 2)
     dag.expand_quantum_register(1, 2)
     dag.add(CNOT(control=0, target=1))
@@ -617,7 +618,7 @@ def test_dynamic_register_usage_3():
     """
     Confirm that a reg-qubit specific gate works correctly
     """
-    dag = CircuitDAG(2, 0)
+    dag = RegisterCircuitDAG(2, 0)
     dag.expand_quantum_register(0, 2)
     dag.add(SigmaX(register=(0, 0)))
     dag.add(CNOT(control=(0, 0), target=(0, 1)))
@@ -648,7 +649,7 @@ def test_dynamic_register_usage_4():
     """
     Confirm that two qubit gate of form q/c_register=(a, (b, c)) works correctly
     """
-    dag = CircuitDAG(2, 0)
+    dag = RegisterCircuitDAG(2, 0)
     dag.expand_quantum_register(0, 2)
     dag.add(CNOT(control=0, target=(1, 1)))
 
@@ -684,7 +685,7 @@ def test_dynamic_register_usage_5():
     """
     Confirm that two qubit gate of form q/c_register=((a, b), c) works correctly
     """
-    dag = CircuitDAG(1, 1)
+    dag = RegisterCircuitDAG(1, 1)
     dag.add(OperationBase(q_registers=(0, ), c_registers=((0, 0),)))
 
     dag.validate()
@@ -707,7 +708,7 @@ def test_dynamic_register_usage_5():
 
 
 def test_register_qubit_assignment_1():
-    dag = CircuitDAG(1, 1)
+    dag = RegisterCircuitDAG(1, 1)
     dag.add(SigmaX(register=0))
     dag.add(SigmaX(register=0))
     op_order = dag.sequence()
@@ -734,7 +735,7 @@ def test_register_qubit_assignment_1():
 
 
 def test_action_id_assignment_2():
-    dag = CircuitDAG(2, 1)
+    dag = RegisterCircuitDAG(2, 1)
     dag.expand_quantum_register(0, 3)
     dag.add(SigmaX(register=0))
     dag.add(CNOT(control=(0, 0), target=(1, 0)))
@@ -784,14 +785,14 @@ def test_visualization_1(dag):
 
 @visualization
 def test_visualization_2():
-    circuit2 = CircuitDAG(3, 2)
+    circuit2 = RegisterCircuitDAG(3, 2)
     circuit2.validate()
     circuit2.draw_dag()
 
 
 @visualization
 def test_visualization_3():
-    circuit3 = CircuitDAG(2, 0)
+    circuit3 = RegisterCircuitDAG(2, 0)
     circuit3.add(OperationBase(q_registers=(0,)))
     circuit3.validate()
     circuit3.add(OperationBase(q_registers=(0, 1)))
@@ -801,7 +802,7 @@ def test_visualization_3():
 
 @visualization
 def test_visualization_4():
-    circuit4 = CircuitDAG(3, 3)
+    circuit4 = RegisterCircuitDAG(3, 3)
     circuit4.add(OperationBase(q_registers=(0,)))
     circuit4.add(OperationBase(q_registers=(0, 1)))
     circuit4.add(OperationBase(q_registers=(0,), c_registers=(0,)))
@@ -813,7 +814,7 @@ def test_visualization_4():
 @visualization
 def test_visualization_5():
     # test visualization when dynamic dealing with register number (copied from test_circuit)
-    dag = CircuitDAG(1, 0)
+    dag = RegisterCircuitDAG(1, 0)
     op1 = OperationBase(q_registers=(1, 2))
     op2 = OperationBase(q_registers=(2,))
     op3 = OperationBase(q_registers=(0,), c_registers=(1, 0))

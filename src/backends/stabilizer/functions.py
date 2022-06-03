@@ -1,4 +1,5 @@
 import numpy as np
+import src.backends.density_matrix.functions as dmf
 
 
 def symplectic_to_string(x_matrix, z_matrix):
@@ -8,7 +9,7 @@ def symplectic_to_string(x_matrix, z_matrix):
     :param x_matrix: X part of the binary symplectic representation
     :param z_matrix: Z part of the binary symplectic representation
     :return: a list of strings that represent stabilizer generators
-    :rtype: string list
+    :rtype: list[str]
     """
     assert x_matrix.shape == z_matrix.shape
     n_row, n_column = x_matrix.shape
@@ -30,9 +31,12 @@ def symplectic_to_string(x_matrix, z_matrix):
 
 def string_to_symplectic(generator_list):
     """
+    Convert a string list representation of stabilizer generators to a symplectic representaation
 
     :param generator_list: a list of strings
+    :type generator_list: list[str]
     :return: two binary matrices, one for X part, the other for Z part
+    :rtype: numpy.ndarray, numpy.ndarray
     """
     n_row = len(generator_list)
     n_column = len(generator_list[0])
@@ -51,22 +55,29 @@ def string_to_symplectic(generator_list):
     return x_matrix, z_matrix
 
 
-def row_swap(x_matrix, i, j):
+def row_swap(input_matrix, first_row, second_row):
     """
     Swap two rows of a matrix
 
-    :param x_matrix:
+    :param input_matrix: a matrix
+    :type input_matrix: numpy.ndarray
+    :param first_row: the first row
+    :type first_row: int
+    :param second_row: the second row
+    :type second_row: int
+    :return: the matrix after swaping those two row
+    :rtype: numpy.ndarray
     """
-    x_matrix[[i, j]] = x_matrix[[j, i]]
-    return x_matrix
+    input_matrix[[first_row, second_row]] = input_matrix[[second_row, first_row]]
+    return input_matrix
 
 
-def add_rows(x_matrix, i, j):
+def add_rows(input_matrix, i, j):
     """
     Add two rows together modulo 2 and put it in the row of the second input
     """
-    x_matrix[j] = (x_matrix[i] + x_matrix[j]) % 2
-    return x_matrix
+    input_matrix[j] = (input_matrix[i] + input_matrix[j]) % 2
+    return input_matrix
 
 
 def hadamard_transform(x_matrix, z_matrix, positions):
@@ -85,21 +96,24 @@ def row_reduction(x_matrix, z_matrix, pivot):
     """
     Returns the row reduced matrix X, the transformed matrix Z and the (rank-1) of the X matrix
 
-    :param x_matrix:
-    :param z_matrix:
-    :param pivot:
+    :param x_matrix: The X part of the symplectic representation
+    :type x_matrix: numpy.ndarray
+    :param z_matrix: The Z part of the symplectic representation
+    :type z_matrix: numpy.ndarray
+    :param pivot: the row, column position for pivoting
+    :type pivot: list[int]
     :return:
     """
-    n, m = np.shape(x_matrix)
+    n_row, n_column = np.shape(x_matrix)
     rank = 0
-    if pivot[1] == (m - 1):
+    if pivot[1] == (n_column - 1):
         return x_matrix, z_matrix, pivot[0]
     else:
         # list of rows with value 1 under the pivot element
         the_ones = []
-        for a in range(pivot[0], n):
-            if x_matrix[a, pivot[1]] == 1:
-                the_ones.append(a)
+        for i in range(pivot[0], n_row):
+            if x_matrix[i, pivot[1]] == 1:
+                the_ones.append(i)
         # check if the column below is empty to skip it
         if not the_ones:
             pivot = [pivot[0], pivot[1] + 1]
@@ -108,9 +122,32 @@ def row_reduction(x_matrix, z_matrix, pivot):
             x_matrix = row_swap(x_matrix, the_ones[0], pivot[0])
             z_matrix = row_swap(z_matrix, the_ones[0], pivot[0])
             the_ones.remove(the_ones[0])
-            for b in the_ones:
-                x_matrix = add_rows(x_matrix, pivot[0], b)
-                z_matrix = add_rows(z_matrix, pivot[0], b)
+            for j in the_ones:
+                x_matrix = add_rows(x_matrix, pivot[0], j)
+                z_matrix = add_rows(z_matrix, pivot[0], j)
             pivot = [pivot[0] + 1, pivot[1] + 1]
             x_matrix, z_matrix, rank = row_reduction(x_matrix, z_matrix, pivot)
-    return x_matrix, z_matrix, pivot[0]
+    return x_matrix, z_matrix, rank
+
+
+def get_stabilizer_element_by_string(generator):
+    """
+    Return the corresponding tensor of Pauli matrices for the stabilizer generator specified by the input string
+
+    :param generator: a string for one stabilizer element
+    :type generator: str
+    :return: a matrix representation of the stabilizer element
+    :rtype: numpy.ndarray
+    """
+    stabilizer_elem = 1
+    for pauli in generator:
+        if pauli.lower() == 'x':
+            stabilizer_elem = dmf.tensor([stabilizer_elem, dmf.sigmax()])
+        elif pauli.lower() == 'y':
+            stabilizer_elem = dmf.tensor([stabilizer_elem, dmf.sigmay()])
+        elif pauli.lower() == 'z':
+            stabilizer_elem = dmf.tensor([stabilizer_elem, dmf.sigmaz()])
+        else:
+            stabilizer_elem = dmf.tensor([stabilizer_elem, np.eye(2)])
+
+    return stabilizer_elem

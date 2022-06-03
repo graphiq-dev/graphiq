@@ -14,22 +14,27 @@ from src.backends.stabilizer.state import Stabilizer
 
 def _graph_finder(x_matrix, z_matrix, pivot):
     """
-    The overall function getting X and Z matrices as input and giving out the equivalent graph. Initialization of X,
-    Z, and pivot is needed.
+    A helper function to obtain the (closest) local Clifford-equivalent graph to the stabilizer representation
+    The local Clifford equivalency needs to be checked via the stabilzier of the resulting graph and the initial stabilizer
 
     :param x_matrix: binary matrix for representing Pauli X part of the symplectic binary
     representation of the stabilizer generators
     :param z_matrix:binary matrix for representing Pauli Z part of the
     symplectic binary representation of the stabilizer generators
     :param pivot: a location to start
-    :return: a networkx.Graph object
+    :return: a networkx.Graph object that represents the graph corresponding to the stabilizer
+    :rtype: networkX.Graph
     """
     n, m = np.shape(x_matrix)
     x_matrix, z_matrix, rank = sf.row_reduction(x_matrix, z_matrix, pivot)
+    print(rank)
+
     if x_matrix[rank][np.shape(x_matrix)[1] - 1] == 0:
         rank = rank - 1
     positions = [*range(rank + 1, n)]
+    print(positions)
     x_matrix, z_matrix = sf.hadamard_transform(x_matrix, z_matrix, positions)
+
     assert ((np.linalg.det(x_matrix)) % 2 != 0), "Stabilizer generators are not independent!"
     x_inverse = np.linalg.inv(x_matrix)
     x_matrix, z_matrix = np.matmul(x_inverse, x_matrix) % 2, np.matmul(x_inverse, z_matrix) % 2
@@ -37,12 +42,9 @@ def _graph_finder(x_matrix, z_matrix, pivot):
     # remove diagonal parts of z_matrix
     z_diag = list(np.diag(z_matrix))
 
-    indices = []
     for i in range(len(z_diag)):
-        indices.append(i)
-
-    for i in indices:
-        z_matrix[i, i] = 0
+        if z_diag[i] == 1:
+            z_matrix[i, i] = 0
 
     assert (x_matrix.shape[0] == x_matrix.shape[1]) and (
             x_matrix == np.eye(x_matrix.shape[0])).all(), "something is wrong!"
@@ -58,21 +60,26 @@ def density_to_graph(input_matrix, threshold=0.1):
     Converts a density matrix state representation to a graph representation via an adjacency matrix
     It assumes qubit systems.
 
-    :param input_matrix:
-    :type input_matrix: numpy.ndarray
+    :param input_matrix: a density matrix to be converted to a graph
+    :type input_matrix: numpy.ndarray or DensityMatrix
     :param threshold: a minimum threshold value of negativity for the state to assume entangled
     :type threshold: double or float
     :return: an adjacency matrix representation
     :rtype: numpy.ndarray
     """
-
-    n_qubits = int(np.log2(np.sqrt(input_matrix.size)))
+    if isinstance(input_matrix, DensityMatrix):
+        rho = DensityMatrix.data
+    elif isinstance(input_matrix, np.ndarray):
+        rho = input_matrix
+    else:
+        raise TypeError('Input density matrix must be either a DensityMatrix object or a numpy.ndarray')
+    n_qubits = int(np.log2(np.sqrt(rho.size)))
     graph_adj = np.zeros((n_qubits, n_qubits))
     for i in range(n_qubits):
         for j in range(i + 1, n_qubits):
             measurement_locations = [1 if (k is not i) and (k is not j) else 0 for k in range(n_qubits)]
 
-            rho_ij = dmf.project_to_z0_and_remove(input_matrix, measurement_locations)
+            rho_ij = dmf.project_to_z0_and_remove(rho, measurement_locations)
             neg_ij = dmf.negativity(rho_ij, 2, 2)
             if neg_ij > threshold:
                 graph_adj[i, j] = 1
@@ -94,8 +101,10 @@ def graph_to_density(input_graph):
         graph_data = input_graph
     elif isinstance(input_graph, Graph):
         graph_data = input_graph.data
+    elif isinstance(input_graph, np.ndarray):
+        graph_data = nx.from_numpy_matrix(input_graph)
     else:
-        raise TypeError("Input graph must be Graph object or NetworkX graph.")
+        raise TypeError("Input graph must be Graph object or NetworkX graph or adjacency matrix using numpy.array.")
 
     number_qubits = graph_data.number_of_nodes()
     mapping = dict(zip(graph_data.nodes(), range(0, number_qubits)))
@@ -111,18 +120,35 @@ def graph_to_density(input_graph):
 def graph_to_stabilizer(input_graph):
     """
     Convert a graph to stabilizer
+    :param input_graph: the input graph to be converted to the stabilizer
+    :type input_graph: networkX.Graph or Graph or numpy.array
+    :return: two binary matrices representing the stabilizer generators
+    :rtype: np.ndarray
     """
-    # TODO:
-    raise NotImplementedError('Next step')
+    if isinstance(input_graph, nx.Graph):
+        adj_matrix = nx.to_numpy_array(input_graph)
+    elif isinstance(input_graph, Graph):
+        adj_matrix = nx.to_numpy_array(input_graph.data)
+    elif isinstance(input_graph, np.ndarray):
+        adj_matrix = input_graph
+    else:
+        raise TypeError("Input graph must be Graph object or NetworkX graph or adjacency matrix using numpy.array.")
+    n_nodes = int(np.sqrt(adj_matrix.size))
+
+    return sf.symplectic_to_string(np.eye(n_nodes), adj_matrix)
 
 
 def stabilizer_to_graph(input_stabilizer):
     """
     Convert a stabilizer to graph
 
+    :param input_stabilizer: the stabilizer representation in terms of a list of strings
+    :type input_stabilizer: list[str]
+    :return: a graph representation
+    :rtype: networkX.Graph
     """
 
-    x_matrix, z_matrix = sf.stabilizer_to_symplectic(input_stabilizer)
+    x_matrix, z_matrix = sf.string_to_symplectic(input_stabilizer)
 
     pivot = [0, 0]
     graph = _graph_finder(x_matrix, z_matrix, pivot)
@@ -132,14 +158,31 @@ def stabilizer_to_graph(input_stabilizer):
 def stabilizer_to_density(input_stabilizer):
     """
     Convert a stabilizer to a density matrix
+
+    :param input_stabilizer: the stabilizer representation in terms of a list of strings
+    :type input_stabilizer: list[str]
+    :return: a density matrix
+    :rtype: numpy.ndarray
     """
-    raise NotImplementedError('Next step')
+    n_generators = len(input_stabilizer)
+    n_qubits = len(input_stabilizer[0])
+    assert n_generators == n_qubits
+    rho = np.eye(2 ** n_qubits)
+    for generator in input_stabilizer:
+        stabilizer_elem = sf.get_stabilizer_element_by_string(generator)
+        rho = np.matmul(rho, (stabilizer_elem + np.eye(2 ** n_qubits)) / 2)
+
+    return rho
 
 
 def density_to_stabilizer(input_matrix):
     """
     Convert a density matrix to stabilizer
 
+    :param input_matrix: a density matrix
+    :type input_matrix: numpy.ndarray
+    :return: a stabilzier representation
+    :rtype: list[str]
     """
     graph = density_to_graph(input_matrix)
     stabilizer = graph_to_stabilizer(graph)

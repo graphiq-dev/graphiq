@@ -1,12 +1,13 @@
 import numpy as np
 import networkx as nx
 
+from functools import reduce
 from src.backends.density_matrix.state import DensityMatrix
 from src.backends.graph.state import Graph
 import src.backends.density_matrix.functions as dmf
 import src.backends.graph.functions as gf
 import src.backends.stabilizer.functions as sf
-import qutip as qt
+
 import src.backends.state_representation_conversion as sconverter
 
 
@@ -16,10 +17,6 @@ def test_negativity():
     st1 = dmf.ketx0_state()
 
     st1 = dmf.reduce(np.kron, n_qubits * [st1 @ np.conjugate(st1.T)])
-
-    rho = qt.Qobj(st1, dims=[n_qubits * [2], n_qubits * [2]])
-
-    assert np.array_equal(st1, rho)
 
     assert dmf.negativity(st1, 4, 4) < 0.1
 
@@ -43,4 +40,31 @@ def test_density_to_graph():
 
     rgraph = sconverter.density_to_graph(rho_all)
 
-    assert np.array_equal(nx.to_numpy_matrix(graph1), rgraph)
+    assert np.allclose(nx.to_numpy_matrix(graph1), rgraph)
+
+
+def test_stabilizer_to_graph():
+    x_matrix = np.eye(4)
+    graph1 = nx.Graph([(1, 2), (2, 3), (3, 4)])
+    z_matrix = nx.to_numpy_matrix(graph1)
+    generator_list = sf.symplectic_to_string(x_matrix, z_matrix)
+    graph2 = sconverter.stabilizer_to_graph(generator_list)
+    assert nx.is_isomorphic(graph1, graph2)
+
+
+def test_stabilizer_and_density_conversion():
+    x_matrix = np.eye(4)
+    graph1 = nx.Graph([(1, 2), (2, 3), (3, 4)])
+    z_matrix = nx.to_numpy_matrix(graph1)
+    generator_list = sf.symplectic_to_string(x_matrix, z_matrix)
+    rho1 = sconverter.stabilizer_to_density(generator_list)
+    rho2 = sconverter.graph_to_density(graph1)
+
+    assert np.allclose(rho1, rho2)
+
+    stabilizer1 = sconverter.density_to_stabilizer(rho2)
+    stabilizer2 = sconverter.graph_to_stabilizer(graph1)
+
+    assert reduce(lambda x, y: x and y,
+                  map(lambda a, b: a == b, stabilizer1,  stabilizer2), True)
+

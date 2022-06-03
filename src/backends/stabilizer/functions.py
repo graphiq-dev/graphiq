@@ -72,11 +72,20 @@ def row_swap(input_matrix, first_row, second_row):
     return input_matrix
 
 
-def add_rows(input_matrix, i, j):
+def add_rows(input_matrix, row_to_add, resulting_row):
     """
     Add two rows together modulo 2 and put it in the row of the second input
+
+    :param input_matrix: a binary matrix
+    :type input_matrix: numpy.ndarray
+    :param row_to_add: the index of the row to add
+    :type row_to_add: int
+    :param resulting_row: the index of the row where the result is put
+    :type resulting_row: int
+    :return: the matrix after adding two rows modulo 2 and putting in the row of the second input
+    :rtype: numpy.ndarray
     """
-    input_matrix[j] = (input_matrix[i] + input_matrix[j]) % 2
+    input_matrix[resulting_row] = (input_matrix[row_to_add] + input_matrix[resulting_row]) % 2
     return input_matrix
 
 
@@ -84,6 +93,15 @@ def hadamard_transform(x_matrix, z_matrix, positions):
     """
     Apply Hadamard gate on each qubit specified by
     Column swap between X and Z
+
+    :param x_matrix: X part of the symplectic representation
+    :type x_matrix: numpy.ndarray
+    :param z_matrix: Z part of the symplectic representation
+    :type z_matrix: numpy.ndarray
+    :param positions: positions of qubits where the Hadamard gates are applied
+    :type positions: list[int]
+    :rtype: numpy.ndarray, numpy.ndarray
+    :return: the resulting X matrix and Z matrix
     """
     temp1 = list(z_matrix[:, positions])
     temp2 = list(x_matrix[:, positions])
@@ -102,10 +120,11 @@ def row_reduction(x_matrix, z_matrix, pivot):
     :type z_matrix: numpy.ndarray
     :param pivot: the row, column position for pivoting
     :type pivot: list[int]
-    :return:
+    :return: x_matrix, z_matrix, and rank
     """
     n_row, n_column = np.shape(x_matrix)
     rank = 0
+
     if pivot[1] == (n_column - 1):
         return x_matrix, z_matrix, pivot[0]
     else:

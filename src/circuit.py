@@ -76,8 +76,8 @@ class CircuitBase(ABC):
         :return: this function returns nothing
         :rtype: None
         """
-        self.q_registers = []
-        self.c_registers = []
+        self._q_registers = []
+        self._c_registers = []
 
         if openqasm_imports is None:
             self.openqasm_imports = {}
@@ -88,6 +88,22 @@ class CircuitBase(ABC):
             self.openqasm_defs = {}
         else:
             self.openqasm_defs = openqasm_defs
+
+    @property
+    def q_registers(self):
+        return self._q_registers
+
+    @q_registers.setter
+    def q_registers(self, q_reg):
+        self._q_registers = q_reg
+
+    @property
+    def c_registers(self):
+        return self._c_registers
+
+    @c_registers.setter
+    def c_registers(self, c_reg):
+        self._c_registers = c_reg
 
     @abstractmethod
     def add(self, operation: OperationBase):
@@ -386,6 +402,18 @@ class CircuitDAG(CircuitBase):
         :rtype: matplotlib.pyplot.figure, matplotlib.pyplot.axes
         """
         return draw_openqasm(self.to_openqasm(), show=show, ax=ax)
+
+    @CircuitBase.q_registers.setter
+    def q_registers(self, q_reg):
+        if set(q_reg) != set([1]):
+            raise ValueError(f'CircuitDAG class only supports single-qubit registers')
+        self._q_registers = q_reg
+
+    @CircuitBase.c_registers.setter
+    def c_registers(self, c_reg):
+        if set(c_reg) != set([1]):
+            raise ValueError(f'CircuitDAG class only supports single-qubit registers')
+        self._c_registers = c_reg
 
     def _add_register(self, size, is_quantum):
         """

@@ -305,6 +305,20 @@ def test_add_register_2():
     assert dag.dag.number_of_edges() == 9
 
 
+def test_register_setting():
+    """
+    Note: this should never be done externally (only internally to the Circuit classes)
+    Nevertheless we test it here just in case
+    """
+    dag = CircuitDAG(2, 2)
+    dag.q_registers = [1, 1]
+    dag.c_registers = [1, 1]
+    with pytest.raises(ValueError):
+        dag.q_registers = [0, 1]
+    with pytest.raises(ValueError):
+        dag.c_registers = [2, 1]
+
+
 @visualization
 def test_visualization_1(dag):
     dag.validate()
@@ -342,10 +356,10 @@ def test_visualization_4():
 @visualization
 def test_visualization_5():
     # test visualization when dynamic dealing with register number (copied from test_circuit)
-    dag = RegisterCircuitDAG(1, 0)
-    op1 = OperationBase(q_registers=(1, 2))
-    op2 = OperationBase(q_registers=(2,))
-    op3 = OperationBase(q_registers=(0,), c_registers=(1, 0))
+    dag = CircuitDAG(1, 0)
+    op1 = ops.OperationBase(q_registers=(1, 2))
+    op2 = ops.OperationBase(q_registers=(2,))
+    op3 = ops.OperationBase(q_registers=(0,), c_registers=(1, 0))
     dag.add(op1)
     dag.add(op2)
     dag.add(op3)

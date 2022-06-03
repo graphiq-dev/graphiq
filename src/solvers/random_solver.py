@@ -130,9 +130,9 @@ class RandomSearchSolver(SolverBase):
                                                  target=circuit.dag.edges[edge1]['reg']))
 
         for edge in [edge0, edge1]:
-            new_edges = [(edge[0], new_id), (new_id, edge[1])]
             reg = circuit.dag.edges[edge]['reg']
             bit = circuit.dag.edges[edge]['bit']
+            new_edges = [(edge[0], new_id, reg), (new_id, edge[1], reg)]
 
             circuit.dag.add_edges_from(new_edges, reg_type='q', reg=reg, bit=bit)
 

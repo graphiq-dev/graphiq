@@ -190,6 +190,36 @@ def get_controlled_gate(number_qubits, control_qubit, target_qubit, target_gate)
     return gate_cond0 + gate_cond1
 
 
+def get_controlled_gate_efficient(n_qubits, control_qubit, target_qubit, target_gate):
+    """
+    Define a controlled unitary gate
+    :param n_qubits: specify the number of qubits in the system
+    :type n_qubits: int
+    :param control_qubit: specify the index of the control qubit (starting from zero)
+    :type control_qubit: int
+    :param target_qubit: specify the index of the target qubit
+    :type target_qubit: int
+    :param target_gate: specify the gate to be applied conditioned on the control_qubit in the ket one state
+    :type target_gate: numpy.array
+
+    :return: a controlled unitary gate on the appropriate qubits and with the appropriate target gate
+    :rtype: numpy.ndarray
+    """
+    if control_qubit < target_qubit:
+        final_gate = np.kron(np.kron(np.eye(2 ** control_qubit), np.eye(2) - sigmaz()),
+                             np.eye(2 ** (target_qubit - control_qubit - 1)))
+        final_gate = np.kron(np.kron(final_gate, target_gate - np.eye(2)), np.eye(2 ** (n_qubits - target_qubit - 1)))
+
+    elif control_qubit > target_qubit:
+        final_gate = np.kron(np.kron(np.eye(2 ** target_qubit), target_gate - np.eye(2)),
+                             np.eye(2 ** (control_qubit - target_qubit - 1)))
+        final_gate = np.kron(np.kron(final_gate, np.eye(2) - sigmaz()), np.eye(2 ** (n_qubits - control_qubit - 1)))
+    else:
+        raise ValueError('Control qubit and target qubit cannot be the same qubit!')
+    final_gate = np.eye(2 ** n_qubits) + final_gate / 2
+    return final_gate
+
+
 def get_single_qubit_gate(number_qubits, qubit_position, target_gate):
     """
     Returns the matrix resulting from the "target_gate" matrix, after it has been tensored with the necessary identities

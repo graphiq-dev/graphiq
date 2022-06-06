@@ -6,7 +6,7 @@ from abc import ABC, abstractmethod
 import numpy as np
 
 from benchmarks.circuits import bell_state_circuit
-from src.backends.density_matrix.functions import fidelity
+from src.backends.density_matrix.functions import fidelity, fidelity_pure
 
 class MetricBase(ABC):
     """
@@ -76,13 +76,14 @@ class MetricFidelity(MetricBase):
         :rtype: float
         """
         # TODO: replace by actual fidelity check
-        fid = fidelity(self.target, state)
+        # fid = fidelity(self.target, state)
+        fid = fidelity_pure(self.target, state)
         self.increment()
 
         if self._inc % self.log_steps == 0:
             self.log.append(fid)
 
-        return fid
+        return -fid
 
 
 class MetricCircuitDepth(MetricBase):

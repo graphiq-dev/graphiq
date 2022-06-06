@@ -411,6 +411,20 @@ def fidelity(rho, sigma):
     return np.real(np.trace(sqrtm(sqrtm(rho) @ sigma @ sqrtm(rho))) ** 2)
 
 
+def fidelity_pure(rho, sigma):
+    """
+    Return the fidelity between states rho, sigma
+
+    :param rho: the first state
+    :type rho: numpy.ndarray
+    :param sigma: the second state
+    :type sigma: numpy.ndarray
+    :return: the fidelity between 0 and 1
+    :rtype: int
+    """
+    return np.real(np.trace(rho @ sigma)**2)
+
+
 if __name__ == "__main__":
     n_qubit = 3
     register = 0

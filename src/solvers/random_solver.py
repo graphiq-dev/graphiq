@@ -82,16 +82,21 @@ class RandomSearchSolver(SolverBase):
                     break
 
     def solve(self):
-        # circuit = self.circuit
+        """
+        Main solver algorithm for identifying circuits which minimizes the metric function.
+
+        Here, all aspects of the algorithm are fully random (with uniform probabilities).
+        We start with an empty N-qubit circuit, and at each iteration add
+
+        :return:
+        """
         scores = [None for _ in range(self.n_pop)]
         circuits = [copy.deepcopy(self.circuit) for _ in range(self.n_pop)]
 
         for i in range(self.n_stop):
             for j in range(self.n_pop):
 
-                print(f"\nNew generation {i}")
                 transformation = self.transformations[np.random.randint(len(self.transformations))]
-                # print(transformation)
                 circuit = circuits[j]
                 transformation(circuit)
 
@@ -101,18 +106,18 @@ class RandomSearchSolver(SolverBase):
                 # print(state)
 
                 score = self.metric.evaluate(state.data, circuit)
-                print(score)
 
                 scores[j] = score
                 circuits[j] = circuit
+                print(f"New generation {i} | {score:.4f} | {transformation.__name__}")
 
             self.update_hof(scores, circuits)
 
         return
 
-    def add_one_qubit_op(self, circuit):
+    def add_one_qubit_op(self, circuit: CircuitDAG):
         """
-        Randomly selects one valid edge on which to add a new single-qubit gate
+        Randomly selects one valid edge on which to add a new one-qubit gate.
         """
         edges = list(circuit.dag.edges)
 
@@ -128,12 +133,14 @@ class RandomSearchSolver(SolverBase):
         op = np.random.choice(self.single_qubit_ops)
 
         circuit.dag.add_node(new_id, op=op(register=reg))
+        circuit._open_qasm_update(op)  # fixes plotting issues
+
         circuit.dag.remove_edges_from([edge])  # remove the edge
 
         circuit.dag.add_edges_from(new_edges, reg_type='q', reg=reg)
         return
 
-    def add_two_qubit_op(self, circuit):
+    def add_two_qubit_op(self, circuit: CircuitDAG):
         """
         Randomly selects two valid edges on which to add a new two-qubit gate.
         One edge is selected from all edges, and then the second is selected that maintains proper temporal ordering
@@ -169,6 +176,8 @@ class RandomSearchSolver(SolverBase):
         circuit.dag.add_node(new_id, op=op(control=circuit.dag.edges[edge0]['reg'],
                                            target=circuit.dag.edges[edge1]['reg']))
 
+        circuit._open_qasm_update(op)  # fixes plotting issues
+
         for edge in [edge0, edge1]:
             reg = circuit.dag.edges[edge]['reg']
             label = edge[2]
@@ -179,18 +188,17 @@ class RandomSearchSolver(SolverBase):
         circuit.dag.remove_edges_from([edge0, edge1])  # remove the selected edges
         return
 
-    def remove_op(self, circuit, node=None):
+    def remove_op(self, circuit: CircuitDAG):
         """
-        Randomly selects
+        Randomly selects a one- or two-qubit gate to remove from the circuit
         """
-        if node is None:
-            nodes = [node for node in circuit.dag.nodes if type(circuit.dag.nodes[node]['op']) not in self.fixed_ops]
-            if len(nodes) == 0:
-                warnings.warn("No nodes that can be removed in the circuit. Skipping.")
-                return
+        nodes = [node for node in circuit.dag.nodes if type(circuit.dag.nodes[node]['op']) not in self.fixed_ops]
+        if len(nodes) == 0:
+            warnings.warn("No nodes that can be removed in the circuit. Skipping.")
+            return
 
-            ind = np.random.randint(len(nodes))
-            node = nodes[ind]
+        ind = np.random.randint(len(nodes))
+        node = nodes[ind]
 
         in_edges = list(circuit.dag.in_edges(node, keys=True))
         out_edges = list(circuit.dag.out_edges(node, keys=True))
@@ -207,51 +215,59 @@ class RandomSearchSolver(SolverBase):
 
     @staticmethod
     def _check_cnots(cir: CircuitDAG):
+        """
+        Sanity check that all CNOT gates have two in edges and two out edges
+        :param cir: circuit object
+        :return:
+        """
         for node in cir.dag.nodes:
             if type(cir.dag.nodes[node]['op']) is ops.CNOT:
-                assert len(circuit.dag.in_edges(node)) == 2, f"in edges is {circuit.dag.in_edges(node)} not 2"
-                assert len(circuit.dag.out_edges(node)) == 2, f"out edges is {circuit.dag.out_edges(node)} not 2"
+                assert len(cir.dag.in_edges(node)) == 2, f"in edges is {cir.dag.in_edges(node)} not 2"
+                assert len(cir.dag.out_edges(node)) == 2, f"out edges is {cir.dag.out_edges(node)} not 2"
 
 
 if __name__ == "__main__":
-    RandomSearchSolver.n_stop = 200
-    RandomSearchSolver.n_pop = 20
+    #%% here we have access
+    RandomSearchSolver.n_stop = 100
+    RandomSearchSolver.n_pop = 30
     RandomSearchSolver.n_hof = 5
 
+    #%% comment/uncomment for reproducibility
+    np.random.seed(190)
+
+    # %% select which state we want to target
     # circuit_ideal, state_ideal = bell_state_circuit()
     # circuit_ideal, state_ideal = ghz3_state_circuit()
     # circuit_ideal, state_ideal = ghz4_state_circuit()
-    # circuit_ideal, state_ideal = linear_cluster_3qubit_circuit()
-    circuit_ideal, state_ideal = linear_cluster_4qubit_circuit()
+    circuit_ideal, state_ideal = linear_cluster_3qubit_circuit()
+    # circuit_ideal, state_ideal = linear_cluster_4qubit_circuit()
 
+    #%% construct all of our important objects
     target = state_ideal['dm']
-
-    circuit = CircuitDAG(n_quantum=4, n_classical=0)
+    circuit = CircuitDAG(n_quantum=3, n_classical=0)
     compiler = DensityMatrixCompiler()
     metric = MetricFidelity(target=target)
 
-    fid = metric.evaluate(target, target)
     solver = RandomSearchSolver(target=target, metric=metric, circuit=circuit, compiler=compiler)
 
+    #%% call the solver.solve() function to implement the random search algorithm
     t0 = time.time()
     solver.solve()
     t1 = time.time()
 
+    #%% print/plot the results
     print(solver.hof)
     print(f"Total time {t1-t0}")
 
+    # extract the best performing circuit
     fig, axs = density_matrix_bars(target)
     fig.suptitle("TARGET DENSITY MATRIX")
     plt.show()
 
-    state = compiler.compile(solver.hof[1][0])
+    circuit = solver.hof[1][0]  # get the best hof circuit
+    state = compiler.compile(circuit)
     fig, axs = density_matrix_bars(state.data)
     fig.suptitle("CREATED DENSITY MATRIX")
     plt.show()
-    # for score, circuit in zip(*solver.hof):
-    #     state = compiler.compile(circuit)
-    #
-    #     print("\n", score, circuit)
-    #     print(metric.evaluate(state.data, circuit))
-    #
-    #     print(circuit.dag)
+
+    circuit.draw_circuit()

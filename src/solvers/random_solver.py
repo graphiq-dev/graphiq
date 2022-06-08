@@ -5,6 +5,7 @@ import networkx as nx
 import warnings
 import collections
 import copy
+import time
 
 from src.solvers.base import SolverBase
 from src.metrics import MetricBase
@@ -31,9 +32,24 @@ class RandomSearchSolver(SolverBase):
 
     name = "random-search"
     n_stop = 40  # maximum number of iterations
+    n_hof = 10
+    n_pop = 10
+
     fixed_ops = [  # ops that should never be removed/swapped
         ops.Input,
         ops.Output
+    ]
+
+    single_qubit_ops = [
+        ops.Hadamard,
+        ops.SigmaX,
+        ops.SigmaY,
+        ops.SigmaZ,
+    ]
+
+    two_qubit_ops = [
+        ops.CNOT,
+        ops.CPhase,
     ]
 
     def __init__(self,
@@ -51,8 +67,6 @@ class RandomSearchSolver(SolverBase):
         ]
 
         # hof stores the best circuits and their scores in the form of: (scores, circuits)
-        self.n_hof = 10
-        self.n_pop = 10
         self.hof = (collections.deque([np.inf for _ in range(self.n_hof)]),
                     collections.deque([None for _ in range(self.n_hof)]))
 
@@ -60,7 +74,7 @@ class RandomSearchSolver(SolverBase):
         for score, circuit in zip(scores, circuits):
             for i in range(self.n_hof):
                 if score < self.hof[0][i]:
-                    self.hof[0].insert(i, score)
+                    self.hof[0].insert(i, copy.deepcopy(score))
                     self.hof[1].insert(i, copy.deepcopy(circuit))
 
                     self.hof[0].pop()
@@ -68,23 +82,23 @@ class RandomSearchSolver(SolverBase):
                     break
 
     def solve(self):
-        circuit = self.circuit
-
+        # circuit = self.circuit
         scores = [None for _ in range(self.n_pop)]
         circuits = [copy.deepcopy(self.circuit) for _ in range(self.n_pop)]
+
         for i in range(self.n_stop):
             for j in range(self.n_pop):
 
                 print(f"\nNew generation {i}")
                 transformation = self.transformations[np.random.randint(len(self.transformations))]
-                print(transformation)
-
+                # print(transformation)
+                circuit = circuits[j]
                 transformation(circuit)
 
                 circuit.validate()
 
                 state = self.compiler.compile(circuit)  # this will pass out a density matrix object
-                print(state)
+                # print(state)
 
                 score = self.metric.evaluate(state.data, circuit)
                 print(score)
@@ -111,7 +125,9 @@ class RandomSearchSolver(SolverBase):
         new_id = circuit._unique_node_id()
         new_edges = [(edge[0], new_id, label), (new_id, edge[1], label)]
 
-        circuit.dag.add_node(new_id, op=ops.Hadamard(register=reg))
+        op = np.random.choice(self.single_qubit_ops)
+
+        circuit.dag.add_node(new_id, op=op(register=reg))
         circuit.dag.remove_edges_from([edge])  # remove the edge
 
         circuit.dag.add_edges_from(new_edges, reg_type='q', reg=reg)
@@ -149,8 +165,9 @@ class RandomSearchSolver(SolverBase):
 
         new_id = circuit._unique_node_id()
 
-        circuit.dag.add_node(new_id, op=ops.CNOT(control=circuit.dag.edges[edge0]['reg'],
-                                                 target=circuit.dag.edges[edge1]['reg']))
+        op = np.random.choice(self.two_qubit_ops)
+        circuit.dag.add_node(new_id, op=op(control=circuit.dag.edges[edge0]['reg'],
+                                           target=circuit.dag.edges[edge1]['reg']))
 
         for edge in [edge0, edge1]:
             reg = circuit.dag.edges[edge]['reg']
@@ -197,25 +214,31 @@ class RandomSearchSolver(SolverBase):
 
 
 if __name__ == "__main__":
+    RandomSearchSolver.n_stop = 200
+    RandomSearchSolver.n_pop = 20
+    RandomSearchSolver.n_hof = 5
 
     # circuit_ideal, state_ideal = bell_state_circuit()
     # circuit_ideal, state_ideal = ghz3_state_circuit()
     # circuit_ideal, state_ideal = ghz4_state_circuit()
-    circuit_ideal, state_ideal = linear_cluster_3qubit_circuit()
-    # circuit_ideal, state_ideal = linear_cluster_4qubit_circuit()
+    # circuit_ideal, state_ideal = linear_cluster_3qubit_circuit()
+    circuit_ideal, state_ideal = linear_cluster_4qubit_circuit()
 
     target = state_ideal['dm']
 
-    circuit = CircuitDAG(n_quantum=3, n_classical=0)
+    circuit = CircuitDAG(n_quantum=4, n_classical=0)
     compiler = DensityMatrixCompiler()
     metric = MetricFidelity(target=target)
 
     fid = metric.evaluate(target, target)
-    RandomSearchSolver.n_stop = 50
     solver = RandomSearchSolver(target=target, metric=metric, circuit=circuit, compiler=compiler)
+
+    t0 = time.time()
     solver.solve()
+    t1 = time.time()
 
     print(solver.hof)
+    print(f"Total time {t1-t0}")
 
     fig, axs = density_matrix_bars(target)
     fig.suptitle("TARGET DENSITY MATRIX")
@@ -225,10 +248,10 @@ if __name__ == "__main__":
     fig, axs = density_matrix_bars(state.data)
     fig.suptitle("CREATED DENSITY MATRIX")
     plt.show()
-    for score, circuit in zip(*solver.hof):
-        state = compiler.compile(circuit)
-
-        print("\n", score, circuit)
-        print(metric.evaluate(state.data, circuit))
-
-        print(circuit.dag)
+    # for score, circuit in zip(*solver.hof):
+    #     state = compiler.compile(circuit)
+    #
+    #     print("\n", score, circuit)
+    #     print(metric.evaluate(state.data, circuit))
+    #
+    #     print(circuit.dag)

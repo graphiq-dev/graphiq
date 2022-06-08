@@ -61,7 +61,7 @@ class OpenQASMInfo:
         """
         return self.definition
 
-    def use_gate(self, q_registers, c_registers):
+    def use_gate(self, q_registers, c_registers, register_indexing=False):
         """
         Returns a string which applies a gate on the quantum registers q_registers, and the classical
         registers c_registers
@@ -75,11 +75,17 @@ class OpenQASMInfo:
         """
         gate_str = self.usage
         for q in q_registers:
-            reg_str = f'q{q[0]}[{q[1]}]'
+            if register_indexing:
+                reg_str = f'q{q[0]}[{q[1]}]'
+            else:
+                reg_str = f'q{q}[0]'
             gate_str = gate_str.replace(OPENQASM_ESCAPE_STR, reg_str, 1)
 
         for c in c_registers:
-            reg_str = f'c{c[0]}[{c[1]}]'
+            if register_indexing:
+                reg_str = f'c{c[0]}[{c[1]}]'
+            else:
+                reg_str = f'c{c}[0]'
             gate_str = gate_str.replace(OPENQASM_ESCAPE_STR, reg_str, 1)
 
         assert OPENQASM_ESCAPE_STR not in gate_str  # check that all escapes have been replaced

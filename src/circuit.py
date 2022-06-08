@@ -284,6 +284,26 @@ class CircuitBase(ABC):
             raise ValueError(f"New register size {new_size} is not greater than the current size {curr_size}")
         curr_reg[register] = new_size
 
+    def draw_circuit(self, show=True, ax=None):
+        """
+        Draw conventional circuit representation
+
+        :param show: if True, the circuit is displayed (shown). If False, the circuit is drawn but not displayed
+        :type show: bool
+        :param ax: ax on which to draw the DAG (optional)
+        :type ax: None or matplotlib.pyplot.axes
+        :return: fig, ax on which the circuit was drawn
+        :rtype: matplotlib.pyplot.figure, matplotlib.pyplot.axes
+        """
+        return draw_openqasm(self.to_openqasm(), show=show, ax=ax)
+
+    def _open_qasm_update(self, op):
+        try:
+            oq_info = op.openqasm_info()
+            self.openqasm_imports[oq_info.import_string] = 1
+            self.openqasm_defs[oq_info.define_gate] = 1
+        except ValueError:
+            warnings.warn(UserWarning(f"No openqasm definition for operation {type(op)}"))
 
 class CircuitDAG(CircuitBase):
     """
@@ -322,13 +342,7 @@ class CircuitDAG(CircuitBase):
         :return: this function returns nothing
         :rtype: None
         """
-        # add openqasm info
-        try:
-            oq_info = operation.openqasm_info()
-            self.openqasm_imports[oq_info.import_string] = 1
-            self.openqasm_defs[oq_info.define_gate] = 1
-        except ValueError:
-            warnings.warn(UserWarning(f"No openqasm definition for operation {type(operation)}"))
+        self._open_qasm_update(operation)
 
         # update registers (if the new operation is adding registers to the circuit)
         self._add_reg_if_absent(operation.q_registers, operation.c_registers)  # register added if it does not exist
@@ -389,19 +403,6 @@ class CircuitDAG(CircuitBase):
         if show:
             plt.show()
         return fig, ax
-
-    def draw_circuit(self, show=True, ax=None):
-        """
-        Draw conventional circuit representation
-
-        :param show: if True, the circuit is displayed (shown). If False, the circuit is drawn but not displayed
-        :type show: bool
-        :param ax: ax on which to draw the DAG (optional)
-        :type ax: None or matplotlib.pyplot.axes
-        :return: fig, ax on which the circuit was drawn
-        :rtype: matplotlib.pyplot.figure, matplotlib.pyplot.axes
-        """
-        return draw_openqasm(self.to_openqasm(), show=show, ax=ax)
 
     @CircuitBase.q_registers.setter
     def q_registers(self, q_reg):
@@ -559,12 +560,7 @@ class RegisterCircuitDAG(CircuitDAG):
         :rtype: None
         """
         # add openqasm info
-        try:
-            oq_info = operation.openqasm_info()
-            self.openqasm_imports[oq_info.import_string] = 1
-            self.openqasm_defs[oq_info.define_gate] = 1
-        except ValueError:
-            warnings.warn(UserWarning(f"No openqasm definition for operation {type(operation)}"))
+        self._open_qasm_update(operation)
 
         # update registers (if the new operation is adding registers to the circuit)
         self._add_reg_if_absent(operation.q_registers, operation.c_registers)  # register added if it does not exist
@@ -583,6 +579,26 @@ class RegisterCircuitDAG(CircuitDAG):
     def collect_parameters(self):
         # TODO: actually I think this might be more of a compiler task. Figure out how to implement this
         raise NotImplementedError('')
+
+    def to_openqasm(self):
+        """
+        Creates the openQASM script equivalent to the circuit (if possible--some Operations are not properly supported).
+
+        :return: the openQASM script equivalent to our circuit (on a logical level)
+        :rtype: str
+        """
+        header_info = oq_lib.openqasm_header() + '\n' + '\n'.join(self.openqasm_imports.keys()) + '\n' \
+            + '\n'.join(self.openqasm_defs.keys())
+
+        openqasm_str = [header_info, oq_lib.register_initialization_string(self.q_registers, self.c_registers) + '\n']
+
+        for op in self.sequence():
+            oq_info = op.openqasm_info()
+            gate_application = oq_info.use_gate(op.q_registers, op.c_registers, register_indexing=True)
+            if gate_application != "":
+                openqasm_str.append(gate_application)
+
+        return '\n'.join(openqasm_str)
 
     def _add_register(self, size, is_quantum):
         """

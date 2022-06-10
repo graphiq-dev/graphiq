@@ -61,24 +61,25 @@ class OpenQASMInfo:
         """
         return self.definition
 
-    def use_gate(self, q_registers, c_registers, register_indexing=False):
+    def use_gate(self, q_registers, q_registers_type, c_registers, register_indexing=False):
         """
         Returns a string which applies a gate on the quantum registers q_registers, and the classical
         registers c_registers
 
         :param q_registers: quantum registers on which to apply a gate
         :type q_registers: tuple
+        :param q_registers_type: type of quantum registers ('e' for emitter qubits, 'p' for photonic qubits)
         :param c_registers: classical registers on which to apply a gate
         :type c_registers: tuple
         :return: a string which applies a gate on the provided quantum registers
         :rtype: str
         """
         gate_str = self.usage
-        for q in q_registers:
+        for q, reg_type in zip(q_registers, q_registers_type):
             if register_indexing:
-                reg_str = f'q{q[0]}[{q[1]}]'
+                reg_str = f'{reg_type}{q[0]}[{q[1]}]'
             else:
-                reg_str = f'q{q}[0]'
+                reg_str = f'{reg_type}{q}[0]'
             gate_str = gate_str.replace(OPENQASM_ESCAPE_STR, reg_str, 1)
 
         for c in c_registers:
@@ -104,24 +105,31 @@ def openqasm_header():
     return 'OPENQASM 2.0;'
 
 
-def register_initialization_string(q_registers, c_registers):
+def register_initialization_string(e_reg, p_reg, c_reg):
     """
     Given the registers of a circuit, this function returns a string initializing
     all the qreg and cregs for the openQASM circuit representation
 
-    :param q_registers: a list of registers, where q_registers[i] is the size of quantum register i
-    :type q_registers: list
-    :param c_registers: a list of registers, where c_registers[i] is the size of classical register i
-    :type c_registers: list
+    :param e_reg: a list of emitter qubit registers, where q_registers[i] is the size of quantum register i
+    :type e_reg: list
+    :param p_reg: a list of photonic qubit registers, where q_registers[i] is the size of quantum register i
+    :type p_reg: list
+    :param c_reg: a list of registers, where c_registers[i] is the size of classical register i
+    :type c_reg: list
     :return: a string initializing the registers
     :rtype: str
     """
     register_strs = []
-    for r, b in enumerate(q_registers):
-        q_str = f'qreg q{r}[{b}];'
+
+    for r, b in enumerate(p_reg):
+        q_str = f'qreg p{r}[{b}];'
         register_strs.append(q_str)
 
-    for r, b in enumerate(c_registers):
+    for r, b in enumerate(e_reg):
+        q_str = f'qreg e{r}[{b}];'
+        register_strs.append(q_str)
+
+    for r, b in enumerate(c_reg):
         c_str = f'creg c{r} [{b}];'
         register_strs.append(c_str)
 

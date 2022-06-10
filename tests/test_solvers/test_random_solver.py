@@ -8,7 +8,7 @@ from src.visualizers.density_matrix import density_matrix_bars
 
 
 def test_evolve_dag():
-    circuit = CircuitDAG(n_quantum=10)
+    circuit = CircuitDAG(n_emitter=10)
 
     solver = RandomSearchSolver()
 

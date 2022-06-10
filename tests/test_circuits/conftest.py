@@ -1,7 +1,7 @@
 import pytest
-from src.circuit import RegisterCircuitDAG
+from src.circuit import CircuitDAG
 
 
 @pytest.fixture(scope='function')
 def dag():
-    return RegisterCircuitDAG()
+    return CircuitDAG()

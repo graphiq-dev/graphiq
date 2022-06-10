@@ -9,9 +9,9 @@ from benchmarks.circuits import bell_state_circuit
 
 if __name__ == "__main__":
     # start by defining an initial circuit
-    circuit = circuit.RegisterCircuitDAG(2, 0)
+    circuit = circuit.CircuitDAG(n_emitter=1, n_photon=1, n_classical=0)
     circuit.add(ops.Hadamard(register=0))
-    circuit.add(ops.CNOT(control=0, target=1))
+    circuit.add(ops.CNOT(control=0, control_type='e', target=1, target_type='p'))
     circuit.draw_dag()
 
     # we then need to select the backend to use (this could be hidden somewhere and not passed explicitly, if needed)

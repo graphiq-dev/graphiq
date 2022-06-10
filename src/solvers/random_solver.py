@@ -226,7 +226,7 @@ if __name__ == "__main__":
 
     target = state_ideal['dm']
 
-    circuit = CircuitDAG(n_quantum=4, n_classical=0)
+    circuit = CircuitDAG(n_emitter=4, n_classical=0)
     compiler = DensityMatrixCompiler()
     metric = MetricFidelity(target=target)
 

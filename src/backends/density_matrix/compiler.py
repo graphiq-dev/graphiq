@@ -40,6 +40,15 @@ from src.circuit import CircuitBase
 #     return reg_to_index
 
 
+def reg_to_index_func(n_photon):
+    def reg_to_index(reg, reg_type):
+        if reg_type == 'p':
+            return reg
+        elif reg_type == 'e':
+            return reg + n_photon
+
+    return reg_to_index
+
 class DensityMatrixCompiler(CompilerBase):
     """
     Compiler which deals exclusively with the DensityMatrix state representation.
@@ -98,8 +107,7 @@ class DensityMatrixCompiler(CompilerBase):
 
         # TODO: support self-defined mapping functions later instead of using the default above
         # Get functions which will map from registers to a unique index
-        # q_index = reg_to_index_func(circuit.q_registers)
-        # c_index = reg_to_index_func(circuit.c_registers)
+        q_index = reg_to_index_func(circuit.n_photons)
 
         seq = circuit.sequence()
         for op in seq:
@@ -114,48 +122,52 @@ class DensityMatrixCompiler(CompilerBase):
                 pass
 
             elif type(op) is ops.Hadamard:
-                unitary = dm.get_single_qubit_gate(circuit.n_quantum, op.register, dm.hadamard())
+                unitary = dm.get_single_qubit_gate(circuit.n_quantum, q_index(op.register, op.reg_type), dm.hadamard())
                 state.apply_unitary(unitary)
 
             elif type(op) is ops.SigmaX:
-                unitary = dm.get_single_qubit_gate(circuit.n_quantum, op.register, dm.sigmax())
+                unitary = dm.get_single_qubit_gate(circuit.n_quantum, q_index(op.register, op.reg_type), dm.sigmax())
                 state.apply_unitary(unitary)
 
             elif type(op) is ops.SigmaY:
-                unitary = dm.get_single_qubit_gate(circuit.n_quantum, op.register, dm.sigmay())
+                unitary = dm.get_single_qubit_gate(circuit.n_quantum, q_index(op.register, op.reg_type), dm.sigmay())
                 state.apply_unitary(unitary)
 
             elif type(op) is ops.SigmaZ:
-                unitary = dm.get_single_qubit_gate(circuit.n_quantum, op.register, dm.sigmaz())
+                unitary = dm.get_single_qubit_gate(circuit.n_quantum, q_index(op.register, op.reg_type), dm.sigmaz())
                 state.apply_unitary(unitary)
 
             elif type(op) is ops.CNOT:
-                unitary = dm.get_controlled_gate(circuit.n_quantum, op.control, op.target, dm.sigmax())
+                unitary = dm.get_controlled_gate(circuit.n_quantum, q_index(op.control, op.control_type),
+                                                 q_index(op.target, op.target_type), dm.sigmax())
                 state.apply_unitary(unitary)
 
             elif type(op) is ops.CPhase:
-                unitary = dm.get_controlled_gate(circuit.n_quantum, op.control, op.target, dm.sigmaz())
+                unitary = dm.get_controlled_gate(circuit.n_quantum, q_index(op.control, op.control_type),
+                                                 q_index(op.target, op.target_type), dm.sigmaz())
                 state.apply_unitary(unitary)
 
             elif type(op) is ops.ClassicalCNOT:
                 # TODO: handle conditioned vs unconditioned density operators on the measurement outcome
-                projectors = dm.projectors_zbasis(circuit.n_quantum, op.control)
+                projectors = dm.projectors_zbasis(circuit.n_quantum, q_index(op.control, op.control_type))
                 outcome = state.apply_measurement(projectors)
                 if outcome == 1:  # condition an X gate on the target qubit based on the measurement outcome
-                    unitary = dm.get_single_qubit_gate(circuit.n_quantum, op.target, dm.sigmax())
+                    unitary = dm.get_single_qubit_gate(circuit.n_quantum,
+                                                       q_index(op.target, op.target_type), dm.sigmax())
                     state.apply_unitary(unitary)
 
             elif type(op) is ops.ClassicalCPhase:
                 # TODO: handle conditioned vs unconditioned density operators on the measurement outcome
-                projectors = dm.projectors_zbasis(circuit.n_quantum, op.control)
+                projectors = dm.projectors_zbasis(circuit.n_quantum, q_index(op.control, op.control_type))
                 outcome = state.apply_measurement(projectors)
                 if outcome == 1:  # condition a Z gate on the target qubit based on the measurement outcome
-                    unitary = dm.get_single_qubit_gate(circuit.n_quantum, op.target, dm.sigmaz())
+                    unitary = dm.get_single_qubit_gate(circuit.n_quantum,
+                                                       q_index(op.target, op.target_type), dm.sigmaz())
                     state.apply_unitary(unitary)
 
             elif type(op) is ops.MeasurementZ:
                 # TODO: handle conditioned vs unconditioned density operators on the measurement outcome
-                projectors = dm.projectors_zbasis(circuit.n_quantum, op.register)
+                projectors = dm.projectors_zbasis(circuit.n_quantum, q_index(op.register, op.reg_type))
                 outcome = state.apply_measurement(projectors)
                 classical_registers[op.c_register] = outcome
 

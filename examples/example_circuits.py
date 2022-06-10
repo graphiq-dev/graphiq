@@ -14,9 +14,9 @@ from benchmarks.circuits import *
 if __name__ == "__main__":
     # example_circuit = bell_state_circuit
     # example_circuit = ghz3_state_circuit
-    example_circuit = ghz4_state_circuit
+    # example_circuit = ghz4_state_circuit
     # example_circuit = linear_cluster_3qubit_circuit
-    # example_circuit = linear_cluster_4qubit_circuit
+    example_circuit = linear_cluster_4qubit_circuit
 
     circuit, ideal_state = example_circuit()
 

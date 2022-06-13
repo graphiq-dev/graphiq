@@ -20,7 +20,6 @@ from src.visualizers.density_matrix import density_matrix_bars
 from src import ops
 from src.io import IO
 
-
 from benchmarks.circuits import *
 
 
@@ -67,18 +66,25 @@ class RandomSearchSolver(SolverBase):
         ]
 
         # hof stores the best circuits and their scores in the form of: (scores, circuits)
-        self.hof = (collections.deque([np.inf for _ in range(self.n_hof)]),
-                    collections.deque([None for _ in range(self.n_hof)]))
+        self.hof = [(np.inf, None) for _ in range(self.n_hof)]
 
-    def update_hof(self, scores, circuits):
-        for score, circuit in zip(scores, circuits):
+        self.trans_probs = {
+            self.add_two_qubit_op: 0.25,
+            self.add_one_qubit_op: 0.25,
+            self.remove_op: 0.5
+        }
+
+    def update_hof(self, population):
+        for score, circuit in population:
             for i in range(self.n_hof):
-                if score < self.hof[0][i]:
-                    self.hof[0].insert(i, copy.deepcopy(score))
-                    self.hof[1].insert(i, copy.deepcopy(circuit))
+                if np.isclose(score, self.hof[i][0]):
+                    if len(circuit.dag.nodes) < len(self.hof[i][1].dag.nodes):
+                        self.hof.insert(i, (score, copy.deepcopy(circuit)))
+                        self.hof.pop()
 
-                    self.hof[0].pop()
-                    self.hof[1].pop()
+                elif score < self.hof[i][0]:
+                    self.hof.insert(i, (score, copy.deepcopy(circuit)))
+                    self.hof.pop()
                     break
 
     def solve(self):
@@ -96,7 +102,9 @@ class RandomSearchSolver(SolverBase):
         for i in range(self.n_stop):
             for j in range(self.n_pop):
 
-                transformation = self.transformations[np.random.randint(len(self.transformations))]
+                # transformation = self.transformations[np.random.randint(len(self.transformations))]
+                transformation = np.random.choice(list(self.trans_probs.keys()), p=list(self.trans_probs.values()))
+
                 circuit = circuits[j]
                 transformation(circuit)
 
@@ -119,6 +127,7 @@ class RandomSearchSolver(SolverBase):
         """
         Randomly selects one valid edge on which to add a new one-qubit gate.
         """
+
         edges = list(circuit.dag.edges)
 
         ind = np.random.randint(len(edges))
@@ -146,6 +155,8 @@ class RandomSearchSolver(SolverBase):
         One edge is selected from all edges, and then the second is selected that maintains proper temporal ordering
         of the operations.
         """
+        # setattr(self.add_two_qubit_op, "att1", 1)
+
         edges = [edge for edge in circuit.dag.edges if circuit.dag.edges[edge]['reg_type'] == 'q']
 
         ind = np.random.randint(len(edges))
@@ -228,12 +239,12 @@ class RandomSearchSolver(SolverBase):
 
 if __name__ == "__main__":
     #%% here we have access
-    RandomSearchSolver.n_stop = 100
-    RandomSearchSolver.n_pop = 30
+    RandomSearchSolver.n_stop = 50
+    RandomSearchSolver.n_pop = 300
     RandomSearchSolver.n_hof = 5
 
     #%% comment/uncomment for reproducibility
-    np.random.seed(190)
+    # np.random.seed(190)
 
     # %% select which state we want to target
     # circuit_ideal, state_ideal = bell_state_circuit()

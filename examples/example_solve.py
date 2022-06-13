@@ -21,7 +21,7 @@ if __name__ == "__main__":
     _, ideal_state = bell_state_circuit()
     metric = metrics.MetricFidelity(ideal_state)
 
-    # define the solver (all methods are encapsulated in the class definition)
+    # define the solver (all methods are encapsulated in the class definitions)
     solver = solvers.RandomSearchSolver(target=None, metric=metric, compiler=compiler, circuit=circuit)
 
     # call .solve to implement the solver algorithm

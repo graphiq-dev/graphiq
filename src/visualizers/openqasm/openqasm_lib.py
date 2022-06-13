@@ -9,6 +9,9 @@ TODO: consider what to do if we move onto qudits
 TODO: gate definitions drawn from openQASM 3, so there's actually a global phase shift in the implementations
 in openQASM 2.0 due to the ways in which things were implemented. We should fix that if we ever want to use
 openQASM for anything other than visualization purposes
+
+TODO: refactor to use: https://github.com/Qiskit/qiskit-terra/blob/main/qiskit/qasm/libs/qelib1.inc
+      I think this may allow us to have all the ops we need?
 """
 
 OPENQASM_ESCAPE_STR = '%%%'
@@ -19,17 +22,19 @@ class OpenQASMInfo:
     OpenQASM information manager
 
     This keeps track of the import statements useful to building a component, of
-    how to formulate a gate definition in openqasm, and of how to apply a gate between specific qubits
+    how to formulate a gate definitions in openqasm, and of how to apply a gate between specific qubits
     """
-    def __init__(self, imports: list, definition: str, usage: str):
+    def __init__(self, gate_name, imports: list, definitions, usage: str):
         """
         Create a openQASMInfo object
 
+        :param gate_name: name of the gate (must be the name used in definitions and usage)
+        :type gate_name: str
         :param imports: a list of strings defining the imports needed to use a function
         :type imports: list (of strs)
-        :param definition: definition of a gate in openQASM format
+        :param definitions: definition of one or more gate in openQASM format
                            Example: "gate x a { U(pi, 0, pi) a; }"
-        :type definition: str
+        :type definitions: str or list
         :param usage: A string explaining how to create a given gate
                       Example: f"x {OPENQASM_ESCAPE_STR}; where OPENQASM_ESCAPE_STR
                       is replaced by the appropriate registers
@@ -37,29 +42,32 @@ class OpenQASMInfo:
         :return: function returns nothing
         :rtype: None
         """
-        self.imports = list(imports)
-        self.definition = definition
+        self.gate_name = gate_name
+        self.imports = imports
+        self.definitions = definitions
         self.usage = usage
 
     @property
-    def import_string(self):
+    def import_strings(self):
         """
-        Returns a string with all imports needed to use a specific openqasm gate/operation
+        Returns a list of strings with all imports needed to use a specific openqasm gate/operation
 
-        :return: an import string
-        :rtype: str
+        :return: a list of import string
+        :rtype: list
         """
-        return "\n".join([f'import {i};' for i in self.imports])
+        return [f'import {i};\n' for i in self.imports]
 
     @property
     def define_gate(self):
         """
-        Returns a string which defines a gate
+        Returns a list of strings which together defines a gate
 
-        :return: gate definition string
-        :rtype: str
+        :return: gate definitions list
+        :rtype: list
         """
-        return self.definition
+        if isinstance(self.definitions, str):
+            return [self.definitions]
+        return self.definitions
 
     def use_gate(self, q_registers, q_registers_type, c_registers, register_indexing=False):
         """
@@ -71,6 +79,9 @@ class OpenQASMInfo:
         :param q_registers_type: type of quantum registers ('e' for emitter qubits, 'p' for photonic qubits)
         :param c_registers: classical registers on which to apply a gate
         :type c_registers: tuple
+        :param register_indexing: if True, the circuit supports (reg, bit) indexing. If False, we have single-qubit
+                                  registers, and the circuit is fully indexed by a single register number
+        :type register_indexing: bool
         :return: a string which applies a gate on the provided quantum registers
         :rtype: str
         """
@@ -150,7 +161,7 @@ def cnot_info():
     definition = ""
     usage = f"CX {OPENQASM_ESCAPE_STR}, {OPENQASM_ESCAPE_STR};"
 
-    return OpenQASMInfo(imports, definition, usage)
+    return OpenQASMInfo('CX', imports, definition, usage)
 
 
 def sigma_x_info():
@@ -158,7 +169,7 @@ def sigma_x_info():
     definition = "gate x a { U(pi, 0, pi) a; }"
     usage = f"x {OPENQASM_ESCAPE_STR};"
 
-    return OpenQASMInfo(imports, definition, usage)
+    return OpenQASMInfo('x', imports, definition, usage)
 
 
 def sigma_y_info():
@@ -166,7 +177,7 @@ def sigma_y_info():
     definition = "gate y a { U(pi, pi / 2, pi / 2) a; }"
     usage = f"y {OPENQASM_ESCAPE_STR};"
 
-    return OpenQASMInfo(imports, definition, usage)
+    return OpenQASMInfo('y', imports, definition, usage)
 
 
 def sigma_z_info():
@@ -174,7 +185,7 @@ def sigma_z_info():
     definition = "gate z a { U(0, pi/2, pi/2) a; }"
     usage = f"z {OPENQASM_ESCAPE_STR};"
 
-    return OpenQASMInfo(imports, definition, usage)
+    return OpenQASMInfo('z', imports, definition, usage)
 
 
 def hadamard_info():
@@ -182,19 +193,46 @@ def hadamard_info():
     definition = "gate h a { U(pi/2, 0, pi) a; }"
     usage = f"h {OPENQASM_ESCAPE_STR};"
 
-    return OpenQASMInfo(imports, definition, usage)
+    return OpenQASMInfo('h', imports, definition, usage)
 
 
 def phase_info():
+    # TODO: investigate why the code fails if we name this gate "p" instead...
     imports = []
-    definition = "gate p a { U(0, pi/2, 0) a; }"
-    usage = f"p {OPENQASM_ESCAPE_STR};"
+    definition = "gate s a { U(0, pi/2, 0) a; }"
+    usage = f"s {OPENQASM_ESCAPE_STR};"
 
-    return OpenQASMInfo(imports, definition, usage)
+    return OpenQASMInfo('s', imports, definition, usage)
 
 
-def identity_info():
-    return OpenQASMInfo([], "", "")
+def single_qubit_wrapper_info(op_list):
+    """
+    This function combines the openqasm info from multiple base Operations,
+    to create a composed block of multiple operations
+    :param op_list: list of operation classes which will be applied by the Operation block
+    :type op_list: list
+    :return: OpenQASMInfo object corresponding to the composed gate
+    :rtype: OpenQASMInfo
+    """
+    imports = []
+    definitions = []
+    gate_name = ""
+    def_usage = ""
+
+    for op_class in op_list:
+        oq_info = op_class.openqasm_info()
+        if oq_info.gate_name == "":  # this is a gate we don't actually need (effectively identity)
+            continue
+
+        imports = imports + oq_info.import_strings
+        definitions = definitions + oq_info.define_gate
+        gate_name += oq_info.gate_name
+        def_usage += f'{oq_info.gate_name} a;\n'
+
+    definitions.append('gate ' + gate_name + ' a { \n' + def_usage + '}')
+
+    usage = f'{gate_name} {OPENQASM_ESCAPE_STR};'
+    return OpenQASMInfo(gate_name, imports, definitions, usage)
 
 
 def cphase_info():
@@ -202,21 +240,17 @@ def cphase_info():
     definition = "gate cz a, b { U(pi/2, 0, pi) b; CX a, b; U(pi/2, 0, pi) b; }"  # H on target, CX, H on target
     usage = f"cz {OPENQASM_ESCAPE_STR}, {OPENQASM_ESCAPE_STR};"
 
-    return OpenQASMInfo(imports, definition, usage)
+    return OpenQASMInfo('cz', imports, definition, usage)
 
 
 def classical_cnot_info():
-    imports = []
-    definition = "gate cCX a, b, c { }"
-    usage = f"cCX {OPENQASM_ESCAPE_STR}, {OPENQASM_ESCAPE_STR} -> {OPENQASM_ESCAPE_STR};"
-    raise NotImplementedError("Classical-quantum gates not particularly compatible with openQASM 2.0, not implemented yet")
+    raise NotImplementedError("Classical-quantum gates not particularly compatible with openQASM 2.0, "
+                              "not implemented yet")
 
 
 def classical_cphase_info():
-    imports = []
-    definition = "gate ccphase a, b, c { }"
-    usage = f"ccphase {OPENQASM_ESCAPE_STR}, {OPENQASM_ESCAPE_STR} -> {OPENQASM_ESCAPE_STR};"
-    raise NotImplementedError("Classical-quantum gates not particularly compatible with openQASM 2.0, not implemented yet")
+    raise NotImplementedError("Classical-quantum gates not particularly compatible with openQASM 2.0, "
+                              "not implemented yet")
 
 
 def z_measurement_info():
@@ -224,8 +258,8 @@ def z_measurement_info():
     definition = ""
     usage = f"measure {OPENQASM_ESCAPE_STR} -> {OPENQASM_ESCAPE_STR};"
 
-    return OpenQASMInfo(imports, definition, usage)
+    return OpenQASMInfo('measure', imports, definition, usage)
 
 
 def empty_info():
-    return OpenQASMInfo([], "", "")
+    return OpenQASMInfo("", [], "", "")

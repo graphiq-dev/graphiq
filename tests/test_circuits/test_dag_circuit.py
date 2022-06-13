@@ -403,3 +403,36 @@ def test_visualization_5():
     dag.add(op3)
     dag.validate()
     dag.draw_dag()
+
+
+@visualization
+def test_visualization_unwrapped_1():
+    """ Test that visualization works with the Wrapper operation """
+    gates = [ops.Hadamard, ops.Phase, ops.Hadamard, ops.Phase, ops.Identity]
+    operation = ops.SingleQubitGateWrapper(gates, register=0, reg_type='e')
+    dag = CircuitDAG(n_emitter=1, n_photon=1, n_classical=0)
+    dag.add(operation)
+    dag.add(ops.CNOT(control=0, control_type='e', target=0, target_type='p'))
+    dag.draw_dag()
+    try:
+        dag.draw_circuit()
+    except Exception as e:
+        print(dag.to_openqasm())
+        raise e
+
+
+@visualization
+def test_visualization_unwrapped_2():
+    """ Test that visualization works with the Wrapper operation """
+    gates = [ops.Hadamard, ops.Phase, ops.Hadamard, ops.Phase, ops.Identity]
+    operation = ops.SingleQubitGateWrapper(gates, register=0, reg_type='e')
+    dag = CircuitDAG(n_emitter=1, n_photon=1, n_classical=0)
+    dag.add(operation)
+    dag.add(ops.CNOT(control=0, control_type='e', target=0, target_type='p'))
+    dag.add(ops.SingleQubitGateWrapper([ops.SigmaX, ops.SigmaY, ops.SigmaZ, ops.Phase], register=0, reg_type='e'))
+    dag.draw_dag()
+    try:
+        dag.draw_circuit()
+    except Exception as e:
+        print(dag.to_openqasm())
+        raise e

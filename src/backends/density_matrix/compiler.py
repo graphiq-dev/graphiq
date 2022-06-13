@@ -41,6 +41,15 @@ from src.circuit import CircuitBase
 
 
 def reg_to_index_func(n_photon):
+    """
+    Given the number of photonic qubits in the circuit, this returns a function which will match a
+    given register number and type (i.e. photonic or emitter) to a matrix index
+
+    :param n_photon: the number of photonic qubits in the system being simulated
+    :type n_photon: int
+    :return: a function which will map register + register type to a matrix index (zero-indexed)
+    :rtype: function
+    """
     def reg_to_index(reg, reg_type):
         if reg_type == 'p':
             return reg

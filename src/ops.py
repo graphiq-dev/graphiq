@@ -60,11 +60,11 @@ class OperationBase(ABC):
         assert len(q_registers) == len(q_registers_type)
         assert isinstance(c_registers, tuple)
 
-        for q, type in zip(q_registers, q_registers_type):
+        for q, reg_type in zip(q_registers, q_registers_type):
             assert isinstance(q, int) or \
                    (isinstance(q, tuple) and len(q) == 2 and isinstance(q[0], int) and isinstance(q[1], int)), \
                    f'Invalid photon_registers: photon_registers tuple must only contain tuples of length 2 or integers'
-            assert type == 'e' or type == 'p'
+            assert reg_type == 'e' or reg_type == 'p'
 
         for c in c_registers:
             assert isinstance(c, int) or \
@@ -134,7 +134,7 @@ class OperationBase(ABC):
         :return: function returns nothing
         :rtype: None
         """
-        self._update_photon_reg(q_reg)
+        self._update_q_reg(q_reg)
 
     @c_registers.setter
     def c_registers(self, c_reg):
@@ -204,6 +204,7 @@ class SingleQubitOperationBase(OperationBase):
     This is used as a base class for any single-qubit operation (single-qubit operations should
     all depend on a single parameter, "register"
     """
+
     def __init__(self, register, reg_type):
         """
         Creates a single-qubit operation base class object
@@ -301,6 +302,7 @@ class ControlledPairOperationBase(OperationBase):
     This is used as a base class for our quantum controlled gates (e.g. CNOT, CPHASE). Each ControlledPairOperationBase
     should have control and target registers/qubits specified
     """
+
     def __init__(self, control, control_type, target, target_type):
         """
         Creates a control gate object
@@ -346,6 +348,7 @@ class ClassicalControlledPairOperationBase(OperationBase):
     Each ClassicalControlledPairOperationBase should have control and target registers/qubits specified, and
     a c_register target register/cbit specified.
     """
+
     def __init__(self, control, control_type, target, target_type, c_register=None):
         """
         Creates the classically controlled gate
@@ -382,7 +385,7 @@ class ClassicalControlledPairOperationBase(OperationBase):
         :return: function returns nothing
         :rtype: None
         """
-        self._update_photon_reg(q_reg)
+        self._update_q_reg(q_reg)
         self.control = q_reg[0]
         self.target = q_reg[1]
 
@@ -410,14 +413,16 @@ class SingleQubitGateWrapper(SingleQubitOperationBase):
     within the circuit (this allows us, for example, to create every local Clifford gate with other gates, without
     having to separately implement every combination within the compiler)
     """
+
     def __init__(self, operations: list, register=0, reg_type='e'):
         super().__init__(register, reg_type)
         if len(operations) == 0:
             raise ValueError('Operation list for the single qubit gate wrapper must be of length 1 or more')
         for op_class in operations:
             assert issubclass(op_class, SingleQubitOperationBase)
+            assert not isinstance(op_class, SingleQubitGateWrapper)  # can only contain base classes
         self.operations = operations
-        self._openqasm_info = self._get_openqasm()
+        self._openqasm_info = oq_lib.single_qubit_wrapper_info(operations)
 
     def unwrap(self):
         """
@@ -429,9 +434,8 @@ class SingleQubitGateWrapper(SingleQubitOperationBase):
         """
         return [op_class(register=self.register, reg_type=self.reg_type) for op_class in self.operations]
 
-    def _get_openqasm(self):
-        return 'x'
-        # TODO implement
+    def openqasm_info(self):
+        return self._openqasm_info
 
 
 class Hadamard(SingleQubitOperationBase):
@@ -488,7 +492,7 @@ class Identity(SingleQubitOperationBase):
     """
     Identity Operation
     """
-    _openqasm_info = oq_lib.identity_info()
+    _openqasm_info = oq_lib.empty_info()
 
     def __init__(self, register=0, reg_type='e'):
         super().__init__(register, reg_type)
@@ -612,15 +616,14 @@ def single_qubit_cliffords():
 
     :return: iterator covering each single-qubit clifford gate
     """
-    A = [
+    a = [
         [Identity], [Hadamard, Phase, Hadamard, Phase], [Hadamard, Phase], [Hadamard], [Phase, Hadamard, Phase], [Phase]
     ]
-    B = [
+    b = [
         [Identity], [SigmaX], [SigmaY], [SigmaZ]
     ]
 
-    def flatten_gates(a):
-        return a[0] + a[1]  # where a is a tuple of lists
+    def flatten_gates(c):
+        return c[0] + c[1]  # where a is a tuple of lists
 
-    return map(flatten_gates, itertools.product(A, B))
-
+    return map(flatten_gates, itertools.product(a, b))

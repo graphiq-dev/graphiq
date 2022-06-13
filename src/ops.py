@@ -21,6 +21,7 @@ between EACH QUBIT of register a, and qubit c of register b
 TODO: consider refactoring register notation to not use tuples (which can be confusing).
 """
 from abc import ABC
+import itertools
 import src.visualizers.openqasm.openqasm_lib as oq_lib
 
 
@@ -33,7 +34,7 @@ class OperationBase(ABC):
     _openqasm_info = None  # This is the information necessary to add our Operation into an openQASM script
     # If _openqasm_info is None, a given operation cannot be added to openQASM
 
-    def __init__(self, q_registers=tuple(), q_registers_type=tuple(), c_registers=tuple(), *args, **kwargs):
+    def __init__(self, q_registers=tuple(), q_registers_type=tuple(), c_registers=tuple()):
         """
         Creates an Operation base object (which is largely responsible for holding the registers on which
         an operation act--this provides a consistent API for the circuit class to use when dealing with
@@ -153,6 +154,16 @@ class OperationBase(ABC):
         """
         self._update_c_reg(c_reg)
 
+    def unwrap(self):
+        """
+        Unwraps the Operation into a list of sub-operations (this can be useful for any operations which are composed
+        of multiple other operations)
+
+        :return: a sequence of base operations (i.e. operations which are not compositions of other operations)
+        :rtype: list
+        """
+        return [self]
+
     def _update_q_reg(self, q_reg):
         """
         Helper function to verify the validity of the new q_registers tuple and to update the fields
@@ -193,7 +204,7 @@ class SingleQubitOperationBase(OperationBase):
     This is used as a base class for any single-qubit operation (single-qubit operations should
     all depend on a single parameter, "register"
     """
-    def __init__(self, register, reg_type, *args, **kwargs):
+    def __init__(self, register, reg_type):
         """
         Creates a single-qubit operation base class object
 
@@ -204,7 +215,7 @@ class SingleQubitOperationBase(OperationBase):
         :return: function returns nothing
         :rtype: None
         """
-        super().__init__(q_registers=(register,), q_registers_type=(reg_type, ), *args, **kwargs)
+        super().__init__(q_registers=(register,), q_registers_type=(reg_type, ))
         self.register = register
         self.reg_type = reg_type
 
@@ -232,7 +243,7 @@ class InputOutputOperationBase(OperationBase):
     # and do not actually modify the circuit output
     _openqasm_info = oq_lib.empty_info()
 
-    def __init__(self, register, reg_type='e', *args, **kwargs):
+    def __init__(self, register, reg_type):
         """
         Creates an IO base class Operation
 
@@ -244,9 +255,9 @@ class InputOutputOperationBase(OperationBase):
         :type reg_type: str
         """
         if reg_type == 'p' or reg_type == 'e':
-            super().__init__(q_registers=(register, ), q_registers_type=(reg_type, ), *args, **kwargs)
+            super().__init__(q_registers=(register, ), q_registers_type=(reg_type, ))
         elif reg_type == 'c':
-            super().__init__(c_registers=(register, ), *args, **kwargs)
+            super().__init__(c_registers=(register, ))
         else:
             raise ValueError("Register type must be either quantum photonic (reg_type='p'), "
                              "quantum emitter (reg_type='e'), or classical (reg_type='c')")
@@ -290,7 +301,7 @@ class ControlledPairOperationBase(OperationBase):
     This is used as a base class for our quantum controlled gates (e.g. CNOT, CPHASE). Each ControlledPairOperationBase
     should have control and target registers/qubits specified
     """
-    def __init__(self, control, control_type, target, target_type, *args, **kwargs):
+    def __init__(self, control, control_type, target, target_type):
         """
         Creates a control gate object
 
@@ -305,7 +316,7 @@ class ControlledPairOperationBase(OperationBase):
         :return: function returns nothing
         :rtype: None
         """
-        super().__init__(q_registers=(control, target), q_registers_type=(control_type, target_type), *args, **kwargs)
+        super().__init__(q_registers=(control, target), q_registers_type=(control_type, target_type))
 
         self.control = control
         self.control_type = control_type
@@ -335,7 +346,7 @@ class ClassicalControlledPairOperationBase(OperationBase):
     Each ClassicalControlledPairOperationBase should have control and target registers/qubits specified, and
     a c_register target register/cbit specified.
     """
-    def __init__(self, control, control_type, target, target_type, c_register=None, *args, **kwargs):
+    def __init__(self, control, control_type, target, target_type, c_register=None):
         """
         Creates the classically controlled gate
 
@@ -352,7 +363,7 @@ class ClassicalControlledPairOperationBase(OperationBase):
         :rtype: None
         """
         super().__init__(q_registers=(control, target), q_registers_type=(control_type, target_type),
-                         c_registers=(c_register, ), *args, **kwargs)
+                         c_registers=(c_register, ))
 
         self.control = control
         self.control_type = control_type
@@ -393,14 +404,44 @@ class ClassicalControlledPairOperationBase(OperationBase):
 """ Quantum gates """
 
 
+class SingleQubitGateWrapper(SingleQubitOperationBase):
+    """
+    This wrapper class allows us to compose a list of single-qubit operation and treat them as a single component
+    within the circuit (this allows us, for example, to create every local Clifford gate with other gates, without
+    having to separately implement every combination within the compiler)
+    """
+    def __init__(self, operations: list, register=0, reg_type='e'):
+        super().__init__(register, reg_type)
+        if len(operations) == 0:
+            raise ValueError('Operation list for the single qubit gate wrapper must be of length 1 or more')
+        for op_class in operations:
+            assert issubclass(op_class, SingleQubitOperationBase)
+        self.operations = operations
+        self._openqasm_info = self._get_openqasm()
+
+    def unwrap(self):
+        """
+        Unwraps the Operation into a list of sub-operations (this can be useful for any operations which are composed
+        of multiple other operations)
+
+        :return: a sequence of base operations (i.e. operations which are not compositions of other operations)
+        :rtype: list
+        """
+        return [op_class(register=self.register, reg_type=self.reg_type) for op_class in self.operations]
+
+    def _get_openqasm(self):
+        return 'x'
+        # TODO implement
+
+
 class Hadamard(SingleQubitOperationBase):
     """
     Hadamard gate Operation
     """
     _openqasm_info = oq_lib.hadamard_info()
 
-    def __init__(self, register=0, reg_type='e', **kwargs):
-        super().__init__(register, reg_type, **kwargs)
+    def __init__(self, register=0, reg_type='e'):
+        super().__init__(register, reg_type)
 
 
 class SigmaX(SingleQubitOperationBase):
@@ -409,8 +450,8 @@ class SigmaX(SingleQubitOperationBase):
     """
     _openqasm_info = oq_lib.sigma_x_info()
 
-    def __init__(self, register=0, reg_type='e', **kwargs):
-        super().__init__(register, reg_type, **kwargs)
+    def __init__(self, register=0, reg_type='e'):
+        super().__init__(register, reg_type)
 
 
 class SigmaY(SingleQubitOperationBase):
@@ -419,8 +460,8 @@ class SigmaY(SingleQubitOperationBase):
     """
     _openqasm_info = oq_lib.sigma_y_info()
 
-    def __init__(self, register=0, reg_type='e', **kwargs):
-        super().__init__(register, reg_type, **kwargs)
+    def __init__(self, register=0, reg_type='e'):
+        super().__init__(register, reg_type)
 
 
 class SigmaZ(SingleQubitOperationBase):
@@ -429,8 +470,28 @@ class SigmaZ(SingleQubitOperationBase):
     """
     _openqasm_info = oq_lib.sigma_z_info()
 
-    def __init__(self, register=0, reg_type='e', **kwargs):
-        super().__init__(register, reg_type, **kwargs)
+    def __init__(self, register=0, reg_type='e'):
+        super().__init__(register, reg_type)
+
+
+class Phase(SingleQubitOperationBase):
+    """
+    Phase gate operation, P = diag(1, i)
+    """
+    _openqasm_info = oq_lib.phase_info()
+
+    def __init__(self, register=0, reg_type='e'):
+        super().__init__(register, reg_type)
+
+
+class Identity(SingleQubitOperationBase):
+    """
+    Identity Operation
+    """
+    _openqasm_info = oq_lib.identity_info()
+
+    def __init__(self, register=0, reg_type='e'):
+        super().__init__(register, reg_type)
 
 
 class CNOT(ControlledPairOperationBase):
@@ -439,8 +500,8 @@ class CNOT(ControlledPairOperationBase):
     """
     _openqasm_info = oq_lib.cnot_info()
 
-    def __init__(self, control=0, control_type='e', target=0, target_type='e', *args, **kwargs):
-        super().__init__(control, control_type, target, target_type, *args, **kwargs)
+    def __init__(self, control=0, control_type='e', target=0, target_type='e'):
+        super().__init__(control, control_type, target, target_type)
 
 
 class CPhase(ControlledPairOperationBase):
@@ -449,8 +510,8 @@ class CPhase(ControlledPairOperationBase):
     """
     _openqasm_info = oq_lib.cphase_info()
 
-    def __init__(self, control=0, control_type='e', target=0, target_type='e', *args, **kwargs):
-        super().__init__(control, control_type, target, target_type, *args, **kwargs)
+    def __init__(self, control=0, control_type='e', target=0, target_type='e'):
+        super().__init__(control, control_type, target, target_type)
 
 
 class ClassicalCNOT(ClassicalControlledPairOperationBase):
@@ -476,7 +537,7 @@ class MeasurementZ(OperationBase):
     """
     _openqasm_info = oq_lib.z_measurement_info()
 
-    def __init__(self, register=0, reg_type='e', c_register=0, *args, **kwargs):
+    def __init__(self, register=0, reg_type='e', c_register=0):
         """
         Creates a Z measurement Operation
 
@@ -489,8 +550,7 @@ class MeasurementZ(OperationBase):
         :return: this function returns nothing
         :rtype: None
         """
-        super().__init__(q_registers=(register, ), q_registers_type=(reg_type, ), c_registers=(c_register,),
-                         *args, **kwargs)
+        super().__init__(q_registers=(register, ), q_registers_type=(reg_type, ), c_registers=(c_register,))
 
         self.register = register
         self.reg_type = reg_type
@@ -530,8 +590,8 @@ class Input(InputOutputOperationBase):
     Input Operation. Serves as a placeholder in the circuit so that we know that this is where a given
     qubit/cbit is introduced (i.e. there are no prior operations on it)
     """
-    def __init__(self, register=None, reg_type='e', *args, **kwargs):
-        super().__init__(register, reg_type=reg_type, *args, **kwargs)
+    def __init__(self, register=None, reg_type='e'):
+        super().__init__(register, reg_type=reg_type)
 
 
 class Output(InputOutputOperationBase):
@@ -539,5 +599,28 @@ class Output(InputOutputOperationBase):
     Input Operation. Serves as a placeholder in the circuit so that we know that this is the final operation on a
     qubit/cbit (i.e. there are no subsequent operations on it)
     """
-    def __init__(self, register=None, reg_type='e', *args, **kwargs):
-        super().__init__(register, reg_type=reg_type, *args, **kwargs)
+    def __init__(self, register=None, reg_type='e'):
+        super().__init__(register, reg_type=reg_type)
+
+
+""" Helper function to get useful sets of gates """
+
+
+def single_qubit_cliffords():
+    """
+    Returns an iterator of single-qubit clifford gates
+
+    :return: iterator covering each single-qubit clifford gate
+    """
+    A = [
+        [Identity], [Hadamard, Phase, Hadamard, Phase], [Hadamard, Phase], [Hadamard], [Phase, Hadamard, Phase], [Phase]
+    ]
+    B = [
+        [Identity], [SigmaX], [SigmaY], [SigmaZ]
+    ]
+
+    def flatten_gates(a):
+        return a[0] + a[1]  # where a is a tuple of lists
+
+    return map(flatten_gates, itertools.product(A, B))
+

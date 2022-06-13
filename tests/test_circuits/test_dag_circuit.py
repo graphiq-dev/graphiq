@@ -331,6 +331,32 @@ def test_register_setting():
         dag.c_registers = [2, 1]
 
 
+def test_sequence_unwinding():
+    """ Test that the sequence unwrapping with the Wrapper opration works"""
+    gates = [ops.Hadamard, ops.Phase, ops.Hadamard, ops.Phase, ops.Identity]
+    operation = ops.SingleQubitGateWrapper(gates, register=0, reg_type='e')
+    dag = CircuitDAG(n_emitter=1, n_photon=1, n_classical=0)
+    dag.add(operation)
+    dag.add(ops.CNOT(control=0, control_type='e', target=0, target_type='p'))
+
+    # sequence without unwrapping
+    op_e0_in = dag.dag.nodes['e0_in']['op']
+    op_p0_in = dag.dag.nodes['p0_in']['op']
+    op_e0_out = dag.dag.nodes['e0_out']['op']
+    op_p0_out = dag.dag.nodes['p0_out']['op']
+
+    op2 = dag.dag.nodes[2]['op']
+
+    op_order = dag.sequence()
+    assert op_order.index(op_e0_in) < op_order.index(operation) < op_order.index(op2) < op_order.index(op_e0_out)
+    assert op_order.index(op_p0_in) < op_order.index(op2) < op_order.index(op_p0_out)
+
+    # sequence with unwrapping
+    op_order = dag.sequence(unwrapped=True)
+    op_class_order = [op.__class__ for op in op_order if not isinstance(op, ops.InputOutputOperationBase)]
+    assert op_class_order == [ops.Hadamard, ops.Phase, ops.Hadamard, ops.Phase, ops.Identity, ops.CNOT]
+
+
 @visualization
 def test_visualization_1(dag):
     dag.validate()

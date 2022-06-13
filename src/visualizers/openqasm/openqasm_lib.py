@@ -185,6 +185,18 @@ def hadamard_info():
     return OpenQASMInfo(imports, definition, usage)
 
 
+def phase_info():
+    imports = []
+    definition = "gate p a { U(0, pi/2, 0) a; }"
+    usage = f"p {OPENQASM_ESCAPE_STR};"
+
+    return OpenQASMInfo(imports, definition, usage)
+
+
+def identity_info():
+    return OpenQASMInfo([], "", "")
+
+
 def cphase_info():
     imports = []
     definition = "gate cz a, b { U(pi/2, 0, pi) b; CX a, b; U(pi/2, 0, pi) b; }"  # H on target, CX, H on target

@@ -49,6 +49,7 @@ def reg_to_index_func(n_photon):
 
     return reg_to_index
 
+
 class DensityMatrixCompiler(CompilerBase):
     """
     Compiler which deals exclusively with the DensityMatrix state representation.
@@ -60,6 +61,8 @@ class DensityMatrixCompiler(CompilerBase):
     name = "density_matrix"
     ops = [  # the accepted operations for a given compiler
         ops.Input,
+        ops.Identity,
+        ops.Phase,
         ops.Hadamard,
         ops.SigmaX,
         ops.SigmaY,
@@ -71,6 +74,7 @@ class DensityMatrixCompiler(CompilerBase):
         ops.MeasurementZ,
         ops.Output,
     ]
+
     def __init__(self, *args, **kwargs):
         """
         Create a compiler which acts on a DensityMatrix state representation
@@ -109,7 +113,8 @@ class DensityMatrixCompiler(CompilerBase):
         # Get functions which will map from registers to a unique index
         q_index = reg_to_index_func(circuit.n_photons)
 
-        seq = circuit.sequence()
+        seq = circuit.sequence(unwrapped=True)  # the unwrapping allows us to support Wrapper operation types
+        print(f'sequence unwrapped: {seq}')
         for op in seq:
             if type(op) not in self.ops:
                 raise RuntimeError(f"The Operation class {op.__class__.__name__} is not valid with "
@@ -121,8 +126,15 @@ class DensityMatrixCompiler(CompilerBase):
             elif type(op) is ops.Output:
                 pass
 
+            elif type(op) is ops.Identity:
+                pass
+
             elif type(op) is ops.Hadamard:
                 unitary = dm.get_single_qubit_gate(circuit.n_quantum, q_index(op.register, op.reg_type), dm.hadamard())
+                state.apply_unitary(unitary)
+
+            elif type(op) is ops.Phase:
+                unitary = dm.get_single_qubit_gate(circuit.n_quantum, q_index(op.register, op.reg_type), dm.phase())
                 state.apply_unitary(unitary)
 
             elif type(op) is ops.SigmaX:

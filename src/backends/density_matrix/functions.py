@@ -48,6 +48,15 @@ def hadamard():
     """
     return np.array([[1.0, 1.0], [1.0, -1.0]]) / np.sqrt(2)
 
+def phase():
+    """
+    Return the phase matrix P = diag(1, i)
+
+    :return: the phase matrtix
+    :rtype: numpy.ndarray
+    """
+    return np.diag([1.0, 1.0j])
+
 
 def ketx0_state():
     """

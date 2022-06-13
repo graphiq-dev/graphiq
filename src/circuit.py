@@ -48,8 +48,10 @@ import networkx as nx
 import matplotlib.pyplot as plt
 from abc import ABC, abstractmethod
 import warnings
+import functools
 
 from src.ops import OperationBase
+from src.ops import Identity
 from src.ops import Input
 from src.ops import Output
 import src.visualizers.openqasm.openqasm_lib as oq_lib
@@ -123,7 +125,7 @@ class CircuitBase(ABC):
         raise ValueError('Base class circuit is abstract: it does not support function calls')
 
     @abstractmethod
-    def sequence(self):
+    def sequence(self, unwrapped=False):
         raise ValueError('Base class circuit is abstract: it does not support function calls')
 
     def to_openqasm(self):
@@ -263,7 +265,7 @@ class CircuitBase(ABC):
 
         :param size: the size of the register to be added
         :type size: int
-        :param reg_type: 'q' if we're adding a photonic quantum register,
+        :param reg_type: 'p' if we're adding a photonic quantum register,
                          'e' if we're adding a quantum emitter register, and
                          'c' if we're adding a classical register
 
@@ -271,7 +273,7 @@ class CircuitBase(ABC):
         :return: the index number of the added register
         :rtype: int
         """
-        if reg_type == 'q':
+        if reg_type == 'p':
             curr_reg = self.photonic_registers
             reg_description = 'Quantum photonic'
         elif reg_type == 'e':
@@ -281,7 +283,7 @@ class CircuitBase(ABC):
             curr_reg = self.c_registers
             reg_description = 'Classical'
         else:
-            raise ValueError("Register type must be 'q' (quantum photonic), 'e' (quantum emitter), or 'c' (classical)")
+            raise ValueError("Register type must be 'p' (quantum photonic), 'e' (quantum emitter), or 'c' (classical)")
 
         if size < 1:
             raise ValueError(f'{reg_description} register size must be at least one')
@@ -317,7 +319,7 @@ class CircuitBase(ABC):
         :return: this function returns nothing
         :rtype: None
         """
-        self._expand_register(register, new_size, 'q')
+        self._expand_register(register, new_size, 'p')
 
     def expand_classical_register(self, register, new_size):
         """
@@ -342,7 +344,7 @@ class CircuitBase(ABC):
         :type register: int
         :param new_size: the new register size
         :type register: int
-        :param reg_type: 'q' for a photonic quantum register, 'e' for an emitter quantum register,
+        :param reg_type: 'p' for a photonic quantum register, 'e' for an emitter quantum register,
                          'c' for a classical register
         :type reg_type: str
         :raises ValueError: if new_size is not greater than the current register size
@@ -351,12 +353,12 @@ class CircuitBase(ABC):
         """
         if reg_type == 'e':
             curr_reg = self.emitter_registers
-        elif reg_type == 'q':
+        elif reg_type == 'p':
             curr_reg = self.photonic_registers
         elif reg_type == 'c':
             curr_reg = self.c_registers
         else:
-            raise ValueError("reg_type must be 'e' (emitter register), 'q' (photonic register), "
+            raise ValueError("reg_type must be 'e' (emitter register), 'p' (photonic register), "
                              "or 'c' (classical register)")
 
         curr_size = curr_reg[register]
@@ -459,14 +461,18 @@ class CircuitDAG(CircuitBase):
             if not isinstance(self.dag.nodes[output_node]['op'], Output):
                 raise RuntimeError(f"Sink node {output_node} in the DAG is not an Output operation")
 
-    def sequence(self):
+    def sequence(self, unwrapped=False):
         """
         Returns the sequence of operations composing this circuit
 
         :return: the operations which compose this circuit, in the order they should be applied
-        :rtype: list (of OperationBase subclass objects)
+        :rtype: list or iterator (of OperationBase subclass objects)
         """
-        return [self.dag.nodes[node]['op'] for node in nx.topological_sort(self.dag)]
+        op_list = [self.dag.nodes[node]['op'] for node in nx.topological_sort(self.dag)]
+        if not unwrapped:
+            return op_list
+
+        return functools.reduce(lambda x, y: x + y.unwrap(), op_list, [])
 
     def draw_dag(self, show=True, fig=None, ax=None):
         """
@@ -619,8 +625,12 @@ class CircuitDAG(CircuitBase):
         for output in relevant_outputs:
             edges_to_remove = list(self.dag.in_edges(nbunch=output, keys=True, data=False))
             for edge in edges_to_remove:
-                self.dag.add_edge(edge[0], new_id, key=edge[2]) # Add edge from preceding node to the new operation node
-                self.dag.add_edge(new_id, edge[1], key=edge[2]) # Add edge from the new operation node to the final node
+                # Add edge from preceding node to the new operation node
+                self.dag.add_edge(edge[0], new_id, key=edge[2], reg=self.dag.edges[edge]['reg'],
+                                  reg_type=self.dag.edges[edge]['reg_type'])
+                # Add edge from the new operation node to the final node
+                self.dag.add_edge(new_id, edge[1], key=edge[2], reg=self.dag.edges[edge]['reg'],
+                                  reg_type=self.dag.edges[edge]['reg_type'])
                 self.dag.remove_edge(edge[0], edge[1], key=edge[2])  # remove the unecessary edges
 
     def _unique_node_id(self):

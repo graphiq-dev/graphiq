@@ -9,6 +9,7 @@ from src.backends.state_base import StateRepresentationBase
 from src.backends.graph.state import Graph
 from src.visualizers.density_matrix import density_matrix_heatmap, density_matrix_bars
 
+
 # TODO: accept single input (# of qubits) as input and initialize as unentangled qubits
 
 
@@ -16,6 +17,7 @@ class DensityMatrix(StateRepresentationBase):
     """
     Density matrix of a graph state
     """
+
     def __init__(self, data, *args, **kwargs):
         """
         Construct a DensityMatrix object and calculate the density matrix from state_data
@@ -81,7 +83,23 @@ class DensityMatrix(StateRepresentationBase):
         if self._data.shape == unitary.shape:
             self._data = unitary @ self._data @ np.transpose(np.conjugate(unitary))
         else:
-            raise ValueError('The density matrix of the state has a different size from the unitary gate to be applied.')
+            raise ValueError(
+                'The density matrix of the state has a different size from the unitary gate to be applied.')
+
+    def apply_channel(self, kraus_ops):
+        """
+        Apply a quantum channel on the state where the quantum channel is described by Kraus representation.
+        Assumes the dimensions match; Otherwise, raise ValueError
+
+        :param kraus_ops: a list of Kraus operators of the channel
+        :type kraus_ops: list[numpy.ndarray]
+        :return: function returns nothing
+        :rtype: None
+        """
+        tmp_state = 0
+        for i in range(len(kraus_ops)):
+            tmp_state = tmp_state + kraus_ops[i] @ self._data @ np.conjugate(kraus_ops[i].T)
+        self._data = tmp_state
 
     def apply_measurement(self, projectors):
         """
@@ -95,7 +113,7 @@ class DensityMatrix(StateRepresentationBase):
         if self._data.shape == projectors[0].shape:
             probs = [np.real(np.trace(self._data @ m)) for m in projectors]
 
-            outcome = np.random.choice([0, 1], p=probs/np.sum(probs))
+            outcome = np.random.choice([0, 1], p=probs / np.sum(probs))
             m, norm = projectors[outcome], probs[outcome]
             # TODO: this is the dm CONDITIONED on the measurement outcome
             # this assumes that the projector, m, has the properties: m = sqrt(m) and m = m.dag()

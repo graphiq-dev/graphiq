@@ -531,6 +531,15 @@ class ClassicalCPhase(ClassicalControlledPairOperationBase):
     """
     _openqasm_info = oq_lib.classical_cphase_info()
 
+class MeasurementCNOTandReset(ControlledPairOperationBase):
+    """
+    Measurement-controlled X gate Operation with resetting the control qubit after measurement
+    """
+    _openqasm_info = oq_lib.classical_cnot_info()
+    def __init__(self, control=0, control_type='e', target=0, target_type='p'):
+        super().__init__(control, control_type, target, target_type)
+
+
 
 class MeasurementZ(OperationBase):
     """

@@ -1,12 +1,41 @@
 import pytest
 import matplotlib.pyplot as plt
+from qiskit import QuantumCircuit
 
 import src.ops as ops
 import src.visualizers.openqasm.openqasm_lib as oq_lib
-from src.circuit import RegisterCircuitDAG
+from src.circuit import CircuitDAG
 from tests.test_flags import visualization
 
 OPENQASM_V = 2
+
+
+@pytest.fixture(scope='function')
+def all_gate_circuit():
+    dag = CircuitDAG()
+    dag.add_emitter_register(size=1)
+    dag.add_photonic_register(size=1)
+    dag.add_classical_register(size=1)
+
+    # single qubit gates
+    dag.add(ops.SigmaX(register=0, reg_type='e'))
+    dag.add(ops.SigmaY(register=0, reg_type='e'))
+    dag.add(ops.SigmaZ(register=0, reg_type='p'))
+    dag.add(ops.Hadamard(register=0, reg_type='e'))
+    dag.add(ops.Phase(register=0, reg_type='p'))
+
+    # controlled gates
+    dag.add(ops.CNOT(control=0, control_type='e', target=0, target_type='p'))
+    dag.add(ops.CPhase(control=0, control_type='e', target=0, target_type='p'))
+
+    # Controlled measurements
+    dag.add(ops.ClassicalCNOT(control=0, control_type='e', target=0, target_type='p', c_register=0))
+    dag.add(ops.ClassicalCPhase(control=0, control_type='e', target=0, target_type='p', c_register=0))
+
+    # Measurement
+    dag.add(ops.MeasurementZ(register=0, reg_type='p', c_register=0))
+
+    return dag
 
 
 def check_openqasm_equivalency(s1, s2):
@@ -27,23 +56,19 @@ def test_gateless_circuit_1(dag):
     expected = oq_lib.openqasm_header() + oq_lib.register_initialization_string([1, 1], [], [1])
     check_openqasm_equivalency(openqasm, expected)
 
-@pytest.mark.xfail(reason='does not respect addition of emitter/photon distinction')
-def test_general_circuit_1(dag):
-    dag.add_emitter_register(size=3)
-    dag.add_emitter_register(size=3)
-    dag.add_classical_register(size=1)
-    dag.add(ops.CNOT(control=1, target=0))
-    dag.add(ops.SigmaX(register=(0, 0)))
-    dag.validate()
-    openqasm = dag.to_openqasm()
-    if OPENQASM_V == 3:
-        expected = 'OPENQASM 3.0; import "stdgates.inc"; qubit[3] q0; qubit[3] q1;' + \
-                   'bit[1] c0; cx q1[0], q0[0]; cx q1[1], q0[1]; cx q1[2], q0[2]; x q0[0];'
-    elif OPENQASM_V == 2:
-        expected =f'OPENQASM 2.0; {oq_lib.cnot_info().define_gate} {oq_lib.sigma_x_info().define_gate} qreg q0[3];' \
-                  f'qreg q1[3]; creg c0[1];' \
-                  'CX q1[0], q0[0]; CX q1[1], q0[1]; CX q1[2], q0[2]; x q0[0];'
-    check_openqasm_equivalency(openqasm, expected)
+
+def test_all_gates_1(all_gate_circuit):
+    all_gate_circuit.validate()
+    try:
+        qasm_str = all_gate_circuit.to_openqasm()
+        QuantumCircuit.from_qasm_str(qasm_str)
+    except Exception as e:
+        print(qasm_str)
+        raise e
+
+
+def test_wrapper_gate_1(all_gate_circuit):
+    pass
 
 
 @visualization
@@ -87,3 +112,13 @@ def test_visualization_3(dag):
     fig, ax = dag.draw_circuit(show=False)
     fig.suptitle("testing fig reception")
     plt.show()
+
+
+@visualization
+def test_visualization_all(all_gate_circuit):
+    all_gate_circuit.validate()
+    try:
+        all_gate_circuit.draw_circuit()
+    except Exception as e:
+        print(all_gate_circuit.to_openqasm())
+        raise e

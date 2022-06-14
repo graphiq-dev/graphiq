@@ -522,16 +522,14 @@ class ClassicalCNOT(ClassicalControlledPairOperationBase):
     """
     Classical CNOT gate Operation
     """
-    # No easy openQASM 2 representation exists, since it's classically controlled
-    # _openqasm_info = oq_lib.classical_cnot_info()
+    _openqasm_info = oq_lib.classical_cnot_info()
 
 
 class ClassicalCPhase(ClassicalControlledPairOperationBase):
     """
     Classical CPHASE gate Operation
     """
-    # No easy openQASM 2 representation exists, since it's classically controlled
-    # _openqasm_info = oq_lib.classical_cphase_info()
+    _openqasm_info = oq_lib.classical_cphase_info()
 
 
 class MeasurementZ(OperationBase):

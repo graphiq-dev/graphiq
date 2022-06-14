@@ -2,6 +2,7 @@ import pytest
 
 import src.ops as ops
 
+
 def test_single_qubit_clifford_combo():
     clifford_iter = ops.single_qubit_cliffords()
     assert next(clifford_iter) == [ops.Identity, ops.Identity]

@@ -349,7 +349,7 @@ class ClassicalControlledPairOperationBase(OperationBase):
     a c_register target register/cbit specified.
     """
 
-    def __init__(self, control, control_type, target, target_type, c_register=None):
+    def __init__(self, control, control_type, target, target_type, c_register=0):
         """
         Creates the classically controlled gate
 
@@ -531,14 +531,15 @@ class ClassicalCPhase(ClassicalControlledPairOperationBase):
     """
     _openqasm_info = oq_lib.classical_cphase_info()
 
-class MeasurementCNOTandReset(ControlledPairOperationBase):
+
+class MeasurementCNOTandReset(ClassicalControlledPairOperationBase):
     """
     Measurement-controlled X gate Operation with resetting the control qubit after measurement
     """
-    _openqasm_info = oq_lib.classical_cnot_info()
-    def __init__(self, control=0, control_type='e', target=0, target_type='p'):
-        super().__init__(control, control_type, target, target_type)
+    _openqasm_info = oq_lib.measurement_cnot_and_reset()
 
+    def __init__(self, control=0, control_type='e', target=0, target_type='p', c_register=0):
+        super().__init__(control, control_type, target, target_type, c_register)
 
 
 class MeasurementZ(OperationBase):

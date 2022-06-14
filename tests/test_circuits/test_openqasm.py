@@ -31,6 +31,7 @@ def all_gate_circuit():
     # Controlled measurements
     dag.add(ops.ClassicalCNOT(control=0, control_type='e', target=0, target_type='p', c_register=0))
     dag.add(ops.ClassicalCPhase(control=0, control_type='e', target=0, target_type='p', c_register=0))
+    dag.add(ops.MeasurementCNOTandReset(control=0, control_type='e', target=0, target_type='p', c_register=0))
 
     # Measurement
     dag.add(ops.MeasurementZ(register=0, reg_type='p', c_register=0))

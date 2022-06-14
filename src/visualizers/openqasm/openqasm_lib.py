@@ -244,8 +244,10 @@ def classical_cnot_info():
     definition = sigma_x_info().definitions[0]
 
     def usage(q_reg, q_reg_type, c_reg):
-        return f"measure {q_reg_type[0]}{q_reg[0]}[0] -> c{c_reg[0]}[0]; \n" \
-               f"if (c{c_reg[0]}==1) x {q_reg_type[1]}{q_reg[1]}[0];"
+        return f"barrier {q_reg_type[0]}{q_reg[0]}, {q_reg_type[1]}{q_reg[1]}; \n" \
+               f"measure {q_reg_type[0]}{q_reg[0]}[0] -> c{c_reg[0]}[0]; \n" \
+               f"if (c{c_reg[0]}==1) x {q_reg_type[1]}{q_reg[1]}[0];" \
+               f"barrier {q_reg_type[0]}{q_reg[0]}, {q_reg_type[1]}{q_reg[1]}; \n"
 
     return OpenQASMInfo('ccnot', imports, definition, usage)
 
@@ -255,11 +257,26 @@ def classical_cphase_info():
     definition = sigma_z_info().definitions[0]
 
     def usage(q_reg, q_reg_type, c_reg):
-        return f"measure {q_reg_type[0]}{q_reg[0]}[0] -> c{c_reg[0]}[0]; \n" \
-               f"if (c{c_reg[0]}==1) z {q_reg_type[1]}{q_reg[1]}[0];"
+        return f"barrier {q_reg_type[0]}{q_reg[0]}, {q_reg_type[1]}{q_reg[1]}; \n" \
+               f"measure {q_reg_type[0]}{q_reg[0]}[0] -> c{c_reg[0]}[0]; \n" \
+               f"if (c{c_reg[0]}==1) z {q_reg_type[1]}{q_reg[1]}[0];" \
+               f"barrier {q_reg_type[0]}{q_reg[0]}, {q_reg_type[1]}{q_reg[1]}; \n"
 
     return OpenQASMInfo('ccphase', imports, definition, usage)
 
+
+def measurement_cnot_and_reset():
+    imports = []
+    definition = sigma_x_info().definitions[0]
+
+    def usage(q_reg, q_reg_type, c_reg):
+        return f"barrier {q_reg_type[0]}{q_reg[0]}, {q_reg_type[1]}{q_reg[1]}; \n" \
+               f"measure {q_reg_type[0]}{q_reg[0]}[0] -> c{c_reg[0]}[0]; \n" \
+               f"if (c{c_reg[0]}==1) z {q_reg_type[1]}{q_reg[1]}[0]; \n" \
+               f"reset {q_reg_type[0]}{q_reg[0]}[0];" \
+               f"barrier {q_reg_type[0]}{q_reg[0]}, {q_reg_type[1]}{q_reg[1]}; \n"
+
+    return OpenQASMInfo('ccnot_and_reset', imports, definition, usage)
 
 def z_measurement_info():
     imports = []

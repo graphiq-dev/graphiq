@@ -22,7 +22,7 @@ class OpenQASMInfo:
     This keeps track of the import statements useful to building a component, of
     how to formulate a gate definitions in openqasm, and of how to apply a gate between specific qubits
     """
-    def __init__(self, gate_name, imports: list, definitions, usage):
+    def __init__(self, gate_name, imports: list, definitions, usage, multi_comp):
         """
         Create a openQASMInfo object
 
@@ -45,6 +45,7 @@ class OpenQASMInfo:
         else:
             self.definitions = definitions
         self.usage = usage
+        self.multi_comp = multi_comp
 
     @property
     def import_strings(self):
@@ -143,7 +144,7 @@ def cnot_info():
     def usage(q_reg, q_reg_type, c_reg):
         return f'CX {q_reg_type[0]}{q_reg[0]}[0], {q_reg_type[1]}{q_reg[1]}[0];'
 
-    return OpenQASMInfo('CX', imports, definition, usage)
+    return OpenQASMInfo('CX', imports, definition, usage, False)
 
 
 def sigma_x_info():
@@ -153,7 +154,7 @@ def sigma_x_info():
     def usage(q_reg, q_reg_type, c_reg):
         return f'x {q_reg_type[0]}{q_reg[0]}[0];'
 
-    return OpenQASMInfo('x', imports, definition, usage)
+    return OpenQASMInfo('x', imports, definition, usage, False)
 
 
 def sigma_y_info():
@@ -163,7 +164,7 @@ def sigma_y_info():
     def usage(q_reg, q_reg_type, c_reg):
         return f'y {q_reg_type[0]}{q_reg[0]}[0];'
 
-    return OpenQASMInfo('y', imports, definition, usage)
+    return OpenQASMInfo('y', imports, definition, usage, False)
 
 
 def sigma_z_info():
@@ -173,7 +174,7 @@ def sigma_z_info():
     def usage(q_reg, q_reg_type, c_reg):
         return f'z {q_reg_type[0]}{q_reg[0]}[0];'
 
-    return OpenQASMInfo('z', imports, definition, usage)
+    return OpenQASMInfo('z', imports, definition, usage, False)
 
 
 def hadamard_info():
@@ -183,7 +184,7 @@ def hadamard_info():
     def usage(q_reg, q_reg_type, c_reg):
         return f'h {q_reg_type[0]}{q_reg[0]}[0];'
 
-    return OpenQASMInfo('h', imports, definition, usage)
+    return OpenQASMInfo('h', imports, definition, usage, False)
 
 
 def phase_info():
@@ -194,7 +195,7 @@ def phase_info():
     def usage(q_reg, q_reg_type, c_reg):
         return f's {q_reg_type[0]}{q_reg[0]}[0];'
 
-    return OpenQASMInfo('s', imports, definition, usage)
+    return OpenQASMInfo('s', imports, definition, usage, False)
 
 
 def single_qubit_wrapper_info(op_list):
@@ -226,7 +227,7 @@ def single_qubit_wrapper_info(op_list):
     def usage(q_reg, q_reg_type, c_reg):
         return f'{gate_name} {q_reg_type[0]}{q_reg[0]}[0];'
 
-    return OpenQASMInfo(gate_name, imports, definitions, usage)
+    return OpenQASMInfo(gate_name, imports, definitions, usage, False)
 
 
 def cphase_info():
@@ -236,7 +237,7 @@ def cphase_info():
     def usage(q_reg, q_reg_type, c_reg):
         return f'cz {q_reg_type[0]}{q_reg[0]}[0], {q_reg_type[1]}{q_reg[1]}[0];'
 
-    return OpenQASMInfo('cz', imports, definition, usage)
+    return OpenQASMInfo('cz', imports, definition, usage, False)
 
 
 def classical_cnot_info():
@@ -247,7 +248,7 @@ def classical_cnot_info():
         return f"measure {q_reg_type[0]}{q_reg[0]}[0] -> c{c_reg[0]}[0]; \n" \
                f"if (c{c_reg[0]}==1) x {q_reg_type[1]}{q_reg[1]}[0];" \
 
-    return OpenQASMInfo('ccnot', imports, definition, usage)
+    return OpenQASMInfo('ccnot', imports, definition, usage, True)
 
 
 def classical_cphase_info():
@@ -258,7 +259,7 @@ def classical_cphase_info():
         return f"measure {q_reg_type[0]}{q_reg[0]}[0] -> c{c_reg[0]}[0]; \n" \
                f"if (c{c_reg[0]}==1) z {q_reg_type[1]}{q_reg[1]}[0];"
 
-    return OpenQASMInfo('ccphase', imports, definition, usage)
+    return OpenQASMInfo('ccphase', imports, definition, usage, True)
 
 
 def measurement_cnot_and_reset():
@@ -271,7 +272,8 @@ def measurement_cnot_and_reset():
                f"barrier {q_reg_type[0]}{q_reg[0]}, {q_reg_type[1]}{q_reg[1]}; \n" \
                f"reset {q_reg_type[0]}{q_reg[0]}[0];"
 
-    return OpenQASMInfo('ccnot_and_reset', imports, definition, usage)
+    return OpenQASMInfo('ccnot_and_reset', imports, definition, usage, True)
+
 
 def z_measurement_info():
     imports = []
@@ -280,8 +282,8 @@ def z_measurement_info():
     def usage(q_reg, q_reg_type, c_reg):
         return f"measure {q_reg_type[0]}{q_reg[0]}[0] -> c{c_reg[0]}[0];"
 
-    return OpenQASMInfo('measure z', imports, definition, usage)
+    return OpenQASMInfo('measure z', imports, definition, usage, False)
 
 
 def empty_info():
-    return OpenQASMInfo("", [], "", lambda x, y, z: "")
+    return OpenQASMInfo("", [], "", lambda x, y, z: "", False)

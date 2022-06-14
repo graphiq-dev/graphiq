@@ -197,7 +197,6 @@ class DensityMatrixCompiler(CompilerBase):
                 reset_kraus_ops = dm.get_reset_qubit_kraus(circuit.n_quantum,q_index(op.control, op.control_type))
                 state.apply_channel(reset_kraus_ops)
 
-
             elif type(op) is ops.MeasurementZ:
                 # TODO: handle conditioned vs unconditioned density operators on the measurement outcome
                 projectors = dm.projectors_zbasis(circuit.n_quantum, q_index(op.register, op.reg_type))

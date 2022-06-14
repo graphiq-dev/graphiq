@@ -140,9 +140,20 @@ class CircuitBase(ABC):
                                                                            self.photonic_registers,
                                                                            self.c_registers) + '\n']
 
+        opened_barrier = False
+        barrier_str = ', '.join([f'p{i}' for i in range(self.n_photons)] + [f'e{i}' for i in range(self.n_emitters)])
         for op in self.sequence():
             oq_info = op.openqasm_info()
             gate_application = oq_info.use_gate(op.q_registers, op.q_registers_type, op.c_registers)
+
+            # set barrier, if necessary to split out multi-block Operations from each other
+            if (opened_barrier or oq_info.multi_comp) and gate_application != "":
+                openqasm_str.append(f'barrier {barrier_str};')
+            if oq_info.multi_comp:  # i.e. multiple visual blocks make this one Operation
+                opened_barrier = True
+            elif gate_application != "":
+                opened_barrier = False
+
             if gate_application != "":
                 openqasm_str.append(gate_application)
 

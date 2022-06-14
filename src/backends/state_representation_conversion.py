@@ -18,10 +18,14 @@ def _graph_finder(x_matrix, z_matrix, pivot):
     The local Clifford equivalency needs to be checked via the stabilzier of the resulting graph and the initial stabilizer
 
     :param x_matrix: binary matrix for representing Pauli X part of the symplectic binary
-    representation of the stabilizer generators
+        representation of the stabilizer generators
+    :type x_matrix: numpy.ndarray
     :param z_matrix:binary matrix for representing Pauli Z part of the
-    symplectic binary representation of the stabilizer generators
+        symplectic binary representation of the stabilizer generators
+    :type z_matrix: numpy.ndarray
     :param pivot: a location to start
+    :type pivot: list[int]
+
     :return: a networkx.Graph object that represents the graph corresponding to the stabilizer
     :rtype: networkX.Graph
     """

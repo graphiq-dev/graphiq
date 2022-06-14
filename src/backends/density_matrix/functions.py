@@ -10,8 +10,6 @@ import numpy as np
 from scipy.linalg import sqrtm
 
 
-# import qutip as qt
-
 def sigmax():
     """
     Return sigma X matrix
@@ -202,6 +200,7 @@ def get_controlled_gate_efficient(n_qubits, control_qubit, target_qubit, target_
     :param target_gate: specify the gate to be applied conditioned on the control_qubit in the ket one state
     :type target_gate: numpy.array
 
+    :raises ValueError: if the target and control qubits are the same
     :return: a controlled unitary gate on the appropriate qubits and with the appropriate target gate
     :rtype: numpy.ndarray
     """
@@ -455,6 +454,9 @@ def bipartite_partial_transpose(rho, dim1, dim2, subsys):
     :type dim2: int
     :param subsys: index of the subsystem to take transpose
     :type subsys: int
+
+    :raises AssertionError: if the dimension of the subsystems and the matrix dimension do not match
+    :raises ValueError: if the input matrix is not bipartite
     :return: the partial transpose matrix of rho
     :rtype: numpy.ndarray
     """

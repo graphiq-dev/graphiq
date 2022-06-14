@@ -97,8 +97,19 @@ def test_gates_2(initialization_circuit):
         raise e
 
 
-def test_wrapper_gate_1(all_gate_circuit):
-    pass
+@pytest.mark.parametrize("gate_list", [[ops.Identity, ops.Identity], [ops.Identity, ops.SigmaX],
+                                       [ops.Identity, ops.SigmaY], [ops.Identity, ops.SigmaZ],
+                                       [ops.Hadamard, ops.Phase, ops.Hadamard, ops.Phase]])
+def test_gates_wrapper_1(gate_list):
+    dag = CircuitDAG(n_emitter=1, n_photon=1, n_classical=1)
+    op = ops.SingleQubitGateWrapper(gate_list, register=0, reg_type='e')
+    dag.add(op)
+    try:
+        qasm_str = dag.to_openqasm()
+        QuantumCircuit.from_qasm_str(qasm_str)
+    except Exception as e:
+        print(qasm_str)
+        raise e
 
 
 @visualization
@@ -153,6 +164,7 @@ def test_visualization_gates_1(all_gate_circuit):
         print(all_gate_circuit.to_openqasm())
         raise e
 
+
 @visualization
 def test_visualization_gates_2(initialization_circuit):
     initialization_circuit.validate()
@@ -161,3 +173,34 @@ def test_visualization_gates_2(initialization_circuit):
     except Exception as e:
         print(initialization_circuit.to_openqasm())
         raise e
+
+
+@pytest.mark.parametrize("gate_list", [[ops.Identity, ops.Identity], [ops.Identity, ops.SigmaX],
+                                       [ops.Identity, ops.SigmaY], [ops.Identity, ops.SigmaZ],
+                                       [ops.Hadamard, ops.Phase, ops.Hadamard, ops.Phase]])
+@visualization
+def test_gates_wrapper_visualization_1(gate_list):
+    dag = CircuitDAG(n_emitter=1, n_photon=1, n_classical=1)
+    op = ops.SingleQubitGateWrapper(gate_list, register=0, reg_type='e')
+    dag.add(op)
+    dag.draw_circuit()
+
+
+@pytest.mark.parametrize("gate_list", [[ops.Identity, ops.Identity], [ops.Identity, ops.SigmaX],
+                                       [ops.Identity, ops.SigmaY], [ops.Identity, ops.SigmaZ],
+                                       [ops.Hadamard, ops.Phase, ops.Hadamard, ops.Phase]])
+@visualization
+def test_gates_wrapper_visualization_2(gate_list, initialization_circuit):
+    op = ops.SingleQubitGateWrapper(gate_list, register=0, reg_type='e')
+    initialization_circuit.add(op)
+    initialization_circuit.draw_circuit()
+
+
+@pytest.mark.parametrize("gate_list", [[ops.Identity, ops.Identity], [ops.Identity, ops.SigmaX],
+                                       [ops.Identity, ops.SigmaY], [ops.Identity, ops.SigmaZ],
+                                       [ops.Hadamard, ops.Phase, ops.Hadamard, ops.Phase]])
+@visualization
+def test_gates_wrapper_visualization_3(gate_list, all_gate_circuit):
+    op = ops.SingleQubitGateWrapper(gate_list, register=0, reg_type='p')
+    all_gate_circuit.add(op)
+    all_gate_circuit.draw_circuit()

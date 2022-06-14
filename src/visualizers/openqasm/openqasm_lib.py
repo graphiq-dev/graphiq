@@ -211,9 +211,13 @@ def single_qubit_wrapper_info(op_list):
     definitions = []
     gate_name = ""
     def_usage = ""
+    gate_name_dict = {
+        "": empty_info()
+    }
 
     for op_class in op_list:
         oq_info = op_class.openqasm_info()
+        gate_name_dict[oq_info.gate_name] = oq_info
         if oq_info.gate_name == "":  # this is a gate we don't actually need (effectively identity)
             continue
 
@@ -221,6 +225,9 @@ def single_qubit_wrapper_info(op_list):
         definitions = definitions + oq_info.define_gate
         gate_name += oq_info.gate_name
         def_usage += f'{oq_info.gate_name} a;\n'
+
+    if gate_name in gate_name_dict:  # i.e. gate is already somehow defined
+        return gate_name_dict[gate_name]
 
     definitions.append('gate ' + gate_name + ' a { \n' + def_usage + '}')
 

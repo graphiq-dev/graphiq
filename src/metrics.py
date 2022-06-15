@@ -76,14 +76,14 @@ class MetricFidelity(MetricBase):
         :rtype: float
         """
         # TODO: replace by actual fidelity check
-        # fid = fidelity(self.target, state)
+        #fid = fidelity(self.target, state)
         fid = fidelity_pure(self.target, state)
         self.increment()
 
         if self._inc % self.log_steps == 0:
             self.log.append(fid)
 
-        return -fid
+        return 1-fid
 
 
 class MetricCircuitDepth(MetricBase):

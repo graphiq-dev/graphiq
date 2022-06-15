@@ -537,7 +537,7 @@ class MeasurementCNOTandReset(ClassicalControlledPairOperationBase):
     Measurement-controlled X gate Operation with resetting the control qubit after measurement
     """
     _openqasm_info = oq_lib.measurement_cnot_and_reset()
-
+    # _openqasm_info = oq_lib.cnot_info()
     def __init__(self, control=0, control_type='e', target=0, target_type='p', c_register=0):
         super().__init__(control, control_type, target, target_type, c_register)
 

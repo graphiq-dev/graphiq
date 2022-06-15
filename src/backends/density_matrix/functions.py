@@ -435,6 +435,7 @@ def fidelity(rho, sigma):
     :return: the fidelity between 0 and 1
     :rtype: int
     """
+
     return np.real(np.trace(sqrtm(sqrtm(rho) @ sigma @ sqrtm(rho))) ** 2)
 
 

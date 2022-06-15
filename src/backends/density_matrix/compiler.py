@@ -124,7 +124,7 @@ class DensityMatrixCompiler(CompilerBase):
         q_index = reg_to_index_func(circuit.n_photons)
 
         seq = circuit.sequence(unwrapped=True)  # the unwrapping allows us to support Wrapper operation types
-        print(f'sequence unwrapped: {seq}')
+        # print(f'sequence unwrapped: {seq}')
         for op in seq:
             if type(op) not in self.ops:
                 raise RuntimeError(f"The Operation class {op.__class__.__name__} is not valid with "

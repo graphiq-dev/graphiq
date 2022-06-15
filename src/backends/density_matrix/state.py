@@ -111,7 +111,12 @@ class DensityMatrix(StateRepresentationBase):
         :rtype: int
         """
         if self._data.shape == projectors[0].shape:
-            probs = [np.real(np.trace(self._data @ m)) for m in projectors]
+            probs = []
+            for m in projectors:
+                prob = np.real(np.trace(self._data @ m))
+                if prob < 0:
+                    prob = 0
+                probs.append(prob)
 
             outcome = np.random.choice([0, 1], p=probs / np.sum(probs))
             m, norm = projectors[outcome], probs[outcome]

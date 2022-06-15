@@ -94,7 +94,7 @@ class DensityMatrixCompiler(CompilerBase):
         """
         super().__init__(*args, **kwargs)
 
-    def compile(self, circuit: CircuitBase):
+    def compile(self, circuit: CircuitBase, set_measurement=None):
         """
         Compiles (i.e. produces an output state) circuit, in density matrix representation.
         This involves sequentially applying each operation of the circuit on the initial state
@@ -190,7 +190,7 @@ class DensityMatrixCompiler(CompilerBase):
 
             elif type(op) is ops.MeasurementCNOTandReset:
                 projectors = dm.projectors_zbasis(circuit.n_quantum, q_index(op.control, op.control_type))
-                outcome = state.apply_deterministic_measurement(projectors)
+                outcome = state.apply_deterministic_measurement(projectors, set_measurement=set_measurement)
                 # outcome = state.apply_measurement(projectors)
                 if outcome == 1:  # condition an X gate on the target qubit based on the measurement outcome
                     unitary = dm.get_single_qubit_gate(circuit.n_quantum,
@@ -201,11 +201,10 @@ class DensityMatrixCompiler(CompilerBase):
 
                 state.apply_channel(reset_kraus_ops)
 
-
             elif type(op) is ops.MeasurementZ:
                 # TODO: handle conditioned vs unconditioned density operators on the measurement outcome
                 projectors = dm.projectors_zbasis(circuit.n_quantum, q_index(op.register, op.reg_type))
-                outcome = state.apply_measurement(projectors)
+                outcome = state.apply_deterministic_measurement(projectors, set_measurement=set_measurement)
                 classical_registers[op.c_register] = outcome
 
             else:

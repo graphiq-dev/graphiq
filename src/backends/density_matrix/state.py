@@ -3,6 +3,7 @@ Density Matrix representation for states
 """
 import networkx as nx
 import numpy as np
+import matplotlib.pyplot as plt
 
 from src.backends.density_matrix.functions import is_psd, create_n_plus_state, apply_cz
 from src.backends.state_base import StateRepresentationBase
@@ -131,8 +132,7 @@ class DensityMatrix(StateRepresentationBase):
 
         return outcome
 
-
-    def apply_deterministic_measurement(self, projectors):
+    def apply_deterministic_measurement(self, projectors, set_measurement=None):
         """
         Apply the projectors measurement onto the density matrix representation of the state
 
@@ -148,10 +148,17 @@ class DensityMatrix(StateRepresentationBase):
                 if prob < 0:
                     prob = 0
                 probs.append(prob)
-            if probs[1] > 0:
-                outcome = 1
+            if set_measurement is None or set_measurement == 1:  # default
+                if probs[1] > 0:
+                    outcome = 1
+                else:
+                    outcome = 0
             else:
-                outcome = 0
+                if probs[1] < 1:
+                    outcome = 0
+                else:
+                    outcome = 1
+            print(f'the outcome was: {outcome}')
             m, norm = projectors[outcome], probs[outcome]
             # TODO: this is the dm CONDITIONED on the measurement outcome
             # this assumes that the projector, m, has the properties: m = sqrt(m) and m = m.dag()
@@ -163,7 +170,6 @@ class DensityMatrix(StateRepresentationBase):
             raise ValueError('The density matrix of the state has a different size from the POVM elements.')
 
         return outcome
-
 
     def draw(self, style='bar', show=True):
         """
@@ -182,5 +188,8 @@ class DensityMatrix(StateRepresentationBase):
             fig, axs = density_matrix_bars(self.data)
         else:
             fig, axs = density_matrix_heatmap(self.data)
+
+        if show:
+            plt.show()
 
         return fig, axs

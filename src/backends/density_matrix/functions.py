@@ -56,7 +56,7 @@ def ketx0_state():
     :return: normalized eigenvector of sigma x matrix, with eigenvalue +1
     :rtype: numpy.ndarray
     """
-    return 1/np.sqrt(2) * np.array([[1.0], [1.0]])
+    return 1 / np.sqrt(2) * np.array([[1.0], [1.0]])
 
 
 def ketx1_state():
@@ -66,7 +66,7 @@ def ketx1_state():
     :return: normalized eigenvector of sigma x matrix, with eigenvalue -1
     :rtype: numpy.ndarray
     """
-    return 1/np.sqrt(2) * np.array([[1.0], [-1.0]])
+    return 1 / np.sqrt(2) * np.array([[1.0], [-1.0]])
 
 
 def ketz0_state():
@@ -96,7 +96,7 @@ def kety0_state():
     :return: normalized eigenvector of sigma y matrix, with eigenvalue +1
     :rtype: numpy.ndarray
     """
-    return 1/np.sqrt(2) * np.array([[1.0], [1.0j]])
+    return 1 / np.sqrt(2) * np.array([[1.0], [1.0j]])
 
 
 def kety1_state():
@@ -106,7 +106,7 @@ def kety1_state():
     :return: normalized eigenvector of sigma y matrix, with eigenvalue -1
     :rtype: numpy.ndarray
     """
-    return 1/np.sqrt(2) * np.array([[1.0], [-1.0j]])
+    return 1 / np.sqrt(2) * np.array([[1.0], [-1.0j]])
 
 
 def projectorz0():
@@ -132,13 +132,13 @@ def projectorz1():
 def get_controlled_gate(number_qubits, control_qubit, target_qubit, target_gate):
     """
     Define a controlled unitary gate
-    :params number_qubits: specify the number of qubits in the system
+    :param number_qubits: specify the number of qubits in the system
     :type number_qubits: int
-    :params control_qubit: specify the index of the control qubit (starting from zero)
+    :param control_qubit: specify the index of the control qubit (starting from zero)
     :type control_qubit: int
-    :params target_qubit: specify the index of the target qubit
+    :param target_qubit: specify the index of the target qubit
     :type target_qubit: int
-    :params target_gate: specify the gate to be applied conditioned on the control_qubit in the ket one state
+    :param target_gate: specify the gate to be applied conditioned on the control_qubit in the ket one state
     :type target_gate: numpy.array
 
     :return: a controlled unitary gate on the appropriate qubits and with the appropriate target gate
@@ -149,43 +149,74 @@ def get_controlled_gate(number_qubits, control_qubit, target_qubit, target_gate)
     if control_qubit < target_qubit:
 
         # tensor identities before the control qubit
-        gate_cond0 = np.kron(gate_cond0, np.identity(2**control_qubit))
-        gate_cond1 = np.kron(gate_cond1, np.identity(2**control_qubit))
+        gate_cond0 = np.kron(gate_cond0, np.identity(2 ** control_qubit))
+        gate_cond1 = np.kron(gate_cond1, np.identity(2 ** control_qubit))
 
         # tensor the gate on the control qubit
         gate_cond0 = np.kron(gate_cond0, ketz0_state() @ np.transpose(np.conjugate(ketz0_state())))
         gate_cond1 = np.kron(gate_cond1, ketz1_state() @ np.transpose(np.conjugate(ketz1_state())))
 
         # the rest is identity for the gate action conditioned on zero
-        gate_cond0 = np.kron(gate_cond0, np.identity(2**(number_qubits-control_qubit-1)))
+        gate_cond0 = np.kron(gate_cond0, np.identity(2 ** (number_qubits - control_qubit - 1)))
 
         # tensor identities between the control qubit and the target qubit
-        gate_cond1 = np.kron(gate_cond1, np.identity(2**(target_qubit-control_qubit-1)))
+        gate_cond1 = np.kron(gate_cond1, np.identity(2 ** (target_qubit - control_qubit - 1)))
         # tensor the gate on the target qubit
         gate_cond1 = np.kron(gate_cond1, target_gate)
         # tensor identities after the target qubit
-        gate_cond1 = np.kron(gate_cond1, np.identity(2**(number_qubits-target_qubit-1)))
+        gate_cond1 = np.kron(gate_cond1, np.identity(2 ** (number_qubits - target_qubit - 1)))
     elif control_qubit > target_qubit:
         # tensor identities before the control qubit for the gate action conditioned on zero
-        gate_cond0 = np.kron(gate_cond0, np.identity(2**control_qubit))
+        gate_cond0 = np.kron(gate_cond0, np.identity(2 ** control_qubit))
 
         # tensor identities before the target qubit
-        gate_cond1 = np.kron(gate_cond1, np.identity(2**target_qubit))
+        gate_cond1 = np.kron(gate_cond1, np.identity(2 ** target_qubit))
         # tensor the gate on the target qubit
         gate_cond1 = np.kron(gate_cond1, target_gate)
         # tensor identities between the control qubit and the target qubit
-        gate_cond1 = np.kron(gate_cond1, np.identity(2**(control_qubit-target_qubit-1)))
+        gate_cond1 = np.kron(gate_cond1, np.identity(2 ** (control_qubit - target_qubit - 1)))
 
         # tensor the gate on the control qubit
         gate_cond0 = np.kron(gate_cond0, ketz0_state() @ np.transpose(np.conjugate(ketz0_state())))
         gate_cond1 = np.kron(gate_cond1, ketz1_state() @ np.transpose(np.conjugate(ketz1_state())))
 
         # tensor identities after the control qubit
-        gate_cond0 = np.kron(gate_cond0, np.identity(2**(number_qubits-control_qubit-1)))
-        gate_cond1 = np.kron(gate_cond1, np.identity(2**(number_qubits-control_qubit-1)))
+        gate_cond0 = np.kron(gate_cond0, np.identity(2 ** (number_qubits - control_qubit - 1)))
+        gate_cond1 = np.kron(gate_cond1, np.identity(2 ** (number_qubits - control_qubit - 1)))
     else:
         raise ValueError('Control qubit and target qubit cannot be the same qubit!')
     return gate_cond0 + gate_cond1
+
+
+def get_controlled_gate_efficient(n_qubits, control_qubit, target_qubit, target_gate):
+    """
+    Define a controlled unitary gate
+    :param n_qubits: specify the number of qubits in the system
+    :type n_qubits: int
+    :param control_qubit: specify the index of the control qubit (starting from zero)
+    :type control_qubit: int
+    :param target_qubit: specify the index of the target qubit
+    :type target_qubit: int
+    :param target_gate: specify the gate to be applied conditioned on the control_qubit in the ket one state
+    :type target_gate: numpy.array
+
+    :raises ValueError: if the target and control qubits are the same
+    :return: a controlled unitary gate on the appropriate qubits and with the appropriate target gate
+    :rtype: numpy.ndarray
+    """
+    if control_qubit < target_qubit:
+        final_gate = np.kron(np.kron(np.eye(2 ** control_qubit), np.eye(2) - sigmaz()),
+                             np.eye(2 ** (target_qubit - control_qubit - 1)))
+        final_gate = np.kron(np.kron(final_gate, target_gate - np.eye(2)), np.eye(2 ** (n_qubits - target_qubit - 1)))
+
+    elif control_qubit > target_qubit:
+        final_gate = np.kron(np.kron(np.eye(2 ** target_qubit), target_gate - np.eye(2)),
+                             np.eye(2 ** (control_qubit - target_qubit - 1)))
+        final_gate = np.kron(np.kron(final_gate, np.eye(2) - sigmaz()), np.eye(2 ** (n_qubits - control_qubit - 1)))
+    else:
+        raise ValueError('Control qubit and target qubit cannot be the same qubit!')
+    final_gate = np.eye(2 ** n_qubits) + final_gate / 2
+    return final_gate
 
 
 def get_single_qubit_gate(number_qubits, qubit_position, target_gate):
@@ -202,8 +233,8 @@ def get_single_qubit_gate(number_qubits, qubit_position, target_gate):
     :rtype: numpy.ndarray
     """
 
-    final_gate = np.kron(np.identity(2**qubit_position), target_gate)
-    final_gate = np.kron(final_gate, np.identity(2**(number_qubits-qubit_position-1)))
+    final_gate = np.kron(np.identity(2 ** qubit_position), target_gate)
+    final_gate = np.kron(final_gate, np.identity(2 ** (number_qubits - qubit_position - 1)))
     return final_gate
 
 
@@ -256,7 +287,7 @@ def is_hermitian(input_matrix):
     """
     Returns True if a matrix is Hermitian, False otherwise
 
-    :params input_matrix: an input matrix for checking Hermitianity
+    :param input_matrix: an input matrix for checking Hermitianity
     :type input_matrix: numpy.array
     :return: True or False
     :rtype: bool
@@ -269,7 +300,7 @@ def is_psd(input_matrix):
     Check if a matrix is positive semidefinite. This method works efficiently for positive definite matrix.
     For positive-semidefinite matrices, we add a small perturbation of the identity matrix.
 
-    :params input_matrix: an input matrix for checking positive semidefiniteness
+    :param input_matrix: an input matrix for checking positive semidefiniteness
     :type input_matrix: numpy.ndarray
     :return: True or False
     :rtype: bool
@@ -411,30 +442,91 @@ def fidelity(rho, sigma):
     return np.real(np.trace(sqrtm(sqrtm(rho) @ sigma @ sqrtm(rho))) ** 2)
 
 
+def bipartite_partial_transpose(rho, dim1, dim2, subsys):
+    """
+    Return the partial transpose matrix of a bipartite density matrix rho
+
+    :param rho: the density matrix before applying partial transpose
+    :type rho: numpy.ndarray
+    :param dim1: dimension of the first system
+    :type dim1: int
+    :param dim2: dimension of the second system
+    :type dim2: int
+    :param subsys: index of the subsystem to take transpose
+    :type subsys: int
+
+    :raises AssertionError: if the dimension of the subsystems and the matrix dimension do not match
+    :raises ValueError: if the input matrix is not bipartite
+    :return: the partial transpose matrix of rho
+    :rtype: numpy.ndarray
+    """
+    # print(rho.size)
+    # print(dim1*dim2)
+    assert (int(np.sqrt(rho.size)) == dim1 * dim2)
+
+    if subsys == 0:
+        mask = [1, 0]
+    elif subsys == 1:
+        mask = [0, 1]
+    else:
+        raise ValueError('The function bipartite_partial_transpose accepts only bipartite states.')
+    pt_dims = np.arange(4).reshape(2, 2).T
+    pt_index = np.concatenate([[pt_dims[n, mask[n]] for n in range(2)],
+                               [pt_dims[n, 1 - mask[n]] for n in range(2)]])
+    rho_pt = rho.reshape(np.array([dim1, dim1, dim2, dim2])).transpose(pt_index).reshape(rho.shape)
+    return rho_pt
+
+
+def negativity(rho, dim1, dim2):
+    """
+    Return the negativity of the matrix rho
+
+    :param rho: the density matrix to evaluate the negativity
+    :type rho: numpy.ndarray
+    :param dim1: dimension of the first system
+    :type dim1: int
+    :param dim2: dimension of the second system
+    :type dim2: int
+    :return: the negativity of rho
+    :rtype: double
+    """
+    rho_pt = bipartite_partial_transpose(rho, dim1, dim2, 0)
+
+    eig_vals, _ = np.linalg.eig(rho_pt)
+    eig_vals = np.real(eig_vals)
+
+    return np.sum(np.abs(eig_vals) - eig_vals) / 2
+
+
+def project_to_z0_and_remove(rho, locations):
+    """
+    Return the density matrix after applying Z measurements on qubits specified by locations mask
+    It removes all these qubits under measurement.
+
+    :param rho: the density matrix to evaluate the negativity
+    :type rho: numpy.ndarray
+    :param locations: a list of zeros/ones
+    :type locations: list or numpy.array
+    :return: density matrix after measuring qubits specified by locations mask in Z basis
+    :rtype: numpy.ndarray
+    """
+    n_qubits = len(locations)
+    m0 = reduce(np.kron, [projectorz0() if locations[i] else np.identity(2) for i in range(n_qubits)])
+    new_rho = m0 @ rho @ np.conjugate(m0.T)
+    new_rho = new_rho / np.trace(new_rho)
+
+    keeps = []
+    for i in range(n_qubits):
+        if locations[i] == 0:
+            keeps.append(i)
+    dims = n_qubits * [2]
+    final_rho = partial_trace(new_rho, keeps, dims)
+    return final_rho
+
+
 if __name__ == "__main__":
     n_qubit = 3
-    register = 0
-    # state = ketx0_state()
-    # state = reduce(np.kron, n_qubit * [state @ np.conjugate(state.T)])
 
     state = (reduce(np.kron, n_qubit * [ketz0_state()]) + reduce(np.kron, n_qubit * [ketz1_state()])) / np.sqrt(2)
     state = state @ np.conjugate(state.T)
-
-    p0, p1 = projectors_zbasis(n_qubit, register)
-
-    # print(p0)
-    # print(p1)
-    print(state)
-    res = np.trace(state @ p0)
-    print(res)
-    res = np.trace(state @ p1)
-    print(res)
-
-    out = p0 @ state @ p0 + p1 @ state @ p1
-    print(out)
-
-    # print(partial_trace(state, keep=list(set(range(n_qubit)) - register, dims=n_qubit * [2])))
-
-    projectors = projectors_zbasis(n_qubit, register)
-    out = sum([m @ state @ m for m in projectors])
-    print(out)
+    # rho = qt.Qobj(state,dims=[[2,2,2],[2,2,2]])

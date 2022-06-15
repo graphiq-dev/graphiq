@@ -57,14 +57,16 @@ class RuleBasedRandomSearchSolver(SolverBase):
             self.transformations = [
                 self.add_emitter_one_qubit_op,
                 self.add_emitter_CNOT,
-                self.add_photon_one_qubit_op,
+                #self.add_photon_one_qubit_op,
+                self.replace_photon_one_qubit_op,
                 self.remove_op
             ]
             self.transformation_prob = [0.4, 0.1, 0.1, 0.4]
         else:
             self.transformations = [
                 self.add_emitter_one_qubit_op,
-                self.add_photon_one_qubit_op,
+                #self.add_photon_one_qubit_op,
+                self.replace_photon_one_qubit_op,
                 self.remove_op
             ]
             self.transformation_prob = [1 / 3, 1 / 3, 1 / 3]
@@ -93,7 +95,7 @@ class RuleBasedRandomSearchSolver(SolverBase):
             # initialize all photon emission gates
             circuit.add(ops.CNOT(control=emission_assignment[i], control_type='e', target=i, target_type='p'))
             # initialize all single-qubit Clifford gate for photonic qubits
-            # circuit.add(ops.SingleQubitGateWrapper([Identity, Hadamard], register=i, reg_type='p'))
+            circuit.add(ops.SingleQubitGateWrapper([ops.Identity, ops.Hadamard], register=i, reg_type='p'))
 
         # initialize all emitter meausurement and reset operations
         assert len(measurement_assignment) == n_emitter
@@ -192,7 +194,8 @@ class RuleBasedRandomSearchSolver(SolverBase):
         :return:
         """
         # TODO: debug this function
-        nodes = [node for node in circuit.dag.nodes if type(circuit.dag.nodes[node]['op']) is ops.SingleQubitGateWrapper]
+        nodes = [node for node in circuit.dag.nodes if type(circuit.dag.nodes[node]['op']) is ops.SingleQubitGateWrapper and
+                                                            circuit.dag.edges[circuit.dag.in_edges(nbunch=node)]['reg_type'] == 'p']
         if len(nodes) == 0:
             return
         ind = np.random.randint(len(nodes))

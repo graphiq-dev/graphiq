@@ -133,12 +133,13 @@ class RuleBasedRandomSearchSolver(SolverBase):
         :return: nothing
         """
 
-        scores = [None for _ in range(self.n_stop)]
-        circuits = [None for _ in range(self.n_stop)]
+
         np.random.seed(seed)
         p_dist = [0.5] + 11 * [0.1 / 22] + [0.4] + 11 * [0.1 / 22]
         e_dist = [0.5] + 11 * [0.02 / 22] + [0.48] + 11 * [0.02 / 22]
         for i in range(self.n_pop):
+            scores = self.n_stop* [np.inf]
+            circuits = self.n_stop * [None]
             emission_assignment = get_emission_assignment(self.n_photon, self.n_emitter, np.random.randint(10000))
             measurement_assignment = get_measurement_assignment(self.n_photon, self.n_emitter, np.random.randint(10000))
             circuit = self._initialization(self.n_emitter, self.n_photon, emission_assignment, measurement_assignment)
@@ -170,14 +171,12 @@ class RuleBasedRandomSearchSolver(SolverBase):
 
                 state = self.compiler.compile(circuit)  # this will pass out a density matrix object
 
-                new_state = dmf.partial_trace(state.data, keep=list(range(self.n_photon)), dims=(self.n_photon + self.n_emitter) * [2])
-                score = self.metric.evaluate(new_state, circuit)
-
-
+                state = dmf.partial_trace(state.data, keep=list(range(self.n_photon)), dims=(self.n_photon + self.n_emitter) * [2])
+                score = self.metric.evaluate(state, circuit)
 
 
                 scores[j] = score
-                circuits[j] = circuit
+                circuits[j] = copy.deepcopy(circuit)
 
             self.update_hof(scores, circuits)
 
@@ -437,11 +436,12 @@ if __name__ == "__main__":
     metric = MetricFidelity(target=target)
 
     solver = RuleBasedRandomSearchSolver(target=target, metric=metric, compiler=compiler, n_emitter=n_emitter, n_photon=n_photon)
-    returned_state = solver.solve(50)
-    print(solver.hof[0][0])
+    solver.solve(20)
+    print('hof score is ' + str(solver.hof[0][0]))
     circuit = solver.hof[1][0]
     state = compiler.compile(circuit)
-
+    state2 = compiler.compile(circuit)
+    state3 = compiler.compile(circuit)
     circuit.draw_circuit()
     # circuit.draw_dag()
     fig, axs = density_matrix_bars(target)
@@ -449,8 +449,10 @@ if __name__ == "__main__":
     plt.show()
 
     new_state = dmf.partial_trace(state.data, keep=list(range(n_photon)), dims=(n_photon + n_emitter) * [2])
-    # new_state2 = dmf.partial_trace(state2.data, keep=list(range(n_photon)), dims=(n_photon + n_emitter) * [2])
-    print(np.allclose(returned_state.data,state.data))
+    new_state2 = dmf.partial_trace(state2.data, keep=list(range(n_photon)), dims=(n_photon + n_emitter) * [2])
+    new_state3 = dmf.partial_trace(state3.data, keep=list(range(n_photon)), dims=(n_photon + n_emitter) * [2])
+    print('Are these two states the same: ' + str(np.allclose(new_state, new_state3)))
+    print('The circuit compiles a state that has an infidelity ' + str(metric.evaluate(new_state, circuit)))
     fig, axs = density_matrix_bars(new_state)
 
     fig.suptitle("CREATED DENSITY MATRIX")

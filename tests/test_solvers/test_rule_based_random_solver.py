@@ -64,10 +64,12 @@ def test_solver_4qubit():
     solver = RuleBasedRandomSearchSolver(target=target, metric=metric, compiler=compiler, n_emitter=n_emitter, n_photon=n_photon)
 
 
-    solver.solve(20)
-    print(solver.hof[0][0])
-    circuit = solver.hof[1][0]
+    circuit = solver.solve(20)
+    print('hof score is '+str(solver.hof[0][0]))
+    #circuit = solver.hof[1][0]
     state = compiler.compile(circuit)
+    state2 = compiler.compile(circuit)
+    state3 = compiler.compile(circuit)
     circuit.draw_circuit()
     # circuit.draw_dag()
     fig, axs = density_matrix_bars(target)
@@ -75,9 +77,10 @@ def test_solver_4qubit():
     plt.show()
 
     new_state = dmf.partial_trace(state.data, keep=list(range(n_photon)), dims=(n_photon + n_emitter) * [2])
-
-    # print(np.allclose(new_state, target))
-    print(metric.evaluate(new_state, circuit))
+    new_state2 = dmf.partial_trace(state2.data, keep=list(range(n_photon)), dims=(n_photon + n_emitter) * [2])
+    new_state3 = dmf.partial_trace(state3.data, keep=list(range(n_photon)), dims=(n_photon + n_emitter) * [2])
+    print('Are these two states the same: '+str(np.allclose(new_state, new_state3)))
+    print('The circuit compiles a state that has an infidelity '+ str(metric.evaluate(new_state, circuit)))
     fig, axs = density_matrix_bars(new_state)
 
     fig.suptitle("CREATED DENSITY MATRIX")

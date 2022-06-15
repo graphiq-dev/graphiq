@@ -148,7 +148,7 @@ class DensityMatrix(StateRepresentationBase):
                 if prob < 0:
                     prob = 0
                 probs.append(prob)
-            if probs[1]>0:
+            if probs[1] > 0:
                 outcome = 1
             else:
                 outcome = 0

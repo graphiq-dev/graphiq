@@ -31,7 +31,7 @@ def test_solver_3qubit():
     metric = MetricFidelity(target=target)
 
     solver = RuleBasedRandomSearchSolver(target=target, metric=metric, compiler=compiler, n_emitter=n_emitter, n_photon=n_photon)
-    solver.solve(1)
+    solver.solve(10)
     print(solver.hof[0][0])
 
     state = compiler.compile(solver.hof[1][0])
@@ -64,9 +64,9 @@ def test_solver_4qubit():
     solver = RuleBasedRandomSearchSolver(target=target, metric=metric, compiler=compiler, n_emitter=n_emitter, n_photon=n_photon)
 
 
-    circuit = solver.solve(20)
+    solver.solve(20)
     print('hof score is '+str(solver.hof[0][0]))
-    #circuit = solver.hof[1][0]
+    circuit = solver.hof[1][0]
     state = compiler.compile(circuit)
     state2 = compiler.compile(circuit)
     state3 = compiler.compile(circuit)

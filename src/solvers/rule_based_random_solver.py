@@ -67,7 +67,8 @@ class RuleBasedRandomSearchSolver(SolverBase):
                 self.add_emitter_one_qubit_op,
                 #self.add_photon_one_qubit_op,
                 self.replace_photon_one_qubit_op,
-                self.remove_op
+                self.remove_op,
+                # self.add_measurement_and_reset
             ]
             self.transformation_prob = [1 / 3, 1 / 3, 1 / 3]
             # self.transformation_prob = [1 / 2, 1 / 2]
@@ -195,14 +196,14 @@ class RuleBasedRandomSearchSolver(SolverBase):
         """
         # TODO: debug this function
         nodes = [node for node in circuit.dag.nodes if type(circuit.dag.nodes[node]['op']) is ops.SingleQubitGateWrapper and
-                                                            circuit.dag.edges[circuit.dag.in_edges(nbunch=node)]['reg_type'] == 'p']
+                                                            list(circuit.dag.in_edges(nbunch=node, data=True))[0][2]['reg_type'] == 'p']
         if len(nodes) == 0:
             return
         ind = np.random.randint(len(nodes))
         node = list(nodes)[ind]
 
         old_op = circuit.dag.nodes[node]['op']
-        print(old_op.register)
+
         reg = old_op.register
         ind = np.random.choice(len(self.single_qubit_ops), p=p_dist)
         op = self.single_qubit_ops[ind]

@@ -55,34 +55,46 @@ class RuleBasedRandomSearchSolver(SolverBase):
         self.n_photon = n_photon
         if self.n_emitter > 1:
             self.transformations = [
-                                self.add_emitter_one_qubit_op,
-                                self.add_emitter_CNOT,
-                                self.add_photon_one_qubit_op,
-                                self.remove_op
-                                ]
+                self.add_emitter_one_qubit_op,
+                self.add_emitter_CNOT,
+                self.add_photon_one_qubit_op,
+                self.remove_op
+            ]
             self.transformation_prob = [0.4, 0.1, 0.1, 0.4]
         else:
             self.transformations = [
-                                self.add_emitter_one_qubit_op,
-                                self.add_photon_one_qubit_op,
-                                self.remove_op
-                                ]
-            self.transformation_prob = [1/3, 1/3, 1/3]
+                self.add_emitter_one_qubit_op,
+                self.add_photon_one_qubit_op,
+                self.remove_op
+            ]
+            self.transformation_prob = [1 / 3, 1 / 3, 1 / 3]
         # hof stores the best circuits and their scores in the form of: (scores, circuits)
         self.hof = (collections.deque(self.n_hof * [np.inf]),
                     collections.deque(self.n_hof * [None]))
 
     def _initialization(self, n_emitter, n_photon, emission_assignment, measurement_assignment):
-        circuit = CircuitDAG(n_emitter=n_emitter, n_photon=n_photon, n_classical=0)
+        """
+        Initialize a quantum circuit with photon emission, emitter measurements
+        :param n_emitter: number of emitters
+        :type n_emitter: int
+        :param n_photon: number of photonic qubits
+        :type n_photon: int
+        :param emission_assignment: which emitter emits which photon
+        :type emission_assignment: list[int]
+        :param measurement_assignment: which photonic qubit is targeted after measuring each emitter
+        :type measurement_assignment: list[int]
+        :return: nothing
+        """
+        circuit = CircuitDAG(n_emitter=n_emitter, n_photon=n_photon, n_classical=1)
         assert len(emission_assignment) == n_photon
 
-        # initialize all photon emission gates
         for i in range(n_photon):
+            # initialize all photon emission gates
             circuit.add(CNOT(control=emission_assignment[i], control_type='e', target=i, target_type='p'))
-        #for i in range(n_photon):
-         #   circuit.add(SingleQubitGateWrapper([Identity, Hadamard], register=i, reg_type='p'))
-        # initialize all emitter meausurement and reset operations
+            # initialize all single-qubit Clifford gate for photonic qubits
+            # circuit.add(SingleQubitGateWrapper([Identity, Hadamard], register=i, reg_type='p'))
 
+        # initialize all emitter meausurement and reset operations
         assert len(measurement_assignment) == n_emitter
         for j in range(n_emitter):
             circuit.add(
@@ -101,23 +113,30 @@ class RuleBasedRandomSearchSolver(SolverBase):
                     break
 
     def test_initialization(self, seed):
+        # debugging only
         np.random.seed(seed)
 
         emission_assignment = get_emission_assignment(self.n_photon, self.n_emitter, np.random.randint(10000))
         measurement_assignment = get_measurement_assignment(self.n_photon, self.n_emitter,
-                                                                np.random.randint(10000))
+                                                            np.random.randint(10000))
         circuit = self._initialization(self.n_emitter, self.n_photon, emission_assignment, measurement_assignment)
         circuit.draw_dag()
-        #print(circuit.dag.nodes())
+        # print(circuit.dag.nodes())
         circuit.draw_circuit()
 
     def solve(self, seed):
+        """
+        The main function for the solver
+        :param seed: a random number generator seed
+        :type seed: int
+        :return: nothing
+        """
 
         scores = [None for _ in range(self.n_stop)]
         circuits = [None for _ in range(self.n_stop)]
         np.random.seed(seed)
-        p_dist = [0.5] + 11 * [0.1/22] + [0.4] + 11 * [0.1/22]
-        e_dist = [0.5] + 11 * [0.02/22] + [0.48] + 11 * [0.02/22]
+        p_dist = [0.5] + 11 * [0.1 / 22] + [0.4] + 11 * [0.1 / 22]
+        e_dist = [0.5] + 11 * [0.02 / 22] + [0.48] + 11 * [0.02 / 22]
         for i in range(self.n_pop):
             emission_assignment = get_emission_assignment(self.n_photon, self.n_emitter, np.random.randint(10000))
             measurement_assignment = get_measurement_assignment(self.n_photon, self.n_emitter, np.random.randint(10000))
@@ -126,7 +145,8 @@ class RuleBasedRandomSearchSolver(SolverBase):
             # print(f"\nNew generation {i}")
 
             for j in range(self.n_stop):
-                transformation = self.transformations[np.random.choice(len(self.transformations), p=self.transformation_prob)]
+                transformation = self.transformations[
+                    np.random.choice(len(self.transformations), p=self.transformation_prob)]
                 # transformation = self.add_emitter_CNOT
                 # transformation = self.add_emitter_one_qubit_op
 
@@ -145,12 +165,12 @@ class RuleBasedRandomSearchSolver(SolverBase):
                 else:
                     transformation(circuit)
 
-
                 circuit.validate()
 
                 state = self.compiler.compile(circuit)  # this will pass out a density matrix object
 
-                state = dmf.partial_trace(state.data, list(range(self.n_photon)), (self.n_photon + self.n_emitter) * [2])
+                state = dmf.partial_trace(state.data, list(range(self.n_photon)),
+                                          (self.n_photon + self.n_emitter) * [2])
                 # score = 1
                 score = self.metric.evaluate(state.data, circuit)
 
@@ -164,6 +184,14 @@ class RuleBasedRandomSearchSolver(SolverBase):
         return
 
     def replace_photon_one_qubit_op(self, circuit, p_dist):
+        """
+        Replacing one single-qubit Clifford gate applied on a photonic qubit to another one
+        :param circuit: a quantum circuit
+        :type circuit: CircuitDAG
+        :param p_dist: probability distribution
+        :type p_dist: list[float] or list[double]
+        :return:
+        """
         # TODO: debug this function
         nodes = [node for node in circuit.dag.nodes if type(circuit.dag.nodes[node]['op']) is SingleQubitGateWrapper]
         if len(nodes) == 0:
@@ -181,9 +209,20 @@ class RuleBasedRandomSearchSolver(SolverBase):
         circuit.dag.nodes[node]['op'] = gate
 
     def add_photon_one_qubit_op(self, circuit, p_dist):
+        """
+        Add a single-qubit Clifford gate to a photonic qubit
+        Will be removed if replacing and initialization work.
+        :param circuit: a quantum circuit
+        :type circuit: CircuitDAG
+        :param p_dist: probability distribution
+        :type p_dist: list[float] or list[double]
+        :return: nothing
+        """
+
+        # make sure only selecting a photonic qubit after initialization and avoiding applying single-qubit Clifford gates twice
         edges = [edge for edge in circuit.dag.edges if circuit.dag.edges[edge]['reg_type'] == 'p' and
-                                                    type(circuit.dag.nodes[edge[0]]['op']) is CNOT and
-                                                    type(circuit.dag.nodes[edge[1]]['op']) is not SingleQubitGateWrapper]
+                 type(circuit.dag.nodes[edge[0]]['op']) is CNOT and
+                 type(circuit.dag.nodes[edge[1]]['op']) is not SingleQubitGateWrapper]
 
         if len(edges) == 0:
             return
@@ -206,18 +245,24 @@ class RuleBasedRandomSearchSolver(SolverBase):
         circuit.dag.add_edges_from(new_edges, reg_type='p', reg=reg)
         return
 
-
     def add_emitter_one_qubit_op(self, circuit, e_dist):
         """
         Randomly selects one valid edge on which to add a new single-qubit gate
+        :param circuit: a quantum circuit
+        :type circuit: CircuitDAG
+        :param e_dist: probability distribution
+        :type e_dist: list[float] or list[double]
+        :return: nothing
         """
 
+        # make sure only selecting emitter qubits and avoiding adding a gate after final measurement or
+        # adding two single-qubit Clifford gates in a row
         edges = [edge for edge in circuit.dag.edges if circuit.dag.edges[edge]['reg_type'] == 'e' and
-                                                    type(circuit.dag.nodes[edge[1]]['op']) is not Output and
-                                                    type(circuit.dag.nodes[edge[0]]['op']) is not SingleQubitGateWrapper and
-                                                    type(circuit.dag.nodes[edge[1]]['op']) is not SingleQubitGateWrapper]
+                 type(circuit.dag.nodes[edge[1]]['op']) is not Output and
+                 type(circuit.dag.nodes[edge[0]]['op']) is not SingleQubitGateWrapper and
+                 type(circuit.dag.nodes[edge[1]]['op']) is not SingleQubitGateWrapper]
 
-        if len(edges) ==0:
+        if len(edges) == 0:
             return
         ind = np.random.randint(len(edges))
         edge = list(edges)[ind]
@@ -243,8 +288,12 @@ class RuleBasedRandomSearchSolver(SolverBase):
         Randomly selects two valid edges on which to add a new two-qubit gate.
         One edge is selected from all edges, and then the second is selected that maintains proper temporal ordering
         of the operations.
+        :param circuit: a quantum circuit
+        :type circuit: CircuitDAG
+        :return: nothing
         """
-        edges = [edge for edge in circuit.dag.edges if circuit.dag.edges[edge]['reg_type'] == 'e' and type(circuit.dag.nodes[edge[1]]['op']) is not Output]
+        edges = [edge for edge in circuit.dag.edges if
+                 circuit.dag.edges[edge]['reg_type'] == 'e' and type(circuit.dag.nodes[edge[1]]['op']) is not Output]
 
         ind = np.random.randint(len(edges))
         edge0 = list(edges)[ind]
@@ -270,7 +319,7 @@ class RuleBasedRandomSearchSolver(SolverBase):
 
         new_id = circuit._unique_node_id()
         gate = CNOT(control=circuit.dag.edges[edge0]['reg'], control_type='e',
-                                           target=circuit.dag.edges[edge1]['reg'], target_type='e')
+                    target=circuit.dag.edges[edge1]['reg'], target_type='e')
         circuit._open_qasm_update(gate)
         circuit.dag.add_node(new_id, op=gate)
 
@@ -286,12 +335,20 @@ class RuleBasedRandomSearchSolver(SolverBase):
 
     def remove_op(self, circuit, fixed_node, node=None):
         """
-        Randomly selects
+        Randomly selects a node in CircuitDAG to remove subject to some restrictions
+
+        :param circuit: a quantum circuit
+        :type circuit: CircuitDAG
+        :param fixed_node: a list of nodes in CircuitDAG that should not be modified
+        :type fixed_node:
+        :param node: a specified node to be removed
+        :type node:
+        :return: nothing
         """
         if node is None:
             nodes = [node for node in circuit.dag.nodes if not (
-                        not (type(circuit.dag.nodes[node]['op']) not in self.fixed_ops) or not (
-                            node not in fixed_node))]
+                    not (type(circuit.dag.nodes[node]['op']) not in self.fixed_ops) or not (
+                    node not in fixed_node))]
             if len(nodes) == 0:
                 warnings.warn("No nodes that can be removed in the circuit. Skipping.")
                 return
@@ -313,7 +370,19 @@ class RuleBasedRandomSearchSolver(SolverBase):
         return
 
 
+# helper functions
 def get_emission_assignment(n_photon, n_emitter, seed):
+    """
+    Generate a random assignment for the emission source of each photon
+    :param n_photon: number of photons
+    :type n_photon: int
+    :param n_emitter: number of emitters
+    :type n_emitter: int
+    :param seed: a random number generator seed
+    :type seed: int
+    :return: a list of emitter numbers
+    :rtype: list[int]
+    """
     if n_emitter == 1:
         return n_photon * [0]
     else:
@@ -339,11 +408,22 @@ def get_emission_assignment(n_photon, n_emitter, seed):
 
 
 def get_measurement_assignment(n_photon, n_emitter, seed):
+    """
+     Generate a random assignment for the target of measurement-based control X gate after measuring each emitter qubit
+     :param n_photon: number of photons
+     :type n_photon: int
+     :param n_emitter: number of emitters
+     :type n_emitter: int
+     :param seed: a random number generator seed
+     :type seed: int
+     :return: a list of photon numbers
+     :rtype: list[int]
+     """
     np.random.seed(seed)
     assignment = []
 
     for i in range(n_emitter):
         ind = np.random.randint(n_photon)
         assignment.append(ind)
-
+    # print(list(np.random.randint(n_photon, size=n_emitter)))
     return assignment

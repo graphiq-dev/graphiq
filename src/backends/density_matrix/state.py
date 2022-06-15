@@ -131,6 +131,40 @@ class DensityMatrix(StateRepresentationBase):
 
         return outcome
 
+
+    def apply_deterministic_measurement(self, projectors):
+        """
+        Apply the projectors measurement onto the density matrix representation of the state
+
+        :param projectors: the projector which is the measurement to apply
+        :type projectors: numpy.ndarray
+        :return: the measurement outcome
+        :rtype: int
+        """
+        if self._data.shape == projectors[0].shape:
+            probs = []
+            for m in projectors:
+                prob = np.real(np.trace(self._data @ m))
+                if prob < 0:
+                    prob = 0
+                probs.append(prob)
+            if probs[1]>0:
+                outcome = 1
+            else:
+                outcome = 0
+            m, norm = projectors[outcome], probs[outcome]
+            # TODO: this is the dm CONDITIONED on the measurement outcome
+            # this assumes that the projector, m, has the properties: m = sqrt(m) and m = m.dag()
+            self._data = (m @ self._data @ np.transpose(np.conjugate(m))) / norm
+
+            # TODO: this is the dm *unconditioned* on the outcome
+            # self._data = sum([m @ self._data @ m for m in projectors])
+        else:
+            raise ValueError('The density matrix of the state has a different size from the POVM elements.')
+
+        return outcome
+
+
     def draw(self, style='bar', show=True):
         """
         Draw a bar graph or heatmap of the DensityMatrix representation data

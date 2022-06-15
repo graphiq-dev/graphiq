@@ -10,9 +10,9 @@ import time
 import src.backends.density_matrix.functions as dmf
 
 from src.solvers.base import SolverBase
-from src.metrics import MetricBase
-from src.circuit import CircuitBase
-from src.backends.compiler_base import CompilerBase
+# from src.metrics import MetricBase
+# from src.circuit import CircuitBase
+# from src.backends.compiler_base import CompilerBase
 
 from src.backends.density_matrix.compiler import DensityMatrixCompiler
 from src.circuit import CircuitDAG
@@ -22,7 +22,7 @@ from src.visualizers.density_matrix import density_matrix_bars
 from src import ops
 from src.io import IO
 
-from benchmarks.circuits import *
+import benchmarks.circuits as bc
 
 
 class RuleBasedRandomSearchSolver(SolverBase):
@@ -40,7 +40,7 @@ class RuleBasedRandomSearchSolver(SolverBase):
         ops.Input,
         ops.Output
     ]
-    single_qubit_ops = list(single_qubit_cliffords())
+    single_qubit_ops = list(ops.single_qubit_cliffords())
 
     def __init__(self,
                  target=None,
@@ -68,6 +68,7 @@ class RuleBasedRandomSearchSolver(SolverBase):
                 self.remove_op
             ]
             self.transformation_prob = [1 / 3, 1 / 3, 1 / 3]
+            # self.transformation_prob = [1 / 2, 1 / 2]
         # hof stores the best circuits and their scores in the form of: (scores, circuits)
         self.hof = (collections.deque(self.n_hof * [np.inf]),
                     collections.deque(self.n_hof * [None]))
@@ -90,15 +91,15 @@ class RuleBasedRandomSearchSolver(SolverBase):
 
         for i in range(n_photon):
             # initialize all photon emission gates
-            circuit.add(CNOT(control=emission_assignment[i], control_type='e', target=i, target_type='p'))
+            circuit.add(ops.CNOT(control=emission_assignment[i], control_type='e', target=i, target_type='p'))
             # initialize all single-qubit Clifford gate for photonic qubits
-            # circuit.add(SingleQubitGateWrapper([Identity, Hadamard], register=i, reg_type='p'))
+            # circuit.add(ops.SingleQubitGateWrapper([Identity, Hadamard], register=i, reg_type='p'))
 
         # initialize all emitter meausurement and reset operations
         assert len(measurement_assignment) == n_emitter
         for j in range(n_emitter):
             circuit.add(
-                MeasurementCNOTandReset(control=j, control_type='e', target=measurement_assignment[j], target_type='p'))
+                ops.MeasurementCNOTandReset(control=j, control_type='e', target=measurement_assignment[j], target_type='p'))
         return circuit
 
     def update_hof(self, scores, circuits):
@@ -169,12 +170,11 @@ class RuleBasedRandomSearchSolver(SolverBase):
 
                 state = self.compiler.compile(circuit)  # this will pass out a density matrix object
 
-                state = dmf.partial_trace(state.data, list(range(self.n_photon)),
-                                          (self.n_photon + self.n_emitter) * [2])
-                # score = 1
-                score = self.metric.evaluate(state.data, circuit)
+                new_state = dmf.partial_trace(state.data, keep=list(range(self.n_photon)), dims=(self.n_photon + self.n_emitter) * [2])
+                score = self.metric.evaluate(new_state, circuit)
 
-                # print(score)
+
+
 
                 scores[j] = score
                 circuits[j] = circuit
@@ -193,7 +193,7 @@ class RuleBasedRandomSearchSolver(SolverBase):
         :return:
         """
         # TODO: debug this function
-        nodes = [node for node in circuit.dag.nodes if type(circuit.dag.nodes[node]['op']) is SingleQubitGateWrapper]
+        nodes = [node for node in circuit.dag.nodes if type(circuit.dag.nodes[node]['op']) is ops.SingleQubitGateWrapper]
         if len(nodes) == 0:
             return
         ind = np.random.randint(len(nodes))
@@ -202,8 +202,9 @@ class RuleBasedRandomSearchSolver(SolverBase):
         old_op = circuit.dag.nodes[node]['op']
         print(old_op.register)
         reg = old_op.register
-        op = np.random.choice(self.single_qubit_ops, p=p_dist)
-        gate = SingleQubitGateWrapper(op, reg_type='p', register=reg)
+        ind = np.random.choice(len(self.single_qubit_ops), p=p_dist)
+        op = self.single_qubit_ops[ind]
+        gate = ops.SingleQubitGateWrapper(op, reg_type='p', register=reg)
         circuit._open_qasm_update(gate)
         # TODO: fix an issue to place the gate in the original position
         circuit.dag.nodes[node]['op'] = gate
@@ -221,8 +222,8 @@ class RuleBasedRandomSearchSolver(SolverBase):
 
         # make sure only selecting a photonic qubit after initialization and avoiding applying single-qubit Clifford gates twice
         edges = [edge for edge in circuit.dag.edges if circuit.dag.edges[edge]['reg_type'] == 'p' and
-                 type(circuit.dag.nodes[edge[0]]['op']) is CNOT and
-                 type(circuit.dag.nodes[edge[1]]['op']) is not SingleQubitGateWrapper]
+                 type(circuit.dag.nodes[edge[0]]['op']) is ops.CNOT and
+                 type(circuit.dag.nodes[edge[1]]['op']) is not ops.SingleQubitGateWrapper]
 
         if len(edges) == 0:
             return
@@ -235,8 +236,9 @@ class RuleBasedRandomSearchSolver(SolverBase):
         new_id = circuit._unique_node_id()
         new_edges = [(edge[0], new_id, label), (new_id, edge[1], label)]
 
-        op = np.random.choice(self.single_qubit_ops, p=p_dist)
-        gate = SingleQubitGateWrapper(op, reg_type='p', register=reg)
+        ind = np.random.choice(len(self.single_qubit_ops), p=p_dist)
+        op = self.single_qubit_ops[ind]
+        gate = ops.SingleQubitGateWrapper(op, reg_type='p', register=reg)
         circuit._open_qasm_update(gate)
 
         circuit.dag.add_node(new_id, op=gate)
@@ -258,9 +260,9 @@ class RuleBasedRandomSearchSolver(SolverBase):
         # make sure only selecting emitter qubits and avoiding adding a gate after final measurement or
         # adding two single-qubit Clifford gates in a row
         edges = [edge for edge in circuit.dag.edges if circuit.dag.edges[edge]['reg_type'] == 'e' and
-                 type(circuit.dag.nodes[edge[1]]['op']) is not Output and
-                 type(circuit.dag.nodes[edge[0]]['op']) is not SingleQubitGateWrapper and
-                 type(circuit.dag.nodes[edge[1]]['op']) is not SingleQubitGateWrapper]
+                 type(circuit.dag.nodes[edge[1]]['op']) is not ops.Output and
+                 type(circuit.dag.nodes[edge[0]]['op']) is not ops.SingleQubitGateWrapper and
+                 type(circuit.dag.nodes[edge[1]]['op']) is not ops.SingleQubitGateWrapper]
 
         if len(edges) == 0:
             return
@@ -273,8 +275,9 @@ class RuleBasedRandomSearchSolver(SolverBase):
         new_id = circuit._unique_node_id()
         new_edges = [(edge[0], new_id, label), (new_id, edge[1], label)]
 
-        op = np.random.choice(self.single_qubit_ops, p=e_dist)
-        gate = SingleQubitGateWrapper(op, reg_type='e', register=reg)
+        ind = np.random.choice(len(self.single_qubit_ops), p=e_dist)
+        op = self.single_qubit_ops[ind]
+        gate = ops.SingleQubitGateWrapper(op, reg_type='e', register=reg)
         circuit._open_qasm_update(gate)
 
         circuit.dag.add_node(new_id, op=gate)
@@ -293,7 +296,7 @@ class RuleBasedRandomSearchSolver(SolverBase):
         :return: nothing
         """
         edges = [edge for edge in circuit.dag.edges if
-                 circuit.dag.edges[edge]['reg_type'] == 'e' and type(circuit.dag.nodes[edge[1]]['op']) is not Output]
+                 circuit.dag.edges[edge]['reg_type'] == 'e' and type(circuit.dag.nodes[edge[1]]['op']) is not ops.Output]
 
         ind = np.random.randint(len(edges))
         edge0 = list(edges)[ind]
@@ -318,7 +321,7 @@ class RuleBasedRandomSearchSolver(SolverBase):
         edge1 = list(possible_edges)[ind]
 
         new_id = circuit._unique_node_id()
-        gate = CNOT(control=circuit.dag.edges[edge0]['reg'], control_type='e',
+        gate = ops.CNOT(control=circuit.dag.edges[edge0]['reg'], control_type='e',
                     target=circuit.dag.edges[edge1]['reg'], target_type='e')
         circuit._open_qasm_update(gate)
         circuit.dag.add_node(new_id, op=gate)
@@ -420,10 +423,35 @@ def get_measurement_assignment(n_photon, n_emitter, seed):
      :rtype: list[int]
      """
     np.random.seed(seed)
-    assignment = []
 
-    for i in range(n_emitter):
-        ind = np.random.randint(n_photon)
-        assignment.append(ind)
-    # print(list(np.random.randint(n_photon, size=n_emitter)))
-    return assignment
+    return np.random.randint(n_photon, size=n_emitter).tolist()
+
+
+
+if __name__ == "__main__":
+    circuit_ideal, state_ideal = bc.linear_cluster_4qubit_circuit()
+    target = state_ideal['dm']
+    n_photon = 4
+    n_emitter = 1
+    compiler = DensityMatrixCompiler()
+    metric = MetricFidelity(target=target)
+
+    solver = RuleBasedRandomSearchSolver(target=target, metric=metric, compiler=compiler, n_emitter=n_emitter, n_photon=n_photon)
+    returned_state = solver.solve(50)
+    print(solver.hof[0][0])
+    circuit = solver.hof[1][0]
+    state = compiler.compile(circuit)
+
+    circuit.draw_circuit()
+    # circuit.draw_dag()
+    fig, axs = density_matrix_bars(target)
+    fig.suptitle("TARGET DENSITY MATRIX")
+    plt.show()
+
+    new_state = dmf.partial_trace(state.data, keep=list(range(n_photon)), dims=(n_photon + n_emitter) * [2])
+    # new_state2 = dmf.partial_trace(state2.data, keep=list(range(n_photon)), dims=(n_photon + n_emitter) * [2])
+    print(np.allclose(returned_state.data,state.data))
+    fig, axs = density_matrix_bars(new_state)
+
+    fig.suptitle("CREATED DENSITY MATRIX")
+    plt.show()

@@ -182,6 +182,7 @@ class DensityMatrixCompiler(CompilerBase):
                 # TODO: handle conditioned vs unconditioned density operators on the measurement outcome
                 projectors = dm.projectors_zbasis(circuit.n_quantum, q_index(op.control, op.control_type))
                 outcome = state.apply_measurement(projectors)
+
                 if outcome == 1:  # condition a Z gate on the target qubit based on the measurement outcome
                     unitary = dm.get_single_qubit_gate(circuit.n_quantum,
                                                        q_index(op.target, op.target_type), dm.sigmaz())
@@ -189,13 +190,17 @@ class DensityMatrixCompiler(CompilerBase):
 
             elif type(op) is ops.MeasurementCNOTandReset:
                 projectors = dm.projectors_zbasis(circuit.n_quantum, q_index(op.control, op.control_type))
-                outcome = state.apply_measurement(projectors)
+                outcome = state.apply_deterministic_measurement(projectors)
+                # outcome = state.apply_measurement(projectors)
                 if outcome == 1:  # condition an X gate on the target qubit based on the measurement outcome
                     unitary = dm.get_single_qubit_gate(circuit.n_quantum,
                                                        q_index(op.target, op.target_type), dm.sigmax())
                     state.apply_unitary(unitary)
-                reset_kraus_ops = dm.get_reset_qubit_kraus(circuit.n_quantum,q_index(op.control, op.control_type))
+
+                reset_kraus_ops = dm.get_reset_qubit_kraus(circuit.n_quantum, q_index(op.control, op.control_type))
+
                 state.apply_channel(reset_kraus_ops)
+
 
             elif type(op) is ops.MeasurementZ:
                 # TODO: handle conditioned vs unconditioned density operators on the measurement outcome

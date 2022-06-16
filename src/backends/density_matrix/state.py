@@ -3,11 +3,13 @@ Density Matrix representation for states
 """
 import networkx as nx
 import numpy as np
+import matplotlib.pyplot as plt
 
 from src.backends.density_matrix.functions import is_psd, create_n_plus_state, apply_cz
 from src.backends.state_base import StateRepresentationBase
 from src.backends.graph.state import Graph
 from src.visualizers.density_matrix import density_matrix_heatmap, density_matrix_bars
+
 
 # TODO: accept single input (# of qubits) as input and initialize as unentangled qubits
 
@@ -16,6 +18,7 @@ class DensityMatrix(StateRepresentationBase):
     """
     Density matrix of a graph state
     """
+
     def __init__(self, data, *args, **kwargs):
         """
         Construct a DensityMatrix object and calculate the density matrix from state_data
@@ -81,7 +84,23 @@ class DensityMatrix(StateRepresentationBase):
         if self._data.shape == unitary.shape:
             self._data = unitary @ self._data @ np.transpose(np.conjugate(unitary))
         else:
-            raise ValueError('The density matrix of the state has a different size from the unitary gate to be applied.')
+            raise ValueError(
+                'The density matrix of the state has a different size from the unitary gate to be applied.')
+
+    def apply_channel(self, kraus_ops):
+        """
+        Apply a quantum channel on the state where the quantum channel is described by Kraus representation.
+        Assumes the dimensions match; Otherwise, raise ValueError
+
+        :param kraus_ops: a list of Kraus operators of the channel
+        :type kraus_ops: list[numpy.ndarray]
+        :return: function returns nothing
+        :rtype: None
+        """
+        tmp_state = 0
+        for i in range(len(kraus_ops)):
+            tmp_state = tmp_state + kraus_ops[i] @ self._data @ np.conjugate(kraus_ops[i].T)
+        self._data = tmp_state
 
     def apply_measurement(self, projectors):
         """
@@ -93,9 +112,53 @@ class DensityMatrix(StateRepresentationBase):
         :rtype: int
         """
         if self._data.shape == projectors[0].shape:
-            probs = [np.real(np.trace(self._data @ m)) for m in projectors]
+            probs = []
+            for m in projectors:
+                prob = np.real(np.trace(self._data @ m))
+                if prob < 0:
+                    prob = 0
+                probs.append(prob)
 
-            outcome = np.random.choice([0, 1], p=probs/np.sum(probs))
+            outcome = np.random.choice([0, 1], p=probs / np.sum(probs))
+            m, norm = projectors[outcome], probs[outcome]
+            # TODO: this is the dm CONDITIONED on the measurement outcome
+            # this assumes that the projector, m, has the properties: m = sqrt(m) and m = m.dag()
+            self._data = (m @ self._data @ np.transpose(np.conjugate(m))) / norm
+
+            # TODO: this is the dm *unconditioned* on the outcome
+            # self._data = sum([m @ self._data @ m for m in projectors])
+        else:
+            raise ValueError('The density matrix of the state has a different size from the POVM elements.')
+
+        return outcome
+
+    def apply_deterministic_measurement(self, projectors, set_measurement=None):
+        """
+        Apply the projectors measurement onto the density matrix representation of the state
+
+        :param projectors: the projector which is the measurement to apply
+        :type projectors: numpy.ndarray
+        :return: the measurement outcome
+        :rtype: int
+        """
+        if self._data.shape == projectors[0].shape:
+            probs = []
+            for m in projectors:
+                prob = np.real(np.trace(self._data @ m))
+                if prob < 0:
+                    prob = 0
+                probs.append(prob)
+            if set_measurement is None or set_measurement == 1:  # default
+                if probs[1] > 0:
+                    outcome = 1
+                else:
+                    outcome = 0
+            else:
+                if probs[1] < 1:
+                    outcome = 0
+                else:
+                    outcome = 1
+            # print(f'the outcome was: {outcome}')
             m, norm = projectors[outcome], probs[outcome]
             # TODO: this is the dm CONDITIONED on the measurement outcome
             # this assumes that the projector, m, has the properties: m = sqrt(m) and m = m.dag()
@@ -125,5 +188,8 @@ class DensityMatrix(StateRepresentationBase):
             fig, axs = density_matrix_bars(self.data)
         else:
             fig, axs = density_matrix_heatmap(self.data)
+
+        if show:
+            plt.show()
 
         return fig, axs

@@ -255,7 +255,8 @@ if __name__ == "__main__":
 
     #%% construct all of our important objects
     target = state_ideal['dm']
-    circuit = CircuitDAG(n_quantum=3, n_classical=0)
+
+    circuit = CircuitDAG(n_emitter=4, n_classical=0)
     compiler = DensityMatrixCompiler()
     metric = MetricFidelity(target=target)
 

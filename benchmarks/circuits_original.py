@@ -38,19 +38,15 @@ def ghz3_state_circuit():
     # control_type, target_type not necessary since this is their default value), but added to explain class API
     circuit.add(CNOT(control=0, control_type='e', target=0, target_type='p'))
     circuit.add(CNOT(control=0, control_type='e', target=1, target_type='p'))
-    circuit.add(Hadamard(register=1, reg_type='p'))
-    circuit.add(Hadamard(register=1, reg_type='p'))
-
+    #circuit.add(Hadamard(register=1, reg_type='p'))
     circuit.add(CNOT(control=0, control_type='e', target=2, target_type='p'))
     circuit.add(Hadamard(register=2, reg_type='p'))
     circuit.add(Hadamard(register=0, reg_type='e'))
 
-    circuit.add(CNOT(control=0, control_type='e', target=2, target_type='p'))
-
+    circuit.add(MeasurementCNOTandReset(control=0, control_type='e',
+                                        target=2, target_type='p',
+                                        c_register=0))
     circuit.add(Hadamard(register=2, reg_type='p'))
-
-    circuit.add(MeasurementZ(register=0, reg_type='e', c_register=0))
-
     return circuit, ideal_state
 
 
@@ -66,22 +62,19 @@ def ghz4_state_circuit():
     circuit.add(Hadamard(register=0, reg_type='e'))
     circuit.add(CNOT(control=0, control_type='e', target=0, target_type='p'))
     circuit.add(CNOT(control=0, control_type='e', target=1, target_type='p'))
-    circuit.add(Hadamard(register=1, reg_type='p'))
-    circuit.add(Hadamard(register=1, reg_type='p'))
+    #circuit.add(Hadamard(register=1, reg_type='p'))
 
     circuit.add(CNOT(control=0, control_type='e', target=2, target_type='p'))
-    circuit.add(Hadamard(register=2, reg_type='p'))
-    circuit.add(Hadamard(register=2, reg_type='p'))
+    #circuit.add(Hadamard(register=2, reg_type='p'))
 
     circuit.add(CNOT(control=0, control_type='e', target=3, target_type='p'))
     circuit.add(Hadamard(register=3, reg_type='p'))
-
     circuit.add(Hadamard(register=0, reg_type='e'))
-    circuit.add(CNOT(control=0, control_type='e', target=3, target_type='p'))
+
+    circuit.add(MeasurementCNOTandReset(control=0, control_type='e',
+                                        target=3, target_type='p',
+                                        c_register=0))
     circuit.add(Hadamard(register=3, reg_type='p'))
-
-    circuit.add(MeasurementZ(register=0, reg_type='e', c_register=0))
-
     return circuit, ideal_state
 
 
@@ -105,9 +98,9 @@ def linear_cluster_3qubit_circuit():
     circuit.add(Hadamard(register=2, reg_type='p'))
     circuit.add(Hadamard(register=0, reg_type='e'))
 
-    circuit.add(CNOT(control=0, control_type='e', target=2, target_type='p'))
-
-    circuit.add(MeasurementZ(register=0, reg_type='e', c_register=0))
+    circuit.add(MeasurementCNOTandReset(control=0, control_type='e',
+                                        target=2, target_type='p',
+                                        c_register=0))
 
     return circuit, ideal_state
 
@@ -135,7 +128,8 @@ def linear_cluster_4qubit_circuit():
     circuit.add(Hadamard(register=3, reg_type='p'))
     circuit.add(Hadamard(register=0, reg_type='e'))
 
-    circuit.add(CNOT(control=0, control_type='e', target=3, target_type='p'))
-    circuit.add(MeasurementZ(register=0, reg_type='e', c_register=0))
+    circuit.add(MeasurementCNOTandReset(control=0, control_type='e',
+                                        target=3, target_type='p',
+                                        c_register=0))
 
     return circuit, ideal_state

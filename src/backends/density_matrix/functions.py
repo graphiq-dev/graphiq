@@ -49,6 +49,16 @@ def hadamard():
     return np.array([[1.0, 1.0], [1.0, -1.0]]) / np.sqrt(2)
 
 
+def phase():
+    """
+    Return the phase matrix P = diag(1, i)
+
+    :return: the phase matrtix
+    :rtype: numpy.ndarray
+    """
+    return np.diag([1.0, 1.0j])
+
+
 def ketx0_state():
     """
     Return normalized eigenvector of sigma x matrix with eigenvalue +1
@@ -231,6 +241,23 @@ def swap_two_qubits(state_matrix, qubit1_position, qubit2_position):
     return final_state
 
 
+def get_reset_qubit_kraus(n_qubits, qubit_position):
+    """
+    Generate a list of Kraus operators for resetting one qubit among n-qubit state
+    :param n_qubits:
+    :type n_qubits: int
+    :param qubit_position:
+    :type qubit_position: int
+    :return:
+    "rtype: list[np.ndarray]
+    """
+    kraus0 = np.array([[1, 0], [0, 0]])
+    kraus1 = np.array([[0, 1], [0, 0]])
+    full_kraus0 = get_single_qubit_gate(n_qubits, qubit_position, kraus0)
+    full_kraus1 = get_single_qubit_gate(n_qubits, qubit_position, kraus1) # technically not a gate, but this function works
+    return [full_kraus0, full_kraus1]
+
+
 def trace_out_qubit(state_matrix, qubit_position):
     """
     Trace out the specified qubit from the density matrix. Assumes state_matrix is a valid density matrix
@@ -408,6 +435,7 @@ def fidelity(rho, sigma):
     :return: the fidelity between 0 and 1
     :rtype: int
     """
+
     return np.real(np.trace(sqrtm(sqrtm(rho) @ sigma @ sqrtm(rho))) ** 2)
 
 

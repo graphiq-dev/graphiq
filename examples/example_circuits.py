@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 
 from src.backends.density_matrix.compiler import DensityMatrixCompiler
 
-from src.backends.density_matrix.functions import partial_trace, fidelity
+from src.backends.density_matrix.functions import fidelity
 from src.visualizers.density_matrix import density_matrix_bars
 
 from benchmarks.circuits import *
@@ -14,9 +14,9 @@ from benchmarks.circuits import *
 if __name__ == "__main__":
     # example_circuit = bell_state_circuit
     # example_circuit = ghz3_state_circuit
-    example_circuit = ghz4_state_circuit
+    # example_circuit = ghz4_state_circuit
     # example_circuit = linear_cluster_3qubit_circuit
-    # example_circuit = linear_cluster_4qubit_circuit
+    example_circuit = linear_cluster_4qubit_circuit
 
     circuit, ideal_state = example_circuit()
 
@@ -37,10 +37,10 @@ if __name__ == "__main__":
     f = fidelity(state_data, ideal_state['dm'])
     print(f"Fidelity with the ideal state is {f}")
 
-    fig, axs = density_matrix_bars(ideal_state['dm'])
+    fig, _ = density_matrix_bars(ideal_state['dm'])
     fig.suptitle("Ideal density matrix")
 
-    fig, axs = density_matrix_bars(state_data)
+    fig, _ = density_matrix_bars(state_data)
     fig.suptitle("Simulated circuit density matrix")
 
     plt.show()

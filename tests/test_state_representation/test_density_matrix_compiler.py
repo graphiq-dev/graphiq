@@ -6,7 +6,8 @@ from src.backends.density_matrix.functions import partial_trace, fidelity
 from benchmarks.circuits import ghz3_state_circuit, bell_state_circuit, ghz4_state_circuit
 from src.visualizers.density_matrix import density_matrix_bars
 from tests.test_flags import visualization
-
+from src.circuit import CircuitDAG
+import src.ops as ops
 
 def test_bell_circuit():
     circuit, ideal_state = bell_state_circuit()
@@ -20,6 +21,36 @@ def test_bell_circuit():
 
     assert np.isclose(1.0, f)
 
+
+def test_bell_circuit_with_wrapper_op_1():
+    _, ideal_state = bell_state_circuit()
+    circuit = CircuitDAG(n_emitter=2, n_classical=0)
+    composite_op = ops.SingleQubitGateWrapper([ops.Identity, ops.Hadamard], register=0, reg_type='e')
+    circuit.add(composite_op)
+    circuit.add(ops.CNOT(control=0, control_type='e', target=1, target_type='e'))
+
+    compiler = DensityMatrixCompiler()
+    state = compiler.compile(circuit)
+    state = state.data
+    f = fidelity(state, ideal_state['dm'])
+
+    assert np.isclose(1.0, f)
+
+
+def test_bell_circuit_with_wrapper_op_2():
+    _, ideal_state = bell_state_circuit()
+    circuit = CircuitDAG(n_emitter=2, n_classical=0)
+    composite_op = ops.SingleQubitGateWrapper([ops.Phase, ops.Phase, ops.Phase, ops.Phase, ops.Hadamard],
+                                              register=0, reg_type='e')
+    circuit.add(composite_op)
+    circuit.add(ops.CNOT(control=0, control_type='e', target=1, target_type='e'))
+
+    compiler = DensityMatrixCompiler()
+    state = compiler.compile(circuit)
+    state = state.data
+    f = fidelity(state, ideal_state['dm'])
+
+    assert np.isclose(1.0, f)
 
 @visualization
 def test_bell_circuit_visualization():

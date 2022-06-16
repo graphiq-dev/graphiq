@@ -102,7 +102,84 @@ class DensityMatrix(StateRepresentationBase):
             tmp_state = tmp_state + kraus_ops[i] @ self._data @ np.conjugate(kraus_ops[i].T)
         self._data = tmp_state
 
-    def apply_measurement(self, projectors):
+    def apply_measurement_TO_DEBUG(self, projectors, measurement_determinism='probabilistic'):
+        """
+        # TODO: replace the other apply_measurement function by this one, and also debug to find out why it
+        # gives different tests results in test_benchmark_fidelity.py
+        Apply a measurement, either deterministically (with a certain outcome) or probabilistically
+        :param projectors: the project which is the measurement to apply
+        :type projectors: numpy.ndarray
+        :param measurement_determinism: if "probabilistic", measurement results are probabilistically selected
+                                    if 1, measurement results default to 1 unless the probability of measuring p(1) = 0
+                                    if 0, measurement results default to 0 unless the probability of measuring p(0) = 0
+        :rtype _measurement_determinism: str/int
+        :return: the measurement outcome
+        :rtype: int
+        """
+        """
+        Apply the projectors measurement onto the density matrix representation of the state
+
+        :param projectors: the projector which is the measurement to apply
+        :type projectors: numpy.ndarray
+        :return: the measurement outcome
+        :rtype: int
+        """
+        if self._data.shape == projectors[0].shape:
+            probs = []
+            for m in projectors:
+                prob = np.real(np.trace(self._data @ m))
+                if prob < 0:
+                    prob = 0
+                probs.append(prob)
+
+            if measurement_determinism == 'probabilistic':
+                outcome = np.random.choice([0, 1], p=probs / np.sum(probs))
+            elif measurement_determinism == 1:
+                if probs[1] > 0:
+                    outcome = 1
+                else:
+                    outcome = 0
+
+            elif measurement_determinism == 0:
+                if probs[1] < 1:
+                    outcome = 0
+                else:
+                    outcome = 1
+            else:
+                raise ValueError(f'measurement_determinism parameter must be "probabilistic", 0, or 1')
+
+            m, norm = projectors[outcome], probs[outcome]
+
+            # TODO: this is the dm CONDITIONED on the measurement outcome
+            # this assumes that the projector, m, has the properties: m = sqrt(m) and m = m.dag()
+            self._data = (m @ self._data @ np.transpose(np.conjugate(m))) / norm
+
+            # TODO: this is the dm *unconditioned* on the outcome
+            # self._data = sum([m @ self._data @ m for m in projectors])
+        else:
+            raise ValueError('The density matrix of the state has a different size from the POVM elements.')
+
+    def apply_measurement(self, projectors, measurement_determinism):
+        """
+        Apply a measurement, either deterministically (with a certain outcome) or probabilistically
+        TODO: refactor apply_probabilistic_measurement, apply_deterministic_measurement functions to share code
+        :param projectors: the project which is the measurement to apply
+        :type projectors: numpy.ndarray
+        :param measurement_determinism: if "probabilistic", measurement results are probabilistically selected
+                                    if 1, measurement results default to 1 unless the probability of measuring p(1) = 0
+                                    if 0, measurement results default to 0 unless the probability of measuring p(0) = 0
+        :rtype _measurement_determinism: str/int
+        :return: the measurement outcome
+        :rtype: int
+        """
+        if measurement_determinism == 'probabilistic':
+            return self.apply_probabilistic_measurement(projectors)
+        elif measurement_determinism == 1:
+            return self.apply_deterministic_measurement(projectors, set_measurement=1)
+        elif measurement_determinism == 0:
+            return self.apply_deterministic_measurement(projectors, set_measurement=0)
+
+    def apply_probabilistic_measurement(self, projectors):
         """
         Apply the projectors measurement onto the density matrix representation of the state
 
@@ -124,7 +201,6 @@ class DensityMatrix(StateRepresentationBase):
             # TODO: this is the dm CONDITIONED on the measurement outcome
             # this assumes that the projector, m, has the properties: m = sqrt(m) and m = m.dag()
             self._data = (m @ self._data @ np.transpose(np.conjugate(m))) / norm
-
             # TODO: this is the dm *unconditioned* on the outcome
             # self._data = sum([m @ self._data @ m for m in projectors])
         else:
@@ -149,6 +225,7 @@ class DensityMatrix(StateRepresentationBase):
                     prob = 0
                 probs.append(prob)
             if set_measurement is None or set_measurement == 1:  # default
+                # TODO: might be worth it making this "np.isclose"
                 if probs[1] > 0:
                     outcome = 1
                 else:
@@ -158,12 +235,10 @@ class DensityMatrix(StateRepresentationBase):
                     outcome = 0
                 else:
                     outcome = 1
-            print(f'the outcome was: {outcome}')
             m, norm = projectors[outcome], probs[outcome]
             # TODO: this is the dm CONDITIONED on the measurement outcome
             # this assumes that the projector, m, has the properties: m = sqrt(m) and m = m.dag()
             self._data = (m @ self._data @ np.transpose(np.conjugate(m))) / norm
-
             # TODO: this is the dm *unconditioned* on the outcome
             # self._data = sum([m @ self._data @ m for m in projectors])
         else:

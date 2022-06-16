@@ -93,8 +93,36 @@ class DensityMatrixCompiler(CompilerBase):
         :rtype: None
         """
         super().__init__(*args, **kwargs)
+        self._measurement_determinism = 'probabilistic'
 
-    def compile(self, circuit: CircuitBase, set_measurement=None):
+    @property
+    def measurement_determinism(self):
+        """
+        Returns the measurement determinism (either it's probabilistic, defaults to 0, or defaults to 1)
+
+        :return: determinism setting
+        :rtype: str/int
+        """
+        return self._measurement_determinism
+
+    @measurement_determinism.setter
+    def measurement_determinism(self, measurement_setting):
+        """
+        Sets the measurement setting with which the compiler simulates a circuit
+        (this can be set to "probabilistic", 1, 0)
+        :param measurement_setting: if "probabilistic", measurement results are probabilistically selected
+                                    if 1, measurement results default to 1 unless the probability of measuring p(1) = 0
+                                    if 0, measurement results default to 0 unless the probability of measuring p(0) = 0
+        :rtype measurement_setting: str/int
+        :return: function returns nothing
+        :rtype: None
+        """
+        if measurement_setting in ['probabilistic', 1, 0]:
+            self._measurement_determinism = measurement_setting
+        else:
+            raise ValueError('Measurement determinism can only be set to "probabilistic", 0, or 1')
+
+    def compile(self, circuit: CircuitBase):
         """
         Compiles (i.e. produces an output state) circuit, in density matrix representation.
         This involves sequentially applying each operation of the circuit on the initial state
@@ -172,7 +200,7 @@ class DensityMatrixCompiler(CompilerBase):
             elif type(op) is ops.ClassicalCNOT:
                 # TODO: handle conditioned vs unconditioned density operators on the measurement outcome
                 projectors = dm.projectors_zbasis(circuit.n_quantum, q_index(op.control, op.control_type))
-                outcome = state.apply_measurement(projectors)
+                outcome = state.apply_measurement(projectors, measurement_determinism=self.measurement_determinism)
                 if outcome == 1:  # condition an X gate on the target qubit based on the measurement outcome
                     unitary = dm.get_single_qubit_gate(circuit.n_quantum,
                                                        q_index(op.target, op.target_type), dm.sigmax())
@@ -181,7 +209,7 @@ class DensityMatrixCompiler(CompilerBase):
             elif type(op) is ops.ClassicalCPhase:
                 # TODO: handle conditioned vs unconditioned density operators on the measurement outcome
                 projectors = dm.projectors_zbasis(circuit.n_quantum, q_index(op.control, op.control_type))
-                outcome = state.apply_measurement(projectors)
+                outcome = state.apply_measurement(projectors, measurement_determinism=self.measurement_determinism)
 
                 if outcome == 1:  # condition a Z gate on the target qubit based on the measurement outcome
                     unitary = dm.get_single_qubit_gate(circuit.n_quantum,
@@ -190,8 +218,8 @@ class DensityMatrixCompiler(CompilerBase):
 
             elif type(op) is ops.MeasurementCNOTandReset:
                 projectors = dm.projectors_zbasis(circuit.n_quantum, q_index(op.control, op.control_type))
-                outcome = state.apply_deterministic_measurement(projectors, set_measurement=set_measurement)
-                # outcome = state.apply_measurement(projectors)
+                outcome = state.apply_measurement(projectors, measurement_determinism=self.measurement_determinism)
+
                 if outcome == 1:  # condition an X gate on the target qubit based on the measurement outcome
                     unitary = dm.get_single_qubit_gate(circuit.n_quantum,
                                                        q_index(op.target, op.target_type), dm.sigmax())
@@ -204,7 +232,7 @@ class DensityMatrixCompiler(CompilerBase):
             elif type(op) is ops.MeasurementZ:
                 # TODO: handle conditioned vs unconditioned density operators on the measurement outcome
                 projectors = dm.projectors_zbasis(circuit.n_quantum, q_index(op.register, op.reg_type))
-                outcome = state.apply_deterministic_measurement(projectors, set_measurement=set_measurement)
+                outcome = state.apply_measurement(projectors, measurement_determinism=self.measurement_determinism)
                 classical_registers[op.c_register] = outcome
 
             else:

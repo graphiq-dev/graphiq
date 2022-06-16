@@ -43,7 +43,7 @@ def ghz3_state_circuit():
 
     circuit.add(CNOT(control=0, control_type='e', target=2, target_type='p'))
     circuit.add(Hadamard(register=2, reg_type='p'))
-    circuit.add(Hadamard(register=0))
+    circuit.add(Hadamard(register=0, reg_type='e'))
 
     circuit.add(CNOT(control=0, control_type='e', target=2, target_type='p'))
 

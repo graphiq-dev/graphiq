@@ -235,6 +235,7 @@ class DensityMatrix(StateRepresentationBase):
                     outcome = 0
                 else:
                     outcome = 1
+
             m, norm = projectors[outcome], probs[outcome]
             # TODO: this is the dm CONDITIONED on the measurement outcome
             # this assumes that the projector, m, has the properties: m = sqrt(m) and m = m.dag()

@@ -105,16 +105,15 @@ class RuleBasedRandomSearchSolver(SolverBase):
                 ops.MeasurementCNOTandReset(control=j, control_type='e', target=measurement_assignment[j], target_type='p'))
         return circuit
 
-    def update_hof(self, scores, circuits):
-        for score, circuit in zip(scores, circuits):
-            for i in range(self.n_hof):
-                if score < self.hof[0][i]:
-                    self.hof[0].insert(i, copy.deepcopy(score))
-                    self.hof[1].insert(i, copy.deepcopy(circuit))
+    def update_hof(self, score, circuit):
+        for i in range(self.n_hof):
+            if score < self.hof[0][i]:
+                self.hof[0].insert(i, copy.deepcopy(score))
+                self.hof[1].insert(i, copy.deepcopy(circuit))
 
-                    self.hof[0].pop()
-                    self.hof[1].pop()
-                    break
+                self.hof[0].pop()
+                self.hof[1].pop()
+                break
 
     def test_initialization(self, seed):
         # debugging only
@@ -135,14 +134,10 @@ class RuleBasedRandomSearchSolver(SolverBase):
         :type seed: int
         :return: nothing
         """
-
-
         np.random.seed(seed)
         p_dist = [0.5] + 11 * [0.1 / 22] + [0.4] + 11 * [0.1 / 22]
         e_dist = [0.5] + 11 * [0.02 / 22] + [0.48] + 11 * [0.02 / 22]
         for i in range(self.n_pop):
-            scores = self.n_stop* [np.inf]
-            circuits = self.n_stop * [None]
             emission_assignment = get_emission_assignment(self.n_photon, self.n_emitter, np.random.randint(10000))
             measurement_assignment = get_measurement_assignment(self.n_photon, self.n_emitter, np.random.randint(10000))
             circuit = self._initialization(self.n_emitter, self.n_photon, emission_assignment, measurement_assignment)
@@ -172,18 +167,13 @@ class RuleBasedRandomSearchSolver(SolverBase):
 
                 circuit.validate()
 
-                state = self.compiler.compile(circuit)  # this will pass out a density matrix object
+                compiled_state = self.compiler.compile(circuit)  # this will pass out a density matrix object
 
-                state = dmf.partial_trace(state.data, keep=list(range(self.n_photon)), dims=(self.n_photon + self.n_emitter) * [2])
-                score = self.metric.evaluate(state, circuit)
+                state_data = dmf.partial_trace(compiled_state.data, keep=list(range(self.n_photon)),
+                                               dims=(self.n_photon + self.n_emitter) * [2])
+                score = self.metric.evaluate(state_data, circuit)
 
-
-                scores[j] = score
-                circuits[j] = copy.deepcopy(circuit)
-
-            self.update_hof(scores, circuits)
-
-        return
+                self.update_hof(score, circuit)
 
     def replace_photon_one_qubit_op(self, circuit, p_dist):
         """
@@ -428,7 +418,6 @@ def get_measurement_assignment(n_photon, n_emitter, seed):
     np.random.seed(seed)
 
     return np.random.randint(n_photon, size=n_emitter).tolist()
-
 
 
 if __name__ == "__main__":

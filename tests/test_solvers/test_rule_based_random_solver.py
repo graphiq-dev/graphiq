@@ -8,8 +8,7 @@ from src.visualizers.density_matrix import density_matrix_bars
 
 from benchmarks.circuits import *
 
-
-
+# TODO: refactor to use asserts
 
 def test_solver_initialization():
     circuit_ideal, state_ideal = linear_cluster_4qubit_circuit()

@@ -68,6 +68,8 @@ def benchmark_data(solver_class, targets, metric_class, compiler, target_type='d
     :return: dataframe summarizing benchmark information + other info
     :rtype: tuple
     """
+    # TODO: refactor to save as we go if we DO define a save directory,
+    #  there's no point on retaking all the data if something fails...
 
     # TODO: save solver data
     # TODO: save compute data
@@ -135,5 +137,7 @@ def benchmark_data(solver_class, targets, metric_class, compiler, target_type='d
 if __name__ == "__main__":
     target_list = [circ.ghz3_state_circuit(), circ.ghz4_state_circuit(), circ.linear_cluster_3qubit_circuit(),
                    circ.linear_cluster_4qubit_circuit()]
-    df = benchmark_data(RuleBasedRandomSearchSolver, target_list, Infidelity, DensityMatrixCompiler(),
+    compiler = DensityMatrixCompiler()
+    compiler.measurement_determinism = 1
+    df = benchmark_data(RuleBasedRandomSearchSolver, target_list, Infidelity, compiler,
                         per_target_retries=10, seed_offset=0, save_directory='./save_benchmarks/')

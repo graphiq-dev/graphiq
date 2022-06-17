@@ -10,9 +10,7 @@ import time
 import src.backends.density_matrix.functions as dmf
 
 from src.solvers.base import SolverBase
-# from src.metrics import MetricBase
-# from src.circuit import CircuitBase
-# from src.backends.compiler_base import CompilerBase
+from src.solvers.random_solver import RandomSearchSolver
 
 from src.backends.density_matrix.compiler import DensityMatrixCompiler
 from src.circuit import CircuitDAG
@@ -25,7 +23,7 @@ from src.io import IO
 import benchmarks.circuits as bc
 
 
-class RuleBasedRandomSearchSolver(SolverBase):
+class RuleBasedRandomSearchSolver(RandomSearchSolver):
     """
     Implements a rule-based random search solver.
     This will randomly add/delete operations in the circuit.
@@ -40,7 +38,14 @@ class RuleBasedRandomSearchSolver(SolverBase):
         ops.Input,
         ops.Output
     ]
-    single_qubit_ops = list(ops.single_qubit_cliffords())
+
+    single_qubit_ops = list(
+        ops.single_qubit_cliffords()
+    )
+
+    two_qubit_ops = [
+        ops.CNOT,
+    ]
 
     def __init__(self,
                  target=None,
@@ -50,31 +55,26 @@ class RuleBasedRandomSearchSolver(SolverBase):
                  n_emitter=1,
                  n_photon=1,
                  *args, **kwargs):
+
         super().__init__(target, metric, circuit, compiler, *args, **kwargs)
+
         self.n_emitter = n_emitter
         self.n_photon = n_photon
+
+        # transformation functions and their relative probabilities
+        self.trans_probs = {
+            self.add_emitter_one_qubit_op: 1,
+            self.replace_photon_one_qubit_op: 1,
+            self.remove_op: 1,
+            # self.add_measurement_and_reset: 1,
+        }
+
         if self.n_emitter > 1:
-            self.transformations = [
-                self.add_emitter_one_qubit_op,
-                self.add_emitter_cnot,
-                #self.add_photon_one_qubit_op,
-                self.replace_photon_one_qubit_op,
-                self.remove_op
-            ]
-            self.transformation_prob = [0.4, 0.1, 0.1, 0.4]
-        else:
-            self.transformations = [
-                self.add_emitter_one_qubit_op,
-                #self.add_photon_one_qubit_op,
-                self.replace_photon_one_qubit_op,
-                self.remove_op,
-                # self.add_measurement_and_reset
-            ]
-            self.transformation_prob = [1 / 3, 1 / 3, 1 / 3]
-            # self.transformation_prob = [1 / 2, 1 / 2]
-        # hof stores the best circuits and their scores in the form of: (scores, circuits)
-        self.hof = (collections.deque(self.n_hof * [np.inf]),
-                    collections.deque(self.n_hof * [None]))
+            self.trans_probs += {
+                self.add_emitter_cnot: 1,
+            }
+
+        self.transformations = self.trans_probs.keys()
 
     @staticmethod
     def _initialization(n_emitter, n_photon, emission_assignment, measurement_assignment):
@@ -106,16 +106,6 @@ class RuleBasedRandomSearchSolver(SolverBase):
                 ops.MeasurementCNOTandReset(control=j, control_type='e', target=measurement_assignment[j], target_type='p'))
         return circuit
 
-    def update_hof(self, score, circuit):
-        for i in range(self.n_hof):
-            if score < self.hof[0][i]:
-                self.hof[0].insert(i, copy.deepcopy(score))
-                self.hof[1].insert(i, copy.deepcopy(circuit))
-
-                self.hof[0].pop()
-                self.hof[1].pop()
-                break
-
     def test_initialization(self, seed):
         # debugging only
         np.random.seed(seed)
@@ -140,48 +130,46 @@ class RuleBasedRandomSearchSolver(SolverBase):
         e_dist = [0.5] + 11 * [0.02 / 22] + [0.48] + 11 * [0.02 / 22]
 
         # Initialize population
-        circuit_pop = [None] * self.n_pop
-        for i in range(self.n_pop):
+        circuit_pop = []
+        for j in range(self.n_pop):
             emission_assignment = RuleBasedRandomSearchSolver.get_emission_assignment(self.n_photon,
                                                                                       self.n_emitter)
             measurement_assignment = RuleBasedRandomSearchSolver.get_measurement_assignment(self.n_photon,
                                                                                             self.n_emitter)
             circuit = self._initialization(self.n_emitter, self.n_photon, emission_assignment, measurement_assignment)
             fixed_node = circuit.dag.nodes()
-            circuit_pop[i] = circuit
-            # print(f"\nNew generation {i}")
+            circuit_pop.append(circuit)
 
-        for _ in range(self.n_stop):
-            for i in range(self.n_pop):
-                transformation = self.transformations[
-                    np.random.choice(len(self.transformations), p=self.transformation_prob)]
-                # transformation = self.add_emitter_CNOT
-                # transformation = self.add_emitter_one_qubit_op
+        for i in range(self.n_stop):
+            for j in range(self.n_pop):
+                transformation = np.random.choice(list(self.trans_probs.keys()), p=list(self.trans_probs.values()))
+                circuit = circuit_pop[j]
 
                 if transformation == self.add_emitter_one_qubit_op:
-
-                    self.add_emitter_one_qubit_op(circuit_pop[i], e_dist)
+                    self.add_emitter_one_qubit_op(circuit, e_dist)
 
                 elif transformation == self.add_photon_one_qubit_op:
-                    self.add_photon_one_qubit_op(circuit_pop[i], p_dist)
+                    self.add_photon_one_qubit_op(circuit, p_dist)
 
                 elif transformation == self.replace_photon_one_qubit_op:
-                    self.replace_photon_one_qubit_op(circuit_pop[i], p_dist)
+                    self.replace_photon_one_qubit_op(circuit, p_dist)
 
                 elif transformation == self.remove_op:
-                    self.remove_op(circuit_pop[i], fixed_node)
+                    self.remove_op(circuit, fixed_node)
+
                 else:
-                    transformation(circuit_pop[i])
+                    transformation(circuit)
 
-                circuit_pop[i].validate()
+                circuit.validate()
 
-                compiled_state = self.compiler.compile(circuit_pop[i])  # this will pass out a density matrix object
+                compiled_state = self.compiler.compile(circuit)  # this will pass out a density matrix object
 
-                state_data = dmf.partial_trace(compiled_state.data, keep=list(range(self.n_photon)),
+                state_data = dmf.partial_trace(compiled_state.data,
+                                               keep=list(range(self.n_photon)),
                                                dims=(self.n_photon + self.n_emitter) * [2])
                 score = self.metric.evaluate(state_data, circuit_pop[i])
 
-                self.update_hof(score, circuit_pop[i])
+                self.update_hof(score, circuit)
 
     def replace_photon_one_qubit_op(self, circuit, p_dist):
         """
@@ -423,16 +411,13 @@ class RuleBasedRandomSearchSolver(SolverBase):
         return np.random.randint(n_photon, size=n_emitter).tolist()
 
 
-    return np.random.randint(n_photon, size=n_emitter).tolist()
-
-
 if __name__ == "__main__":
     circuit_ideal, state_ideal = bc.linear_cluster_3qubit_circuit()
     target = state_ideal['dm']
     n_photon = 3
     n_emitter = 1
     compiler = DensityMatrixCompiler()
-    metric = MetricFidelity(target=target)
+    metric = Infidelity(target=target)
 
     solver = RuleBasedRandomSearchSolver(target=target, metric=metric, compiler=compiler, n_emitter=n_emitter, n_photon=n_photon)
     solver.solve(200)

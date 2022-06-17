@@ -8,14 +8,9 @@ import copy
 import time
 import random
 
-from src.solvers.base import SolverBase
-from src.metrics import MetricBase
-from src.circuit import CircuitBase
-from src.backends.compiler_base import CompilerBase
-
 from src.backends.density_matrix.compiler import DensityMatrixCompiler
 from src.circuit import CircuitDAG
-from src.metrics import MetricFidelity
+from src.metrics import Infidelity
 
 from src.visualizers.density_matrix import density_matrix_bars
 from src import ops
@@ -113,26 +108,154 @@ class EvolutionarySolver(RandomSearchSolver):
         self.trans_probs[self.remove_op] = iteration / self.n_stop
         return
 
-    def tournament_selection(self, population, k=2):
+    def solve(self):
         """
-        Tournament selection for choosing the next generation population to be mutated/crossed-over
+        Main solver algorithm for identifying circuits which minimizes the metric function.
 
+        Here, all aspects of the algorithm are fully random (with uniform probabilities).
+        We start with an empty N-qubit circuit, and at each iteration add
 
-        :param population: population of the circuits, a list of (score, circuit) tuples
-        :param k: size of the tournament
         :return:
         """
-        population_new = []
-        for i in range(self.n_pop):
-            # select the sub-population for the tournament with uniform random
-            tourn_pop = random.choices(population, k=k)
+        scores = [None for _ in range(self.n_pop)]
+        circuits = [copy.deepcopy(self.circuit) for _ in range(self.n_pop)]
 
-            # sort the tournament population by the score, such that the first index is the lowest scoring circuit
-            tourn_pop.sort(key=lambda x: x[0], reverse=False)
+        for i in range(self.n_stop):
+            for j in range(self.n_pop):
 
-            population_new.append(copy.deepcopy(tourn_pop[0]))  # add the best performing circuit in the tournament
+                # transformation = self.transformations[np.random.randint(len(self.transformations))]
+                transformation = np.random.choice(list(self.trans_probs.keys()), p=list(self.trans_probs.values()))
 
-        return population_new
+                circuit = circuits[j]
+                transformation(circuit)
+
+                circuit.validate()
+
+                state = self.compiler.compile(circuit)  # this will pass out a density matrix object
+                # print(state)
+
+                score = self.metric.evaluate(state.data, circuit)
+
+                scores[j] = score
+                circuits[j] = circuit
+                print(f"New generation {i} | {score:.4f} | {transformation.__name__}")
+
+            self.update_hof(scores, circuits)
+
+        return
+
+    def add_one_qubit_op(self, circuit: CircuitDAG):
+        """
+        Randomly selects one valid edge on which to add a new one-qubit gate.
+        """
+
+        edges = list(circuit.dag.edges)
+
+        ind = np.random.randint(len(edges))
+        edge = list(edges)[ind]
+
+        reg = circuit.dag.edges[edge]['reg']
+        label = edge[2]
+
+        new_id = circuit._unique_node_id()
+        new_edges = [(edge[0], new_id, label), (new_id, edge[1], label)]
+
+        op = np.random.choice(self.single_qubit_ops)
+
+        circuit.dag.add_node(new_id, op=op(register=reg))
+        circuit._open_qasm_update(op)  # fixes plotting issues
+
+        circuit.dag.remove_edges_from([edge])  # remove the edge
+
+        circuit.dag.add_edges_from(new_edges, reg_type='q', reg=reg)
+        return
+
+    def add_two_qubit_op(self, circuit: CircuitDAG):
+        """
+        Randomly selects two valid edges on which to add a new two-qubit gate.
+        One edge is selected from all edges, and then the second is selected that maintains proper temporal ordering
+        of the operations.
+        """
+        # setattr(self.add_two_qubit_op, "att1", 1)
+
+        edges = [edge for edge in circuit.dag.edges if circuit.dag.edges[edge]['reg_type'] == 'q']
+
+        ind = np.random.randint(len(edges))
+        edge0 = list(edges)[ind]
+
+        ancestors = nx.ancestors(circuit.dag, edge0[0])
+        descendants = nx.descendants(circuit.dag, edge0[1])
+
+        ancestor_edges = list(circuit.dag.in_edges(edge0[0], keys=True))
+        for anc in ancestors:
+            ancestor_edges.extend(circuit.dag.edges(anc, keys=True))
+
+        descendant_edges = list(circuit.dag.out_edges(edge0[1], keys=True))
+        for des in descendants:
+            descendant_edges.extend(circuit.dag.edges(des, keys=True))
+
+        possible_edges = set(edges) - set([edge0]) - set(ancestor_edges) - set(descendant_edges)
+        if len(possible_edges) == 0:
+            warnings.warn("No valid registers to place the two-qubit gate")
+            return
+
+        ind = np.random.randint(len(possible_edges))
+        edge1 = list(possible_edges)[ind]
+
+        new_id = circuit._unique_node_id()
+
+        op = np.random.choice(self.two_qubit_ops)
+        circuit.dag.add_node(new_id, op=op(control=circuit.dag.edges[edge0]['reg'],
+                                           target=circuit.dag.edges[edge1]['reg']))
+
+        circuit._open_qasm_update(op)  # fixes plotting issues
+
+        for edge in [edge0, edge1]:
+            reg = circuit.dag.edges[edge]['reg']
+            label = edge[2]
+            new_edges = [(edge[0], new_id, label), (new_id, edge[1], label)]
+
+            circuit.dag.add_edges_from(new_edges, reg_type='q', reg=reg)
+
+        circuit.dag.remove_edges_from([edge0, edge1])  # remove the selected edges
+        return
+
+    def remove_op(self, circuit: CircuitDAG):
+        """
+        Randomly selects a one- or two-qubit gate to remove from the circuit
+        """
+        nodes = [node for node in circuit.dag.nodes if type(circuit.dag.nodes[node]['op']) not in self.fixed_ops]
+        if len(nodes) == 0:
+            warnings.warn("No nodes that can be removed in the circuit. Skipping.")
+            return
+
+        ind = np.random.randint(len(nodes))
+        node = nodes[ind]
+
+        in_edges = list(circuit.dag.in_edges(node, keys=True))
+        out_edges = list(circuit.dag.out_edges(node, keys=True))
+
+        for in_edge in in_edges:
+            for out_edge in out_edges:
+                if in_edge[2] == out_edge[2]:
+                    reg = circuit.dag.edges[in_edge]['reg']
+                    label = out_edge[2]
+                    circuit.dag.add_edge(in_edge[0], out_edge[1], label, reg_type='q', reg=reg)
+
+        circuit.dag.remove_node(node)
+        return
+
+    @staticmethod
+    def _check_cnots(cir: CircuitDAG):
+        """
+        Sanity check that all CNOT gates have two in edges and two out edges
+        :param cir: circuit object
+        :return:
+        """
+        for node in cir.dag.nodes:
+            if type(cir.dag.nodes[node]['op']) is ops.CNOT:
+                assert len(cir.dag.in_edges(node)) == 2, f"in edges is {cir.dag.in_edges(node)} not 2"
+                assert len(cir.dag.out_edges(node)) == 2, f"out edges is {cir.dag.out_edges(node)} not 2"
 
 
 def sort_hof(hof):
@@ -167,9 +290,9 @@ if __name__ == "__main__":
 
     #%% construct all of our important objects
     target = state_ideal['dm']
-    circuit = CircuitDAG(n_quantum=4, n_classical=0)
+    circuit = CircuitDAG(n_photon=4, n_classical=0)
     compiler = DensityMatrixCompiler()
-    metric = MetricFidelity(target=target)
+    metric = Infidelity(target=target)
 
     solver = EvolutionarySolver(target=target, metric=metric, circuit=circuit, compiler=compiler)
 

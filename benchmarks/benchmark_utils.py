@@ -96,13 +96,14 @@ def benchmark_data(solver_class, targets, metric_class, compiler, target_type='d
                                   n_emitter=target['n_emitters'],
                                   n_photon=target['n_photons'])
             start_time = time.time()
-            solver.solve(i + seed_offset)
+            solver.seed(i + seed_offset)
+            solver.solve()
             total_time = time.time() - start_time
             df.loc['runtime (s)', (target['name'], i)] = total_time
             df.loc[f'{metric_class.__name__} score', (target['name'], i)] = copy.deepcopy(solver.hof[0][0])
-            df.loc[f'Circuit', (target['name'], i)] = copy.deepcopy(solver.hof[1][0])
+            df.loc[f'Circuit', (target['name'], i)] = copy.deepcopy(solver.hof[0][1])
             df.loc[f'Measurement independent (T/F)', (target['name'], i)] = \
-                copy.deepcopy(circuit_measurement_independent(solver.hof[1][0], compiler)[0])
+                copy.deepcopy(circuit_measurement_independent(solver.hof[0][1], compiler)[0])
             df.loc[f'Circuit depth', (target['name'], i)] = 'Coming soon...'  # TODO: implement a circuit class func
 
             circuit_data = {
@@ -110,7 +111,7 @@ def benchmark_data(solver_class, targets, metric_class, compiler, target_type='d
                 'seed': i,
                 'runtime (s)': total_time,
                 'Measurement independent (T/F)': df.loc[f'Measurement independent (T/F)', (target['name'], i)],
-                'Circuit description': solver.hof[1][0].to_openqasm()
+                'Circuit description': solver.hof[0][1].to_openqasm()
             }
             hof_circuits.append(circuit_data)
 
@@ -137,7 +138,8 @@ def benchmark_data(solver_class, targets, metric_class, compiler, target_type='d
 if __name__ == "__main__":
     target_list = [circ.ghz3_state_circuit(), circ.ghz4_state_circuit(), circ.linear_cluster_3qubit_circuit(),
                    circ.linear_cluster_4qubit_circuit()]
+    target_list = [circ.ghz3_state_circuit()]
     compiler = DensityMatrixCompiler()
     compiler.measurement_determinism = 1
     df = benchmark_data(RuleBasedRandomSearchSolver, target_list, Infidelity, compiler,
-                        per_target_retries=10, seed_offset=0, save_directory='./save_benchmarks/')
+                        per_target_retries=1, seed_offset=0, save_directory='./save_benchmarks/')

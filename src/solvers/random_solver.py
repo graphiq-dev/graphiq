@@ -54,7 +54,7 @@ class RandomSearchSolver(SolverBase):
             None: None
         }
 
-        self.transformations = self.trans_probs.keys()
+        self.transformations = list(self.trans_probs.keys())
 
     def update_hof(self, population):
         """

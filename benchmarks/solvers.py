@@ -5,7 +5,7 @@ import networkx as nx
 
 from src.backends.density_matrix.compiler import DensityMatrixCompiler
 from src.solvers.random_solver import RandomSearchSolver
-from src.metrics import MetricFidelity
+from src.metrics import Infidelity
 from src.circuit import RegisterCircuitDAG
 
 from src import ops
@@ -17,7 +17,7 @@ if __name__ == "__main__":
     _, target = bell_state_circuit()
 
     circuit = RegisterCircuitDAG(n_qubits, 0)
-    metric = MetricFidelity(target)
+    metric = Infidelity(target)
 
     compiler = DensityMatrixCompiler()
     # define the solver (all methods are encapsulated in the class definition)

@@ -47,7 +47,7 @@ class MetricBase(ABC):
         self._inc += 1
 
 
-class MetricFidelity(MetricBase):
+class Infidelity(MetricBase):
     def __init__(self, target, log_steps=1, *args, **kwargs):
         """
         Creates a Fidelity Metric object (which computes fidelity with respect to the ideal_state
@@ -136,7 +136,7 @@ class Metrics(object):
     Wraps around one or more metric functions, evaluating each and logging the values
     """
     _all = {  # metrics that can be used, which can be specified by the dictionary keys or as a class instance
-        "fidelity": MetricFidelity,
+        "fidelity": Infidelity,
         "circuit-depth": MetricCircuitDepth,
     }
 
@@ -193,13 +193,13 @@ if __name__ == "__main__":
     """ Metric usage example """
     # set how often to log the metric evaluations
     MetricBase.log_steps = 3
-    MetricFidelity.log_steps = 1
+    Infidelity.log_steps = 1
 
     _, ideal_state = bell_state_circuit()
 
     metrics = Metrics([
         MetricCircuitDepth(),
-        MetricFidelity(ideal_state)
+        Infidelity(ideal_state)
     ])
 
     for _ in range(10):

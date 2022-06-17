@@ -14,7 +14,7 @@ from src.backends.compiler_base import CompilerBase
 
 from src.backends.density_matrix.compiler import DensityMatrixCompiler
 from src.circuit import CircuitDAG
-from src.metrics import MetricFidelity
+from src.metrics import Infidelity
 
 from src.visualizers.density_matrix import density_matrix_bars
 from src import ops
@@ -228,7 +228,7 @@ if __name__ == "__main__":
 
     circuit = CircuitDAG(n_emitter=4, n_classical=0)
     compiler = DensityMatrixCompiler()
-    metric = MetricFidelity(target=target)
+    metric = Infidelity(target=target)
 
     fid = metric.evaluate(target, target)
     solver = RandomSearchSolver(target=target, metric=metric, circuit=circuit, compiler=compiler)

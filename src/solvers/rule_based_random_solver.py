@@ -16,7 +16,7 @@ from src.solvers.base import SolverBase
 
 from src.backends.density_matrix.compiler import DensityMatrixCompiler
 from src.circuit import CircuitDAG
-from src.metrics import MetricFidelity
+from src.metrics import Infidelity
 
 from src.visualizers.density_matrix import density_matrix_bars
 from src import ops
@@ -430,7 +430,7 @@ if __name__ == "__main__":
     # n_photon = 4
     # n_emitter = 1
     # compiler = DensityMatrixCompiler()
-    # metric = MetricFidelity(target=target)
+    # metric = Infidelity(target=target)
     #
     # solver = RuleBasedRandomSearchSolver(target=target, metric=metric, compiler=compiler, n_emitter=n_emitter, n_photon=n_photon)
     # solver.solve(20)

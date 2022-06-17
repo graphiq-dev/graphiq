@@ -18,6 +18,9 @@ def bell_state_circuit():
     """
     ideal_state = dict(
         dm=ket2dm((tensor(2 * [ketz0_state()]) + tensor(2 * [ketz1_state()])) / np.sqrt(2)),
+        n_emitters=2,
+        n_photons=0,
+        name='bell_state'
     )
     circuit = CircuitDAG(n_emitter=2, n_classical=0)
     circuit.add(Hadamard(register=0))
@@ -31,6 +34,9 @@ def ghz3_state_circuit():
     """
     ideal_state = dict(
         dm=ket2dm((tensor(3 * [ketz0_state()]) + tensor(3 * [ketz1_state()])) / np.sqrt(2)),
+        n_emitters=1,
+        n_photons=3,
+        name='ghz3',
     )
 
     circuit = CircuitDAG(n_emitter=1, n_photon=3, n_classical=1)
@@ -56,16 +62,19 @@ def ghz4_state_circuit():
     """
     ideal_state = dict(
         dm=ket2dm((tensor(4 * [ketz0_state()]) + tensor(4 * [ketz1_state()])) / np.sqrt(2)),
+        n_emitters=1,
+        n_photons=4,
+        name='ghz4',
     )
 
     circuit = CircuitDAG(n_emitter=1, n_photon=4, n_classical=1)
     circuit.add(Hadamard(register=0, reg_type='e'))
     circuit.add(CNOT(control=0, control_type='e', target=0, target_type='p'))
     circuit.add(CNOT(control=0, control_type='e', target=1, target_type='p'))
-    #circuit.add(Hadamard(register=1, reg_type='p'))
+    # circuit.add(Hadamard(register=1, reg_type='p'))
 
     circuit.add(CNOT(control=0, control_type='e', target=2, target_type='p'))
-    #circuit.add(Hadamard(register=2, reg_type='p'))
+    # circuit.add(Hadamard(register=2, reg_type='p'))
 
     circuit.add(CNOT(control=0, control_type='e', target=3, target_type='p'))
     circuit.add(Hadamard(register=3, reg_type='p'))
@@ -87,6 +96,9 @@ def linear_cluster_3qubit_circuit():
     state = DensityMatrix.from_graph(graph)
     ideal_state = dict(
         dm=state.data,
+        n_emitters=1,
+        n_photons=3,
+        name='linear3'
     )
 
     circuit = CircuitDAG(n_emitter=1, n_photon=3, n_classical=1)
@@ -114,6 +126,9 @@ def linear_cluster_4qubit_circuit():
     state = DensityMatrix.from_graph(graph)
     ideal_state = dict(
         dm=state.data,
+        n_emitters=1,
+        n_photons=4,
+        name='linear4',
     )
 
     circuit = CircuitDAG(n_emitter=1, n_photon=4, n_classical=1)

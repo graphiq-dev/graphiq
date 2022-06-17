@@ -19,7 +19,7 @@ if __name__ == "__main__":
 
     # we pass one metric to use as the cost function. we can also pass more to be evaluated but not used as the cost
     _, ideal_state = bell_state_circuit()
-    metric = metrics.MetricFidelity(ideal_state)
+    metric = metrics.Infidelity(ideal_state)
 
     # define the solver (all methods are encapsulated in the class definitions)
     solver = solvers.RandomSearchSolver(target=None, metric=metric, compiler=compiler, circuit=circuit)

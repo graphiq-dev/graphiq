@@ -159,7 +159,7 @@ def test_solver_linear4(linear4_run, linear4_expected):
 
 
 @visualization
-def test_solver_linear4_visualized(linear4_run, density_matrix_compiler):
+def test_solver_linear4_visualized(linear4_run, linear4_expected):
     check_run_visual(linear4_run, linear4_expected)
 
 

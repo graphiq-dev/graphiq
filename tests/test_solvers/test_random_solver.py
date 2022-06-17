@@ -2,7 +2,7 @@
 from src.solvers.random_solver import RandomSearchSolver
 from src.backends.density_matrix.compiler import DensityMatrixCompiler
 from src.circuit import CircuitDAG
-from src.metrics import MetricFidelity
+from src.metrics import Infidelity
 
 from src.visualizers.density_matrix import density_matrix_bars
 

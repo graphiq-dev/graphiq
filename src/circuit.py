@@ -48,6 +48,7 @@ import matplotlib.pyplot as plt
 from abc import ABC, abstractmethod
 import warnings
 import functools
+import numpy as np
 
 from src.ops import OperationBase
 from src.ops import Input
@@ -500,6 +501,26 @@ class CircuitDAG(CircuitBase):
             return op_list
 
         return functools.reduce(lambda x, y: x + y.unwrap(), op_list, [])
+
+    @property
+    def depth(self):
+        """
+        Returns the circuit depth (NOT including input and output nodes)
+
+        :return: circuit depth
+        :rtype: int
+        """
+        # TODO: implement... does this idea even work?
+        # TODO: check whether there is a more efficient algorithm (there might be, but this one is easy to understand)
+        input_nodes = [node for node, in_degree in self.dag.in_degree() if in_degree == 0]
+        output_nodes = [node for node, out_degree in self.dag.out_degree() if out_degree == 0]
+
+        max_depth = np.inf
+        for input in input_nodes:
+            for output in output_nodes:
+                shortest_path = nx.shortest_path_length(self.dag, source=input, target=output)
+        return 0
+
 
     def draw_dag(self, show=True, fig=None, ax=None):
         """

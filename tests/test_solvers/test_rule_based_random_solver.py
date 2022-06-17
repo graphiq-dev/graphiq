@@ -2,21 +2,20 @@ from src.solvers.rule_based_random_solver import RuleBasedRandomSearchSolver
 import matplotlib.pyplot as plt
 from src.backends.density_matrix.compiler import DensityMatrixCompiler
 from src.circuit import CircuitDAG
-from src.metrics import MetricFidelity
+from src.metrics import Infidelity
 import src.backends.density_matrix.functions as dmf
 from src.visualizers.density_matrix import density_matrix_bars
 
 from benchmarks.circuits import *
 
-
-
+# TODO: refactor to use asserts
 
 def test_solver_initialization():
     circuit_ideal, state_ideal = linear_cluster_4qubit_circuit()
     target = state_ideal['dm']
 
     compiler = DensityMatrixCompiler()
-    metric = MetricFidelity(target=target)
+    metric = Infidelity(target=target)
 
     solver = RuleBasedRandomSearchSolver(target=target, metric=metric, compiler=compiler, n_emitter=1, n_photon=3)
     solver.test_initialization(10)
@@ -28,7 +27,7 @@ def test_solver_3qubit():
     n_photon = 3
     n_emitter = 1
     compiler = DensityMatrixCompiler()
-    metric = MetricFidelity(target=target)
+    metric = Infidelity(target=target)
 
     solver = RuleBasedRandomSearchSolver(target=target, metric=metric, compiler=compiler, n_emitter=n_emitter, n_photon=n_photon)
     solver.solve(10)
@@ -59,7 +58,7 @@ def test_solver_4qubit():
     n_photon = 4
     n_emitter = 1
     compiler = DensityMatrixCompiler()
-    metric = MetricFidelity(target=target)
+    metric = Infidelity(target=target)
 
     solver = RuleBasedRandomSearchSolver(target=target, metric=metric, compiler=compiler, n_emitter=n_emitter, n_photon=n_photon)
 
@@ -87,16 +86,16 @@ def test_solver_4qubit():
     plt.show()
 
 
-
 def test_solver_GHZ3qubit():
     circuit_ideal, state_ideal = ghz3_state_circuit()
     target = state_ideal['dm']
     n_photon = 3
     n_emitter = 1
     compiler = DensityMatrixCompiler()
-    metric = MetricFidelity(target=target)
+    metric = Infidelity(target=target)
 
-    solver = RuleBasedRandomSearchSolver(target=target, metric=metric, compiler=compiler, n_emitter=n_emitter, n_photon=n_photon)
+    solver = RuleBasedRandomSearchSolver(target=target, metric=metric, compiler=compiler,
+                                         n_emitter=n_emitter, n_photon=n_photon)
     solver.solve(100)
     print(solver.hof[0][0])
 

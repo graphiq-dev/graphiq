@@ -3,7 +3,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import networkx as nx
 import warnings
-import collections
 import copy
 import time
 
@@ -30,9 +29,10 @@ class RuleBasedRandomSearchSolver(RandomSearchSolver):
     """
 
     name = "rule-based-random-search"
-    n_stop = 200  # maximum number of iterations
-    n_hof = 10
+    n_stop = 50  # maximum number of iterations
     n_pop = 50
+    n_hof = 5
+    tournament_k = 5  # tournament size for selection of the next population
 
     fixed_ops = [  # ops that should never be removed/swapped
         ops.Input,
@@ -62,19 +62,50 @@ class RuleBasedRandomSearchSolver(RandomSearchSolver):
         self.n_photon = n_photon
 
         # transformation functions and their relative probabilities
-        self.trans_probs = {
-            self.add_emitter_one_qubit_op: 1,
-            self.replace_photon_one_qubit_op: 1,
-            self.remove_op: 1,
+        self.trans_probs = self.initialize_transformation_probabilities()
+        self.transformations = self.trans_probs.keys()
+
+    def initialize_transformation_probabilities(self):
+        """
+        Sets the initial probabilities for selecting the circuit transformations.
+        :return:
+        """
+        trans_probs = {
+            self.add_emitter_one_qubit_op: 1/4,
+            self.replace_photon_one_qubit_op: 1/4,
+            self.remove_op: 1/4,
             # self.add_measurement_and_reset: 1,
         }
 
         if self.n_emitter > 1:
-            self.trans_probs += {
-                self.add_emitter_cnot: 1,
-            }
+            trans_probs[self.add_emitter_cnot] = 1/4
 
-        self.transformations = self.trans_probs.keys()
+        # normalize the probabilities
+        total = np.sum(list(trans_probs.values()))
+        for key in trans_probs.keys():
+            trans_probs[key] *= 1/total
+        return trans_probs
+
+    def adapt_probabilities(self, iteration: int):
+        """
+        Changes the probability of selecting circuit transformations at each iteration.
+        Generally, transformations that add gates are selected with higher probability at the beginning.
+        As the search progresses, transformations that remove gates are selected with higher probability.
+
+        :param iteration: i-th iteration of the search method, which ranges from 0 to n_stop
+        :return:
+        """
+        self.trans_probs[self.add_emitter_one_qubit_op] += -1 / self.n_stop / 3
+        self.trans_probs[self.replace_photon_one_qubit_op] += -1 / self.n_stop / 3
+        self.trans_probs[self.remove_op] += 1 / self.n_stop
+        if self.n_emitter > 1:
+            self.trans_probs[self.add_emitter_cnot] += -1 / self.n_stop / 3
+
+        # normalize the probabilities
+        total = np.sum(list(self.trans_probs.values()))
+        for key in self.trans_probs.keys():
+            self.trans_probs[key] *= 1 / total
+        return
 
     @staticmethod
     def _initialization(n_emitter, n_photon, emission_assignment, measurement_assignment):
@@ -106,31 +137,25 @@ class RuleBasedRandomSearchSolver(RandomSearchSolver):
                 ops.MeasurementCNOTandReset(control=j, control_type='e', target=measurement_assignment[j], target_type='p'))
         return circuit
 
-    def test_initialization(self, seed):
+    def test_initialization(self):
         # debugging only
-        np.random.seed(seed)
-
         emission_assignment = RuleBasedRandomSearchSolver.get_emission_assignment(self.n_photon, self.n_emitter)
         measurement_assignment = RuleBasedRandomSearchSolver.get_measurement_assignment(self.n_photon, self.n_emitter)
         circuit = self._initialization(self.n_emitter, self.n_photon, emission_assignment, measurement_assignment)
         circuit.draw_dag()
-        # print(circuit.dag.nodes())
         circuit.draw_circuit()
 
-    def solve(self, seed):
+    def solve(self):
         """
         The main function for the solver
-        :param seed: a random number generator seed
-        :type seed: int
         :return: function returns nothing
         :rtype: None
         """
-        np.random.seed(seed)
         p_dist = [0.5] + 11 * [0.1 / 22] + [0.4] + 11 * [0.1 / 22]
         e_dist = [0.5] + 11 * [0.02 / 22] + [0.48] + 11 * [0.02 / 22]
 
         # Initialize population
-        circuit_pop = []
+        population = []
         for j in range(self.n_pop):
             emission_assignment = RuleBasedRandomSearchSolver.get_emission_assignment(self.n_photon,
                                                                                       self.n_emitter)
@@ -138,12 +163,12 @@ class RuleBasedRandomSearchSolver(RandomSearchSolver):
                                                                                             self.n_emitter)
             circuit = self._initialization(self.n_emitter, self.n_photon, emission_assignment, measurement_assignment)
             fixed_node = circuit.dag.nodes()
-            circuit_pop.append(circuit)
+            population.append((np.inf, circuit))  # initialize all population members
 
         for i in range(self.n_stop):
             for j in range(self.n_pop):
                 transformation = np.random.choice(list(self.trans_probs.keys()), p=list(self.trans_probs.values()))
-                circuit = circuit_pop[j]
+                circuit = population[j][1]
 
                 if transformation == self.add_emitter_one_qubit_op:
                     self.add_emitter_one_qubit_op(circuit, e_dist)
@@ -167,9 +192,16 @@ class RuleBasedRandomSearchSolver(RandomSearchSolver):
                 state_data = dmf.partial_trace(compiled_state.data,
                                                keep=list(range(self.n_photon)),
                                                dims=(self.n_photon + self.n_emitter) * [2])
-                score = self.metric.evaluate(state_data, circuit_pop[i])
+                score = self.metric.evaluate(state_data, circuit)
 
-                self.update_hof(score, circuit)
+                population[j] = (score, circuit)
+
+            self.update_hof(population)
+            # self.adapt_probabilities(i)
+            population = self.tournament_selection(population, self.tournament_k)
+
+            print(f"Interation {i} | Best score: {self.hof[0][0]:.4f}")
+
 
     def replace_photon_one_qubit_op(self, circuit, p_dist):
         """
@@ -368,8 +400,6 @@ class RuleBasedRandomSearchSolver(RandomSearchSolver):
         :type n_photon: int
         :param n_emitter: number of emitters
         :type n_emitter: int
-        :param seed: a random number generator seed
-        :type seed: int
         :return: a list of emitter numbers
         :rtype: list[int]
         """
@@ -403,8 +433,6 @@ class RuleBasedRandomSearchSolver(RandomSearchSolver):
         :type n_photon: int
         :param n_emitter: number of emitters
         :type n_emitter: int
-        :param seed: a random number generator seed
-        :type seed: int
         :return: a list of photon numbers
         :rtype: list[int]
         """
@@ -412,17 +440,26 @@ class RuleBasedRandomSearchSolver(RandomSearchSolver):
 
 
 if __name__ == "__main__":
-    circuit_ideal, state_ideal = bc.linear_cluster_3qubit_circuit()
+    RuleBasedRandomSearchSolver.n_stop = 50
+    RuleBasedRandomSearchSolver.n_pop = 50
+    RuleBasedRandomSearchSolver.n_hof = 5
+    RuleBasedRandomSearchSolver.tournament_k = 5
+
+    # circuit_ideal, state_ideal = bc.linear_cluster_3qubit_circuit()
+    circuit_ideal, state_ideal = bc.linear_cluster_4qubit_circuit()
     target = state_ideal['dm']
-    n_photon = 3
+    n_photon = 4
     n_emitter = 1
     compiler = DensityMatrixCompiler()
     metric = Infidelity(target=target)
 
     solver = RuleBasedRandomSearchSolver(target=target, metric=metric, compiler=compiler, n_emitter=n_emitter, n_photon=n_photon)
-    solver.solve(200)
+
+    solver.seed(None)  # sets the seed for both numpy.random and random packages
+    solver.solve()
+
     print('hof score is ' + str(solver.hof[0][0]))
-    circuit = solver.hof[1][0]
+    circuit = solver.hof[0][1]
     state = compiler.compile(circuit)
     state2 = compiler.compile(circuit)
     state3 = compiler.compile(circuit)

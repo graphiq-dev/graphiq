@@ -120,10 +120,11 @@ class EvolutionarySolver(RandomSearchSolver):
         scores = [None for _ in range(self.n_pop)]
         circuits = [copy.deepcopy(self.circuit) for _ in range(self.n_pop)]
 
+        population = [(None, copy.deepcopy(self.circuit)) for _ in range(self.n_pop)]
+
         for i in range(self.n_stop):
             for j in range(self.n_pop):
 
-                # transformation = self.transformations[np.random.randint(len(self.transformations))]
                 transformation = np.random.choice(list(self.trans_probs.keys()), p=list(self.trans_probs.values()))
 
                 circuit = circuits[j]
@@ -132,16 +133,15 @@ class EvolutionarySolver(RandomSearchSolver):
                 circuit.validate()
 
                 state = self.compiler.compile(circuit)  # this will pass out a density matrix object
-                # print(state)
 
                 score = self.metric.evaluate(state.data, circuit)
 
-                scores[j] = score
-                circuits[j] = circuit
+                population[j] = (score, circuit)
                 print(f"New generation {i} | {score:.4f} | {transformation.__name__}")
 
-            self.update_hof(scores, circuits)
-
+            self.update_hof(population)
+            self.adapt_probabilities(i)
+            population = self.tournament_selection(population, self.tournament_k)
         return
 
     def add_one_qubit_op(self, circuit: CircuitDAG):
@@ -278,9 +278,8 @@ if __name__ == "__main__":
     EvolutionarySolver.tournament_k = 10
 
     #%% comment/uncomment for reproducibility
-    # seed = 0
-    # np.random.seed(seed)
-    # random.seed(seed)
+    # EvolutionarySolver.seed(1)
+
     # %% select which state we want to target
     # circuit_ideal, state_ideal = bell_state_circuit()
     # circuit_ideal, state_ideal = ghz3_state_circuit()

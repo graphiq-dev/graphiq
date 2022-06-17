@@ -57,6 +57,12 @@ class RandomSearchSolver(SolverBase):
         self.transformations = self.trans_probs.keys()
 
     def update_hof(self, population):
+        """
+        Updates the Hall-of-Fame (HOF), which is a list of the best circuits encountered so far in the search.
+
+        :param population:
+        :return:
+        """
         for score, circuit in population:
             for i in range(self.n_hof):
                 if np.isclose(score, self.hof[i][0]):

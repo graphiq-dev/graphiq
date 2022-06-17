@@ -182,15 +182,15 @@ def test_ghz4(ghz4):
 
 
 @pytest.mark.parametrize("linear3", [linear3_0(), linear3_1()])
-def test_linear3(linear3_run):
+def test_linear3(linear3):
     demo_circuit, ideal_state = linear_cluster_3qubit_circuit()
     compiler = DensityMatrixCompiler()
-    independent, state1, state2 = circuit_measurement_independent(linear3_run, compiler)
+    independent, state1, state2 = circuit_measurement_independent(linear3, compiler)
     assert independent
 
     infidelity = Infidelity(ideal_state['dm'])
-    assert np.isclose(infidelity.evaluate(state1, linear3_run), 0.0), f'state 1: {state1}'
-    assert np.isclose(infidelity.evaluate(state2, linear3_run), 0.0), f'state 2: {state1}'
+    assert np.isclose(infidelity.evaluate(state1, linear3), 0.0), f'state 1: {state1}'
+    assert np.isclose(infidelity.evaluate(state2, linear3), 0.0), f'state 2: {state1}'
 
 
 @pytest.mark.parametrize("linear4", [linear4_0(), linear4_1()])

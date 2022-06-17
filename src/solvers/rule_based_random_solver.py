@@ -200,7 +200,7 @@ class RuleBasedRandomSearchSolver(RandomSearchSolver):
             # self.adapt_probabilities(i)
             population = self.tournament_selection(population, self.tournament_k)
 
-            print(f"Interation {i} | Best score: {self.hof[0][0]:.4f}")
+            print(f"Iteration {i} | Best score: {self.hof[0][0]:.4f}")
 
 
     def replace_photon_one_qubit_op(self, circuit, p_dist):

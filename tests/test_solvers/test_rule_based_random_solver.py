@@ -20,10 +20,8 @@ def solver_stop_100():
     """
     n_stop_original = RuleBasedRandomSearchSolver.n_stop
     RuleBasedRandomSearchSolver.n_stop = 100
-    print(f'n_stop before: {RuleBasedRandomSearchSolver.n_stop}')
     yield
     RuleBasedRandomSearchSolver.n_stop = n_stop_original
-    print(f'n_stop after: {RuleBasedRandomSearchSolver.n_stop}')
 
 
 @pytest.fixture(scope='module')
@@ -176,7 +174,7 @@ def test_add_more_measurements():
     n_emitter = 1
     n_photon = 4
     seed = 10
-    circuit_ideal, state_ideal = linear_cluster_3qubit_circuit()
+    circuit_ideal, state_ideal = linear_cluster_4qubit_circuit()
     target_state = state_ideal['dm']
     compiler = DensityMatrixCompiler()
     metric = Infidelity(target=target_state)
@@ -187,3 +185,26 @@ def test_add_more_measurements():
     solver.seed(seed)
     solver.test_more_measurements()
 
+
+@pytest.mark.parametrize('seed', [0, 3, 325, 2949])
+def test_add_remove_measurements(seed):
+    n_emitter = 3
+    n_photon = 4
+
+    circuit_ideal, state_ideal = linear_cluster_4qubit_circuit()
+    target_state = state_ideal['dm']
+    compiler = DensityMatrixCompiler()
+    metric = Infidelity(target=target_state)
+    solver = RuleBasedRandomSearchSolver(target=target_state, metric=metric, compiler=compiler,
+                                         n_emitter=n_emitter, n_photon=n_photon)
+    solver.seed(seed)
+
+    original_trans_prob = solver.trans_probs
+    solver.trans_probs = {
+        solver.remove_op: 1 / 2,
+        solver.add_measurement_cnot_and_reset: 1 / 2
+    }
+
+    solver.solve()
+
+    solver.trans_probs = original_trans_prob

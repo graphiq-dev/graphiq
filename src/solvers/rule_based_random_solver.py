@@ -63,7 +63,6 @@ class RuleBasedRandomSearchSolver(RandomSearchSolver):
 
         # transformation functions and their relative probabilities
         self.trans_probs = self.initialize_transformation_probabilities()
-        self.transformations = self.trans_probs.keys()
 
     def initialize_transformation_probabilities(self):
         """
@@ -364,8 +363,7 @@ class RuleBasedRandomSearchSolver(RandomSearchSolver):
         """
         if node is None:
             nodes = [node for node in circuit.dag.nodes if not (
-                    not (type(circuit.dag.nodes[node]['op']) not in self.fixed_ops) or not (
-                    node not in fixed_node))]
+                    (type(circuit.dag.nodes[node]['op']) in self.fixed_ops) or (node in fixed_node))]
 
             if len(nodes) == 0:
                 return
@@ -378,11 +376,11 @@ class RuleBasedRandomSearchSolver(RandomSearchSolver):
 
         for in_edge in in_edges:
             for out_edge in out_edges:
-                if in_edge[2] == out_edge[2]:
+                if in_edge[2] == out_edge[2]:  # i.e. if the keys are the same
                     reg = circuit.dag.edges[in_edge]['reg']
+                    reg_type = circuit.dag.edges[in_edge]['reg_type']
                     label = out_edge[2]
-                    # TODO: fix the register type here.
-                    circuit.dag.add_edge(in_edge[0], out_edge[1], label, reg_type='e', reg=reg)
+                    circuit.dag.add_edge(in_edge[0], out_edge[1], label, reg_type=reg_type, reg=reg)
 
         circuit.dag.remove_node(node)
 

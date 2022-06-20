@@ -202,7 +202,6 @@ class RuleBasedRandomSearchSolver(RandomSearchSolver):
 
             print(f"Iteration {i} | Best score: {self.hof[0][0]:.4f}")
 
-
     def replace_photon_one_qubit_op(self, circuit, p_dist):
         """
         Replacing one single-qubit Clifford gate applied on a photonic qubit to another one
@@ -438,6 +437,33 @@ class RuleBasedRandomSearchSolver(RandomSearchSolver):
         """
         return np.random.randint(n_photon, size=n_emitter).tolist()
 
+    @property
+    def solver_info(self):
+        def op_names(op_list):
+            op_name = []
+            for op_val in op_list:
+                if isinstance(op_val, list):
+                    op_name.append([op.__name__ for op in op_val])
+                else:
+                    op_name.append(op_val.__name__)
+            return op_name
+
+        def transition_names(transition_dict):
+            transition_name = {}
+            for key, value in transition_dict.items():
+                transition_name[key.__name__] = value
+            return transition_name
+
+        return {
+            'solver name': self.name,
+            'Max iteration #': self.n_stop,
+            'Population size': self.n_pop,
+            'seed': self.last_seed,
+            'Fixed ops': op_names(self.fixed_ops),
+            'Single qubit ops': op_names(self.single_qubit_ops),
+            'Two qubit ops': op_names(self.two_qubit_ops),
+            'Transition probabilities': transition_names(self.trans_probs)
+        }
 
 if __name__ == "__main__":
     RuleBasedRandomSearchSolver.n_stop = 50

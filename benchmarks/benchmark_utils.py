@@ -73,8 +73,9 @@ def benchmark_data(solver_class, targets, metric_class, compiler, target_type='d
 
     # TODO: save solver data
     # TODO: save compute data
-    # TODO: log times for each solver run
-    # TODO: save metric choice
+    if save_directory is not None:
+        dir_name = os.path.join(save_directory, f'solver_benchmark_{datetime.datetime.now().strftime("%Y_%m_%d-%H-%M-%S")}')
+        os.mkdir(dir_name)
 
     # Create pandas dataframe
     target_state_names = [target['name'] for (circuit, target) in targets]
@@ -86,7 +87,7 @@ def benchmark_data(solver_class, targets, metric_class, compiler, target_type='d
     df = pd.DataFrame(index=data_fields, columns=column_index)
     hof_circuits = []
 
-    for ideal_circuit, target in targets:
+    for j, (ideal_circuit, target) in enumerate(targets):
         # TODO: this is not flexible to the type of metric being used, should be adapted later
         target_state = target[target_type]
 
@@ -95,6 +96,12 @@ def benchmark_data(solver_class, targets, metric_class, compiler, target_type='d
             solver = solver_class(target=target_state, metric=metric_class(target_state), compiler=compiler,
                                   n_emitter=target['n_emitters'],
                                   n_photon=target['n_photons'])
+            solver_data = solver.solver_info
+            if save_directory and i == 0 and j == 0:
+                with open(f"{dir_name}/solver_info.json", "w") as fp:
+                    print(f'solver data: {solver_data}')
+                    json.dump(solver_data, fp)
+
             start_time = time.time()
             solver.seed(i + seed_offset)
             solver.solve()
@@ -114,25 +121,22 @@ def benchmark_data(solver_class, targets, metric_class, compiler, target_type='d
                 'Circuit description': solver.hof[0][1].to_openqasm()
             }
             hof_circuits.append(circuit_data)
+            if save_directory is not None:
+                with open(f"{dir_name}/circuit_target{j}_retry{i}.json", "w") as fp:
+                    json.dump(circuit_data, fp)
+
+                with open(f"{dir_name}/circuit_description_target{j}_retry{i}.txt", 'w') as f:
+                    f.write(circuit_data['Circuit description'])
 
     if save_directory is not None:
-        dir_name = os.path.join(save_directory, f'solver_benchmark_{datetime.datetime.now().strftime("%Y_%m_%d-%H-%M-%S")}')
-        os.mkdir(dir_name)
         df.to_csv(f'{dir_name}/benchmark_results.csv')
-        for i in range(len(hof_circuits)):
-            with open(f"{dir_name}/circuit_{i}.json", "w") as fp:
-                json.dump(hof_circuits[i], fp)
-
-            with open(f"{dir_name}/circuit_{i}_description.txt", 'w') as f:
-                f.write(hof_circuits[i]['Circuit description'])
-
         for _, target in targets:
             for i in range(per_target_retries):
                 print()
                 df.loc[f'Circuit', (target['name'], i)].draw_circuit(show=False)
                 plt.savefig(f'{dir_name}/circuit_{target["name"]}_{i}.png')
 
-    return df
+    return solver_data, df, hof_circuits
 
 
 if __name__ == "__main__":

@@ -22,6 +22,7 @@ class SolverBase(ABC):
         self.circuit = circuit
         self.metric = metric
         self.compiler = compiler
+        self.last_seed = None
 
     @abstractmethod
     def solve(self, *args):
@@ -37,3 +38,8 @@ class SolverBase(ABC):
         """
         np.random.seed(seed)
         random.seed(seed)
+        SolverBase.last_seed = seed
+
+    @property
+    def solver_info(self):
+        return {}

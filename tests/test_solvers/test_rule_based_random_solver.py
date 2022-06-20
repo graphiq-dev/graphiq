@@ -1,5 +1,4 @@
 import pytest
-
 from tests.test_flags import visualization
 
 from src.solvers.rule_based_random_solver import RuleBasedRandomSearchSolver
@@ -171,3 +170,20 @@ def test_solver_ghz3(ghz3_run, ghz3_expected, density_matrix_compiler):
 @visualization
 def test_solver_ghz3_visualized(ghz3_run, ghz3_expected):
     check_run_visual(ghz3_run, ghz3_expected)
+
+
+def test_add_more_measurements():
+    n_emitter = 1
+    n_photon = 4
+    seed = 10
+    circuit_ideal, state_ideal = linear_cluster_3qubit_circuit()
+    target_state = state_ideal['dm']
+    compiler = DensityMatrixCompiler()
+    metric = Infidelity(target=target_state)
+
+    solver = RuleBasedRandomSearchSolver(target=target_state, metric=metric, compiler=compiler,
+                                         n_emitter=n_emitter, n_photon=n_photon)
+
+    solver.seed(seed)
+    solver.test_more_measurements()
+

@@ -71,19 +71,19 @@ class RuleBasedRandomSearchSolver(RandomSearchSolver):
         :return:
         """
         trans_probs = {
-            self.add_emitter_one_qubit_op: 1/4,
-            self.replace_photon_one_qubit_op: 1/4,
-            self.remove_op: 1/4,
-            # self.add_measurement_and_reset: 1,
+            self.add_emitter_one_qubit_op: 1 / 4,
+            self.replace_photon_one_qubit_op: 1 / 4,
+            self.remove_op: 1 / 4,
+            # self.add_measurement_cnot_and_reset: 1/10,
         }
 
         if self.n_emitter > 1:
-            trans_probs[self.add_emitter_cnot] = 1/4
+            trans_probs[self.add_emitter_cnot] = 1 / 4
 
         # normalize the probabilities
         total = np.sum(list(trans_probs.values()))
         for key in trans_probs.keys():
-            trans_probs[key] *= 1/total
+            trans_probs[key] *= 1 / total
         return trans_probs
 
     def adapt_probabilities(self, iteration: int):
@@ -134,7 +134,8 @@ class RuleBasedRandomSearchSolver(RandomSearchSolver):
         assert len(measurement_assignment) == n_emitter
         for j in range(n_emitter):
             circuit.add(
-                ops.MeasurementCNOTandReset(control=j, control_type='e', target=measurement_assignment[j], target_type='p'))
+                ops.MeasurementCNOTandReset(control=j, control_type='e', target=measurement_assignment[j],
+                                            target_type='p'))
         return circuit
 
     def test_initialization(self):
@@ -142,6 +143,17 @@ class RuleBasedRandomSearchSolver(RandomSearchSolver):
         emission_assignment = RuleBasedRandomSearchSolver.get_emission_assignment(self.n_photon, self.n_emitter)
         measurement_assignment = RuleBasedRandomSearchSolver.get_measurement_assignment(self.n_photon, self.n_emitter)
         circuit = self._initialization(self.n_emitter, self.n_photon, emission_assignment, measurement_assignment)
+        circuit.draw_dag()
+        circuit.draw_circuit()
+
+    def test_more_measurements(self):
+        # debugging only
+        emission_assignment = RuleBasedRandomSearchSolver.get_emission_assignment(self.n_photon, self.n_emitter)
+        measurement_assignment = RuleBasedRandomSearchSolver.get_measurement_assignment(self.n_photon, self.n_emitter)
+        circuit = self._initialization(self.n_emitter, self.n_photon, emission_assignment, measurement_assignment)
+        self.add_measurement_cnot_and_reset(circuit)
+        # self.add_measurement_cnot_and_reset(circuit)
+        self.add_measurement_cnot_and_reset(circuit)
         circuit.draw_dag()
         circuit.draw_circuit()
 
@@ -202,7 +214,6 @@ class RuleBasedRandomSearchSolver(RandomSearchSolver):
 
             print(f"Iteration {i} | Best score: {self.hof[0][0]:.4f}")
 
-
     def replace_photon_one_qubit_op(self, circuit, p_dist):
         """
         Replacing one single-qubit Clifford gate applied on a photonic qubit to another one
@@ -212,7 +223,7 @@ class RuleBasedRandomSearchSolver(RandomSearchSolver):
         :type p_dist: list[float] or list[double]
         :return:
         """
-        # TODO: debug this function
+
         nodes = [node for node in circuit.dag.nodes
                  if type(circuit.dag.nodes[node]['op']) is ops.SingleQubitGateWrapper and
                  list(circuit.dag.in_edges(nbunch=node, data=True))[0][2]['reg_type'] == 'p']
@@ -228,7 +239,7 @@ class RuleBasedRandomSearchSolver(RandomSearchSolver):
         op = self.single_qubit_ops[ind]
         gate = ops.SingleQubitGateWrapper(op, reg_type='p', register=reg)
         circuit._open_qasm_update(gate)
-        # TODO: fix an issue to place the gate in the original position
+        # TODO: check that the gate is guaranteed to be in the original position
         circuit.dag.nodes[node]['op'] = gate
 
     def add_photon_one_qubit_op(self, circuit, p_dist):
@@ -316,34 +327,17 @@ class RuleBasedRandomSearchSolver(RandomSearchSolver):
         :type circuit: CircuitDAG
         :return: nothing
         """
-        edges = [edge for edge in circuit.dag.edges if
-                 circuit.dag.edges[edge]['reg_type'] == 'e' and type(circuit.dag.nodes[edge[1]]['op']) is not ops.Output]
-
-        ind = np.random.randint(len(edges))
-        edge0 = list(edges)[ind]
-
-        ancestors = nx.ancestors(circuit.dag, edge0[0])
-        descendants = nx.descendants(circuit.dag, edge0[1])
-
-        ancestor_edges = list(circuit.dag.in_edges(edge0[0], keys=True))
-        for anc in ancestors:
-            ancestor_edges.extend(circuit.dag.edges(anc, keys=True))
-
-        descendant_edges = list(circuit.dag.out_edges(edge0[1], keys=True))
-        for des in descendants:
-            descendant_edges.extend(circuit.dag.edges(des, keys=True))
-
-        possible_edges = set(edges) - set([edge0]) - set(ancestor_edges) - set(descendant_edges)
-        if len(possible_edges) == 0:
+        possible_edge_pairs = RuleBasedRandomSearchSolver._select_possible_cnot_position(circuit)
+        if len(possible_edge_pairs) == 0:
             warnings.warn("No valid registers to place the two-qubit gate")
             return
 
-        ind = np.random.randint(len(possible_edges))
-        edge1 = list(possible_edges)[ind]
+        ind = np.random.randint(len(possible_edge_pairs))
+        (edge0, edge1) = possible_edge_pairs[ind]
 
         new_id = circuit._unique_node_id()
         gate = ops.CNOT(control=circuit.dag.edges[edge0]['reg'], control_type='e',
-                    target=circuit.dag.edges[edge1]['reg'], target_type='e')
+                        target=circuit.dag.edges[edge1]['reg'], target_type='e')
         circuit._open_qasm_update(gate)
         circuit.dag.add_node(new_id, op=gate)
 
@@ -387,11 +381,127 @@ class RuleBasedRandomSearchSolver(RandomSearchSolver):
                 if in_edge[2] == out_edge[2]:
                     reg = circuit.dag.edges[in_edge]['reg']
                     label = out_edge[2]
+                    # TODO: fix the register type here.
                     circuit.dag.add_edge(in_edge[0], out_edge[1], label, reg_type='e', reg=reg)
 
         circuit.dag.remove_node(node)
 
+    def add_measurement_cnot_and_reset(self, circuit):
+        """
+        Add a MeausrementCNOTandReset operation from an emitter qubit to a photonic qubit such that no consecutive MeasurementCNOTReset is allowed.
+        This operation cannot be added before the photonic qubit is initialized.
+
+        return: nothing
+        """
+
+        possible_edge_pairs = RuleBasedRandomSearchSolver._select_possible_measurement_position(circuit)
+
+        if len(possible_edge_pairs) == 0:
+            warnings.warn("No valid registers to place the two-qubit gate")
+            return
+
+        ind = np.random.randint(len(possible_edge_pairs))
+        (edge0, edge1) = possible_edge_pairs[ind]
+
+        new_id = circuit._unique_node_id()
+        gate = ops.MeasurementCNOTandReset(control=circuit.dag.edges[edge0]['reg'], control_type='e',
+                                           target=circuit.dag.edges[edge1]['reg'], target_type='p')
+
+        circuit._open_qasm_update(gate)
+        circuit.dag.add_node(new_id, op=gate)
+
+        reg = circuit.dag.edges[edge0]['reg']
+        label = edge0[2]
+        new_edges = [(edge0[0], new_id, label), (new_id, edge0[1], label)]
+
+        circuit.dag.add_edges_from(new_edges, reg_type='e', reg=reg)
+
+        reg = circuit.dag.edges[edge1]['reg']
+        label = edge1[2]
+        new_edges = [(edge1[0], new_id, label), (new_id, edge1[1], label)]
+
+        circuit.dag.add_edges_from(new_edges, reg_type='p', reg=reg)
+
+        circuit.dag.remove_edges_from([edge0, edge1])  # remove the selected edges
+
     # helper functions
+
+    @staticmethod
+    def _select_possible_cnot_position(circuit):
+        """
+        Internal helper function to choose all possible pairs of edges to add CNOT gates between two emitter qubits.
+
+        :param circuit: a quantum circuit
+        :type circuit: CircuitDAG
+        :return: return a list of edge pairs
+        :rtype:list[tuple]
+        """
+
+        edge_pair = []
+        edges = [edge for edge in circuit.dag.edges if
+                 circuit.dag.edges[edge]['reg_type'] == 'e' and type(
+                     circuit.dag.nodes[edge[1]]['op']) is not ops.Output]
+
+        for edge in edges:
+
+            ancestors = nx.ancestors(circuit.dag, edge[0])
+            descendants = nx.descendants(circuit.dag, edge[1])
+
+            ancestor_edges = list(circuit.dag.in_edges(edge[0], keys=True))
+            for anc in ancestors:
+                ancestor_edges.extend(circuit.dag.edges(anc, keys=True))
+
+            descendant_edges = list(circuit.dag.out_edges(edge[1], keys=True))
+            for des in descendants:
+                descendant_edges.extend(circuit.dag.edges(des, keys=True))
+
+            possible_edges = set(edges) - set([edge]) - set(ancestor_edges) - set(descendant_edges)
+
+            for another_edge in possible_edges:
+                edge_pair.append((edge, another_edge))
+
+        return edge_pair
+
+    @staticmethod
+    def _select_possible_measurement_position(circuit):
+        """
+        Find all possible positions to add the MeasurementCNOTandReset operation
+
+        :param circuit: a quantum circuit
+        :type circuit: CircuitDAG
+        :return: return a list of edge pairs
+        :rtype:list[tuple]
+        """
+        edge_pair = []
+        e_edges = [edge for edge in circuit.dag.edges if
+                   circuit.dag.edges[edge]['reg_type'] == 'e' and type(
+                       circuit.dag.nodes[edge[1]]['op']) is not (ops.Output and ops.MeasurementCNOTandReset)
+                   and type(circuit.dag.nodes[edge[0]]['op']) is not ops.MeasurementCNOTandReset]
+
+        p_edges = [edge for edge in circuit.dag.edges if
+                   circuit.dag.edges[edge]['reg_type'] == 'p' and type(
+                       circuit.dag.nodes[edge[1]]['op']) is not ops.MeasurementCNOTandReset
+                   and type(circuit.dag.nodes[edge[0]]['op']) is not ops.Input]
+
+        for edge in e_edges:
+            ancestors = nx.ancestors(circuit.dag, edge[0])
+            descendants = nx.descendants(circuit.dag, edge[1])
+            ancestor_edges = [edge for edge in circuit.dag.in_edges(edge[0], keys=True) if
+                              circuit.dag.edges[edge]['reg_type'] == 'p']
+            for anc in ancestors:
+                ancestor_edges.extend(circuit.dag.edges(anc, keys=True))
+
+            descendant_edges = [edge for edge in circuit.dag.out_edges(edge[1], keys=True) if
+                                circuit.dag.edges[edge]['reg_type'] == 'p']
+            for des in descendants:
+                descendant_edges.extend(circuit.dag.edges(des, keys=True))
+            possible_edges = set(p_edges) - set(ancestor_edges) - set(descendant_edges)
+
+            for another_edge in possible_edges:
+                edge_pair.append((edge, another_edge))
+
+        return edge_pair
+
     @staticmethod
     def get_emission_assignment(n_photon, n_emitter):
         """
@@ -453,7 +563,8 @@ if __name__ == "__main__":
     compiler = DensityMatrixCompiler()
     metric = Infidelity(target=target)
 
-    solver = RuleBasedRandomSearchSolver(target=target, metric=metric, compiler=compiler, n_emitter=n_emitter, n_photon=n_photon)
+    solver = RuleBasedRandomSearchSolver(target=target, metric=metric, compiler=compiler, n_emitter=n_emitter,
+                                         n_photon=n_photon)
 
     solver.seed(None)  # sets the seed for both numpy.random and random packages
     solver.solve()

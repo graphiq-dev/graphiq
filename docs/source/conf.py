@@ -19,10 +19,7 @@ import sys
 sys.path.insert(0, pathlib.Path(__file__).parents[2].resolve().as_posix())
 
 # -- Project information -----------------------------------------------------
-
-
-
-project = 'Graph-Compiler'
+project = 'Ki3-QBT Graph Compiler Library'
 copyright = '2022, Ki3-QBT'
 author = 'Ki3-QBT'
 

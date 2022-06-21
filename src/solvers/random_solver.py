@@ -70,7 +70,6 @@ class RandomSearchSolver(SolverBase):
         """
         Tournament selection for choosing the next generation population to be mutated/crossed-over
 
-
         :param population: population of the circuits, a list of (score, circuit) tuples
         :param k: size of the tournament
         :return:

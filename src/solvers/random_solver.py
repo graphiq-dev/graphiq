@@ -1,13 +1,9 @@
-import matplotlib.pyplot as plt
-
-import numpy as np
-import networkx as nx
-import warnings
-import collections
 import copy
-import time
 import random
 
+from src.metrics import MetricBase
+from src.circuit import CircuitBase
+from src.backends.compiler_base import CompilerBase
 from src.solvers.base import SolverBase
 
 from src import ops
@@ -39,13 +35,8 @@ class RandomSearchSolver(SolverBase):
         ops.CNOT,
     ]
 
-    def __init__(self,
-                 target=None,
-                 metric=None,
-                 circuit=None,
-                 compiler=None,
-                 *args, **kwargs):
-        super().__init__(target, metric, circuit, compiler, *args, **kwargs)
+    def __init__(self, target, metric: MetricBase, circuit: CircuitBase, compiler: CompilerBase, *args, **kwargs):
+        super().__init__(target, metric, circuit, compiler)
 
         # hof stores the best circuits and their scores in the form of: (scores, circuits)
         self.hof = [(np.inf, None) for _ in range(self.n_hof)]
@@ -78,7 +69,6 @@ class RandomSearchSolver(SolverBase):
     def tournament_selection(self, population, k=2):
         """
         Tournament selection for choosing the next generation population to be mutated/crossed-over
-
 
         :param population: population of the circuits, a list of (score, circuit) tuples
         :param k: size of the tournament

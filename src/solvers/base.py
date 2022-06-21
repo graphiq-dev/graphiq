@@ -16,7 +16,7 @@ class SolverBase(ABC):
     Base class for solvers, which each define an algorithm for identifying circuits towards the generation of the
     target quantum state.
     """
-    def __init__(self, target, metric: MetricBase, circuit: CircuitBase, compiler: CompilerBase, *args, **kwargs):
+    def __init__(self, target, metric: MetricBase, circuit: CircuitBase, compiler: CompilerBase):
         self.name = "base"
         self.target = target
         self.circuit = circuit

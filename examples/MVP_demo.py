@@ -26,7 +26,7 @@ def run_solve(target_function, seed):
     metric = Infidelity(target_state)
 
     # Create a setup the solver
-    solver = RuleBasedRandomSearchSolver(target=target_state, metric=metric, compiler=compiler,
+    solver = RuleBasedRandomSearchSolver(target=target_state, metric=metric, circuit=None, compiler=compiler,
                                          n_emitter=target['n_emitters'], n_photon=target['n_photons'],
                                          selection_active=False)
 

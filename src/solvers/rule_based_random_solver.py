@@ -134,16 +134,16 @@ class RuleBasedRandomSearchSolver(RandomSearchSolver):
 
     def test_initialization(self):
         # debugging only
-        emission_assignment = RuleBasedRandomSearchSolver.get_emission_assignment(self.n_photon, self.n_emitter)
-        measurement_assignment = RuleBasedRandomSearchSolver.get_measurement_assignment(self.n_photon, self.n_emitter)
+        emission_assignment = self.get_emission_assignment(self.n_photon, self.n_emitter)
+        measurement_assignment = self.get_measurement_assignment(self.n_photon, self.n_emitter)
         circuit = self._initialization(self.n_emitter, self.n_photon, emission_assignment, measurement_assignment)
         circuit.draw_dag()
         circuit.draw_circuit()
 
     def test_more_measurements(self):
         # debugging only
-        emission_assignment = RuleBasedRandomSearchSolver.get_emission_assignment(self.n_photon, self.n_emitter)
-        measurement_assignment = RuleBasedRandomSearchSolver.get_measurement_assignment(self.n_photon, self.n_emitter)
+        emission_assignment = self.get_emission_assignment(self.n_photon, self.n_emitter)
+        measurement_assignment = self.get_measurement_assignment(self.n_photon, self.n_emitter)
         circuit = self._initialization(self.n_emitter, self.n_photon, emission_assignment, measurement_assignment)
         self.add_measurement_cnot_and_reset(circuit)
         self.add_measurement_cnot_and_reset(circuit)
@@ -164,11 +164,11 @@ class RuleBasedRandomSearchSolver(RandomSearchSolver):
         # Initialize population
         population = []
         for j in range(self.n_pop):
-            emission_assignment = RuleBasedRandomSearchSolver.get_emission_assignment(self.n_photon,
-                                                                                      self.n_emitter)
-            measurement_assignment = RuleBasedRandomSearchSolver.get_measurement_assignment(self.n_photon,
-                                                                                            self.n_emitter)
+            emission_assignment = self.get_emission_assignment(self.n_photon, self.n_emitter)
+            measurement_assignment = self.get_measurement_assignment(self.n_photon, self.n_emitter)
+
             circuit = self._initialization(self.n_emitter, self.n_photon, emission_assignment, measurement_assignment)
+
             fixed_node = circuit.dag.nodes()
             population.append((np.inf, circuit))  # initialize all population members
 
@@ -323,7 +323,7 @@ class RuleBasedRandomSearchSolver(RandomSearchSolver):
         :type circuit: CircuitDAG
         :return: nothing
         """
-        possible_edge_pairs = RuleBasedRandomSearchSolver._select_possible_cnot_position(circuit)
+        possible_edge_pairs = self._select_possible_cnot_position(circuit)
         if len(possible_edge_pairs) == 0:
             warnings.warn("No valid registers to place the two-qubit gate")
             return
@@ -389,7 +389,7 @@ class RuleBasedRandomSearchSolver(RandomSearchSolver):
         return: nothing
         """
 
-        possible_edge_pairs = RuleBasedRandomSearchSolver._select_possible_measurement_position(circuit)
+        possible_edge_pairs = self._select_possible_measurement_position(circuit)
 
         if len(possible_edge_pairs) == 0:
             warnings.warn("No valid registers to place the two-qubit gate")
@@ -570,6 +570,7 @@ class RuleBasedRandomSearchSolver(RandomSearchSolver):
             'Two qubit ops': op_names(self.two_qubit_ops),
             'Transition probabilities': transition_names(self.trans_probs)
         }
+
 
 if __name__ == "__main__":
     RuleBasedRandomSearchSolver.n_stop = 50

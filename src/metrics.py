@@ -8,6 +8,7 @@ import numpy as np
 from benchmarks.circuits import bell_state_circuit
 from src.backends.density_matrix.functions import fidelity, fidelity_pure
 
+
 class MetricBase(ABC):
     """
     Base class for a metric.

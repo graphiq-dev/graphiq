@@ -1,20 +1,18 @@
 import matplotlib.pyplot as plt
 
-import numpy as np
-import networkx as nx
 import warnings
-import collections
 import copy
 import time
-import random
+
+from src.metrics import MetricBase
+from src.circuit import CircuitBase
+from src.backends.compiler_base import CompilerBase
 
 from src.backends.density_matrix.compiler import DensityMatrixCompiler
-from src.circuit import CircuitDAG
 from src.metrics import Infidelity
 
 from src.visualizers.density_matrix import density_matrix_bars
 from src import ops
-from src.io import IO
 
 from src.solvers.random_solver import RandomSearchSolver
 from benchmarks.circuits import *
@@ -50,12 +48,7 @@ class EvolutionarySolver(RandomSearchSolver):
         ops.CPhase,
     ]
 
-    def __init__(self,
-                 target=None,
-                 metric=None,
-                 circuit=None,
-                 compiler=None,
-                 *args, **kwargs):
+    def __init__(self, target, metric: MetricBase, circuit: CircuitBase, compiler: CompilerBase, *args, **kwargs):
         super().__init__(target, metric, circuit, compiler, *args, **kwargs)
 
         self.transformations = [

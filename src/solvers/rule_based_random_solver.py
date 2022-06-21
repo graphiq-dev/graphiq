@@ -3,12 +3,13 @@ import matplotlib.pyplot as plt
 import numpy as np
 import networkx as nx
 import warnings
-import copy
-import time
 
 import src.backends.density_matrix.functions as dmf
 
-from src.solvers.base import SolverBase
+from src.metrics import MetricBase
+from src.circuit import CircuitBase
+from src.backends.compiler_base import CompilerBase
+
 from src.solvers.random_solver import RandomSearchSolver
 
 from src.backends.density_matrix.compiler import DensityMatrixCompiler
@@ -17,7 +18,6 @@ from src.metrics import Infidelity
 
 from src.visualizers.density_matrix import density_matrix_bars
 from src import ops
-from src.io import IO
 
 import benchmarks.circuits as bc
 
@@ -47,14 +47,8 @@ class RuleBasedRandomSearchSolver(RandomSearchSolver):
         ops.CNOT,
     ]
 
-    def __init__(self,
-                 target=None,
-                 metric=None,
-                 circuit=None,
-                 compiler=None,
-                 n_emitter=1,
-                 n_photon=1,
-                 *args, **kwargs):
+    def __init__(self, target, metric: MetricBase, circuit: CircuitBase, compiler: CompilerBase,
+                 n_emitter=1, n_photon=1, *args, **kwargs):
 
         super().__init__(target, metric, circuit, compiler, *args, **kwargs)
 

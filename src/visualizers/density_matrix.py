@@ -7,7 +7,7 @@ cmap_uni = sns.color_palette("crest", as_cmap=True)
 cmap_div = sns.diverging_palette(220, 20, as_cmap=True)
 
 
-def density_matrix_heatmap(rho):
+def density_matrix_heatmap(rho, axs=None):
     """
     Plots a density matrix as 2D heatmap, one for the real components and one for the imaginary
 
@@ -19,7 +19,10 @@ def density_matrix_heatmap(rho):
     if type(rho) is qt.Qobj:
         rho = rho.full()
 
-    fig, axs = plt.subplots(nrows=1, ncols=2, figsize=[10, 4])
+    if axs is None:
+        fig, axs = plt.subplots(nrows=1, ncols=2, figsize=[10, 4])
+    else:
+        fig = None
 
     kwargs = dict(vmin=-1, vmax=1, cmap=cmap_div, linewidths=.5, square=True)
     axs[0].set(title="Real")

@@ -32,7 +32,7 @@ class RuleBasedRandomSearchSolver(RandomSearchSolver):
     n_stop = 50  # maximum number of iterations
     n_pop = 50
     n_hof = 5
-    tournament_k = 5  # tournament size for selection of the next population
+    tournament_k = 2  # tournament size for selection of the next population
 
     fixed_ops = [  # ops that should never be removed/swapped
         ops.Input,
@@ -54,6 +54,7 @@ class RuleBasedRandomSearchSolver(RandomSearchSolver):
                  compiler=None,
                  n_emitter=1,
                  n_photon=1,
+                 selection_active=False,
                  *args, **kwargs):
 
         super().__init__(target, metric, circuit, compiler, *args, **kwargs)
@@ -63,6 +64,7 @@ class RuleBasedRandomSearchSolver(RandomSearchSolver):
 
         # transformation functions and their relative probabilities
         self.trans_probs = self.initialize_transformation_probabilities()
+        self.selection_active = selection_active
 
     def initialize_transformation_probabilities(self):
         """
@@ -151,7 +153,6 @@ class RuleBasedRandomSearchSolver(RandomSearchSolver):
         measurement_assignment = RuleBasedRandomSearchSolver.get_measurement_assignment(self.n_photon, self.n_emitter)
         circuit = self._initialization(self.n_emitter, self.n_photon, emission_assignment, measurement_assignment)
         self.add_measurement_cnot_and_reset(circuit)
-        # self.add_measurement_cnot_and_reset(circuit)
         self.add_measurement_cnot_and_reset(circuit)
         circuit.draw_dag()
         circuit.draw_circuit()
@@ -162,6 +163,8 @@ class RuleBasedRandomSearchSolver(RandomSearchSolver):
         :return: function returns nothing
         :rtype: None
         """
+
+        # TODO: add some logging to see how well it performed at each epoch (and pick n_stop accordingly)
         p_dist = [0.5] + 11 * [0.1 / 22] + [0.4] + 11 * [0.1 / 22]
         e_dist = [0.5] + 11 * [0.02 / 22] + [0.48] + 11 * [0.02 / 22]
 
@@ -209,7 +212,8 @@ class RuleBasedRandomSearchSolver(RandomSearchSolver):
 
             self.update_hof(population)
             # self.adapt_probabilities(i)
-            population = self.tournament_selection(population, self.tournament_k)
+            if self.selection_active:
+                population = self.tournament_selection(population, k=self.tournament_k)
 
             print(f"Iteration {i} | Best score: {self.hof[0][0]:.4f}")
 

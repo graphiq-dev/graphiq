@@ -55,6 +55,7 @@ class EvolutionarySolver(RandomSearchSolver):
                  metric=None,
                  circuit=None,
                  compiler=None,
+                 selection_active=False,
                  *args, **kwargs):
         super().__init__(target, metric, circuit, compiler, *args, **kwargs)
 
@@ -69,6 +70,7 @@ class EvolutionarySolver(RandomSearchSolver):
             self.add_one_qubit_op: 0.5,
             self.remove_op: 0.0
         }
+        self.selection_active = selection_active
 
     def solve(self):
         """
@@ -141,7 +143,8 @@ class EvolutionarySolver(RandomSearchSolver):
 
             self.update_hof(population)
             self.adapt_probabilities(i)
-            population = self.tournament_selection(population, self.tournament_k)
+            if self.selection_active:
+                population = self.tournament_selection(population, self.tournament_k)
         return
 
     def add_one_qubit_op(self, circuit: CircuitDAG):

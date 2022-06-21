@@ -43,9 +43,6 @@ class RuleBasedRandomSearchSolver(RandomSearchSolver):
         ops.single_qubit_cliffords()
     )
 
-    two_qubit_ops = [
-        ops.CNOT,
-    ]
 
     def __init__(self, target, metric: MetricBase, circuit = None, compiler = None,
                  n_emitter=1, n_photon=1, selection_active=False, *args, **kwargs):
@@ -58,6 +55,9 @@ class RuleBasedRandomSearchSolver(RandomSearchSolver):
         # transformation functions and their relative probabilities
         self.trans_probs = self.initialize_transformation_probabilities()
         self.selection_active = selection_active
+
+        self.p_dist = [0.5] + 11 * [0.1 / 22] + [0.4] + 11 * [0.1 / 22]
+        self.e_dist = [0.5] + 11 * [0.02 / 22] + [0.48] + 11 * [0.02 / 22]
 
     def initialize_transformation_probabilities(self):
         """
@@ -158,8 +158,7 @@ class RuleBasedRandomSearchSolver(RandomSearchSolver):
         """
 
         # TODO: add some logging to see how well it performed at each epoch (and pick n_stop accordingly)
-        p_dist = [0.5] + 11 * [0.1 / 22] + [0.4] + 11 * [0.1 / 22]
-        e_dist = [0.5] + 11 * [0.02 / 22] + [0.48] + 11 * [0.02 / 22]
+
 
         # Initialize population
         population = []
@@ -178,13 +177,13 @@ class RuleBasedRandomSearchSolver(RandomSearchSolver):
                 circuit = population[j][1]
 
                 if transformation == self.add_emitter_one_qubit_op:
-                    self.add_emitter_one_qubit_op(circuit, e_dist)
+                    self.add_emitter_one_qubit_op(circuit, self.e_dist)
 
                 elif transformation == self.add_photon_one_qubit_op:
-                    self.add_photon_one_qubit_op(circuit, p_dist)
+                    self.add_photon_one_qubit_op(circuit, self.p_dist)
 
                 elif transformation == self.replace_photon_one_qubit_op:
-                    self.replace_photon_one_qubit_op(circuit, p_dist)
+                    self.replace_photon_one_qubit_op(circuit, self.p_dist)
 
                 elif transformation == self.remove_op:
                     self.remove_op(circuit, fixed_node)
@@ -569,7 +568,6 @@ class RuleBasedRandomSearchSolver(RandomSearchSolver):
             'seed': self.last_seed,
             'Fixed ops': op_names(self.fixed_ops),
             'Single qubit ops': op_names(self.single_qubit_ops),
-            'Two qubit ops': op_names(self.two_qubit_ops),
             'Transition probabilities': transition_names(self.trans_probs)
         }
 

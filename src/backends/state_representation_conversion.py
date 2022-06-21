@@ -11,11 +11,13 @@ from src.backends.stabilizer.state import Stabilizer
 
 
 # TODO: Currently the conversion functions assume no redundant encoding. Next step is to include redundant encoding.
+# TODO: We currently assume exact state conversion, that is, no need to check local-Clifford equivalency. Need to be
+#       able to convert local-Clifford equivalent states.
 
 def _graph_finder(x_matrix, z_matrix, pivot):
     """
-    A helper function to obtain the (closest) local Clifford-equivalent graph to the stabilizer representation
-    The local Clifford equivalency needs to be checked via the stabilzier of the resulting graph and the initial stabilizer
+    A helper function to obtain the (closest) local Clifford-equivalent graph to the stabilizer representation The
+    local Clifford equivalency needs to be checked via the stabilizer of the resulting graph and the initial stabilizer
 
     :param x_matrix: binary matrix for representing Pauli X part of the symplectic binary
         representation of the stabilizer generators
@@ -31,12 +33,12 @@ def _graph_finder(x_matrix, z_matrix, pivot):
     """
     n, m = np.shape(x_matrix)
     x_matrix, z_matrix, rank = sf.row_reduction(x_matrix, z_matrix, pivot)
-    print(rank)
+
 
     if x_matrix[rank][np.shape(x_matrix)[1] - 1] == 0:
         rank = rank - 1
     positions = [*range(rank + 1, n)]
-    print(positions)
+
     x_matrix, z_matrix = sf.hadamard_transform(x_matrix, z_matrix, positions)
 
     assert ((np.linalg.det(x_matrix)) % 2 != 0), "Stabilizer generators are not independent!"
@@ -87,16 +89,19 @@ def density_to_graph(input_matrix, threshold=0.1):
             neg_ij = dmf.negativity(rho_ij, 2, 2)
             if neg_ij > threshold:
                 graph_adj[i, j] = 1
+
+    # turn the upper triangular matrix to the adjacency matrix
     graph_adj = graph_adj + graph_adj.T
     return graph_adj
 
 
 def graph_to_density(input_graph):
     """
-    Builds a density matrix representation from a graph (either nx.graph or a Graph state representation)
+    Builds a density matrix representation from a graph (either networkx.graph or a Graph representation)
 
     :param input_graph: the graph from which we will build a density matrix
     :type input_graph: networkx.Graph OR Graph
+    :raise TypeError: if input_graph is not networkx.graph or a Graph representation object defined in this software or an adjacency matrix given by a numpy array
     :return: a DensityMatrix representation with the data contained by graph
     :rtype: DensityMatrix
     """
@@ -126,6 +131,7 @@ def graph_to_stabilizer(input_graph):
     Convert a graph to stabilizer
     :param input_graph: the input graph to be converted to the stabilizer
     :type input_graph: networkX.Graph or Graph or numpy.array
+    :raise TypeError: if input_graph is not networkx.graph or a Graph representation object defined in this software or an adjacency matrix given by a numpy array
     :return: two binary matrices representing the stabilizer generators
     :rtype: np.ndarray
     """

@@ -47,7 +47,7 @@ class RuleBasedRandomSearchSolver(RandomSearchSolver):
         ops.CNOT,
     ]
 
-    def __init__(self, target, metric: MetricBase, circuit: CircuitBase, compiler: CompilerBase,
+    def __init__(self, target, metric: MetricBase, circuit = None, compiler = None,
                  n_emitter=1, n_photon=1, selection_active=False, *args, **kwargs):
 
         super().__init__(target, metric, circuit, compiler, *args, **kwargs)
@@ -62,7 +62,8 @@ class RuleBasedRandomSearchSolver(RandomSearchSolver):
     def initialize_transformation_probabilities(self):
         """
         Sets the initial probabilities for selecting the circuit transformations.
-        :return:
+        :return: the transformation probabilities for possible transformations
+        :rtype: dict
         """
         trans_probs = {
             self.add_emitter_one_qubit_op: 1 / 4,
@@ -87,7 +88,8 @@ class RuleBasedRandomSearchSolver(RandomSearchSolver):
         As the search progresses, transformations that remove gates are selected with higher probability.
 
         :param iteration: i-th iteration of the search method, which ranges from 0 to n_stop
-        :return:
+        :type iteration: int
+        :return: nothing
         """
         self.trans_probs[self.add_emitter_one_qubit_op] += -1 / self.n_stop / 3
         self.trans_probs[self.replace_photon_one_qubit_op] += -1 / self.n_stop / 3
@@ -99,24 +101,22 @@ class RuleBasedRandomSearchSolver(RandomSearchSolver):
         total = np.sum(list(self.trans_probs.values()))
         for key in self.trans_probs.keys():
             self.trans_probs[key] *= 1 / total
-        return
+
 
     @staticmethod
-    def _initialization(n_emitter, n_photon, emission_assignment, measurement_assignment):
+    def _initialization(emission_assignment, measurement_assignment):
         """
         Initialize a quantum circuit with photon emission, emitter measurements
-        :param n_emitter: number of emitters
-        :type n_emitter: int
-        :param n_photon: number of photonic qubits
-        :type n_photon: int
+
         :param emission_assignment: which emitter emits which photon
         :type emission_assignment: list[int]
         :param measurement_assignment: which photonic qubit is targeted after measuring each emitter
         :type measurement_assignment: list[int]
         :return: nothing
         """
+        n_photon = len(emission_assignment)
+        n_emitter = len(measurement_assignment)
         circuit = CircuitDAG(n_emitter=n_emitter, n_photon=n_photon, n_classical=1)
-        assert len(emission_assignment) == n_photon
 
         for i in range(n_photon):
             # initialize all photon emission gates
@@ -125,7 +125,7 @@ class RuleBasedRandomSearchSolver(RandomSearchSolver):
             circuit.add(ops.SingleQubitGateWrapper([ops.Identity, ops.Hadamard], register=i, reg_type='p'))
 
         # initialize all emitter meausurement and reset operations
-        assert len(measurement_assignment) == n_emitter
+
         for j in range(n_emitter):
             circuit.add(
                 ops.MeasurementCNOTandReset(control=j, control_type='e', target=measurement_assignment[j],
@@ -136,7 +136,7 @@ class RuleBasedRandomSearchSolver(RandomSearchSolver):
         # debugging only
         emission_assignment = self.get_emission_assignment(self.n_photon, self.n_emitter)
         measurement_assignment = self.get_measurement_assignment(self.n_photon, self.n_emitter)
-        circuit = self._initialization(self.n_emitter, self.n_photon, emission_assignment, measurement_assignment)
+        circuit = self._initialization(emission_assignment, measurement_assignment)
         circuit.draw_dag()
         circuit.draw_circuit()
 
@@ -144,7 +144,7 @@ class RuleBasedRandomSearchSolver(RandomSearchSolver):
         # debugging only
         emission_assignment = self.get_emission_assignment(self.n_photon, self.n_emitter)
         measurement_assignment = self.get_measurement_assignment(self.n_photon, self.n_emitter)
-        circuit = self._initialization(self.n_emitter, self.n_photon, emission_assignment, measurement_assignment)
+        circuit = self._initialization(emission_assignment, measurement_assignment)
         self.add_measurement_cnot_and_reset(circuit)
         self.add_measurement_cnot_and_reset(circuit)
         circuit.draw_dag()
@@ -167,7 +167,7 @@ class RuleBasedRandomSearchSolver(RandomSearchSolver):
             emission_assignment = self.get_emission_assignment(self.n_photon, self.n_emitter)
             measurement_assignment = self.get_measurement_assignment(self.n_photon, self.n_emitter)
 
-            circuit = self._initialization(self.n_emitter, self.n_photon, emission_assignment, measurement_assignment)
+            circuit = self._initialization(emission_assignment, measurement_assignment)
 
             fixed_node = circuit.dag.nodes()
             population.append((np.inf, circuit))  # initialize all population members
@@ -217,7 +217,7 @@ class RuleBasedRandomSearchSolver(RandomSearchSolver):
         :type circuit: CircuitDAG
         :param p_dist: probability distribution
         :type p_dist: list[float] or list[double]
-        :return:
+        :return: nothing
         """
 
         nodes = [node for node in circuit.dag.nodes
@@ -353,9 +353,9 @@ class RuleBasedRandomSearchSolver(RandomSearchSolver):
         :param circuit: a quantum circuit
         :type circuit: CircuitDAG
         :param fixed_node: a list of nodes in CircuitDAG that should not be modified
-        :type fixed_node:
-        :param node: a specified node to be removed
-        :type node:
+        :type fixed_node: list[int]
+        :param node: a specified node (by node_id) to be removed
+        :type node: int
         :return: nothing
         """
         if node is None:
@@ -386,6 +386,8 @@ class RuleBasedRandomSearchSolver(RandomSearchSolver):
         Add a MeausrementCNOTandReset operation from an emitter qubit to a photonic qubit such that no consecutive MeasurementCNOTReset is allowed.
         This operation cannot be added before the photonic qubit is initialized.
 
+        :param circuit: a quantum circuit
+        :type circuit: CircuitDAG
         return: nothing
         """
 
@@ -571,44 +573,3 @@ class RuleBasedRandomSearchSolver(RandomSearchSolver):
             'Transition probabilities': transition_names(self.trans_probs)
         }
 
-
-if __name__ == "__main__":
-    RuleBasedRandomSearchSolver.n_stop = 50
-    RuleBasedRandomSearchSolver.n_pop = 50
-    RuleBasedRandomSearchSolver.n_hof = 5
-    RuleBasedRandomSearchSolver.tournament_k = 5
-
-    # circuit_ideal, state_ideal = bc.linear_cluster_3qubit_circuit()
-    circuit_ideal, state_ideal = bc.linear_cluster_4qubit_circuit()
-    target = state_ideal['dm']
-    n_photon = 4
-    n_emitter = 1
-    compiler = DensityMatrixCompiler()
-    metric = Infidelity(target=target)
-
-    solver = RuleBasedRandomSearchSolver(target=target, metric=metric, compiler=compiler, n_emitter=n_emitter,
-                                         n_photon=n_photon)
-
-    solver.seed(None)  # sets the seed for both numpy.random and random packages
-    solver.solve()
-
-    print('hof score is ' + str(solver.hof[0][0]))
-    circuit = solver.hof[0][1]
-    state = compiler.compile(circuit)
-    state2 = compiler.compile(circuit)
-    state3 = compiler.compile(circuit)
-    circuit.draw_circuit()
-    # circuit.draw_dag()
-    fig, axs = density_matrix_bars(target)
-    fig.suptitle("TARGET DENSITY MATRIX")
-    plt.show()
-
-    new_state = dmf.partial_trace(state.data, keep=list(range(n_photon)), dims=(n_photon + n_emitter) * [2])
-    new_state2 = dmf.partial_trace(state2.data, keep=list(range(n_photon)), dims=(n_photon + n_emitter) * [2])
-    new_state3 = dmf.partial_trace(state3.data, keep=list(range(n_photon)), dims=(n_photon + n_emitter) * [2])
-    print('Are these two states the same: ' + str(np.allclose(new_state, new_state3)))
-    print('The circuit compiles a state that has an infidelity ' + str(metric.evaluate(new_state, circuit)))
-    fig, axs = density_matrix_bars(new_state)
-
-    fig.suptitle("CREATED DENSITY MATRIX")
-    plt.show()

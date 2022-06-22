@@ -14,7 +14,12 @@ Contents
 --------
 
 .. toctree::
-   api
+   introduction
+   circuits
+   backends
+   metrics
+   solvers
+   guidelines
 
 
 

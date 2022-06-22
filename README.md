@@ -1,10 +1,16 @@
 # Ki3-QBT Graph Compiler
 
-This project is to create an optimization algorithm to find a resource-efficient scheme for graph state generation. This is a collaboration between Ki3 and QBT through US Air Force project.
+This project is to create an optimization algorithm to find a resource-efficient scheme for graph state generation.
+This is a collaboration between Ki3 and QBT through US Air Force project.
 
-## Coding Style Guidelines
+## Onboarding
 
-Please check PEP8Guidelines.py for details.
+Please begin by reading through `examples/implementer_startup.ipynb`.
+This will introduce the most important classes in the software.
+
+## Contributing
+
+Please use the [PEP8 style](https://peps.python.org/pep-0008/) for code-style consistency.
 
 
 ## Automatic Documentation with Sphinx
@@ -16,7 +22,7 @@ To build html locally, you need to run the following commands in Terminal/ comma
 1. set up a Python virtual environment and install the required tools
 ```
 $ python3 -m venv .venv
-$ source .ven/bin/activate
+$ source .venv/bin/activate
 (.venv) $ python3 -m pip install sphinx
 ```
 2. Then to build HTML, you need to run the following command in the first time.

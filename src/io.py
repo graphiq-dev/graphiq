@@ -8,8 +8,6 @@ import string
 import pandas as pd
 import random
 
-# TODO: write uuid option
-
 
 def current_time():
     """
@@ -61,7 +59,7 @@ class IO:
 
     @classmethod
     def new_directory(cls, path=None, folder="",
-                      include_date=False, include_id=False, verbose=True):
+                      include_date=False, include_time=False, include_id=False, verbose=True):
         """
 
         :param path: The parent folder.
@@ -70,6 +68,8 @@ class IO:
         :type folder: str
         :param include_date: If True, add the date to the front of the path. Otherwise, do not add the date
         :type include_date: bool
+        :param include_time: If True, add the time to the front of the path. Otherwise, do not add the time
+        :type include_time: bool
         :param include_id: If True, add a random string of characters to the end of the path. Otherwise, do not
         :type include_id: bool
         :param verbose: If True, will print out the path of each saved/loaded file.
@@ -84,16 +84,24 @@ class IO:
             path = pathlib.Path(path)
 
         date = datetime.date.today().isoformat()
+        time = datetime.datetime.now().strftime("%H-%M-%S")
         if not folder:  # if empty string
             warnings.warn("No folder entered. Saving to a folder with a unique identifier")
             include_data, include_id, verbose = True, True, True
 
+        # build the full folder name with date, time, and uuid, if selected
+        _str = ""
         if include_date:
-            folder = date + " " + folder
-        if include_id:
-            folder = folder + " - " + "".join(random.choice(string.hexdigits) for _ in range(4))
+            _str = _str + date
+        if include_time:
+            _str = _str + " " + time
 
-        path = path.joinpath(folder)
+        _str = _str + " " + folder
+
+        if include_id:
+            _str = _str + " - " + "".join(random.choice(string.hexdigits) for _ in range(4))
+
+        path = path.joinpath(_str)
         return cls(path=path, verbose=verbose)
 
     def save_json(self, variable, filename):

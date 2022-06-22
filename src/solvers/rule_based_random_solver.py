@@ -588,15 +588,10 @@ if __name__ == "__main__":
 
     #%% construct all of our important objects
     target = state_ideal['dm']
-    circuit = CircuitDAG(n_photon=3, n_emitter=1, n_classical=0)
     compiler = DensityMatrixCompiler()
     metric = Infidelity(target=target)
 
-    solver = RuleBasedRandomSearchSolver(target=target, metric=metric, compiler=compiler, circuit=circuit)
-
-    # circuits = [copy.deepcopy(circuit) for _ in range(10)]
-    # print(solver.tournament_probs)
-    # solver.tournament_selection(circuits)
+    solver = RuleBasedRandomSearchSolver(target=target, metric=metric, compiler=compiler)
 
     #%% call the solver.solve() function to implement the random search algorithm
     t0 = time.time()
@@ -607,14 +602,16 @@ if __name__ == "__main__":
     print(solver.hof)
     print(f"Total time {t1-t0}")
 
+    circuit = solver.hof[0][1]
+
     # extract the best performing circuit
     fig, axs = density_matrix_bars(target)
-    fig.suptitle("TARGET DENSITY MATRIX")
+    fig.suptitle("Target density matrix")
     plt.show()
 
     state = compiler.compile(circuit)
     fig, axs = density_matrix_bars(state.data)
-    fig.suptitle("CREATED DENSITY MATRIX")
+    fig.suptitle("Simulated density matrix")
     plt.show()
 
     circuit.draw_circuit()

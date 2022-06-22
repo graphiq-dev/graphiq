@@ -5,16 +5,12 @@ import itertools
 import pandas as pd
 import numpy as np
 import time
-import os
-import datetime
 import copy
-import json
-import matplotlib.pyplot as plt
 
 from src.backends.density_matrix.functions import partial_trace
 from src.backends.density_matrix.compiler import DensityMatrixCompiler
 from src.solvers.rule_based_random_solver import RuleBasedRandomSearchSolver
-import benchmarks.circuits_original as circ
+import benchmarks.circuits as circ
 from src.metrics import Infidelity
 
 from src.io import IO
@@ -76,8 +72,9 @@ def benchmark_data(solver_class, targets, metric_class, compiler, target_type='d
     # TODO: save solver data
     # TODO: save compute data
     if save_directory is not None:
-        folder_name = f'solver_benchmark_{datetime.datetime.now().strftime("%Y_%m_%d-%H-%M-%S")}'
-        io = IO.new_directory(folder=folder_name)
+        folder_name = f'solver-benchmarks'
+        io = IO.new_directory(path=IO.default_path.joinpath(save_directory), folder=folder_name,
+                              include_date=True, include_time=True, include_id=True)
 
     # Create pandas dataframe
     target_state_names = [target['name'] for (circuit, target) in targets]
@@ -122,7 +119,7 @@ def benchmark_data(solver_class, targets, metric_class, compiler, target_type='d
             }
             hof_circuits.append(circuit_data)
             if save_directory is not None:
-                io.save_json(solver_data, "circuit_target{j}_retry{i}.json")
+                io.save_json(solver_data, f"circuit_target{j}_retry{i}.json")
                 io.save_txt(circuit_data['Circuit description'], f"circuit_description_target{j}_retry{i}.txt")
 
     if save_directory is not None:
@@ -145,4 +142,4 @@ if __name__ == "__main__":
     compiler = DensityMatrixCompiler()
     compiler.measurement_determinism = 1
     df = benchmark_data(RuleBasedRandomSearchSolver, target_list, Infidelity, compiler,
-                        per_target_retries=1, seed_offset=0, save_directory='save_benchmarks')
+                        per_target_retries=1, seed_offset=0, save_directory='benchmarks')

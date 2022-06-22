@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 
 from src.backends.density_matrix.compiler import DensityMatrixCompiler
 from src.solvers.rule_based_random_solver import RuleBasedRandomSearchSolver
-import benchmarks.circuits_original as circ
+import benchmarks.circuits as circ
 from src.metrics import Infidelity
 from src.visualizers.density_matrix import density_matrix_heatmap
 import src.backends.density_matrix.functions as dmf

@@ -69,6 +69,12 @@ class EvolutionarySolver(RandomSearchSolver):
         self.selection_active = selection_active
 
     def adapt_probabilities(self, iteration: int):
+        """
+        Changes the DAG transformation probabilities through the search.
+
+        :param iteration: the i-th iteration of the search process
+        :return:
+        """
         self.trans_probs[self.add_one_qubit_op] = (1.0 - iteration / self.n_stop) / 2
         self.trans_probs[self.add_two_qubit_op] = (1.0 - iteration / self.n_stop) / 2
         self.trans_probs[self.remove_op] = iteration / self.n_stop
@@ -259,29 +265,25 @@ if __name__ == "__main__":
 
     solver = EvolutionarySolver(target=target, metric=metric, compiler=compiler, circuit=circuit)
 
-    # circuits = [copy.deepcopy(circuit) for _ in range(10)]
-    # print(solver.tournament_probs)
-    # solver.tournament_selection(circuits)
-
     #%% call the solver.solve() function to implement the random search algorithm
     t0 = time.time()
     solver.solve()
     t1 = time.time()
 
-    #%% print/plot the results
+    # %% print/plot the results
     print(solver.hof)
-    print(f"Total time {t1-t0}")
+    print(f"Total time {t1 - t0}")
 
-    circuit = sort_hof(solver.hof)  # get the best hof circuit
+    circuit = solver.hof[0][1]
 
     # extract the best performing circuit
     fig, axs = density_matrix_bars(target)
-    fig.suptitle("TARGET DENSITY MATRIX")
+    fig.suptitle("Target density matrix")
     plt.show()
 
     state = compiler.compile(circuit)
     fig, axs = density_matrix_bars(state.data)
-    fig.suptitle("CREATED DENSITY MATRIX")
+    fig.suptitle("Simulated density matrix")
     plt.show()
 
     circuit.draw_circuit()

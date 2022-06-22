@@ -6,7 +6,7 @@ import src.ops as ops
 from src.backends.density_matrix.compiler import DensityMatrixCompiler
 from src.metrics import Infidelity
 from benchmarks.benchmark_utils import circuit_measurement_independent
-from benchmarks.circuits_original import ghz3_state_circuit, \
+from benchmarks.circuits import ghz3_state_circuit, \
     ghz4_state_circuit, linear_cluster_3qubit_circuit, linear_cluster_4qubit_circuit
 
 

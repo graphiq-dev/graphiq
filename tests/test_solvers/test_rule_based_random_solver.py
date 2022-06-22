@@ -188,10 +188,10 @@ def test_add_more_measurements():
 
 @pytest.mark.parametrize('seed', [0, 3, 325, 2949])
 def test_add_remove_measurements(seed):
-    n_emitter = 3
-    n_photon = 4
+    n_emitter = 1
+    n_photon = 3
 
-    circuit_ideal, state_ideal = linear_cluster_4qubit_circuit()
+    circuit_ideal, state_ideal = linear_cluster_3qubit_circuit()
     target_state = state_ideal['dm']
     compiler = DensityMatrixCompiler()
     metric = Infidelity(target=target_state)

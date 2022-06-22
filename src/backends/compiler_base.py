@@ -16,6 +16,10 @@ class CompilerBase(ABC):
     Base class for compiler implementations.
     In general, compilers compile circuits using a specific representation(s) for the underlying quantum state
     """
+    name = "base"
+    ops = [  # the accepted operations for a given compiler
+        ops.OperationBase
+    ]
 
     def __init__(self, *args, **kwargs):
         """
@@ -24,10 +28,7 @@ class CompilerBase(ABC):
         :return: function returns nothing
         :rtype: None
         """
-        self.name = "base"
-        self.ops = [  # the accepted operations for a given compiler
-            ops.OperationBase
-        ]
+        pass
 
     @abstractmethod
     def compile(self, circuit: CircuitBase):

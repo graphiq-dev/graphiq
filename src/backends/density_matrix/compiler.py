@@ -12,29 +12,49 @@ from src.backends.compiler_base import CompilerBase
 from src.backends.density_matrix.state import DensityMatrix
 from src.circuit import CircuitBase
 
+# TODO: this is deprecated, as we now only use integers to index the quantum registers (rather than tuples)
+# def reg_to_index_func(reg_list):
+#     """
+#     Returns function which map a (reg, bit) tuple pair into an index between 0 and N - 1
+#     This allows the compiler to correctly assign a unique index to each qubit/cbit in each register
+#
+#     :param reg_list: a list, where reg[i] = <# of qudits/cbits in register i>
+#     :type reg_list: list (of ints)
+#     :return: A function which maps an input tuple (reg, bit) to an index between
+#              0 and N - 1, where N is the total number of elements across all registers
+#              (i.e. is the sum of reg)
+#     :rtype: function
+#     """
+#     reg_array = np.array(reg_list)
+#     cumulative_num_reg = np.cumsum(reg_array)
+#
+#     def reg_to_index(reg):
+#         # TODO: THIS IS DEPRECATED
+#         """ Function which maps (reg, bit) to a unique index """
+#         assert isinstance(reg, tuple) and len(reg) == 2, f'Register must be provided as a tuple of length 2'
+#         if reg[0] == 0:
+#             return reg[1]
+#         else:
+#             return cumulative_num_reg[reg[0] - 1] + reg[1]
+#
+#     return reg_to_index
 
-def reg_to_index_func(reg_list):
+
+def reg_to_index_func(n_photon):
     """
-    Returns function which map a (reg, bit) tuple pair into an index between 0 and N - 1
-    This allows the compiler to correctly assign a unique index to each qubit/cbit in each register
+    Given the number of photonic qubits in the circuit, this returns a function which will match a
+    given register number and type (i.e. photonic or emitter) to a matrix index
 
-    :param reg_list: a list, where reg[i] = <# of qudits/cbits in register i>
-    :type reg_list: list (of ints)
-    :return: A function which maps an input tuple (reg, bit) to an index between
-             0 and N - 1, where N is the total number of elements across all registers
-             (i.e. is the sum of reg)
+    :param n_photon: the number of photonic qubits in the system being simulated
+    :type n_photon: int
+    :return: a function which will map register + register type to a matrix index (zero-indexed)
     :rtype: function
     """
-    reg_array = np.array(reg_list)
-    cumulative_num_reg = np.cumsum(reg_array)
-
-    def reg_to_index(reg):
-        """ Function which maps (reg, bit) to a unique index """
-        assert isinstance(reg, tuple) and len(reg) == 2, f'Register must be provided as a tuple of length 2'
-        if reg[0] == 0:
-            return reg[1]
-        else:
-            return cumulative_num_reg[reg[0] - 1] + reg[1]
+    def reg_to_index(reg, reg_type):
+        if reg_type == 'p':
+            return reg
+        elif reg_type == 'e':
+            return reg + n_photon
 
     return reg_to_index
 
@@ -47,6 +67,24 @@ class DensityMatrixCompiler(CompilerBase):
     # TODO: refactor to return a QuantumState object rather than a DensityMatrix object
     # TODO: [longer term] refactor to take a QuantumState object input instead of creating its own initial state?
     """
+    name = "density_matrix"
+    ops = [  # the accepted operations for a given compiler
+        ops.Input,
+        ops.Identity,
+        ops.Phase,
+        ops.Hadamard,
+        ops.SigmaX,
+        ops.SigmaY,
+        ops.SigmaZ,
+        ops.CNOT,
+        ops.CPhase,
+        ops.ClassicalCNOT,
+        ops.ClassicalCPhase,
+        ops.MeasurementZ,
+        ops.MeasurementCNOTandReset,
+        ops.Output,
+    ]
+
     def __init__(self, *args, **kwargs):
         """
         Create a compiler which acts on a DensityMatrix state representation
@@ -55,20 +93,35 @@ class DensityMatrixCompiler(CompilerBase):
         :rtype: None
         """
         super().__init__(*args, **kwargs)
-        self.name = "density_matrix"
-        self.ops = [  # the accepted operations for a given compiler
-            ops.Input,
-            ops.Hadamard,
-            ops.SigmaX,
-            ops.SigmaY,
-            ops.SigmaZ,
-            ops.CNOT,
-            ops.CPhase,
-            ops.ClassicalCNOT,
-            ops.ClassicalCPhase,
-            ops.MeasurementZ,
-            ops.Output,
-        ]
+        self._measurement_determinism = 'probabilistic'
+
+    @property
+    def measurement_determinism(self):
+        """
+        Returns the measurement determinism (either it's probabilistic, defaults to 0, or defaults to 1)
+
+        :return: determinism setting
+        :rtype: str or int
+        """
+        return self._measurement_determinism
+
+    @measurement_determinism.setter
+    def measurement_determinism(self, measurement_setting):
+        """
+        Sets the measurement setting with which the compiler simulates a circuit
+        (this can be set to "probabilistic", 1, 0)
+
+        :param measurement_setting: if "probabilistic", measurement results are probabilistically selected
+                                    if 1, measurement results default to 1 unless the probability of measuring p(1) = 0
+                                    if 0, measurement results default to 0 unless the probability of measuring p(0) = 0
+        :rtype measurement_setting: str/int
+        :return: nothing
+        :rtype: None
+        """
+        if measurement_setting in ['probabilistic', 1, 0]:
+            self._measurement_determinism = measurement_setting
+        else:
+            raise ValueError('Measurement determinism can only be set to "probabilistic", 0, or 1')
 
     def compile(self, circuit: CircuitBase):
         """
@@ -89,21 +142,19 @@ class DensityMatrixCompiler(CompilerBase):
         # TODO: make this more general, but for now we assume all registers are initialized to |0>
         init = np.outer(np.array([1, 0]), np.array([1, 0])).astype('complex64')  # initialization of quantum registers
 
-        # TODO: state_id? what should it be? There should be a default.
-
         # TODO: refactor to be a QuantumState object which contains a density matrix
         state = DensityMatrix(data=reduce(np.kron, circuit.n_quantum * [init]))
         classical_registers = np.zeros(circuit.n_classical)
 
         # TODO: support self-defined mapping functions later instead of using the default above
         # Get functions which will map from registers to a unique index
-        q_index = reg_to_index_func(circuit.q_registers)
-        c_index = reg_to_index_func(circuit.c_registers)
+        q_index = reg_to_index_func(circuit.n_photons)
 
-        seq = circuit.sequence()
+        seq = circuit.sequence(unwrapped=True)  # the unwrapping allows us to support Wrapper operation types
+        # print(f'sequence unwrapped: {seq}')
         for op in seq:
             if type(op) not in self.ops:
-                raise RuntimeError(f"The {op.__class__.__name__} is not valid with "
+                raise RuntimeError(f"The Operation class {op.__class__.__name__} is not valid with "
                                    f"the {self.__class__.__name__} compiler")
 
             if type(op) is ops.Input:
@@ -112,53 +163,76 @@ class DensityMatrixCompiler(CompilerBase):
             elif type(op) is ops.Output:
                 pass
 
+            elif type(op) is ops.Identity:
+                pass
+
             elif type(op) is ops.Hadamard:
-                unitary = dm.get_single_qubit_gate(circuit.n_quantum, q_index(op.register), dm.hadamard())
+                unitary = dm.get_single_qubit_gate(circuit.n_quantum, q_index(op.register, op.reg_type), dm.hadamard())
+                state.apply_unitary(unitary)
+
+            elif type(op) is ops.Phase:
+                unitary = dm.get_single_qubit_gate(circuit.n_quantum, q_index(op.register, op.reg_type), dm.phase())
                 state.apply_unitary(unitary)
 
             elif type(op) is ops.SigmaX:
-                unitary = dm.get_single_qubit_gate(circuit.n_quantum, q_index(op.register), dm.sigmax())
+                unitary = dm.get_single_qubit_gate(circuit.n_quantum, q_index(op.register, op.reg_type), dm.sigmax())
                 state.apply_unitary(unitary)
 
             elif type(op) is ops.SigmaY:
-                unitary = dm.get_single_qubit_gate(circuit.n_quantum, q_index(op.register), dm.sigmay())
+                unitary = dm.get_single_qubit_gate(circuit.n_quantum, q_index(op.register, op.reg_type), dm.sigmay())
                 state.apply_unitary(unitary)
 
             elif type(op) is ops.SigmaZ:
-                unitary = dm.get_single_qubit_gate(circuit.n_quantum, q_index(op.register), dm.sigmaz())
+                unitary = dm.get_single_qubit_gate(circuit.n_quantum, q_index(op.register, op.reg_type), dm.sigmaz())
                 state.apply_unitary(unitary)
 
             elif type(op) is ops.CNOT:
-                unitary = dm.get_controlled_gate(circuit.n_quantum, q_index(op.control),
-                                                 q_index(op.target), dm.sigmax())
+                unitary = dm.get_controlled_gate(circuit.n_quantum, q_index(op.control, op.control_type),
+                                                 q_index(op.target, op.target_type), dm.sigmax())
                 state.apply_unitary(unitary)
 
             elif type(op) is ops.CPhase:
-                unitary = dm.get_controlled_gate(circuit.n_quantum, q_index(op.control),
-                                                 q_index(op.target), dm.sigmaz())
+                unitary = dm.get_controlled_gate(circuit.n_quantum, q_index(op.control, op.control_type),
+                                                 q_index(op.target, op.target_type), dm.sigmaz())
                 state.apply_unitary(unitary)
 
             elif type(op) is ops.ClassicalCNOT:
                 # TODO: handle conditioned vs unconditioned density operators on the measurement outcome
-                projectors = dm.projectors_zbasis(circuit.n_quantum, q_index(op.control))
-                outcome = state.apply_measurement(projectors)
+                projectors = dm.projectors_zbasis(circuit.n_quantum, q_index(op.control, op.control_type))
+                outcome = state.apply_measurement(projectors, measurement_determinism=self.measurement_determinism)
                 if outcome == 1:  # condition an X gate on the target qubit based on the measurement outcome
-                    unitary = dm.get_single_qubit_gate(circuit.n_quantum, q_index(op.target), dm.sigmax())
+                    unitary = dm.get_single_qubit_gate(circuit.n_quantum,
+                                                       q_index(op.target, op.target_type), dm.sigmax())
                     state.apply_unitary(unitary)
 
             elif type(op) is ops.ClassicalCPhase:
                 # TODO: handle conditioned vs unconditioned density operators on the measurement outcome
-                projectors = dm.projectors_zbasis(circuit.n_quantum, q_index(op.control))
-                outcome = state.apply_measurement(projectors)
+                projectors = dm.projectors_zbasis(circuit.n_quantum, q_index(op.control, op.control_type))
+                outcome = state.apply_measurement(projectors, measurement_determinism=self.measurement_determinism)
+
                 if outcome == 1:  # condition a Z gate on the target qubit based on the measurement outcome
-                    unitary = dm.get_single_qubit_gate(circuit.n_quantum, q_index(op.target), dm.sigmaz())
+                    unitary = dm.get_single_qubit_gate(circuit.n_quantum,
+                                                       q_index(op.target, op.target_type), dm.sigmaz())
                     state.apply_unitary(unitary)
+
+            elif type(op) is ops.MeasurementCNOTandReset:
+                projectors = dm.projectors_zbasis(circuit.n_quantum, q_index(op.control, op.control_type))
+                outcome = state.apply_measurement(projectors, measurement_determinism=self.measurement_determinism)
+
+                if outcome == 1:  # condition an X gate on the target qubit based on the measurement outcome
+                    unitary = dm.get_single_qubit_gate(circuit.n_quantum,
+                                                       q_index(op.target, op.target_type), dm.sigmax())
+                    state.apply_unitary(unitary)
+
+                reset_kraus_ops = dm.get_reset_qubit_kraus(circuit.n_quantum, q_index(op.control, op.control_type))
+
+                state.apply_channel(reset_kraus_ops)
 
             elif type(op) is ops.MeasurementZ:
                 # TODO: handle conditioned vs unconditioned density operators on the measurement outcome
-                projectors = dm.projectors_zbasis(circuit.n_quantum, q_index(op.register))
-                outcome = state.apply_measurement(projectors)
-                classical_registers[c_index(op.c_register)] = outcome
+                projectors = dm.projectors_zbasis(circuit.n_quantum, q_index(op.register, op.reg_type))
+                outcome = state.apply_measurement(projectors, measurement_determinism=self.measurement_determinism)
+                classical_registers[op.c_register] = outcome
 
             else:
                 raise ValueError(f"{type(op)} is invalid or not implemented for {self.__class__.__name__}.")

@@ -25,7 +25,7 @@ import benchmarks.circuits as bc
 class RuleBasedRandomSearchSolver(RandomSearchSolver):
     """
     Implements a rule-based random search solver.
-    This will randomly add/delete operations in the circuit.
+    This will randomly add/delete/modify operations in the circuit.
     """
 
     name = "rule-based-random-search"
@@ -62,6 +62,7 @@ class RuleBasedRandomSearchSolver(RandomSearchSolver):
     def initialize_transformation_probabilities(self):
         """
         Sets the initial probabilities for selecting the circuit transformations.
+
         :return: the transformation probabilities for possible transformations
         :rtype: dict
         """
@@ -153,12 +154,12 @@ class RuleBasedRandomSearchSolver(RandomSearchSolver):
     def solve(self):
         """
         The main function for the solver
+
         :return: function returns nothing
         :rtype: None
         """
 
         # TODO: add some logging to see how well it performed at each epoch (and pick n_stop accordingly)
-
 
         # Initialize population
         population = []
@@ -211,7 +212,8 @@ class RuleBasedRandomSearchSolver(RandomSearchSolver):
 
     def replace_photon_one_qubit_op(self, circuit, p_dist):
         """
-        Replacing one single-qubit Clifford gate applied on a photonic qubit to another one
+        Replace one single-qubit Clifford gate applied on a photonic qubit to another one.
+
         :param circuit: a quantum circuit
         :type circuit: CircuitDAG
         :param p_dist: probability distribution
@@ -241,6 +243,7 @@ class RuleBasedRandomSearchSolver(RandomSearchSolver):
         """
         Add a single-qubit Clifford gate to a photonic qubit
         Will be removed if replacing and initialization work.
+
         :param circuit: a quantum circuit
         :type circuit: CircuitDAG
         :param p_dist: probability distribution
@@ -278,6 +281,7 @@ class RuleBasedRandomSearchSolver(RandomSearchSolver):
     def add_emitter_one_qubit_op(self, circuit, e_dist):
         """
         Randomly selects one valid edge on which to add a new single-qubit gate
+
         :param circuit: a quantum circuit
         :type circuit: CircuitDAG
         :param e_dist: probability distribution
@@ -318,6 +322,7 @@ class RuleBasedRandomSearchSolver(RandomSearchSolver):
         Randomly selects two valid edges on which to add a new two-qubit gate.
         One edge is selected from all edges, and then the second is selected that maintains proper temporal ordering
         of the operations.
+
         :param circuit: a quantum circuit
         :type circuit: CircuitDAG
         :return: nothing
@@ -502,6 +507,7 @@ class RuleBasedRandomSearchSolver(RandomSearchSolver):
     def get_emission_assignment(n_photon, n_emitter):
         """
         Generate a random assignment for the emission source of each photon
+
         :param n_photon: number of photons
         :type n_photon: int
         :param n_emitter: number of emitters
@@ -535,6 +541,7 @@ class RuleBasedRandomSearchSolver(RandomSearchSolver):
     def get_measurement_assignment(n_photon, n_emitter):
         """
         Generate a random assignment for the target of measurement-based control X gate after measuring each emitter qubit
+
         :param n_photon: number of photons
         :type n_photon: int
         :param n_emitter: number of emitters
@@ -546,6 +553,12 @@ class RuleBasedRandomSearchSolver(RandomSearchSolver):
 
     @property
     def solver_info(self):
+        """
+        Return the solver setting
+
+        :return: attributes of the solver
+        :rtype: dict
+        """
         def op_names(op_list):
             op_name = []
             for op_val in op_list:

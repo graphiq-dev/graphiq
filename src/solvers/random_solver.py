@@ -51,8 +51,9 @@ class RandomSearchSolver(SolverBase):
         """
         Updates the Hall-of-Fame (HOF), which is a list of the best circuits encountered so far in the search.
 
-        :param population:
-        :return:
+        :param population: population of the circuits, a list of (score, circuit) tuples
+        :type population: list[(float, CircuitBase)]
+        :return: nothing
         """
         for score, circuit in population:
             for i in range(self.n_hof):
@@ -71,8 +72,11 @@ class RandomSearchSolver(SolverBase):
         Tournament selection for choosing the next generation population to be mutated/crossed-over
 
         :param population: population of the circuits, a list of (score, circuit) tuples
+        :type population: list[(float, CircuitBase)]
         :param k: size of the tournament
-        :return:
+        :type k: int
+        :return: a new population
+        :rtype: list[(float, CircuitBase)]
         """
         population_new = []
         for i in range(self.n_pop):

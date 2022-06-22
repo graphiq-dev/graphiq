@@ -101,7 +101,7 @@ class DensityMatrixCompiler(CompilerBase):
         Returns the measurement determinism (either it's probabilistic, defaults to 0, or defaults to 1)
 
         :return: determinism setting
-        :rtype: str/int
+        :rtype: str or int
         """
         return self._measurement_determinism
 
@@ -110,11 +110,12 @@ class DensityMatrixCompiler(CompilerBase):
         """
         Sets the measurement setting with which the compiler simulates a circuit
         (this can be set to "probabilistic", 1, 0)
+
         :param measurement_setting: if "probabilistic", measurement results are probabilistically selected
                                     if 1, measurement results default to 1 unless the probability of measuring p(1) = 0
                                     if 0, measurement results default to 0 unless the probability of measuring p(0) = 0
         :rtype measurement_setting: str/int
-        :return: function returns nothing
+        :return: nothing
         :rtype: None
         """
         if measurement_setting in ['probabilistic', 1, 0]:
@@ -140,8 +141,6 @@ class DensityMatrixCompiler(CompilerBase):
 
         # TODO: make this more general, but for now we assume all registers are initialized to |0>
         init = np.outer(np.array([1, 0]), np.array([1, 0])).astype('complex64')  # initialization of quantum registers
-
-        # TODO: state_id? what should it be? There should be a default.
 
         # TODO: refactor to be a QuantumState object which contains a density matrix
         state = DensityMatrix(data=reduce(np.kron, circuit.n_quantum * [init]))

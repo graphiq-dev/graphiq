@@ -67,8 +67,9 @@ class EvolutionarySolver(RandomSearchSolver):
 
     def solve(self):
         """
+        The main function for the solver
 
-        :return:
+        :return: nothing
         """
 
         population = [(None, copy.deepcopy(self.circuit)) for _ in range(self.n_pop)]
@@ -98,6 +99,14 @@ class EvolutionarySolver(RandomSearchSolver):
         return
 
     def adapt_probabilities(self, iteration: int):
+        """
+        Changes the probability of selecting circuit transformations at each iteration.
+
+        :param iteration: i-th iteration of the search method, which ranges from 0 to n_stop
+        :type iteration: int
+        :return: nothing
+        """
+
         self.trans_probs[self.add_one_qubit_op] = (1.0 - iteration / self.n_stop) / 2
         self.trans_probs[self.add_two_qubit_op] = (1.0 - iteration / self.n_stop) / 2
         self.trans_probs[self.remove_op] = iteration / self.n_stop
@@ -110,7 +119,7 @@ class EvolutionarySolver(RandomSearchSolver):
         Here, all aspects of the algorithm are fully random (with uniform probabilities).
         We start with an empty N-qubit circuit, and at each iteration add
 
-        :return:
+        :return: nothing
         """
         scores = [None for _ in range(self.n_pop)]
         circuits = [copy.deepcopy(self.circuit) for _ in range(self.n_pop)]
@@ -143,6 +152,10 @@ class EvolutionarySolver(RandomSearchSolver):
     def add_one_qubit_op(self, circuit: CircuitDAG):
         """
         Randomly selects one valid edge on which to add a new one-qubit gate.
+
+        :param circuit: the quantum circuit to be modified
+        :type circuit: CircuitDAG
+        :return: nothing
         """
 
         edges = list(circuit.dag.edges)
@@ -171,6 +184,10 @@ class EvolutionarySolver(RandomSearchSolver):
         Randomly selects two valid edges on which to add a new two-qubit gate.
         One edge is selected from all edges, and then the second is selected that maintains proper temporal ordering
         of the operations.
+
+        :param circuit: the quantum circuit to be modified
+        :type circuit: CircuitDAG
+        :return: nothing
         """
         # setattr(self.add_two_qubit_op, "att1", 1)
 
@@ -219,6 +236,10 @@ class EvolutionarySolver(RandomSearchSolver):
     def remove_op(self, circuit: CircuitDAG):
         """
         Randomly selects a one- or two-qubit gate to remove from the circuit
+
+        :param circuit: the quantum circuit to be modified
+        :type circuit: CircuitDAG
+        :return: nothing
         """
         nodes = [node for node in circuit.dag.nodes if type(circuit.dag.nodes[node]['op']) not in self.fixed_ops]
         if len(nodes) == 0:
@@ -245,8 +266,10 @@ class EvolutionarySolver(RandomSearchSolver):
     def _check_cnots(cir: CircuitDAG):
         """
         Sanity check that all CNOT gates have two in edges and two out edges
-        :param cir: circuit object
-        :return:
+
+        :param cir: the quantum circuit to be checked
+        :type cir: CircuitDAG
+        :return: nothing
         """
         for node in cir.dag.nodes:
             if type(cir.dag.nodes[node]['op']) is ops.CNOT:

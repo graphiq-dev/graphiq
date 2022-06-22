@@ -33,8 +33,10 @@ class SolverBase(ABC):
         """
         Sets the seed for both the numpy.random and random packages.
         Accessible by any Solver subclass
-        :param seed:
-        :return:
+
+        :param seed: a random number seed
+        :type seed: int or None
+        :return: nothing
         """
         np.random.seed(seed)
         random.seed(seed)

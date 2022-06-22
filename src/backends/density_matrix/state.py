@@ -25,7 +25,7 @@ class DensityMatrix(StateRepresentationBase):
 
         :param data: density matrix or a networkx graph
         :type data: numpy.ndarray
-        :return: function returnns nothing
+        :return: nothing
         :rtype: None
         """
         super().__init__(data, *args, **kwargs)
@@ -45,10 +45,11 @@ class DensityMatrix(StateRepresentationBase):
     @classmethod
     def from_graph(cls, graph):
         """
-        Builds a density matrix representation from a graph (either nx.graph or a Graph state representation)
+        Builds a density matrix representation from a graph (either nx.graph or a Graph representation)
 
-        :param graph: the graph from which we will builda density matrix
+        :param graph: the graph from which we will build a density matrix
         :type graph: networkx.Graph OR Graph
+        :raises TypeError: if the input graph is neither nx.graph or Graph
         :return: a DensityMatrix representation with the data contained by graph
         :rtype: DensityMatrix
         """
@@ -78,6 +79,7 @@ class DensityMatrix(StateRepresentationBase):
 
         :param unitary: unitary matrix to apply
         :type unitary: numpy.ndarray
+        :raises ValueError: if the density matrix of the state has a different size from the unitary gate to be applied
         :return: function returns nothing
         :rtype: None
         """
@@ -94,13 +96,19 @@ class DensityMatrix(StateRepresentationBase):
 
         :param kraus_ops: a list of Kraus operators of the channel
         :type kraus_ops: list[numpy.ndarray]
+        :raises ValueError: if Kraus operators have wrong dimensions.
         :return: function returns nothing
         :rtype: None
         """
         tmp_state = 0
-        for i in range(len(kraus_ops)):
-            tmp_state = tmp_state + kraus_ops[i] @ self._data @ np.conjugate(kraus_ops[i].T)
-        self._data = tmp_state
+        if len(kraus_ops) == 0:
+            return
+        if self._data.shape[0] == kraus_ops[0].shape[1]:
+            for i in range(len(kraus_ops)):
+                tmp_state = tmp_state + kraus_ops[i] @ self._data @ np.conjugate(kraus_ops[i].T)
+            self._data = tmp_state
+        else:
+            raise ValueError('Kraus operators have wrong dimensions.')
 
     def apply_measurement_TO_DEBUG(self, projectors, measurement_determinism='probabilistic'):
         """
@@ -116,14 +124,7 @@ class DensityMatrix(StateRepresentationBase):
         :return: the measurement outcome
         :rtype: int
         """
-        """
-        Apply the projectors measurement onto the density matrix representation of the state
 
-        :param projectors: the projector which is the measurement to apply
-        :type projectors: numpy.ndarray
-        :return: the measurement outcome
-        :rtype: int
-        """
         if self._data.shape == projectors[0].shape:
             probs = []
             for m in projectors:
@@ -185,6 +186,7 @@ class DensityMatrix(StateRepresentationBase):
 
         :param projectors: the projector which is the measurement to apply
         :type projectors: numpy.ndarray
+        :raises ValueError: if the density matrix of the state has a different size from the POVM elements.
         :return: the measurement outcome
         :rtype: int
         """
@@ -214,6 +216,7 @@ class DensityMatrix(StateRepresentationBase):
 
         :param projectors: the projector which is the measurement to apply
         :type projectors: numpy.ndarray
+        :raises ValueError: if the density matrix of the state has a different size from the POVM elements.
         :return: the measurement outcome
         :rtype: int
         """

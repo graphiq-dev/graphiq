@@ -87,7 +87,7 @@ class RandomSearchSolver(SolverBase):
 
             # sort the tournament population by the score, such that the first index is the lowest scoring circuit
             # tourn_pop.sort(key=lambda x: x[0], reverse=False)
-            best = max(tourn_pop, key=lambda x: x[0])
+            best = min(tourn_pop, key=lambda x: x[0])
 
             population_new.append(copy.deepcopy(best))  # add the best performing circuit in the tournament
 

@@ -4,7 +4,7 @@ import random
 from src.metrics import MetricBase
 from src.circuit import CircuitBase
 from src.backends.compiler_base import CompilerBase
-from src.solvers.base import SolverBase
+from src.solvers.solver_base import SolverBase
 
 from src import ops
 
@@ -35,8 +35,10 @@ class RandomSearchSolver(SolverBase):
         ops.CNOT,
     ]
 
-    def __init__(self, target, metric: MetricBase, circuit: CircuitBase, compiler: CompilerBase, *args, **kwargs):
-        super().__init__(target, metric, circuit, compiler)
+    def __init__(self, target, metric: MetricBase, compiler: CompilerBase,
+                 circuit: CircuitBase = None, *args, **kwargs):
+
+        super().__init__(target, metric, compiler, circuit)
 
         # hof stores the best circuits and their scores in the form of: (scores, circuits)
         self.hof = [(np.inf, None) for _ in range(self.n_hof)]

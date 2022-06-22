@@ -128,6 +128,38 @@ class IO:
             print(f"{current_time()} | Loaded from {full_path} successfully.")
         return file
 
+    def save_txt(self, variable, filename):
+        """
+        Save serialized python object into a text format, at filename
+
+        :param variable: the object to save
+        :type variable: serialized object
+        :param filename: name of the file to which variable should be saved
+        :type filename: str
+        :return: the function returns nothing
+        :rtype: None
+        """
+        full_path = self.path.joinpath(filename)
+        os.makedirs(full_path.parent, exist_ok=True)
+        self._save_txt(variable, full_path)
+        if self.verbose:
+            print(f"{current_time()} | Saved to {full_path} successfully.")
+
+    def load_txt(self, filename):
+        """
+        Load serialized python object from text file
+
+        :param filename: name of the file from which we are loading the object
+        :type filename: str
+        :return: the loaded object data
+        :rtype: may vary
+        """
+        full_path = self.path.joinpath(filename)
+        file = self._load_txt(full_path)
+        if self.verbose:
+            print(f"{current_time()} | Loaded from {full_path} successfully.")
+        return file
+
     def save_dataframe(self, df, filename):
         """
         Save a panda dataframe object to csv
@@ -158,14 +190,6 @@ class IO:
         if self.verbose:
             print(f"{current_time()} | Loaded from {full_path} successfully.")
         return df
-
-    def load_timetags(self, filename):
-        # TODO: docstring (am not 100% sure what the use case of this function is)
-        full_path = self.path.joinpath(filename)
-        data = np.loadtxt(str(full_path),  delimiter="\t")
-        if self.verbose:
-            print(f"{current_time()} | Loaded from {full_path} successfully.")
-        return data
 
     def save_figure(self, fig, filename):
         """
@@ -234,3 +258,21 @@ class IO:
         with open(path) as json_file:
             data = json.load(json_file)
         return data
+
+    @staticmethod
+    def _save_txt(variable, path):
+        """
+        Helper method for saving to text files
+        """
+        with open(path, 'w') as txt_file:
+            txt_file.write(variable)
+
+    @staticmethod
+    def _load_txt(path):
+        """
+        Helper method for loading from text files
+        """
+        # with open(path) as json_file:
+        #     data = json.load(json_file)
+        # return data
+        raise NotImplementedError("Loading text files not implemented")

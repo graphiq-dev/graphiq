@@ -17,6 +17,8 @@ from src.solvers.rule_based_random_solver import RuleBasedRandomSearchSolver
 import benchmarks.circuits_original as circ
 from src.metrics import Infidelity
 
+from src.io import IO
+
 
 def circuit_measurement_independent(circuit, compiler):
     # Note: this doesn't check every option, only "all 0s, all 1s"
@@ -34,8 +36,8 @@ def circuit_measurement_independent(circuit, compiler):
     return np.allclose(state_data1, state_data2), state_data1, state_data2
 
 
-def benchmark_data(solver_class, targets, metric_class, compiler, target_type='dm', per_target_retries=1, seed_offset=0,
-                   save_directory=None):
+def benchmark_data(solver_class, targets, metric_class, compiler, target_type='dm',
+                   per_target_retries=1, seed_offset=0, save_directory=None):
     """
     Benchmarks a solver performance on a series of target circuits/states
 
@@ -74,8 +76,8 @@ def benchmark_data(solver_class, targets, metric_class, compiler, target_type='d
     # TODO: save solver data
     # TODO: save compute data
     if save_directory is not None:
-        dir_name = os.path.join(save_directory, f'solver_benchmark_{datetime.datetime.now().strftime("%Y_%m_%d-%H-%M-%S")}')
-        os.mkdir(dir_name)
+        folder_name = f'solver_benchmark_{datetime.datetime.now().strftime("%Y_%m_%d-%H-%M-%S")}'
+        io = IO.new_directory(folder=folder_name)
 
     # Create pandas dataframe
     target_state_names = [target['name'] for (circuit, target) in targets]
@@ -98,9 +100,7 @@ def benchmark_data(solver_class, targets, metric_class, compiler, target_type='d
                                   n_photon=target['n_photons'])
             solver_data = solver.solver_info
             if save_directory and i == 0 and j == 0:
-                with open(f"{dir_name}/solver_info.json", "w") as fp:
-                    print(f'solver data: {solver_data}')
-                    json.dump(solver_data, fp)
+                io.save_json(solver_data, "solver_info.json")
 
             start_time = time.time()
             solver.seed(i + seed_offset)
@@ -122,19 +122,18 @@ def benchmark_data(solver_class, targets, metric_class, compiler, target_type='d
             }
             hof_circuits.append(circuit_data)
             if save_directory is not None:
-                with open(f"{dir_name}/circuit_target{j}_retry{i}.json", "w") as fp:
-                    json.dump(circuit_data, fp)
-
-                with open(f"{dir_name}/circuit_description_target{j}_retry{i}.txt", 'w') as f:
-                    f.write(circuit_data['Circuit description'])
+                io.save_json(solver_data, "circuit_target{j}_retry{i}.json")
+                io.save_txt(circuit_data['Circuit description'], f"circuit_description_target{j}_retry{i}.txt")
 
     if save_directory is not None:
-        df.to_csv(f'{dir_name}/benchmark_results.csv')
+        io.save_dataframe(df, filename="benchmark_results.csv")
+
         for _, target in targets:
             for i in range(per_target_retries):
                 print()
-                df.loc[f'Circuit', (target['name'], i)].draw_circuit(show=False)
-                plt.savefig(f'{dir_name}/circuit_{target["name"]}_{i}.png')
+                fig, axs = df.loc[f'Circuit', (target['name'], i)].draw_circuit(show=False)
+
+                io.save_figure(fig, f"circuit_{target['name']}_{i}.png")
 
     return solver_data, df, hof_circuits
 
@@ -146,4 +145,4 @@ if __name__ == "__main__":
     compiler = DensityMatrixCompiler()
     compiler.measurement_determinism = 1
     df = benchmark_data(RuleBasedRandomSearchSolver, target_list, Infidelity, compiler,
-                        per_target_retries=1, seed_offset=0, save_directory='./save_benchmarks/')
+                        per_target_retries=1, seed_offset=0, save_directory='save_benchmarks')

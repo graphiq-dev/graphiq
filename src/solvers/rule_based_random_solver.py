@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import networkx as nx
 import warnings
+import time
 
 import src.backends.density_matrix.functions as dmf
 
@@ -43,11 +44,10 @@ class RuleBasedRandomSearchSolver(RandomSearchSolver):
         ops.single_qubit_cliffords()
     )
 
-
-    def __init__(self, target, metric: MetricBase, circuit = None, compiler = None,
+    def __init__(self, target, metric: MetricBase, compiler: CompilerBase, circuit: CircuitBase = None,
                  n_emitter=1, n_photon=1, selection_active=False, *args, **kwargs):
 
-        super().__init__(target, metric, circuit, compiler, *args, **kwargs)
+        super().__init__(target, metric, compiler, circuit, *args, **kwargs)
 
         self.n_emitter = n_emitter
         self.n_photon = n_photon
@@ -571,3 +571,50 @@ class RuleBasedRandomSearchSolver(RandomSearchSolver):
             'Transition probabilities': transition_names(self.trans_probs)
         }
 
+
+if __name__ == "__main__":
+    #%% here we have access
+    RuleBasedRandomSearchSolver.n_stop = 40
+    RuleBasedRandomSearchSolver.n_pop = 150
+    RuleBasedRandomSearchSolver.n_hof = 10
+    RuleBasedRandomSearchSolver.tournament_k = 10
+
+    #%% comment/uncomment for reproducibility
+    # RuleBasedRandomSearchSolver.seed(1)
+
+    # %% select which state we want to target
+    from benchmarks.circuits import *
+    circuit_ideal, state_ideal = linear_cluster_3qubit_circuit()
+
+    #%% construct all of our important objects
+    target = state_ideal['dm']
+    circuit = CircuitDAG(n_photon=3, n_emitter=1, n_classical=0)
+    compiler = DensityMatrixCompiler()
+    metric = Infidelity(target=target)
+
+    solver = RuleBasedRandomSearchSolver(target=target, metric=metric, compiler=compiler, circuit=circuit)
+
+    # circuits = [copy.deepcopy(circuit) for _ in range(10)]
+    # print(solver.tournament_probs)
+    # solver.tournament_selection(circuits)
+
+    #%% call the solver.solve() function to implement the random search algorithm
+    t0 = time.time()
+    solver.solve()
+    t1 = time.time()
+
+    #%% print/plot the results
+    print(solver.hof)
+    print(f"Total time {t1-t0}")
+
+    # extract the best performing circuit
+    fig, axs = density_matrix_bars(target)
+    fig.suptitle("TARGET DENSITY MATRIX")
+    plt.show()
+
+    state = compiler.compile(circuit)
+    fig, axs = density_matrix_bars(state.data)
+    fig.suptitle("CREATED DENSITY MATRIX")
+    plt.show()
+
+    circuit.draw_circuit()

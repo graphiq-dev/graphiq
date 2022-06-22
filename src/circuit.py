@@ -1,33 +1,20 @@
 """
-Experimental circuit which maps out input state (encoded in the circuit) to an output state.
+Circuit class, which defines the sequence of operations and gates.
+Once a compiler is defined, the resulting quantum state can be simulated.
 
-It currently supports the following functionalities:
+The Circuit class can be:
 
-1. Circuit can be manually constructed (program instructions can be added to the "back" of the circuit, as in most
-    quantum circuit simulation software).
-        Purpose (example): unit testing, initializing solver with a particular circuit,
-                            regular simulation (useful to have the functionality integrated, in case people want to
-                            tweak designs output by the system)
-2. Circuit can be compressed into a list of Operation objects
+1. manually constructed, with new operations added to the end of the circuit
+2. evaluated into a sequence of Operations, based on the topological ordering
         Purpose (example): use at compilation step, use for compatibility with other software (e.g. openQASM)
-3. Circuit can be sent to an openQASM script (*for most defined Operations--this is not true if
-   the circuit contains classically controlled gates)
+3. visualized or saved using, for example, openQASM
         Purpose: method of saving circuit (ideal), compatibility with other software, visualizers
 
-Soon to be implemented functionalities:
-1. Circuit topology can be modified by the solver (the precise modifications are being currently brainstormed)
-        Purpose: allows the circuit structure to be modified and optimized
-
-Understanding DAG circuit representation: https://qiskit.org/documentation/stubs/qiskit.converters.circuit_to_dag.html
-
-DYNAMIC CIRCUIT BUILDING: if we think of the solver trying to create a certain graph state, it's not necessarily
-obvious how many qubits and classical bits we'll need for that. Hence, we expect to be able to add qubits/classical bits
-"live" (as we keep editing the circuit).
-1. We can therefore add an Operation on register 2 even if register 2 did not previously exist--however we only accept
-continuous numbering of registers, so register 1 must exist beforehand
-2. The number of registers can be queried (e.g. by the solver) to add the correct numbered register
+Further reading on DAG circuit representation:
+https://qiskit.org/documentation/stubs/qiskit.converters.circuit_to_dag.html
 
 
+Experimental:
 REGISTER HANDLING (only for RegisterCircuitDAG):
 
 In qiskit and openQASM, for example, you can apply operations on either a specific qubit in a specific register OR
@@ -240,7 +227,7 @@ class CircuitBase(ABC):
 
     def add_emitter_register(self, size=1):
         """
-        Adds a emitter quantum register to the circuit
+        Adds an emitter quantum register to the circuit
 
         :param size: size of the quantum register to be added
         :type size: int

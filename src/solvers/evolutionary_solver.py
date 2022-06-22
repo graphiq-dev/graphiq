@@ -22,6 +22,8 @@ class EvolutionarySolver(RandomSearchSolver):
     """
     Implements an evolutionary search solver.
     This will randomly add/delete operations in the circuit.
+
+
     """
 
     name = "evolutionary-search"
@@ -48,9 +50,10 @@ class EvolutionarySolver(RandomSearchSolver):
         ops.CPhase,
     ]
 
-    def __init__(self, target, metric: MetricBase, circuit: CircuitBase, compiler: CompilerBase, selection_active=False,
-                 *args, **kwargs):
-        super().__init__(target, metric, circuit, compiler, *args, **kwargs)
+    def __init__(self, target, metric: MetricBase, compiler: CompilerBase, circuit: CircuitBase = None,
+                 selection_active=False, *args, **kwargs):
+
+        super().__init__(target, metric, compiler, circuit, *args, **kwargs)
 
         self.transformations = [
             self.add_one_qubit_op,
@@ -64,38 +67,6 @@ class EvolutionarySolver(RandomSearchSolver):
             self.remove_op: 0.0
         }
         self.selection_active = selection_active
-
-    def solve(self):
-        """
-
-        :return:
-        """
-
-        population = [(None, copy.deepcopy(self.circuit)) for _ in range(self.n_pop)]
-
-        for i in range(self.n_stop):
-            for j in range(self.n_pop):
-
-                transformation = np.random.choice(list(self.trans_probs.keys()), p=list(self.trans_probs.values()))
-
-                circuit = population[j][1]
-                transformation(circuit)
-                # print(f"{transformation.__name__}")
-
-                circuit.validate()
-
-                state = self.compiler.compile(circuit)  # this will pass out a density matrix object
-                score = self.metric.evaluate(state.data, circuit)
-
-                population[j] = (score, circuit)
-
-            self.update_hof(population)
-            self.adapt_probabilities(i)
-            population = self.tournament_selection(population, self.tournament_k)
-
-            print(f"New generation {i} | {self.hof[0][0]:.4f}")
-
-        return
 
     def adapt_probabilities(self, iteration: int):
         self.trans_probs[self.add_one_qubit_op] = (1.0 - iteration / self.n_stop) / 2
@@ -112,9 +83,6 @@ class EvolutionarySolver(RandomSearchSolver):
 
         :return:
         """
-        scores = [None for _ in range(self.n_pop)]
-        circuits = [copy.deepcopy(self.circuit) for _ in range(self.n_pop)]
-
         population = [(None, copy.deepcopy(self.circuit)) for _ in range(self.n_pop)]
 
         for i in range(self.n_stop):
@@ -122,7 +90,7 @@ class EvolutionarySolver(RandomSearchSolver):
 
                 transformation = np.random.choice(list(self.trans_probs.keys()), p=list(self.trans_probs.values()))
 
-                circuit = circuits[j]
+                circuit = population[j][1]
                 transformation(circuit)
 
                 circuit.validate()
@@ -163,7 +131,7 @@ class EvolutionarySolver(RandomSearchSolver):
 
         circuit.dag.remove_edges_from([edge])  # remove the edge
 
-        circuit.dag.add_edges_from(new_edges, reg_type='q', reg=reg)
+        circuit.dag.add_edges_from(new_edges, reg_type='p', reg=reg)
         return
 
     def add_two_qubit_op(self, circuit: CircuitDAG):
@@ -174,7 +142,7 @@ class EvolutionarySolver(RandomSearchSolver):
         """
         # setattr(self.add_two_qubit_op, "att1", 1)
 
-        edges = [edge for edge in circuit.dag.edges if circuit.dag.edges[edge]['reg_type'] == 'q']
+        edges = [edge for edge in circuit.dag.edges if circuit.dag.edges[edge]['reg_type'] == 'p']
 
         ind = np.random.randint(len(edges))
         edge0 = list(edges)[ind]
@@ -211,7 +179,7 @@ class EvolutionarySolver(RandomSearchSolver):
             label = edge[2]
             new_edges = [(edge[0], new_id, label), (new_id, edge[1], label)]
 
-            circuit.dag.add_edges_from(new_edges, reg_type='q', reg=reg)
+            circuit.dag.add_edges_from(new_edges, reg_type='p', reg=reg)
 
         circuit.dag.remove_edges_from([edge0, edge1])  # remove the selected edges
         return
@@ -236,7 +204,7 @@ class EvolutionarySolver(RandomSearchSolver):
                 if in_edge[2] == out_edge[2]:
                     reg = circuit.dag.edges[in_edge]['reg']
                     label = out_edge[2]
-                    circuit.dag.add_edge(in_edge[0], out_edge[1], label, reg_type='q', reg=reg)
+                    circuit.dag.add_edge(in_edge[0], out_edge[1], label, reg_type='p', reg=reg)
 
         circuit.dag.remove_node(node)
         return
@@ -289,7 +257,7 @@ if __name__ == "__main__":
     compiler = DensityMatrixCompiler()
     metric = Infidelity(target=target)
 
-    solver = EvolutionarySolver(target=target, metric=metric, circuit=circuit, compiler=compiler)
+    solver = EvolutionarySolver(target=target, metric=metric, compiler=compiler, circuit=circuit)
 
     # circuits = [copy.deepcopy(circuit) for _ in range(10)]
     # print(solver.tournament_probs)

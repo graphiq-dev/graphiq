@@ -90,7 +90,7 @@ def ketz0_state():
 
 
 def ketz1_state():
-    """"
+    """
     Return normalized eigenvector of sigma z matrix with eigenvalue -1
 
     :return: normalized eigenvector of sigma z matrix, with eigenvalue -1
@@ -141,7 +141,8 @@ def projectorz1():
 
 def get_controlled_gate(number_qubits, control_qubit, target_qubit, target_gate):
     """
-    Define a controlled unitary gate
+    Define a controlled unitary gate.
+
     :param number_qubits: specify the number of qubits in the system
     :type number_qubits: int
     :param control_qubit: specify the index of the control qubit (starting from zero)
@@ -149,7 +150,7 @@ def get_controlled_gate(number_qubits, control_qubit, target_qubit, target_gate)
     :param target_qubit: specify the index of the target qubit
     :type target_qubit: int
     :param target_gate: specify the gate to be applied conditioned on the control_qubit in the ket one state
-    :type target_gate: numpy.array
+    :type target_gate: numpy.ndarray
 
     :return: a controlled unitary gate on the appropriate qubits and with the appropriate target gate
     :rtype: numpy.ndarray
@@ -200,7 +201,8 @@ def get_controlled_gate(number_qubits, control_qubit, target_qubit, target_gate)
 
 def get_controlled_gate_efficient(n_qubits, control_qubit, target_qubit, target_gate):
     """
-    Define a controlled unitary gate
+    Define a controlled unitary gate.
+
     :param n_qubits: specify the number of qubits in the system
     :type n_qubits: int
     :param control_qubit: specify the index of the control qubit (starting from zero)
@@ -208,7 +210,7 @@ def get_controlled_gate_efficient(n_qubits, control_qubit, target_qubit, target_
     :param target_qubit: specify the index of the target qubit
     :type target_qubit: int
     :param target_gate: specify the gate to be applied conditioned on the control_qubit in the ket one state
-    :type target_gate: numpy.array
+    :type target_gate: numpy.ndarray
 
     :raises ValueError: if the target and control qubits are the same
     :return: a controlled unitary gate on the appropriate qubits and with the appropriate target gate
@@ -250,7 +252,7 @@ def get_single_qubit_gate(number_qubits, qubit_position, target_gate):
 
 def swap_two_qubits(state_matrix, qubit1_position, qubit2_position):
     """
-    Swap two qubits by three CNOT gates. Assumes state_matrix is a valid density matrix
+    Swap two qubits by three CNOT gates. Assumes state_matrix is a valid density matrix.
 
     :param state_matrix: Initial matrix, pre-swap
     :type state_matrix: numpy.ndarray
@@ -274,13 +276,14 @@ def swap_two_qubits(state_matrix, qubit1_position, qubit2_position):
 
 def get_reset_qubit_kraus(n_qubits, qubit_position):
     """
-    Generate a list of Kraus operators for resetting one qubit among n-qubit state
-    :param n_qubits:
+    Generate a list of Kraus operators for resetting one qubit among n-qubit state.
+
+    :param n_qubits: number of qubits
     :type n_qubits: int
-    :param qubit_position:
+    :param qubit_position: the position of qubit to be reset
     :type qubit_position: int
-    :return:
-    "rtype: list[np.ndarray]
+    :return: Kraus operators corresponding to reset
+    :rtype: [numpy.ndarray, numpy.ndarray]
     """
     kraus0 = np.array([[1, 0], [0, 0]])
     kraus1 = np.array([[0, 1], [0, 0]])
@@ -291,7 +294,7 @@ def get_reset_qubit_kraus(n_qubits, qubit_position):
 
 def trace_out_qubit(state_matrix, qubit_position):
     """
-    Trace out the specified qubit from the density matrix. Assumes state_matrix is a valid density matrix
+    Trace out the specified qubit from the density matrix. Assumes state_matrix is a valid density matrix.
 
     :param state_matrix: initial matrix, pre-trace
     :type state_matrix: numpy.ndarray
@@ -315,7 +318,7 @@ def is_hermitian(input_matrix):
     Returns True if a matrix is Hermitian, False otherwise
 
     :param input_matrix: an input matrix for checking Hermitianity
-    :type input_matrix: numpy.array
+    :type input_matrix: numpy.ndarray
     :return: True or False
     :rtype: bool
     """
@@ -348,7 +351,7 @@ def is_psd(input_matrix):
 
 def create_n_plus_state(number_qubits):
     """
-    Create a product state that consists n tensor factors of the ket plus state
+    Create a product state that consists n tensor factors of the ket plus state.
 
     :param number_qubits: size (number of qubits) in the state to build
     :type number_qubits: int
@@ -367,7 +370,7 @@ def tensor(arr):
     Takes the kronecker product of each ndarray in arr
 
     :param arr: list of ndarrays which can be combined via a kronecker product
-    :type arr: list
+    :type arr: list[numpy.ndarray]
     :return: the kronecker product of all the ndarrays in arr
     :rtype: numpy.ndarray
     """
@@ -376,7 +379,7 @@ def tensor(arr):
 
 def ket2dm(ket):
     """
-    Turns a ket into a density matrix
+    Turns a ket into a density matrix.
 
     :param ket: the ket to transform into a density matrix
     :type ket: numpy.ndarray
@@ -418,7 +421,7 @@ def partial_trace(rho, keep, dims, optimize=False):
 
 def apply_cz(state_matrix, control_qubit, target_qubit):
     """
-    Compute the density matrix after applying the controlled-Z gate
+    Compute the density matrix after applying the controlled-Z gate.
 
     :param state_matrix: original density matrix (before application of CZ)
     :type state_matrix: numpy.ndarray
@@ -444,8 +447,9 @@ def projectors_zbasis(number_qubits, measure_register):
     :type number_qubits: int
     :param measure_register: the index of the register to measure
     :type measure_register: int
+    :raises ValueError: if measure_register is not a valid register index
     :return: a list of projectors (0 projector and 1 projector)
-    :rtype: list (of 2 ndarrays)
+    :rtype: [numpy.ndarray, numpy.ndarray]
     """
     if not (0 <= measure_register < number_qubits):
         raise ValueError("Register index must be at least 0 and less than the number of qubit registers")
@@ -523,7 +527,7 @@ def bipartite_partial_transpose(rho, dim1, dim2, subsys):
 
 def negativity(rho, dim1, dim2):
     """
-    Return the negativity of the matrix rho
+    Return the negativity of the matrix rho.
 
     :param rho: the density matrix to evaluate the negativity
     :type rho: numpy.ndarray
@@ -568,9 +572,3 @@ def project_to_z0_and_remove(rho, locations):
     return final_rho
 
 
-if __name__ == "__main__":
-    n_qubit = 3
-
-    state = (reduce(np.kron, n_qubit * [ketz0_state()]) + reduce(np.kron, n_qubit * [ketz1_state()])) / np.sqrt(2)
-    state = state @ np.conjugate(state.T)
-    # rho = qt.Qobj(state,dims=[[2,2,2],[2,2,2]])

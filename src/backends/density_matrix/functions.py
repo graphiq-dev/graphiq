@@ -392,7 +392,7 @@ def ket2dm(ket):
 def partial_trace(rho, keep, dims, optimize=False):
     """
     Calculates the partial trace
-    ρ_a = Tr_b(ρ)
+    :math:`\\rho_a = Tr_b(\\rho)`
 
     :param rho: the (2D) matrix to trace
     :type rho: numpy.ndarray

@@ -19,7 +19,7 @@ import sys
 sys.path.insert(0, pathlib.Path(__file__).parents[2].resolve().as_posix())
 
 # -- Project information -----------------------------------------------------
-project = 'Ki3-QBT Graph Compiler Library'
+project = 'Graph Compiler Library'
 copyright = '2022, Ki3-QBT'
 author = 'Ki3-QBT'
 
@@ -34,6 +34,8 @@ extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.autosummary',
     'sphinx.ext.viewcode',
+    'sphinx.ext.imgmath',
+    'sphinx.ext.mathjax',
 ]
 
 # Add any paths that contain templates here, relative to this directory.

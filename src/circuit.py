@@ -1,34 +1,21 @@
 """
-Experimental circuit which maps out input state (encoded in the circuit) to an output state.
+Circuit class, which defines the sequence of operations and gates.
+Once a compiler is defined, the resulting quantum state can be simulated.
 
-It currently supports the following functionalities:
+The Circuit class can be:
 
-1. Circuit can be manually constructed (program instructions can be added to the "back" of the circuit, as in most
-    quantum circuit simulation software).
-        Purpose (example): unit testing, initializing solver with a particular circuit,
-                            regular simulation (useful to have the functionality integrated, in case people want to
-                            tweak designs output by the system)
-2. Circuit can be compressed into a list of Operation objects
+1. manually constructed, with new operations added to the end of the circuit
+2. evaluated into a sequence of Operations, based on the topological ordering
         Purpose (example): use at compilation step, use for compatibility with other software (e.g. openQASM)
-3. Circuit can be sent to an openQASM script (*for most defined Operations--this is not true if
-   the circuit contains classically controlled gates)
+3. visualized or saved using, for example, openQASM
         Purpose: method of saving circuit (ideal), compatibility with other software, visualizers
 
-Soon to be implemented functionalities:
-1. Circuit topology can be modified by the solver (the precise modifications are being currently brainstormed)
-        Purpose: allows the circuit structure to be modified and optimized
-
-Understanding DAG circuit representation: https://qiskit.org/documentation/stubs/qiskit.converters.circuit_to_dag.html
-
-DYNAMIC CIRCUIT BUILDING: if we think of the solver trying to create a certain graph state, it's not necessarily
-obvious how many qubits and classical bits we'll need for that. Hence, we expect to be able to add qubits/classical bits
-"live" (as we keep editing the circuit).
-1. We can therefore add an Operation on register 2 even if register 2 did not previously exist--however we only accept
-continuous numbering of registers, so register 1 must exist beforehand
-2. The number of registers can be queried (e.g. by the solver) to add the correct numbered register
+Further reading on DAG circuit representation:
+https://qiskit.org/documentation/stubs/qiskit.converters.circuit_to_dag.html
 
 
-REGISTER HANDLING:
+Experimental:
+REGISTER HANDLING (only for RegisterCircuitDAG):
 
 In qiskit and openQASM, for example, you can apply operations on either a specific qubit in a specific register OR
 on the full register (see ops.py for an explanation of how registers are applied).
@@ -40,7 +27,6 @@ USER WARNINGS:
 1. if you expand a register AFTER using an Operation which applied to the full register, the Operation will
 NOT retroactively apply to the added qubits
 
-# TODO: add check that the same qubit cannot be used twice in a 2 qubit gate
 # TODO: add a function to query circuit depth (should be easy)
 """
 import copy
@@ -48,6 +34,8 @@ import networkx as nx
 import matplotlib.pyplot as plt
 from abc import ABC, abstractmethod
 import warnings
+import functools
+import numpy as np
 
 from src.ops import OperationBase
 from src.ops import Input
@@ -63,21 +51,22 @@ class CircuitBase(ABC):
     Base class (interface) for circuit representation. This class describes the functions that each Circuit object
     should support. It also records register and openqasm data.
     """
-    def __init__(self, openqasm_imports=None, openqasm_defs=None, *args, **kwargs):
+    def __init__(self, openqasm_imports=None, openqasm_defs=None):
         """
         Construct an empty circuit
 
         :param openqasm_imports: None or an (ordered) dictionary, where the keys are import strings for openqasm
                                  THIS IS MEANT TO ALLOW imports WHICH MUST OCCUR IN SPECIFIC ORDERS
         :type openqasm_imports: a dictionary (with str keys) or None
-        :param openqasm_defs: None or an (ordered) dictionary, where the keys are definition strings for openqasm gates
+        :param openqasm_defs: None or an (ordered) dictionary, where the keys are definitions strings for openqasm gates
                                  THIS IS MEANT TO ALLOW GATE DEFINITIONS WHICH MUST OCCUR IN SPECIFIC ORDERS
         :type openqasm_defs: a dictionary (with str keys) or None
         :return: this function returns nothing
         :rtype: None
         """
-        self.q_registers = []
-        self.c_registers = []
+        self._photon_registers = []
+        self._emitter_registers = []
+        self._c_registers = []
 
         if openqasm_imports is None:
             self.openqasm_imports = {}
@@ -89,6 +78,30 @@ class CircuitBase(ABC):
         else:
             self.openqasm_defs = openqasm_defs
 
+    @property
+    def emitter_registers(self):
+        return self._emitter_registers
+
+    @property
+    def photonic_registers(self):
+        return self._photon_registers
+
+    @emitter_registers.setter
+    def emitter_registers(self, q_reg):
+        self._emitter_registers = q_reg
+
+    @photonic_registers.setter
+    def photonic_registers(self, q_reg):
+        self._emitter_registers = q_reg
+
+    @property
+    def c_registers(self):
+        return self._c_registers
+
+    @c_registers.setter
+    def c_registers(self, c_reg):
+        self._c_registers = c_reg
+
     @abstractmethod
     def add(self, operation: OperationBase):
         raise ValueError('Base class circuit is abstract: it does not support function calls')
@@ -97,11 +110,8 @@ class CircuitBase(ABC):
     def validate(self):
         raise ValueError('Base class circuit is abstract: it does not support function calls')
 
-    def collect_parameters(self):
-        raise NotImplementedError('Implementation is still under consideration')
-
     @abstractmethod
-    def sequence(self):
+    def sequence(self, unwrapped=False):
         raise ValueError('Base class circuit is abstract: it does not support function calls')
 
     def to_openqasm(self):
@@ -114,11 +124,24 @@ class CircuitBase(ABC):
         header_info = oq_lib.openqasm_header() + '\n' + '\n'.join(self.openqasm_imports.keys()) + '\n' \
             + '\n'.join(self.openqasm_defs.keys())
 
-        openqasm_str = [header_info, oq_lib.register_initialization_string(self.q_registers, self.c_registers) + '\n']
+        openqasm_str = [header_info, oq_lib.register_initialization_string(self.emitter_registers,
+                                                                           self.photonic_registers,
+                                                                           self.c_registers) + '\n']
 
+        opened_barrier = False
+        barrier_str = ', '.join([f'p{i}' for i in range(self.n_photons)] + [f'e{i}' for i in range(self.n_emitters)])
         for op in self.sequence():
             oq_info = op.openqasm_info()
-            gate_application = oq_info.use_gate(op.q_registers, op.c_registers)
+            gate_application = oq_info.use_gate(op.q_registers, op.q_registers_type, op.c_registers)
+
+            # set barrier, if necessary to split out multi-block Operations from each other
+            if (opened_barrier or oq_info.multi_comp) and gate_application != "":
+                openqasm_str.append(f'barrier {barrier_str};')
+            if oq_info.multi_comp:  # i.e. multiple visual blocks make this one Operation
+                opened_barrier = True
+            elif gate_application != "":
+                opened_barrier = False
+
             if gate_application != "":
                 openqasm_str.append(gate_application)
 
@@ -132,7 +155,29 @@ class CircuitBase(ABC):
         :return: number of quantum registers in the circuit
         :rtype: int
         """
-        return len(self.q_registers)
+        return len(self.emitter_registers) + len(self.photonic_registers)
+
+    @property
+    def n_photons(self):
+        """
+        Number of photonic quantum registers in the circuit
+        (this does not depend on the number of qubit within each register)
+
+        :return: number of photonic quantum registers in the circuit
+        :rtype: int
+        """
+        return len(self.photonic_registers)
+
+    @property
+    def n_emitters(self):
+        """
+        Number of emitter quantum registers in the circuit
+        (this does not depend on the number of qubit within each register)
+
+        :return: number of emitter quantum registers in the circuit
+        :rtype: int
+        """
+        return len(self.emitter_registers)
 
     @property
     def n_classical(self):
@@ -144,17 +189,29 @@ class CircuitBase(ABC):
         """
         return len(self.c_registers)
 
-    def next_qubit(self, register):
+    def next_emitter(self, register):
         """
-        Provides the index of the next qubit in the provided quantum register. This allows the user to query
+        Provides the index of the next emitter qubit in the provided quantum register. This allows the user to query
         which qubit they should add next, should they decide to expand the register
 
-        :param register: the register index {0, ..., N - 1} for N quantum registers
+        :param register: the register index {0, ..., N - 1} for N emitter quantum registers
         :type register: int
         :return: the index of the next qubit
         :rtype: int (non-negative)
         """
-        return self.q_registers[register]
+        return self.emitter_registers[register]
+
+    def next_photon(self, register):
+        """
+        Provides the index of the next photonic qubit in the provided quantum register. This allows the user to query
+        which qubit they should add next, should they decide to expand the register
+
+        :param register: the register index {0, ..., N - 1} for N photonic quantum registers
+        :type register: int
+        :return: the index of the next qubit
+        :rtype: int (non-negative)
+        """
+        return self.photonic_registers[register]
 
     def next_cbit(self, register):
         """
@@ -168,16 +225,27 @@ class CircuitBase(ABC):
         """
         return self.c_registers[register]
 
-    def add_quantum_register(self, size=1):
+    def add_emitter_register(self, size=1):
         """
-        Adds a quantum register to the circuit
+        Adds an emitter quantum register to the circuit
 
         :param size: size of the quantum register to be added
         :type size: int
         :return: index of added quantum register
         :rtype: int
         """
-        return self._add_register(size, True)
+        return self._add_register(size, 'e')
+
+    def add_photonic_register(self, size=1):
+        """
+        Adds a photonic quantum register to the circuit
+
+        :param size: size of the quantum register to be added
+        :type size: int
+        :return: index of added quantum register
+        :rtype: int
+        """
+        return self._add_register(size, 'p')
 
     def add_classical_register(self, size=1):
         """
@@ -188,25 +256,33 @@ class CircuitBase(ABC):
         :return: index of added classical register
         :rtype: int
         """
-        return self._add_register(size, False)
+        return self._add_register(size, 'c')
 
-    def _add_register(self, size, is_quantum: bool):
+    def _add_register(self, size, reg_type: str):
         """
         Helper function for adding quantum and classical registers to the circuit
 
         :param size: the size of the register to be added
         :type size: int
-        :param is_quantum: True if we're adding a quantum register, False if we're adding a classical register
-        :type is_quantum: bool
+        :param reg_type: 'p' if we're adding a photonic quantum register,
+                         'e' if we're adding a quantum emitter register, and
+                         'c' if we're adding a classical register
+
+        :type reg_type: str
         :return: the index number of the added register
         :rtype: int
         """
-        if is_quantum:
-            curr_reg = self.q_registers
-            reg_description = 'Quantum'
-        else:
+        if reg_type == 'p':
+            curr_reg = self.photonic_registers
+            reg_description = 'Quantum photonic'
+        elif reg_type == 'e':
+            curr_reg = self.emitter_registers
+            reg_description = 'Quantum emitter'
+        elif reg_type == 'c':
             curr_reg = self.c_registers
             reg_description = 'Classical'
+        else:
+            raise ValueError("Register type must be 'p' (quantum photonic), 'e' (quantum emitter), or 'c' (classical)")
 
         if size < 1:
             raise ValueError(f'{reg_description} register size must be at least one')
@@ -214,9 +290,9 @@ class CircuitBase(ABC):
         curr_reg.append(size)
         return len(curr_reg) - 1
 
-    def expand_quantum_register(self, register, new_size):
+    def expand_emitter_register(self, register, new_size):
         """
-        Expand an already existing quantum register to a new (larger) size (i.e. to contain more qubits).
+        Expand an already existing emitter quantum register to a new (larger) size (i.e. to contain more qubits).
         Does not affect pre-existing qubits
 
         :param register: the register index of the register to expand
@@ -227,7 +303,22 @@ class CircuitBase(ABC):
         :return: this function returns nothing
         :rtype: None
         """
-        self._expand_register(register, new_size, True)
+        self._expand_register(register, new_size, 'e')
+
+    def expand_photonic_register(self, register, new_size):
+        """
+        Expand an already existing photonic quantum register to a new (larger) size (i.e. to contain more qubits).
+        Does not affect pre-existing qubits
+
+        :param register: the register index of the register to expand
+        :type register: int
+        :param new_size: the new register size
+        :type new_size: int
+        :raises ValueError: if new_size is not greater than the current register size
+        :return: this function returns nothing
+        :rtype: None
+        """
+        self._expand_register(register, new_size, 'p')
 
     def expand_classical_register(self, register, new_size):
         """
@@ -242,9 +333,9 @@ class CircuitBase(ABC):
         :return: this function returns nothing
         :rtype: None
         """
-        self._expand_register(register, new_size, False)
+        self._expand_register(register, new_size, 'c')
 
-    def _expand_register(self, register, new_size, is_quantum: bool):
+    def _expand_register(self, register, new_size, reg_type: str):
         """
         Helper function to expand quantum/classical registers
 
@@ -252,21 +343,60 @@ class CircuitBase(ABC):
         :type register: int
         :param new_size: the new register size
         :type register: int
-        :param is_quantum: True if we're expanding a quantum register, False if we're expanding a classical register
-        :type is_quantum: bool
+        :param reg_type: 'p' for a photonic quantum register, 'e' for an emitter quantum register,
+                         'c' for a classical register
+        :type reg_type: str
         :raises ValueError: if new_size is not greater than the current register size
         :return: this function returns nothing
         :rtype: None
         """
-        if is_quantum:
-            curr_reg = self.q_registers
-        else:
+        if reg_type == 'e':
+            curr_reg = self.emitter_registers
+        elif reg_type == 'p':
+            curr_reg = self.photonic_registers
+        elif reg_type == 'c':
             curr_reg = self.c_registers
+        else:
+            raise ValueError("reg_type must be 'e' (emitter register), 'p' (photonic register), "
+                             "or 'c' (classical register)")
 
         curr_size = curr_reg[register]
         if new_size <= curr_size:
             raise ValueError(f"New register size {new_size} is not greater than the current size {curr_size}")
         curr_reg[register] = new_size
+
+    def draw_circuit(self, show=True, ax=None):
+        """
+        Draw conventional circuit representation
+
+        :param show: if True, the circuit is displayed (shown). If False, the circuit is drawn but not displayed
+        :type show: bool
+        :param ax: ax on which to draw the DAG (optional)
+        :type ax: None or matplotlib.pyplot.axes
+        :return: fig, ax on which the circuit was drawn
+        :rtype: matplotlib.pyplot.figure, matplotlib.pyplot.axes
+        """
+        return draw_openqasm(self.to_openqasm(), show=show, ax=ax)
+
+    def _open_qasm_update(self, op):
+        """
+        Helper function to update any information a circuit might need to generate openqasm scripts
+
+        :param op: the operation being added to the circuit
+        :type op: OperationBase (or a subclass)
+        :return: function returns nothing
+        :rtype: None
+        """
+        try:
+            oq_info = op.openqasm_info()
+            for import_statement in oq_info.import_strings:
+                if import_statement not in self.openqasm_imports:
+                    self.openqasm_imports[import_statement] = 1
+            for definition in oq_info.define_gate:
+                if definition not in self.openqasm_defs:
+                    self.openqasm_defs[definition] = 1
+        except ValueError:
+            warnings.warn(UserWarning(f"No openqasm definitions for operation {type(op)}"))
 
 
 class CircuitDAG(CircuitBase):
@@ -278,23 +408,24 @@ class CircuitDAG(CircuitBase):
 
     Each connecting edge of the graph corresponds to a qudit or classical bit of the circuit
     """
-    def __init__(self, n_quantum=0, n_classical=0, openqasm_imports=None, openqasm_defs=None,
-                 *args, **kwargs):
+    def __init__(self, n_emitter=0, n_photon=0, n_classical=0, openqasm_imports=None, openqasm_defs=None):
         """
-        Construct a DAG circuit with n_quantum single-qubit quantum registers,
-        and n_classical single-cbit classical registers.
+        Construct a DAG circuit with n_emitter single-qubit emitter quantum registers, n_photon single-qubit photon
+        quantum registers, and n_classical single-cbit classical registers.
 
-        :param n_quantum: the number of qudits in the system
-        :type n_quantum: int
+        :param n_emitter: the number of emitter qudits in the system
+        :type n_emitter: int
+        :param n_photon: the number of photon qudits in the system
+        :type n_photon: int
         :param n_classical: the number of classical bits in the system
         :type n_classical: int
         :return: this function does not return anything
         :rtype: None
         """
-        super().__init__(openqasm_imports=openqasm_imports, openqasm_defs=openqasm_defs, *args, **kwargs)
-        self.dag = nx.DiGraph()
+        super().__init__(openqasm_imports=openqasm_imports, openqasm_defs=openqasm_defs)
+        self.dag = nx.MultiDiGraph()
         self._node_id = 0
-        self._add_reg_if_absent(tuple(range(n_quantum)), tuple(range(n_classical)))
+        self._add_reg_if_absent(tuple(range(n_emitter)), tuple(range(n_photon)), tuple(range(n_classical)))
 
     def add(self, operation: OperationBase):
         """
@@ -302,17 +433,323 @@ class CircuitDAG(CircuitBase):
 
         :param operation: Operation (gate and register) to add to the graph
         :type operation: OperationBase type (or a subclass of it)
-        :raises UserWarning: if no openqasm definition exists for operation
+        :raises UserWarning: if no openqasm definitions exists for operation
+        :return: this function returns nothing
+        :rtype: None
+        """
+        self._open_qasm_update(operation)
+
+        # update registers (if the new operation is adding registers to the circuit)
+        e_reg = tuple([operation.q_registers[i] for i in range(len(operation.q_registers))
+                       if operation.q_registers_type[i] == 'e'])
+        p_reg = tuple([operation.q_registers[i] for i in range(len(operation.q_registers))
+                       if operation.q_registers_type[i] == 'p'])
+        self._add_reg_if_absent(e_reg, p_reg, operation.c_registers)
+        self._add(operation, e_reg, p_reg, operation.c_registers)
+
+    def validate(self):
+        """
+        Asserts that the circuit is valid (is a DAG, all nodes
+        without input edges are input nodes, all nodes without output edges
+        are output nodes)
+
+        :raises RuntimeError: if the circuit is not valid
+        :return: this function returns nothing
+        :rtype: None
+        """
+        assert nx.is_directed_acyclic_graph(self.dag)  # check DAG is correct
+
+        # check all "source" nodes to the DAG are Input operations
+        input_nodes = [node for node, in_degree in self.dag.in_degree() if in_degree == 0]
+        for input_node in input_nodes:
+            if not isinstance(self.dag.nodes[input_node]['op'], Input):
+                raise RuntimeError(f"Source node {input_node} in the DAG is not an Input operation")
+
+        # check all "sink" nodes to the DAG are Output operations
+        output_nodes = [node for node, out_degree in self.dag.out_degree() if out_degree == 0]
+        for output_node in output_nodes:
+            if not isinstance(self.dag.nodes[output_node]['op'], Output):
+                raise RuntimeError(f"Sink node {output_node} in the DAG is not an Output operation")
+
+    def sequence(self, unwrapped=False):
+        """
+        Returns the sequence of operations composing this circuit
+
+        :param unwrapped: If True, we "unwrap" the operation objects such that the returned sequence has only
+                          non-composed gates (i.e. wrapper gates which include multiple non-composed gates are
+                          broken down into their constituent parts). If False, operations are returned as defined
+                          in the circuit (i.e. wrapper gates are returned as wrappers)
+        :type unwrapped: bool
+        :return: the operations which compose this circuit, in the order they should be applied
+        :rtype: list or iterator (of OperationBase subclass objects)
+        """
+        op_list = [self.dag.nodes[node]['op'] for node in nx.topological_sort(self.dag)]
+        if not unwrapped:
+            return op_list
+
+        return functools.reduce(lambda x, y: x + y.unwrap(), op_list, [])
+
+    @property
+    def depth(self):
+        """
+        Returns the circuit depth (NOT including input and output nodes)
+
+        :return: circuit depth
+        :rtype: int
+        """
+        # TODO: implement... does this idea even work?
+        # TODO: check whether there is a more efficient algorithm (there might be, but this one is easy to understand)
+        input_nodes = [node for node, in_degree in self.dag.in_degree() if in_degree == 0]
+        output_nodes = [node for node, out_degree in self.dag.out_degree() if out_degree == 0]
+
+        max_depth = np.inf
+        for input in input_nodes:
+            for output in output_nodes:
+                shortest_path = nx.shortest_path_length(self.dag, source=input, target=output)
+        return 0
+
+
+    def draw_dag(self, show=True, fig=None, ax=None):
+        """
+        Draws the circuit as a DAG
+
+        :param show: if True, the DAG is displayed (shown). If False, the DAG is drawn but not displayed
+        :type show: bool
+        :param fig: fig on which to draw the DAG (optional)
+        :type fig: None or matplotlib.pyplot.figure
+        :param ax: ax on which to draw the DAG (optional)
+        :type ax: None or matplotlib.pyplot.axes
+        :return: fig, ax on which the DAG was drawn
+        :rtype: matplotlib.pyplot.figure, matplotlib.pyplot.axes
+        """
+        # TODO: fix this such that we can see double edges properly!
+        pos = dag_topology_pos(self.dag, method="topology")
+
+        if ax is None or fig is None:
+            fig, ax = plt.subplots()
+        nx.draw(self.dag, pos=pos, ax=ax, with_labels=True)
+        if show:
+            plt.show()
+        return fig, ax
+
+    @CircuitBase.emitter_registers.setter
+    def emitter_registers(self, q_reg):
+        """
+        Reset emitter register values. Enforces that registers can only contain single qubits in this
+        circuit object
+
+        :param q_reg: updated emitter register
+        :type q_reg: list
+        :raises ValueError: if we try to set multi-qubit registers
+        :return: function returns nothing
+        :rtype: None
+        """
+        if set(q_reg) != {1}:
+            raise ValueError(f'CircuitDAG class only supports single-qubit registers')
+        self._emitter_registers = q_reg
+
+    @CircuitBase.photonic_registers.setter
+    def photonic_registers(self, q_reg):
+        """
+        Reset photonic qubit register values. Enforces that registers can only contain single qubits in this
+        circuit object
+
+        :param q_reg: updated photonic register
+        :type q_reg: list
+        :raises ValueError: if we try to set multi-qubit registers
+        :return: function returns nothing
+        :rtype: None
+        """
+        if set(q_reg) != {1}:
+            raise ValueError(f'CircuitDAG class only supports single-qubit registers')
+        self._photon_registers = q_reg
+
+    @CircuitBase.c_registers.setter
+    def c_registers(self, c_reg):
+        """
+        Reset classical register values. Enforces that registers can only contain single cbits in this
+        circuit object
+
+        :param c_reg: updated classical register
+        :type c_reg: list
+        :raises ValueError: if we try to set multi-cbit registers
+        :return: function returns nothing
+        :rtype: None
+        """
+        if set(c_reg) != {1}:
+            raise ValueError(f'CircuitDAG class only supports single-qubit registers')
+        self._c_registers = c_reg
+
+    def _add_register(self, size, reg_type):
+        """
+        Helper function for adding a quantum/classical register of a certain size
+
+        :param reg_type: 'e' to add an emitter qubit register, 'p' to add a photonic qubit register,
+                         'c' to add a classical register
+        :type reg_type: str
+        :return: function returns nothing
+        :rtype: None
+        """
+        if size != 1:
+            raise ValueError(f'_add_register for this circuit class must only add registers of size 1')
+
+        if reg_type == 'e':
+            self._add_reg_if_absent((len(self.emitter_registers),), tuple(), tuple())
+        elif reg_type == 'p':
+            self._add_reg_if_absent(tuple(), (len(self.photonic_registers), ), tuple())
+        elif reg_type == 'c':
+            self._add_reg_if_absent(tuple(), tuple(), (len(self.c_registers),))
+        else:
+            raise ValueError(f"reg_type must be 'e' (emitter qubit), 'p' (photonic qubit), 'c' (classical bit)")
+
+    def _expand_register(self, register, new_size, type_reg):
+        raise ValueError(f"Register size cannot be expanded in the {self.__class__.__name__} representation"
+                         f"(they must have a size of 1)")
+
+    def _add_reg_if_absent(self, e_reg, p_reg, c_reg):
+        """
+        Adds a register to our list of registers and to our graph, if said registers are absent
+
+        :param e_reg: emitter quantum registers used by an operation. Must come in form (a, b, c)
+                      Does not support qubit-specific indexing, since each register is a
+                      single qubit register in this circuit representation
+        :type e_reg: tuple (of ints)
+        :param p_reg: photonic quantum registers used by an operation. Must come in form (a, b, c)
+                      Does not support qubit-specific indexing, since each register is a
+                      single qubit register in this circuit representation
+        :type p_reg: tuple (of ints)
+        :param c_reg: classical register used by operation (same format as q_reg)
+        :type c_reg: tuple (of ints)
+        :return: function returns nothing
+        :rtype: None
+        """
+        # add registers as needed
+
+        def _check_and_add_register(test_reg, circuit_reg, reg_type: str):
+            sorted_reg = list(test_reg)
+            sorted_reg.sort()
+            for i in sorted_reg:  # we sort such that we can throw an error if we get discontinuous registers
+                if i == len(circuit_reg):
+                    circuit_reg.append(1)
+                elif i > len(circuit_reg):
+                    raise ValueError(f"Register numbering must be continuous. {reg_type} register {i} cannot be added."
+                                     f"Next register that can be added is {len(circuit_reg)}")
+
+        _check_and_add_register(e_reg, self.emitter_registers, 'Emitter qubit')
+        _check_and_add_register(p_reg, self.photonic_registers, 'Photonic qubit')
+        _check_and_add_register(c_reg, self.c_registers, 'Classical')
+
+        # Update graph to contain necessary registers
+        for e in e_reg:
+            if f'e{e}_in' not in self.dag.nodes:
+                self.dag.add_node(f'e{e}_in', op=Input(register=e, reg_type='e'), reg=e)
+                self.dag.add_node(f'e{e}_out', op=Output(register=e, reg_type='e'), reg=e)
+                self.dag.add_edge(f'e{e}_in', f'e{e}_out', key=f'e{e}', reg=e, reg_type='e')
+
+        for p in p_reg:
+            if f'p{p}_in' not in self.dag.nodes:
+                self.dag.add_node(f'p{p}_in', op=Input(register=p, reg_type='p'), reg=p)
+                self.dag.add_node(f'p{p}_out', op=Output(register=p, reg_type='p'), reg=p)
+                self.dag.add_edge(f'p{p}_in', f'p{p}_out', key=f'p{p}', reg=p, reg_type='p')
+
+        for c in c_reg:
+            if f'c{c}_in' not in self.dag.nodes:
+                self.dag.add_node(f'c{c}_in', op=Input(register=c, reg_type='c'), reg=c)
+                self.dag.add_node(f'c{c}_out', op=Output(register=c, reg_type='c'), reg=c)
+                self.dag.add_edge(f'c{c}_in', f'c{c}_out', key=f'c{c}', reg=c, reg_type='c')
+
+    def _add(self, operation: OperationBase, e_reg, p_reg, c_reg):
+        """
+        Add an operation to the circuit
+        This function assumes that all registers used by operation are already built
+
+        :param operation: Operation (gate and register) to add to the graph
+        :type operation: OperationBase (or a subclass thereof)
+        :param e_reg: emitter qubit indexing (ereg0, ereg1, ...) on which the operation must be applied
+        :type e_reg: tuple (of ints)
+        :param p_reg: photonic qubit indexing (preg0, preg1, ...) on which the operation must be applied
+        :type p_reg: tuple (of ints)
+        :param c_reg: cbit indexing (creg0, creg1, ...) on which the operation must be applied
+        :type c_reg: tuple (of ints)
+        :return: the function returns nothing
+        :rtype: None
+        """
+        new_id = self._unique_node_id()
+
+        self.dag.add_node(new_id, op=operation)
+
+        # get all edges that will need to be removed (i.e. the edges on which the Operation is being added)
+        relevant_outputs = [f'e{e}_out' for e in e_reg] + \
+                           [f'p{p}_out' for p in p_reg] + \
+                           [f'c{c}_out' for c in c_reg]
+
+        for output in relevant_outputs:
+            edges_to_remove = list(self.dag.in_edges(nbunch=output, keys=True, data=False))
+            for edge in edges_to_remove:
+                # Add edge from preceding node to the new operation node
+                self.dag.add_edge(edge[0], new_id, key=edge[2], reg=self.dag.edges[edge]['reg'],
+                                  reg_type=self.dag.edges[edge]['reg_type'])
+                # Add edge from the new operation node to the final node
+                self.dag.add_edge(new_id, edge[1], key=edge[2], reg=self.dag.edges[edge]['reg'],
+                                  reg_type=self.dag.edges[edge]['reg_type'])
+                self.dag.remove_edge(edge[0], edge[1], key=edge[2])  # remove the unecessary edges
+
+    def _unique_node_id(self):
+        """
+        Internally used to provide a unique ID to each node. Note that this assumes a single thread assigning IDs
+
+        :return: a new, unique node ID
+        :rtype: int
+        """
+        self._node_id += 1
+        return self._node_id
+
+
+class RegisterCircuitDAG(CircuitDAG):
+    """
+    WARNING: somewhat deprecated (not up to date on recent changes)
+
+    Directed Acyclic Graph (DAG) based circuit implementation
+
+    Each node of the graph contains an Operation (it is an input, output, or general Operation).
+    The Operations in the topological order of the DAG.
+
+    Each connecting edge of the graph corresponds to a qudit or classical bit of the circuit
+
+    In contrast to CircuitDAG above, this class allows operations on full registers
+
+    TODO: refactor DiGraph to MultiDiGraph
+    TODO: if we keep this, refactor to use methods from CircuitDAG where possible
+    """
+    def __init__(self, n_emitter=0, n_classical=0, openqasm_imports=None, openqasm_defs=None):
+        """
+        Construct a DAG circuit with n_quantum single-qubit quantum registers,
+        and n_classical single-cbit classical registers.
+
+        :param n_emitter: the number of qudits in the system
+        :type n_emitter: int
+        :param n_classical: the number of classical bits in the system
+        :type n_classical: int
+        :return: this function does not return anything
+        :rtype: None
+        """
+        super().__init__(openqasm_imports=openqasm_imports, openqasm_defs=openqasm_defs)
+        self.dag = nx.DiGraph()
+        self._node_id = 0
+        self._add_reg_if_absent(tuple(range(n_emitter)), tuple(range(n_classical)))
+
+    def add(self, operation: OperationBase):
+        """
+        Add an operation to the end of the circuit (i.e. to be applied after the pre-existing circuit operations
+
+        :param operation: Operation (gate and register) to add to the graph
+        :type operation: OperationBase type (or a subclass of it)
+        :raises UserWarning: if no openqasm definitions exists for operation
         :return: this function returns nothing
         :rtype: None
         """
         # add openqasm info
-        try:
-            oq_info = operation.openqasm_info()
-            self.openqasm_imports[oq_info.import_string] = 1
-            self.openqasm_defs[oq_info.define_gate] = 1
-        except ValueError:
-            warnings.warn(UserWarning(f"No openqasm definition for operation {type(operation)}"))
+        self._open_qasm_update(operation)
 
         # update registers (if the new operation is adding registers to the circuit)
         self._add_reg_if_absent(operation.q_registers, operation.c_registers)  # register added if it does not exist
@@ -328,75 +765,32 @@ class CircuitDAG(CircuitBase):
             new_op.c_registers = c_reg_bit
             self._add(new_op, q_reg_bit, c_reg_bit)
 
-    def validate(self):
-        """
-        Asserts that the circuit is valid (is a DAG, all nodes
-        without input edges are input nodes, all nodes without output edges
-        are output nodes)
-
-        :raises AssertionError: if the circuit is not valid
-        :return: this function returns nothing
-        :rtype: None
-        """
-        assert nx.is_directed_acyclic_graph(self.dag)  # check DAG is correct
-
-        # check all "source" nodes to the DAG are Input operations
-        input_nodes = [node for node, in_degree in self.dag.in_degree() if in_degree == 0]
-        for input_node in input_nodes:
-            assert isinstance(self.dag.nodes[input_node]['op'], Input)
-
-        # check all "sink" nodes to the DAG are Output operations
-        output_nodes = [node for node, out_degree in self.dag.out_degree() if out_degree == 0]
-        for output_node in output_nodes:
-            assert isinstance(self.dag.nodes[output_node]['op'], Output)
-
     def collect_parameters(self):
         # TODO: actually I think this might be more of a compiler task. Figure out how to implement this
         raise NotImplementedError('')
 
-    def sequence(self):
+    def to_openqasm(self):
         """
-        Returns the sequence of operations composing this circuit
+        Creates the openQASM script equivalent to the circuit (if possible--some Operations are not properly supported).
 
-        :return: the operations which compose this circuit, in the order they should be applied
-        :rtype: list (of OperationBase subclass objects)
+        :return: the openQASM script equivalent to our circuit (on a logical level)
+        :rtype: str
         """
-        return [self.dag.nodes[node]['op'] for node in nx.topological_sort(self.dag)]
+        header_info = oq_lib.openqasm_header() + '\n' + '\n'.join(self.openqasm_imports.keys()) + '\n' \
+            + '\n'.join(self.openqasm_defs.keys())
 
-    def draw_dag(self, show=True, fig=None, ax=None):
-        """
-        Draws the circuit as a DAG
+        openqasm_str = [header_info, oq_lib.register_initialization_string(self.emitter_registers,
+                                                                           self.photonic_registers,
+                                                                           self.c_registers) + '\n']
 
-        :param show: if True, the DAG is displayed (shown). If False, the DAG is drawn but not displayed
-        :type show: bool
-        :param fig: fig on which to draw the DAG (optional)
-        :type fig: None or matplotlib.pyplot.figure
-        :param ax: ax on which to draw the DAG (optional)
-        :type ax: None or matplotlib.pyplot.axes
-        :return: fig, ax on which the DAG was drawn
-        :rtype: matplotlib.pyplot.figure, matplotlib.pyplot.axes
-        """
-        pos = dag_topology_pos(self.dag, method="topology")
+        for op in self.sequence():
+            oq_info = op.openqasm_info()
+            gate_application = oq_info.use_gate(op.q_registers, op.q_registers_type, op.c_registers,
+                                                register_indexing=True)
+            if gate_application != "":
+                openqasm_str.append(gate_application)
 
-        if ax is None or fig is None:
-            fig, ax = plt.subplots()
-        nx.draw(self.dag, pos=pos, ax=ax, with_labels=True)
-        if show:
-            plt.show()
-        return fig, ax
-
-    def draw_circuit(self, show=True, ax=None):
-        """
-        Draw conventional circuit representation
-
-        :param show: if True, the circuit is displayed (shown). If False, the circuit is drawn but not displayed
-        :type show: bool
-        :param ax: ax on which to draw the DAG (optional)
-        :type ax: None or matplotlib.pyplot.axes
-        :return: fig, ax on which the circuit was drawn
-        :rtype: matplotlib.pyplot.figure, matplotlib.pyplot.axes
-        """
-        return draw_openqasm(self.to_openqasm(), show=show, ax=ax)
+        return '\n'.join(openqasm_str)
 
     def _add_register(self, size, is_quantum):
         """
@@ -414,7 +808,7 @@ class CircuitDAG(CircuitBase):
             raise ValueError(f'{reg_description} register size must be at least one')
 
         if is_quantum:
-            self._add_reg_if_absent((len(self.q_registers),), tuple(), size=size)
+            self._add_reg_if_absent((len(self.emitter_registers),), tuple(), size=size)
         else:
             self._add_reg_if_absent(tuple(), (len(self.c_registers),), size=size)
         return size
@@ -432,7 +826,7 @@ class CircuitDAG(CircuitBase):
         :return: the function returns nothing
         :rtype: None
         """
-        old_size = self.q_registers[register] if is_quantum else self.c_registers[register]
+        old_size = self.emitter_registers[register] if is_quantum else self.c_registers[register]
         if new_size <= old_size:
             raise ValueError(f"New register size {new_size} is not greater than the current size {old_size}")
 
@@ -460,7 +854,7 @@ class CircuitDAG(CircuitBase):
         # add registers as needed/expands the size of registers
         def __update_registers(reg, is_quantum):
             if is_quantum:
-                curr_register = self.q_registers
+                curr_register = self.emitter_registers
             else:
                 curr_register = self.c_registers
 
@@ -468,7 +862,7 @@ class CircuitDAG(CircuitBase):
             reg_only.sort()  # sort
             for a in reg_only:
                 if a > len(curr_register):
-                    raise ValueError(f"Register numbering must be continuous. Quantum register {a} cannot be added."
+                    raise ValueError(f"Register numbering must be continuous. Register {a} cannot be added."
                                      f"Next register that can be added is {len(curr_register)}")
                 if a == len(curr_register):
                     curr_register.append(size)
@@ -482,7 +876,7 @@ class CircuitDAG(CircuitBase):
         # The number of qudits/bits can also be increased dynamically, by passing a (reg, qubit) pair acting on said reg
         def __update_register_sizes(reg, is_quantum):
             """ Verifies that there are no skip in qubit numbers, and that register sizes are properly incremented"""
-            curr_reg = self.q_registers if is_quantum else self.c_registers
+            curr_reg = self.emitter_registers if is_quantum else self.c_registers
             for r in reg:
 
                 if isinstance(r, int):
@@ -502,7 +896,7 @@ class CircuitDAG(CircuitBase):
             # TODO: consider whether this is worth optimizing
             if is_quantum:
                 b = 'q'
-                curr_reg = self.q_registers
+                curr_reg = self.emitter_registers
             else:
                 b = 'c'
                 curr_reg = self.c_registers
@@ -553,9 +947,10 @@ class CircuitDAG(CircuitBase):
         self.dag.remove_edges_from(output_edges)  # remove the edges that need to be removed
 
         # add new edges which connect from the preceding node to the operation node
-        for reg_index, node in zip([f'q{q[0]}-{q[1]}' for q in q_reg_bit] +
-                                   [f'c{c[0]}-{c[1]}' for c in c_reg_bit], preceding_nodes):
-            self.dag.add_edge(node, new_id, bit=reg_index)
+        for reg_type, reg_bit, node in zip(['q'] * len(q_reg_bit) + ['c'] * len(c_reg_bit),
+                                           [q for q in q_reg_bit] + [c for c in c_reg_bit],
+                                           preceding_nodes):
+            self.dag.add_edge(node, new_id, reg_type=reg_type, reg=reg_bit[0], bit=reg_bit[1])
 
         # add new edges which connects the operation node to the output nodes
         for output in relevant_outputs:
@@ -565,14 +960,6 @@ class CircuitDAG(CircuitBase):
             reg = int(reg_bit_str[0])
             bit = int(reg_bit_str[2])
             self.dag.add_edge(new_id, output, reg_type=reg_type, reg=reg, bit=bit)
-
-    def _unique_node_id(self):
-        """
-        Internally used to provide a unique ID to each node. Note that this assumes a single thread assigning IDs
-        :return: a new, unique node ID
-        """
-        self._node_id += 1
-        return self._node_id
 
     def _reg_bit_list(self, q_reg, c_reg):
         """
@@ -601,9 +988,9 @@ class CircuitDAG(CircuitBase):
         for r in q_reg:
             if isinstance(r, int):
                 if max_length != 1:
-                    assert max_length == self.q_registers[r], f'All register lengths must match!'
+                    assert max_length == self.emitter_registers[r], f'All register lengths must match!'
                 else:
-                    max_length = self.q_registers[r]
+                    max_length = self.emitter_registers[r]
         for r in c_reg:
             if isinstance(r, int):
                 if max_length != 1:

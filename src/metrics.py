@@ -6,6 +6,7 @@ from abc import ABC, abstractmethod
 import numpy as np
 
 from benchmarks.circuits import bell_state_circuit
+from src.backends.density_matrix.functions import fidelity, fidelity_pure
 
 
 class MetricBase(ABC):
@@ -47,20 +48,20 @@ class MetricBase(ABC):
         self._inc += 1
 
 
-class MetricFidelity(MetricBase):
-    def __init__(self, ideal_state, log_steps=1, *args, **kwargs):
+class Infidelity(MetricBase):
+    def __init__(self, target, log_steps=1, *args, **kwargs):
         """
         Creates a Fidelity Metric object (which computes fidelity with respect to the ideal_state
 
-        :param ideal_state: the ideal state against which we compute fidelity
-        :type ideal_state: QuantumState
+        :param target: the ideal state against which we compute fidelity
+        :type target: QuantumState
         :param log_steps: the metric values are computed at every log_steps optimization step
         :type log_steps: int
         :return: the function returns nothing
         :rtype: None
         """
         super().__init__(log_steps=log_steps, *args, **kwargs)
-        self.ideal_state = ideal_state
+        self.target = target
         self.differentiable = False
 
     def evaluate(self, state, circuit):
@@ -76,13 +77,14 @@ class MetricFidelity(MetricBase):
         :rtype: float
         """
         # TODO: replace by actual fidelity check
-        val = np.random.random()
+        #fid = fidelity(self.target, state)
+        fid = fidelity_pure(self.target, state)
         self.increment()
 
         if self._inc % self.log_steps == 0:
-            self.log.append(val)
+            self.log.append(fid)
 
-        return val
+        return 1-fid
 
 
 class MetricCircuitDepth(MetricBase):
@@ -135,7 +137,7 @@ class Metrics(object):
     Wraps around one or more metric functions, evaluating each and logging the values
     """
     _all = {  # metrics that can be used, which can be specified by the dictionary keys or as a class instance
-        "fidelity": MetricFidelity,
+        "fidelity": Infidelity,
         "circuit-depth": MetricCircuitDepth,
     }
 
@@ -192,13 +194,13 @@ if __name__ == "__main__":
     """ Metric usage example """
     # set how often to log the metric evaluations
     MetricBase.log_steps = 3
-    MetricFidelity.log_steps = 1
+    Infidelity.log_steps = 1
 
     _, ideal_state = bell_state_circuit()
 
     metrics = Metrics([
         MetricCircuitDepth(),
-        MetricFidelity(ideal_state)
+        Infidelity(ideal_state)
     ])
 
     for _ in range(10):

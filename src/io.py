@@ -8,8 +8,6 @@ import string
 import pandas as pd
 import random
 
-# TODO: write uuid option
-
 
 def current_time():
     """
@@ -61,7 +59,7 @@ class IO:
 
     @classmethod
     def new_directory(cls, path=None, folder="",
-                      include_date=False, include_id=False, verbose=True):
+                      include_date=False, include_time=False, include_id=False, verbose=True):
         """
 
         :param path: The parent folder.
@@ -70,6 +68,8 @@ class IO:
         :type folder: str
         :param include_date: If True, add the date to the front of the path. Otherwise, do not add the date
         :type include_date: bool
+        :param include_time: If True, add the time to the front of the path. Otherwise, do not add the time
+        :type include_time: bool
         :param include_id: If True, add a random string of characters to the end of the path. Otherwise, do not
         :type include_id: bool
         :param verbose: If True, will print out the path of each saved/loaded file.
@@ -84,16 +84,24 @@ class IO:
             path = pathlib.Path(path)
 
         date = datetime.date.today().isoformat()
+        time = datetime.datetime.now().strftime("%H-%M-%S")
         if not folder:  # if empty string
             warnings.warn("No folder entered. Saving to a folder with a unique identifier")
             include_data, include_id, verbose = True, True, True
 
+        # build the full folder name with date, time, and uuid, if selected
+        _str = ""
         if include_date:
-            folder = date + " " + folder
-        if include_id:
-            folder = folder + " - " + "".join(random.choice(string.hexdigits) for _ in range(4))
+            _str = _str + date
+        if include_time:
+            _str = _str + " " + time
 
-        path = path.joinpath(folder)
+        _str = _str + " " + folder
+
+        if include_id:
+            _str = _str + " - " + "".join(random.choice(string.hexdigits) for _ in range(4))
+
+        path = path.joinpath(_str)
         return cls(path=path, verbose=verbose)
 
     def save_json(self, variable, filename):
@@ -128,6 +136,38 @@ class IO:
             print(f"{current_time()} | Loaded from {full_path} successfully.")
         return file
 
+    def save_txt(self, variable, filename):
+        """
+        Save serialized python object into a text format, at filename
+
+        :param variable: the object to save
+        :type variable: serialized object
+        :param filename: name of the file to which variable should be saved
+        :type filename: str
+        :return: the function returns nothing
+        :rtype: None
+        """
+        full_path = self.path.joinpath(filename)
+        os.makedirs(full_path.parent, exist_ok=True)
+        self._save_txt(variable, full_path)
+        if self.verbose:
+            print(f"{current_time()} | Saved to {full_path} successfully.")
+
+    def load_txt(self, filename):
+        """
+        Load serialized python object from text file
+
+        :param filename: name of the file from which we are loading the object
+        :type filename: str
+        :return: the loaded object data
+        :rtype: may vary
+        """
+        full_path = self.path.joinpath(filename)
+        file = self._load_txt(full_path)
+        if self.verbose:
+            print(f"{current_time()} | Loaded from {full_path} successfully.")
+        return file
+
     def save_dataframe(self, df, filename):
         """
         Save a panda dataframe object to csv
@@ -158,14 +198,6 @@ class IO:
         if self.verbose:
             print(f"{current_time()} | Loaded from {full_path} successfully.")
         return df
-
-    def load_timetags(self, filename):
-        # TODO: docstring (am not 100% sure what the use case of this function is)
-        full_path = self.path.joinpath(filename)
-        data = np.loadtxt(str(full_path),  delimiter="\t")
-        if self.verbose:
-            print(f"{current_time()} | Loaded from {full_path} successfully.")
-        return data
 
     def save_figure(self, fig, filename):
         """
@@ -234,3 +266,21 @@ class IO:
         with open(path) as json_file:
             data = json.load(json_file)
         return data
+
+    @staticmethod
+    def _save_txt(variable, path):
+        """
+        Helper method for saving to text files
+        """
+        with open(path, 'w') as txt_file:
+            txt_file.write(variable)
+
+    @staticmethod
+    def _load_txt(path):
+        """
+        Helper method for loading from text files
+        """
+        # with open(path) as json_file:
+        #     data = json.load(json_file)
+        # return data
+        raise NotImplementedError("Loading text files not implemented")

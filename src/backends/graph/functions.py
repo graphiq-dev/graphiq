@@ -13,6 +13,7 @@ def convert_data_to_graph(graph_data, root_id):
     :type root_id: int
     :param graph_data: data for the graph
     :type graph_data: frozenset OR int OR networkx.Graph OR iterable of data pairs
+    :raises ValueError: if graph_data is not a supported data type
     :return: root node (the actual QuNode, not the id), node dictionary (keys = node ids, value = QuNode objects), graph (graph constructed from data)
     :rtype: QuNode, dict, networkx.Graph
     """
@@ -102,7 +103,7 @@ def convert_data_to_graph(graph_data, root_id):
 
 
 class QuNode:
-    """"
+    """
     A class that represents a node of qubit(s). Only simple redundancy encoding is allowed.
     No other QECC is allowed.
     """
@@ -114,7 +115,7 @@ class QuNode:
                        id for each qubit of the redundantly encoded QuNode
         :type id_set: frozenset OR int
         :raises ValueError: if the wrong datatype is passed in as id_set
-        :return: function returns nothing
+        :return: nothing
         :rtype: None
         """
         if isinstance(id_set, frozenset):
@@ -173,7 +174,7 @@ class QuNode:
         Remove the first qubit from the redundancy encoding.
         It does nothing if the node is not redundantly encoded.
 
-        :return: True if an qubit is removed, False otherwise
+        :return: True if a qubit is removed, False otherwise
         :rtype: bool
         """
         if len(self.id) > 1:

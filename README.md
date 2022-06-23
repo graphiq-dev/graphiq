@@ -8,9 +8,9 @@ This is a collaboration between Ki3 and QBT through US Air Force project.
 Please begin by reading through `examples/implementer_startup.ipynb`.
 This will introduce the most important classes in the software.
 
-## Coding Style Guidelines
+## Contributing
 
-Please check PEP8Guidelines.py for details.
+Please use the [PEP8 style](https://peps.python.org/pep-0008/) for code-style consistency.
 
 
 ## Automatic Documentation with Sphinx

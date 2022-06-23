@@ -2,33 +2,65 @@
 Example of using a solver to discover circuits to generate a target state
 """
 import matplotlib.pyplot as plt
+import time
 
-import src.backends.density_matrix.compiler
-from src import solvers, metrics, circuit, ops
+from src.backends.density_matrix.compiler import DensityMatrixCompiler
+from src.solvers.rule_based_random_solver import RuleBasedRandomSearchSolver
+from src.metrics import Infidelity
+from src.circuit import CircuitDAG
+import src.backends.density_matrix.functions as dmf
+
+from src.visualizers.density_matrix import density_matrix_bars
 from benchmarks.circuits import bell_state_circuit
 
+
 if __name__ == "__main__":
-    # start by defining an initial circuit
-    circuit = circuit.CircuitDAG(2, 0)
-    circuit.add(ops.Hadamard(register=0))
-    circuit.add(ops.CNOT(control=0, target=1))
-    circuit.draw_dag()
+    # %% here we have access
+    RuleBasedRandomSearchSolver.n_stop = 40
+    RuleBasedRandomSearchSolver.n_pop = 150
+    RuleBasedRandomSearchSolver.n_hof = 10
+    RuleBasedRandomSearchSolver.tournament_k = 10
 
-    # we then need to select the backend to use (this could be hidden somewhere and not passed explicitly, if needed)
-    compiler = src.backends.density_matrix.compiler.DensityMatrixCompiler()
+    # %% comment/uncomment for reproducibility
+    # RuleBasedRandomSearchSolver.seed(1)
 
-    # we pass one metric to use as the cost function. we can also pass more to be evaluated but not used as the cost
-    _, ideal_state = bell_state_circuit()
-    metric = metrics.MetricFidelity(ideal_state)
+    # %% select which state we want to target
+    from benchmarks.circuits import *
+    circuit_ideal, state_ideal = linear_cluster_3qubit_circuit()
 
-    # define the solver (all methods are encapsulated in the class definition)
-    solver = solvers.RandomSearchSolver(target=None, metric=metric, compiler=compiler, circuit=circuit)
+    # %% construct all of our important objects
+    target = state_ideal['dm']
+    compiler = DensityMatrixCompiler()
+    metric = Infidelity(target=target)
 
-    # call .solve to implement the solver algorithm
+    n_photon = 3
+    n_emitter = 1
+    solver = RuleBasedRandomSearchSolver(target=target, metric=metric, compiler=compiler,
+                                         n_photon=n_photon, n_emitter=n_emitter)
+
+    # %% call the solver.solve() function to implement the random search algorithm
+    t0 = time.time()
     solver.solve()
+    t1 = time.time()
 
-    # we now have access to the metrics (don't need to pass anything back, as we are logging it in the Metric instance)
-    print(metric.log)
+    # %% print/plot the results
+    print(solver.hof)
+    print(f"Total time {t1 - t0}")
 
-    plt.plot(metric.log)
+    circuit = solver.hof[0][1]
+    state = compiler.compile(circuit)  # this will pass out a density matrix object
+
+    state_data = dmf.partial_trace(state.data,
+                                   keep=list(range(n_photon)),
+                                   dims=(n_photon + n_emitter) * [2])
+
+    # extract the best performing circuit
+    fig, axs = density_matrix_bars(target)
+    fig.suptitle("Target density matrix")
     plt.show()
+
+    fig, axs = density_matrix_bars(state_data)
+    fig.suptitle("Simulated density matrix")
+    plt.show()
+
+    circuit.draw_circuit()

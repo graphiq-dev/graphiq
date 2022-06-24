@@ -49,6 +49,9 @@ class RuleBasedRandomSearchSolver(RandomSearchSolver):
 
         super().__init__(target, metric, compiler, circuit, *args, **kwargs)
 
+        # update class variables, e.g., n_stop, h_pop, by passing in kwargs
+        self.__dict__.update(kwargs)
+
         self.n_emitter = n_emitter
         self.n_photon = n_photon
 

@@ -461,7 +461,7 @@ class CircuitDAG(CircuitBase):
         :type edges: list[tuple]
         :raises UserWarning: if no openqasm definitions exists for operation
         :raises AssertionError: if the number of edges disagrees with the number of q_registers
-        :return: this function returns nothing
+        :return: nothing
         :rtype: None
         """
         self._open_qasm_update(operation)
@@ -515,7 +515,8 @@ class CircuitDAG(CircuitBase):
 
         :param first_edge: the edge under consideration
         :type first_edge: tuple
-        :return: set(tuple)
+        :return: a set of incompatible edges
+        :rtype: set(tuple)
         """
 
         # all nodes that have a path to the node first_edge[0]
@@ -660,7 +661,7 @@ class CircuitDAG(CircuitBase):
         """
         remove an operation from the circuit
 
-        :param node:
+        :param node: the node to be removed
         :type node: int
         :return: nothing
         :rtype: None

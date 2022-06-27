@@ -309,11 +309,10 @@ class RuleBasedRandomSearchSolver(RandomSearchSolver):
 
         :param circuit: a quantum circuit
         :type circuit: CircuitDAG
-        :param fixed_node: a list of nodes in CircuitDAG that should not be modified
-        :type fixed_node: list[int]
         :param node: a specified node (by node_id) to be removed
         :type node: int
         :return: nothing
+        :rtype: None
         """
         if node is None:
             nodes = circuit.get_node_exclude_labels(['Fixed', 'Input', 'Output'])
@@ -332,7 +331,8 @@ class RuleBasedRandomSearchSolver(RandomSearchSolver):
 
         :param circuit: a quantum circuit
         :type circuit: CircuitDAG
-        return: nothing
+        :return: nothing
+        :rtype: None
         """
 
         possible_edge_pairs = self._select_possible_measurement_position(circuit)
@@ -382,8 +382,8 @@ class RuleBasedRandomSearchSolver(RandomSearchSolver):
 
         :param circuit: a quantum circuit
         :type circuit: CircuitDAG
-        :return: return a list of edge pairs
-        :rtype:list[tuple]
+        :return: a list of edge pairs
+        :rtype: list[tuple]
         """
         edge_pair = []
         e_edges = [edge for edge in circuit.edge_dict['e'] if

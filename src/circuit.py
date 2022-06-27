@@ -4,7 +4,7 @@ Once a compiler is defined, the resulting quantum state can be simulated.
 
 The Circuit class can be:
 
-1. manually constructed, with new operations added to the end of the circuit
+1. manually constructed, with new operations added to the end of the circuit or inserted at a specified location for CircuitDAG
 2. evaluated into a sequence of Operations, based on the topological ordering
         Purpose (example): use at compilation step, use for compatibility with other software (e.g. openQASM)
 3. visualized or saved using, for example, openQASM
@@ -51,6 +51,7 @@ class CircuitBase(ABC):
     Base class (interface) for circuit representation. This class describes the functions that each Circuit object
     should support. It also records register and openqasm data.
     """
+
     def __init__(self, openqasm_imports=None, openqasm_defs=None):
         """
         Construct an empty circuit
@@ -122,7 +123,7 @@ class CircuitBase(ABC):
         :rtype: str
         """
         header_info = oq_lib.openqasm_header() + '\n' + '\n'.join(self.openqasm_imports.keys()) + '\n' \
-            + '\n'.join(self.openqasm_defs.keys())
+                      + '\n'.join(self.openqasm_defs.keys())
 
         openqasm_str = [header_info, oq_lib.register_initialization_string(self.emitter_registers,
                                                                            self.photonic_registers,
@@ -408,6 +409,7 @@ class CircuitDAG(CircuitBase):
 
     Each connecting edge of the graph corresponds to a qudit or classical bit of the circuit
     """
+
     def __init__(self, n_emitter=0, n_photon=0, n_classical=0, openqasm_imports=None, openqasm_defs=None):
         """
         Construct a DAG circuit with n_emitter single-qubit emitter quantum registers, n_photon single-qubit photon
@@ -419,12 +421,14 @@ class CircuitDAG(CircuitBase):
         :type n_photon: int
         :param n_classical: the number of classical bits in the system
         :type n_classical: int
-        :return: this function does not return anything
+        :return: nothing
         :rtype: None
         """
         super().__init__(openqasm_imports=openqasm_imports, openqasm_defs=openqasm_defs)
         self.dag = nx.MultiDiGraph()
         self._node_id = 0
+        self.edge_dict = {}
+        self.node_dict = {'All': []}
         self._add_reg_if_absent(tuple(range(n_emitter)), tuple(range(n_photon)), tuple(range(n_classical)))
 
     def add(self, operation: OperationBase):
@@ -434,7 +438,7 @@ class CircuitDAG(CircuitBase):
         :param operation: Operation (gate and register) to add to the graph
         :type operation: OperationBase type (or a subclass of it)
         :raises UserWarning: if no openqasm definitions exists for operation
-        :return: this function returns nothing
+        :return: nothing
         :rtype: None
         """
         self._open_qasm_update(operation)
@@ -446,6 +450,222 @@ class CircuitDAG(CircuitBase):
                        if operation.q_registers_type[i] == 'p'])
         self._add_reg_if_absent(e_reg, p_reg, operation.c_registers)
         self._add(operation, e_reg, p_reg, operation.c_registers)
+
+    def insert_at(self, operation: OperationBase, edges):
+        """
+        Insert an operation among edges specified
+
+        :param operation: Operation (gate and register) to add to the graph
+        :type operation: OperationBase type (or a subclass of it)
+        :param edges: a list of edges relevant for this operation
+        :type edges: list[tuple]
+        :raises UserWarning: if no openqasm definitions exists for operation
+        :raises AssertionError: if the number of edges disagrees with the number of q_registers
+        :return: this function returns nothing
+        :rtype: None
+        """
+        self._open_qasm_update(operation)
+
+        # update registers (if the new operation is adding registers to the circuit)
+        e_reg = tuple([operation.q_registers[i] for i in range(len(operation.q_registers))
+                       if operation.q_registers_type[i] == 'e'])
+        p_reg = tuple([operation.q_registers[i] for i in range(len(operation.q_registers))
+                       if operation.q_registers_type[i] == 'p'])
+
+        self._add_reg_if_absent(e_reg, p_reg, operation.c_registers)
+        assert len(edges) == len(operation.q_registers)
+        self._insert_at(operation, edges)
+
+    def replace_op(self, node, new_operation: OperationBase):
+        """
+        Replaces an operation by a new one with the same set of registers it acts on.
+
+        :param node: the node where the new operation is placed
+        :type node: int
+        :param new_operation: the new operation
+        :type new_operation: Operationbase or its subclass
+        :raises AssertionError: if new_operation acts on different registers from the operation in the node
+        :return: nothing
+        :rtype: None
+        """
+
+        old_operation = self.dag.nodes[node]['op']
+        assert old_operation.q_registers == new_operation.q_registers
+        assert old_operation.q_registers_type == new_operation.q_registers_type
+        assert old_operation.c_registers == new_operation.c_registers
+
+        # remove entries related to old_operation
+        for label in old_operation.labels:
+            self._node_dict_remove(label, node)
+        self._node_dict_remove(type(old_operation).__name__, node)
+
+        # add entries related to new_operation
+
+        for label in new_operation.labels:
+            self._node_dict_append(label, node)
+        self._node_dict_append(type(new_operation).__name__, node)
+
+        # replace the operation in the node
+        self._open_qasm_update(new_operation)
+        self.dag.nodes[node]['op'] = new_operation
+
+    def find_incompatible_edges(self, first_edge):
+        """
+        Find all incompatible edges of first_edge for which one cannot add any two-qubit operation
+
+        :param first_edge: the edge under consideration
+        :type first_edge: tuple
+        :return: set(tuple)
+        """
+
+        # all nodes that have a path to the node first_edge[0]
+        ancestors = nx.ancestors(self.dag, first_edge[0])
+
+        # all nodes that are reachable from the node first_edge[1]
+        descendants = nx.descendants(self.dag, first_edge[1])
+
+        # all incoming edges of the node first_edge[0]
+        ancestor_edges = list(self.dag.in_edges(first_edge[0], keys=True))
+
+        for anc in ancestors:
+            ancestor_edges.extend(self.dag.edges(anc, keys=True))
+
+        # all outgoing edges of the node first_edge[1]
+        descendant_edges = list(self.dag.out_edges(first_edge[1], keys=True))
+
+        for des in descendants:
+            descendant_edges.extend(self.dag.edges(des, keys=True))
+
+        return set.union(set([first_edge]), set(ancestor_edges), set(descendant_edges))
+
+    def _add_node(self, node_id, operation: OperationBase):
+        """
+        Helper function for adding a node to the DAG representation
+
+        :param node_id: the node to be added
+        :type node_id: int
+        :param operation: the operation for the node
+        :type operation: OperationBase or subclass
+        :return: nothing
+        :rtype: None
+        """
+        self.dag.add_node(node_id, op=operation)
+
+        for attribute in operation.labels:
+            self._node_dict_append(attribute, node_id)
+        self._node_dict_append(type(operation).__name__, node_id)
+        self._node_dict_append('All', node_id)
+
+    def _remove_node(self, node):
+        """
+        Helper function for removing a node in the DAG representation
+
+        :param node: the node to be removed
+        :type node: int
+        :return: nothing
+        :rtype: None
+        """
+        in_edges = list(self.dag.in_edges(node, keys=True))
+        out_edges = list(self.dag.out_edges(node, keys=True))
+
+        for in_edge in in_edges:
+            for out_edge in out_edges:
+                if in_edge[2] == out_edge[2]:  # i.e. if the keys are the same
+                    reg = self.dag.edges[in_edge]['reg']
+                    reg_type = self.dag.edges[in_edge]['reg_type']
+                    label = out_edge[2]
+                    self._add_edge(in_edge[0], out_edge[1], label, reg_type=reg_type, reg=reg)
+
+            self._remove_edge(in_edge)
+
+        for out_edge in out_edges:
+            self._remove_edge(out_edge)
+
+        # remove all entries relevant for this node in node_dict
+        operation = self.dag.nodes[node]['op']
+        for attribute in operation.labels:
+            self._node_dict_remove(attribute, node)
+
+        self._node_dict_remove(type(operation).__name__, node)
+        self._node_dict_remove('All', node)
+        self.dag.remove_node(node)
+
+    def _add_edge(self, in_edge, out_edge, label, reg_type, reg):
+        """
+        Helper function for adding an edge in the DAG representation
+
+        :param in_edge: the incoming node
+        :type in_edge: int or str
+        :param out_edge: the outgoing node
+        :type out_edge: int or str
+        :param label: the key for the edge
+        :type label: int or str
+        :param reg_type: the register type of the node
+        :type reg_type: str
+        :param reg: the register where the node acts on
+        :type reg: int or str
+        :return: nothing
+        :rtype: None
+        """
+        self.dag.add_edge(in_edge, out_edge, key=label, reg_type=reg_type, reg=reg)
+        self._edge_dict_append(reg_type, (in_edge, out_edge, label))
+
+    def _remove_edge(self, edge_to_remove):
+        """
+        Helper function for removing an edge in the DAG representation
+
+        :param edge_to_remove: the edge to be removed
+        :type edge_to_remove: tuple
+        :return: nothing
+        :rtype: None
+        """
+
+        reg_type = self.dag.edges[edge_to_remove]['reg_type']
+        if edge_to_remove not in self.edge_dict[reg_type]:
+            warnings.warn('The edge to be removed does not exist.')
+            return
+        self._edge_dict_remove(reg_type, edge_to_remove)
+        self.dag.remove_edges_from([edge_to_remove])
+
+    def get_node_by_labels(self, labels):
+        """
+        Get all nodes that satisfy all labels
+
+        :param labels: descriptions of a set of nodes
+        :type labels: list[str]
+        :return: a list of node ids for nodes that satisfy all labels
+        :rtype: list[int]
+        """
+        remaining_nodes = set(self.node_dict['All'])
+        for label in labels:
+            remaining_nodes = remaining_nodes.intersection(set(self.node_dict[label]))
+        return list(remaining_nodes)
+
+    def get_node_exclude_labels(self, labels):
+        """
+        Get all nodes that do not satisfy any label in labels
+
+        :param labels: descriptions of a set of nodes
+        :type labels: list[str]
+        :return: a list of node ids for nodes that do not satisfy any label in labels
+        :rtype: list[int]
+        """
+        all_nodes = set(self.node_dict['All'])
+        exclusion_nodes = set()
+        for label in labels:
+            exclusion_nodes = exclusion_nodes.union(set(self.node_dict[label]))
+        return list(all_nodes - exclusion_nodes)
+
+    def remove_op(self, node):
+        """
+        remove an operation from the circuit
+
+        :param node:
+        :type node: int
+        :return: nothing
+        :rtype: None
+        """
+        self._remove_node(node)
 
     def validate(self):
         """
@@ -508,6 +728,59 @@ class CircuitDAG(CircuitBase):
                 shortest_path = nx.shortest_path_length(self.dag, source=input, target=output)
         return 0
 
+    def _node_dict_append(self, key, value):
+        """
+        Helper function to add an entry to the node_dict
+
+        :param key: key for the node_dict
+        :param value: value to be appended to the list corresponding to the key
+        :return: nothing
+        """
+        if key not in self.node_dict.keys():
+            self.node_dict[key] = [value]
+        else:
+            self.node_dict[key].append(value)
+
+    def _node_dict_remove(self, key, value):
+        """
+        Helper function to remove an entry in the list corresponding to the key in node_dict
+
+        :param key:
+        :param value:
+        :return: nothing
+        """
+        if key in self.node_dict.keys():
+            try:
+                self.node_dict[key].remove(value)
+            except ValueError:
+                pass
+
+    def _edge_dict_append(self, key, value):
+        """
+        Helper function to add an entry to the edge_dict
+
+        :param key:
+        :param value:
+        :return:
+        """
+        if key not in self.edge_dict.keys():
+            self.edge_dict[key] = [value]
+        else:
+            self.edge_dict[key].append(value)
+
+    def _edge_dict_remove(self, key, value):
+        """
+         Helper function to remove an entry in the list corresponding to the key in edge_dict
+
+        :param key:
+        :param value:
+        :return: nothing
+        """
+        if key in self.edge_dict.keys():
+            try:
+                self.edge_dict[key].remove(value)
+            except ValueError:
+                pass
 
     def draw_dag(self, show=True, fig=None, ax=None):
         """
@@ -596,7 +869,7 @@ class CircuitDAG(CircuitBase):
         if reg_type == 'e':
             self._add_reg_if_absent((len(self.emitter_registers),), tuple(), tuple())
         elif reg_type == 'p':
-            self._add_reg_if_absent(tuple(), (len(self.photonic_registers), ), tuple())
+            self._add_reg_if_absent(tuple(), (len(self.photonic_registers),), tuple())
         elif reg_type == 'c':
             self._add_reg_if_absent(tuple(), tuple(), (len(self.c_registers),))
         else:
@@ -623,6 +896,7 @@ class CircuitDAG(CircuitBase):
         :return: function returns nothing
         :rtype: None
         """
+
         # add registers as needed
 
         def _check_and_add_register(test_reg, circuit_reg, reg_type: str):
@@ -643,20 +917,28 @@ class CircuitDAG(CircuitBase):
         for e in e_reg:
             if f'e{e}_in' not in self.dag.nodes:
                 self.dag.add_node(f'e{e}_in', op=Input(register=e, reg_type='e'), reg=e)
+                self._node_dict_append('Input', f'e{e}_in')
                 self.dag.add_node(f'e{e}_out', op=Output(register=e, reg_type='e'), reg=e)
+                self._node_dict_append('Output', f'e{e}_out')
                 self.dag.add_edge(f'e{e}_in', f'e{e}_out', key=f'e{e}', reg=e, reg_type='e')
+                self._edge_dict_append('e', tuple(self.dag.in_edges(nbunch=f'e{e}_out', keys=True))[0])
 
         for p in p_reg:
             if f'p{p}_in' not in self.dag.nodes:
                 self.dag.add_node(f'p{p}_in', op=Input(register=p, reg_type='p'), reg=p)
+                self._node_dict_append('Input', f'p{p}_in')
                 self.dag.add_node(f'p{p}_out', op=Output(register=p, reg_type='p'), reg=p)
+                self._node_dict_append('Output', f'p{p}_out')
                 self.dag.add_edge(f'p{p}_in', f'p{p}_out', key=f'p{p}', reg=p, reg_type='p')
-
+                self._edge_dict_append('p', tuple(self.dag.in_edges(nbunch=f'p{p}_out', keys=True))[0])
         for c in c_reg:
             if f'c{c}_in' not in self.dag.nodes:
                 self.dag.add_node(f'c{c}_in', op=Input(register=c, reg_type='c'), reg=c)
+                self._node_dict_append('Input', f'c{c}_in')
                 self.dag.add_node(f'c{c}_out', op=Output(register=c, reg_type='c'), reg=c)
+                self._node_dict_append('Output', f'c{c}_out')
                 self.dag.add_edge(f'c{c}_in', f'c{c}_out', key=f'c{c}', reg=c, reg_type='c')
+                self._edge_dict_append('c', tuple(self.dag.in_edges(nbunch=f'c{c}_out', keys=True))[0])
 
     def _add(self, operation: OperationBase, e_reg, p_reg, c_reg):
         """
@@ -671,12 +953,12 @@ class CircuitDAG(CircuitBase):
         :type p_reg: tuple (of ints)
         :param c_reg: cbit indexing (creg0, creg1, ...) on which the operation must be applied
         :type c_reg: tuple (of ints)
-        :return: the function returns nothing
+        :return: nothing
         :rtype: None
         """
         new_id = self._unique_node_id()
 
-        self.dag.add_node(new_id, op=operation)
+        self._add_node(new_id, operation)
 
         # get all edges that will need to be removed (i.e. the edges on which the Operation is being added)
         relevant_outputs = [f'e{e}_out' for e in e_reg] + \
@@ -685,14 +967,45 @@ class CircuitDAG(CircuitBase):
 
         for output in relevant_outputs:
             edges_to_remove = list(self.dag.in_edges(nbunch=output, keys=True, data=False))
+
             for edge in edges_to_remove:
                 # Add edge from preceding node to the new operation node
-                self.dag.add_edge(edge[0], new_id, key=edge[2], reg=self.dag.edges[edge]['reg'],
-                                  reg_type=self.dag.edges[edge]['reg_type'])
+                reg_type = self.dag.edges[edge]['reg_type']
+                self._add_edge(edge[0], new_id, edge[2], reg=self.dag.edges[edge]['reg'],
+                               reg_type=reg_type)
+
                 # Add edge from the new operation node to the final node
-                self.dag.add_edge(new_id, edge[1], key=edge[2], reg=self.dag.edges[edge]['reg'],
-                                  reg_type=self.dag.edges[edge]['reg_type'])
-                self.dag.remove_edge(edge[0], edge[1], key=edge[2])  # remove the unecessary edges
+                self._add_edge(new_id, edge[1], edge[2], reg=self.dag.edges[edge]['reg'],
+                               reg_type=reg_type)
+
+                self._remove_edge(edge)  # remove the unnecessary edges
+
+    def _insert_at(self, operation: OperationBase, reg_edges):
+        """
+        Add an operation to the circuit at a specified position
+        This function assumes that all registers used by operation are already built
+
+        :param operation: Operation (gate and register) to add to the graph
+        :type operation: OperationBase (or a subclass thereof)
+        :param reg_edges: a list of edges relevant for the operation
+        :type reg_edges: list[tuple]
+        :return: nothing
+        :rtype: None
+        """
+
+        self._open_qasm_update(operation)
+        new_id = self._unique_node_id()
+
+        self._add_node(new_id, operation)
+
+        for reg_edge in reg_edges:
+            reg = self.dag.edges[reg_edge]['reg']
+            reg_type = self.dag.edges[reg_edge]['reg_type']
+            label = reg_edge[2]
+
+            self._add_edge(reg_edge[0], new_id, label, reg_type=reg_type, reg=reg)
+            self._add_edge(new_id, reg_edge[1], label, reg_type=reg_type, reg=reg)
+            self._remove_edge(reg_edge)  # remove the edge
 
     def _unique_node_id(self):
         """
@@ -721,6 +1034,7 @@ class RegisterCircuitDAG(CircuitDAG):
     TODO: refactor DiGraph to MultiDiGraph
     TODO: if we keep this, refactor to use methods from CircuitDAG where possible
     """
+
     def __init__(self, n_emitter=0, n_classical=0, openqasm_imports=None, openqasm_defs=None):
         """
         Construct a DAG circuit with n_quantum single-qubit quantum registers,
@@ -777,7 +1091,7 @@ class RegisterCircuitDAG(CircuitDAG):
         :rtype: str
         """
         header_info = oq_lib.openqasm_header() + '\n' + '\n'.join(self.openqasm_imports.keys()) + '\n' \
-            + '\n'.join(self.openqasm_defs.keys())
+                      + '\n'.join(self.openqasm_defs.keys())
 
         openqasm_str = [header_info, oq_lib.register_initialization_string(self.emitter_registers,
                                                                            self.photonic_registers,
@@ -833,7 +1147,7 @@ class RegisterCircuitDAG(CircuitDAG):
         if is_quantum:
             self._add_reg_if_absent((register,), tuple(), size=new_size)
         else:
-            self._add_reg_if_absent(tuple(), (register, ), size=new_size)
+            self._add_reg_if_absent(tuple(), (register,), size=new_size)
 
     def _add_reg_if_absent(self, q_reg, c_reg, size=1):
         """
@@ -851,6 +1165,7 @@ class RegisterCircuitDAG(CircuitDAG):
         :return: the function returns nothing
         :rtype: None
         """
+
         # add registers as needed/expands the size of registers
         def __update_registers(reg, is_quantum):
             if is_quantum:
@@ -914,6 +1229,7 @@ class RegisterCircuitDAG(CircuitDAG):
                             self.dag.add_node(f'{bit_id}_in', op=Input(register=(a, i), reg_type=b), reg=a, bit=i)
                             self.dag.add_node(f'{bit_id}_out', op=Output(register=(a, i), reg_type=b), reg=a, bit=i)
                             self.dag.add_edge(f'{bit_id}_in', f'{bit_id}_out', reg_type=b, reg=a, bit=i)
+
         __update_graph(q_reg, True)
         __update_graph(c_reg, False)
 

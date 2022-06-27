@@ -35,11 +35,6 @@ class RuleBasedRandomSearchSolver(RandomSearchSolver):
     n_hof = 5
     tournament_k = 2  # tournament size for selection of the next population
 
-    fixed_ops = [  # ops that should never be removed/swapped
-        ops.Input,
-        ops.Output
-    ]
-
     single_qubit_ops = list(
         ops.single_qubit_cliffords()
     )
@@ -103,9 +98,8 @@ class RuleBasedRandomSearchSolver(RandomSearchSolver):
         for key in self.trans_probs.keys():
             self.trans_probs[key] *= 1 / total
 
-
     @staticmethod
-    def _initialization(emission_assignment, measurement_assignment):
+    def initialization(emission_assignment, measurement_assignment):
         """
         Initialize a quantum circuit with photon emission, emitter measurements
 
@@ -121,31 +115,36 @@ class RuleBasedRandomSearchSolver(RandomSearchSolver):
 
         for i in range(n_photon):
             # initialize all photon emission gates
-            circuit.add(ops.CNOT(control=emission_assignment[i], control_type='e', target=i, target_type='p'))
+            op = ops.CNOT(control=emission_assignment[i], control_type='e', target=i, target_type='p')
+            op.add_labels(['Emitter-Photonic', 'Fixed'])
+            circuit.add(op)
             # initialize all single-qubit Clifford gate for photonic qubits
-            circuit.add(ops.SingleQubitGateWrapper([ops.Identity, ops.Hadamard], register=i, reg_type='p'))
+            op = ops.SingleQubitGateWrapper([ops.Identity, ops.Hadamard], register=i, reg_type='p')
+            op.add_labels(['Photonic', 'Fixed'])
+            circuit.add(op)
 
         # initialize all emitter meausurement and reset operations
 
         for j in range(n_emitter):
-            circuit.add(
-                ops.MeasurementCNOTandReset(control=j, control_type='e', target=measurement_assignment[j],
-                                            target_type='p'))
+            op = ops.MeasurementCNOTandReset(control=j, control_type='e', target=measurement_assignment[j],
+                                             target_type='p')
+            op.add_labels(['Emitter-Photonic', 'Fixed'])
+            circuit.add(op)
         return circuit
 
-    def test_initialization(self):
+    def _test_initialization(self):
         # debugging only
         emission_assignment = self.get_emission_assignment(self.n_photon, self.n_emitter)
         measurement_assignment = self.get_measurement_assignment(self.n_photon, self.n_emitter)
-        circuit = self._initialization(emission_assignment, measurement_assignment)
+        circuit = self.initialization(emission_assignment, measurement_assignment)
         circuit.draw_dag()
         circuit.draw_circuit()
 
-    def test_more_measurements(self):
+    def _test_more_measurements(self):
         # debugging only
         emission_assignment = self.get_emission_assignment(self.n_photon, self.n_emitter)
         measurement_assignment = self.get_measurement_assignment(self.n_photon, self.n_emitter)
-        circuit = self._initialization(emission_assignment, measurement_assignment)
+        circuit = self.initialization(emission_assignment, measurement_assignment)
         self.add_measurement_cnot_and_reset(circuit)
         self.add_measurement_cnot_and_reset(circuit)
         circuit.draw_dag()
@@ -167,9 +166,7 @@ class RuleBasedRandomSearchSolver(RandomSearchSolver):
             emission_assignment = self.get_emission_assignment(self.n_photon, self.n_emitter)
             measurement_assignment = self.get_measurement_assignment(self.n_photon, self.n_emitter)
 
-            circuit = self._initialization(emission_assignment, measurement_assignment)
-
-            fixed_node = circuit.dag.nodes()
+            circuit = self.initialization(emission_assignment, measurement_assignment)
             population.append((np.inf, circuit))  # initialize all population members
 
         for i in range(self.n_stop):
@@ -177,20 +174,7 @@ class RuleBasedRandomSearchSolver(RandomSearchSolver):
                 transformation = np.random.choice(list(self.trans_probs.keys()), p=list(self.trans_probs.values()))
                 circuit = population[j][1]
 
-                if transformation == self.add_emitter_one_qubit_op:
-                    self.add_emitter_one_qubit_op(circuit, self.e_dist)
-
-                elif transformation == self.add_photon_one_qubit_op:
-                    self.add_photon_one_qubit_op(circuit, self.p_dist)
-
-                elif transformation == self.replace_photon_one_qubit_op:
-                    self.replace_photon_one_qubit_op(circuit, self.p_dist)
-
-                elif transformation == self.remove_op:
-                    self.remove_op(circuit, fixed_node)
-
-                else:
-                    transformation(circuit)
+                transformation(circuit)
 
                 circuit.validate()
 
@@ -210,20 +194,16 @@ class RuleBasedRandomSearchSolver(RandomSearchSolver):
 
             print(f"Iteration {i} | Best score: {self.hof[0][0]:.4f}")
 
-    def replace_photon_one_qubit_op(self, circuit, p_dist):
+    def replace_photon_one_qubit_op(self, circuit):
         """
         Replace one single-qubit Clifford gate applied on a photonic qubit to another one.
 
         :param circuit: a quantum circuit
         :type circuit: CircuitDAG
-        :param p_dist: probability distribution
-        :type p_dist: list[float] or list[double]
         :return: nothing
         """
+        nodes = circuit.get_node_by_labels(['SingleQubitGateWrapper', 'Photonic'])
 
-        nodes = [node for node in circuit.dag.nodes
-                 if type(circuit.dag.nodes[node]['op']) is ops.SingleQubitGateWrapper and
-                 list(circuit.dag.in_edges(nbunch=node, data=True))[0][2]['reg_type'] == 'p']
         if len(nodes) == 0:
             return
         ind = np.random.randint(len(nodes))
@@ -232,28 +212,27 @@ class RuleBasedRandomSearchSolver(RandomSearchSolver):
         old_op = circuit.dag.nodes[node]['op']
 
         reg = old_op.register
-        ind = np.random.choice(len(self.single_qubit_ops), p=p_dist)
+        ind = np.random.choice(len(self.single_qubit_ops), p=self.p_dist)
         op = self.single_qubit_ops[ind]
         gate = ops.SingleQubitGateWrapper(op, reg_type='p', register=reg)
+        gate.add_labels(['Photonic', 'Fixed'])
+
+        # circuit.replace_op(node, gate)
         circuit._open_qasm_update(gate)
-        # TODO: check that the gate is guaranteed to be in the original position
         circuit.dag.nodes[node]['op'] = gate
 
-    def add_photon_one_qubit_op(self, circuit, p_dist):
+    def add_photon_one_qubit_op(self, circuit):
         """
         Add a single-qubit Clifford gate to a photonic qubit
         Will be removed if replacing and initialization work.
 
         :param circuit: a quantum circuit
         :type circuit: CircuitDAG
-        :param p_dist: probability distribution
-        :type p_dist: list[float] or list[double]
         :return: function returns nothing
         :rtype: None
         """
         # make sure only selecting a photonic qubit after initialization and avoiding applying single-qubit Clifford gates twice
-        edges = [edge for edge in circuit.dag.edges if circuit.dag.edges[edge]['reg_type'] == 'p' and
-                 type(circuit.dag.nodes[edge[0]]['op']) is ops.CNOT and
+        edges = [edge for edge in circuit.edge_dict['p'] if type(circuit.dag.nodes[edge[0]]['op']) is ops.CNOT and
                  type(circuit.dag.nodes[edge[1]]['op']) is not ops.SingleQubitGateWrapper]
 
         if len(edges) == 0:
@@ -264,33 +243,24 @@ class RuleBasedRandomSearchSolver(RandomSearchSolver):
 
         reg = circuit.dag.edges[edge]['reg']
         label = edge[2]
-
-        new_id = circuit._unique_node_id()
-        new_edges = [(edge[0], new_id, label), (new_id, edge[1], label)]
-
-        ind = np.random.choice(len(self.single_qubit_ops), p=p_dist)
+        ind = np.random.choice(len(self.single_qubit_ops), p=self.p_dist)
         op = self.single_qubit_ops[ind]
         gate = ops.SingleQubitGateWrapper(op, reg_type='p', register=reg)
-        circuit._open_qasm_update(gate)
+        gate.add_labels('Photonic')
 
-        circuit.dag.add_node(new_id, op=gate)
-        circuit.dag.remove_edges_from([edge])  # remove the edge
+        circuit.insert_at(gate, [edge])
 
-        circuit.dag.add_edges_from(new_edges, reg_type='p', reg=reg)
-
-    def add_emitter_one_qubit_op(self, circuit, e_dist):
+    def add_emitter_one_qubit_op(self, circuit):
         """
         Randomly selects one valid edge on which to add a new single-qubit gate
 
         :param circuit: a quantum circuit
         :type circuit: CircuitDAG
-        :param e_dist: probability distribution
-        :type e_dist: list[float] or list[double]
         :return: nothing
         """
         # make sure only selecting emitter qubits and avoiding adding a gate after final measurement or
         # adding two single-qubit Clifford gates in a row
-        edges = [edge for edge in circuit.dag.edges if circuit.dag.edges[edge]['reg_type'] == 'e' and
+        edges = [edge for edge in circuit.edge_dict['e'] if
                  type(circuit.dag.nodes[edge[1]]['op']) is not ops.Output and
                  type(circuit.dag.nodes[edge[0]]['op']) is not ops.SingleQubitGateWrapper and
                  type(circuit.dag.nodes[edge[1]]['op']) is not ops.SingleQubitGateWrapper]
@@ -304,18 +274,11 @@ class RuleBasedRandomSearchSolver(RandomSearchSolver):
         reg = circuit.dag.edges[edge]['reg']
         label = edge[2]
 
-        new_id = circuit._unique_node_id()
-        new_edges = [(edge[0], new_id, label), (new_id, edge[1], label)]
-
-        ind = np.random.choice(len(self.single_qubit_ops), p=e_dist)
+        ind = np.random.choice(len(self.single_qubit_ops), p=self.e_dist)
         op = self.single_qubit_ops[ind]
         gate = ops.SingleQubitGateWrapper(op, reg_type='e', register=reg)
-        circuit._open_qasm_update(gate)
-
-        circuit.dag.add_node(new_id, op=gate)
-        circuit.dag.remove_edges_from([edge])  # remove the edge
-
-        circuit.dag.add_edges_from(new_edges, reg_type='e', reg=reg)
+        gate.add_labels('Emitter')
+        circuit.insert_at(gate, [edge])
 
     def add_emitter_cnot(self, circuit):
         """
@@ -335,22 +298,12 @@ class RuleBasedRandomSearchSolver(RandomSearchSolver):
         ind = np.random.randint(len(possible_edge_pairs))
         (edge0, edge1) = possible_edge_pairs[ind]
 
-        new_id = circuit._unique_node_id()
         gate = ops.CNOT(control=circuit.dag.edges[edge0]['reg'], control_type='e',
                         target=circuit.dag.edges[edge1]['reg'], target_type='e')
-        circuit._open_qasm_update(gate)
-        circuit.dag.add_node(new_id, op=gate)
+        gate.add_labels('Emitter-Emitter')
+        circuit.insert_at(gate, [edge0, edge1])
 
-        for edge in [edge0, edge1]:
-            reg = circuit.dag.edges[edge]['reg']
-            label = edge[2]
-            new_edges = [(edge[0], new_id, label), (new_id, edge[1], label)]
-
-            circuit.dag.add_edges_from(new_edges, reg_type='e', reg=reg)
-
-        circuit.dag.remove_edges_from([edge0, edge1])  # remove the selected edges
-
-    def remove_op(self, circuit, fixed_node, node=None):
+    def remove_op(self, circuit, node=None):
         """
         Randomly selects a node in CircuitDAG to remove subject to some restrictions
 
@@ -363,27 +316,14 @@ class RuleBasedRandomSearchSolver(RandomSearchSolver):
         :return: nothing
         """
         if node is None:
-            nodes = [node for node in circuit.dag.nodes if not (
-                    (type(circuit.dag.nodes[node]['op']) in self.fixed_ops) or (node in fixed_node))]
+            nodes = circuit.get_node_exclude_labels(['Fixed', 'Input', 'Output'])
 
             if len(nodes) == 0:
                 return
 
             ind = np.random.randint(len(nodes))
             node = nodes[ind]
-
-        in_edges = list(circuit.dag.in_edges(node, keys=True))
-        out_edges = list(circuit.dag.out_edges(node, keys=True))
-
-        for in_edge in in_edges:
-            for out_edge in out_edges:
-                if in_edge[2] == out_edge[2]:  # i.e. if the keys are the same
-                    reg = circuit.dag.edges[in_edge]['reg']
-                    reg_type = circuit.dag.edges[in_edge]['reg_type']
-                    label = out_edge[2]
-                    circuit.dag.add_edge(in_edge[0], out_edge[1], label, reg_type=reg_type, reg=reg)
-
-        circuit.dag.remove_node(node)
+        circuit.remove_op(node)
 
     def add_measurement_cnot_and_reset(self, circuit):
         """
@@ -404,26 +344,11 @@ class RuleBasedRandomSearchSolver(RandomSearchSolver):
         ind = np.random.randint(len(possible_edge_pairs))
         (edge0, edge1) = possible_edge_pairs[ind]
 
-        new_id = circuit._unique_node_id()
         gate = ops.MeasurementCNOTandReset(control=circuit.dag.edges[edge0]['reg'], control_type='e',
                                            target=circuit.dag.edges[edge1]['reg'], target_type='p')
+        gate.add_labels('Emitter-Photonic')
+        circuit.insert_at(gate, [edge0, edge1])
 
-        circuit._open_qasm_update(gate)
-        circuit.dag.add_node(new_id, op=gate)
-
-        reg = circuit.dag.edges[edge0]['reg']
-        label = edge0[2]
-        new_edges = [(edge0[0], new_id, label), (new_id, edge0[1], label)]
-
-        circuit.dag.add_edges_from(new_edges, reg_type='e', reg=reg)
-
-        reg = circuit.dag.edges[edge1]['reg']
-        label = edge1[2]
-        new_edges = [(edge1[0], new_id, label), (new_id, edge1[1], label)]
-
-        circuit.dag.add_edges_from(new_edges, reg_type='p', reg=reg)
-
-        circuit.dag.remove_edges_from([edge0, edge1])  # remove the selected edges
 
     # helper functions
 
@@ -439,24 +364,11 @@ class RuleBasedRandomSearchSolver(RandomSearchSolver):
         """
 
         edge_pair = []
-        edges = [edge for edge in circuit.dag.edges if
-                 circuit.dag.edges[edge]['reg_type'] == 'e' and type(
-                     circuit.dag.nodes[edge[1]]['op']) is not ops.Output]
+        edges = [edge for edge in circuit.edge_dict['e'] if
+                 type(circuit.dag.nodes[edge[1]]['op']) is not ops.Output]
 
         for edge in edges:
-
-            ancestors = nx.ancestors(circuit.dag, edge[0])
-            descendants = nx.descendants(circuit.dag, edge[1])
-
-            ancestor_edges = list(circuit.dag.in_edges(edge[0], keys=True))
-            for anc in ancestors:
-                ancestor_edges.extend(circuit.dag.edges(anc, keys=True))
-
-            descendant_edges = list(circuit.dag.out_edges(edge[1], keys=True))
-            for des in descendants:
-                descendant_edges.extend(circuit.dag.edges(des, keys=True))
-
-            possible_edges = set(edges) - set([edge]) - set(ancestor_edges) - set(descendant_edges)
+            possible_edges = set(edges) - circuit.find_incompatible_edges(edge)
 
             for another_edge in possible_edges:
                 edge_pair.append((edge, another_edge))
@@ -474,29 +386,17 @@ class RuleBasedRandomSearchSolver(RandomSearchSolver):
         :rtype:list[tuple]
         """
         edge_pair = []
-        e_edges = [edge for edge in circuit.dag.edges if
-                   circuit.dag.edges[edge]['reg_type'] == 'e' and type(
-                       circuit.dag.nodes[edge[1]]['op']) is not (ops.Output and ops.MeasurementCNOTandReset)
-                   and type(circuit.dag.nodes[edge[0]]['op']) is not ops.MeasurementCNOTandReset]
+        e_edges = [edge for edge in circuit.edge_dict['e'] if
+                   type(circuit.dag.nodes[edge[1]]['op']) is not (ops.Output and ops.MeasurementCNOTandReset)
+                   and type(circuit.dag.nodes[edge[0]]['op']) is not (ops.Input and ops.MeasurementCNOTandReset)]
 
-        p_edges = [edge for edge in circuit.dag.edges if
-                   circuit.dag.edges[edge]['reg_type'] == 'p' and type(
-                       circuit.dag.nodes[edge[1]]['op']) is not ops.MeasurementCNOTandReset
+        p_edges = [edge for edge in circuit.edge_dict['p'] if
+                   type(circuit.dag.nodes[edge[1]]['op']) is not ops.MeasurementCNOTandReset
                    and type(circuit.dag.nodes[edge[0]]['op']) is not ops.Input]
 
         for edge in e_edges:
-            ancestors = nx.ancestors(circuit.dag, edge[0])
-            descendants = nx.descendants(circuit.dag, edge[1])
-            ancestor_edges = [edge for edge in circuit.dag.in_edges(edge[0], keys=True) if
-                              circuit.dag.edges[edge]['reg_type'] == 'p']
-            for anc in ancestors:
-                ancestor_edges.extend(circuit.dag.edges(anc, keys=True))
 
-            descendant_edges = [edge for edge in circuit.dag.out_edges(edge[1], keys=True) if
-                                circuit.dag.edges[edge]['reg_type'] == 'p']
-            for des in descendants:
-                descendant_edges.extend(circuit.dag.edges(des, keys=True))
-            possible_edges = set(p_edges) - set(ancestor_edges) - set(descendant_edges)
+            possible_edges = set(p_edges) - circuit.find_incompatible_edges(edge)
 
             for another_edge in possible_edges:
                 edge_pair.append((edge, another_edge))
@@ -559,6 +459,7 @@ class RuleBasedRandomSearchSolver(RandomSearchSolver):
         :return: attributes of the solver
         :rtype: dict
         """
+
         def op_names(op_list):
             op_name = []
             for op_val in op_list:
@@ -579,41 +480,41 @@ class RuleBasedRandomSearchSolver(RandomSearchSolver):
             'Max iteration #': self.n_stop,
             'Population size': self.n_pop,
             'seed': self.last_seed,
-            'Fixed ops': op_names(self.fixed_ops),
             'Single qubit ops': op_names(self.single_qubit_ops),
             'Transition probabilities': transition_names(self.trans_probs)
         }
 
 
 if __name__ == "__main__":
-    #%% here we have access
+    # %% here we have access
     RuleBasedRandomSearchSolver.n_stop = 40
     RuleBasedRandomSearchSolver.n_pop = 150
     RuleBasedRandomSearchSolver.n_hof = 10
     RuleBasedRandomSearchSolver.tournament_k = 10
 
-    #%% comment/uncomment for reproducibility
+    # %% comment/uncomment for reproducibility
     # RuleBasedRandomSearchSolver.seed(1)
 
     # %% select which state we want to target
     from benchmarks.circuits import *
+
     circuit_ideal, state_ideal = linear_cluster_3qubit_circuit()
 
-    #%% construct all of our important objects
+    # %% construct all of our important objects
     target = state_ideal['dm']
     compiler = DensityMatrixCompiler()
     metric = Infidelity(target=target)
 
     solver = RuleBasedRandomSearchSolver(target=target, metric=metric, compiler=compiler)
 
-    #%% call the solver.solve() function to implement the random search algorithm
+    # %% call the solver.solve() function to implement the random search algorithm
     t0 = time.time()
     solver.solve()
     t1 = time.time()
 
-    #%% print/plot the results
+    # %% print/plot the results
     print(solver.hof)
-    print(f"Total time {t1-t0}")
+    print(f"Total time {t1 - t0}")
 
     circuit = solver.hof[0][1]
 

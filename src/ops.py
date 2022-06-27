@@ -74,6 +74,7 @@ class OperationBase(ABC):
         self._q_registers = q_registers
         self._q_registers_type = q_registers_type
         self._c_registers = c_registers
+        self._labels = []
 
     @classmethod
     def openqasm_info(cls):
@@ -154,6 +155,38 @@ class OperationBase(ABC):
         """
         self._update_c_reg(c_reg)
 
+    @property
+    def labels(self):
+        """
+        Returns the list of labels of this operation
+
+        :return: list of labels
+        :rtype: list[str]
+        """
+        return self._labels
+
+    @labels.setter
+    def labels(self, new_labels):
+        """
+        Sets the labels to be new_labels
+
+        :return: nothing
+        :rtype: None
+        """
+        self._labels = new_labels
+
+    def add_labels(self, new_labels):
+        """
+        Adds new labels to existing labels
+
+        :return: nothing
+        :rtype: None
+        """
+        if type(new_labels) is list:
+            self._labels += new_labels
+        else:
+            self._labels.append(new_labels)
+
     def unwrap(self):
         """
         Unwraps the Operation into a list of sub-operations (this can be useful for any operations which are composed
@@ -219,6 +252,7 @@ class SingleQubitOperationBase(OperationBase):
         super().__init__(q_registers=(register,), q_registers_type=(reg_type, ))
         self.register = register
         self.reg_type = reg_type
+        self.add_labels('one-qubit')
 
     @OperationBase.q_registers.setter
     def q_registers(self, q_reg):
@@ -264,6 +298,7 @@ class InputOutputOperationBase(OperationBase):
                              "quantum emitter (reg_type='e'), or classical (reg_type='c')")
         self.reg_type = reg_type
         self.register = register
+
 
     @OperationBase.q_registers.setter
     def q_registers(self, q_reg):
@@ -324,6 +359,7 @@ class ControlledPairOperationBase(OperationBase):
         self.control_type = control_type
         self.target = target
         self.target_type = target_type
+        self.add_labels('two-qubit')
 
     @OperationBase.q_registers.setter
     def q_registers(self, q_reg):
@@ -373,6 +409,7 @@ class ClassicalControlledPairOperationBase(OperationBase):
         self.target = target
         self.target_type = target_type
         self.c_register = c_register
+        self.add_labels('two-qubit')
 
     @OperationBase.q_registers.setter
     def q_registers(self, q_reg):
@@ -423,6 +460,7 @@ class SingleQubitGateWrapper(SingleQubitOperationBase):
             assert not isinstance(op_class, SingleQubitGateWrapper)  # can only contain base classes
         self.operations = operations
         self._openqasm_info = oq_lib.single_qubit_wrapper_info(operations)
+
 
     def unwrap(self):
         """
@@ -567,6 +605,7 @@ class MeasurementZ(OperationBase):
         self.register = register
         self.reg_type = reg_type
         self.c_register = c_register
+        self.add_labels('one-qubit')
 
     @OperationBase.q_registers.setter
     def q_registers(self, q_reg):

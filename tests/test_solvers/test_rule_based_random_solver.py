@@ -53,7 +53,9 @@ def check_run(run_info, expected_info):
     assert np.isclose(hof[0][0], 0.0)  # infidelity score is 0, within numerical error
 
     circuit = hof[0][1]
-
+    #print(circuit.edge_dict)
+    #print(circuit.node_dict)
+    print(circuit.find_incompatible_edges(circuit.edge_dict['e'][0]))
     assert np.isclose(hof[0][0], metric.evaluate(state, circuit))
     assert np.allclose(state, target_state)
 
@@ -64,7 +66,6 @@ def check_run_visual(run_info, expected_info):
 
     circuit = hof[0][1]
     circuit.draw_circuit()
-
     fig, axs = density_matrix_bars(target_state)
     fig.suptitle("TARGET DENSITY MATRIX")
     plt.show()
@@ -105,7 +106,7 @@ def linear4_run(solver_stop_100, density_matrix_compiler, linear4_expected):
     Since we want to apply 2 separate tests on the same run (one visual, one non-visual), it makes sense to have a
     common fixture that only gets called once per module
     """
-    return generate_run(4, 1, linear4_expected, density_matrix_compiler, 13)
+    return generate_run(4, 1, linear4_expected, density_matrix_compiler, 10)
 
 
 @pytest.fixture(scope='module')
@@ -139,7 +140,7 @@ def test_solver_initialization(density_matrix_compiler, linear3_expected):
     solver = RuleBasedRandomSearchSolver(target=target_state, metric=metric, compiler=density_matrix_compiler,
                                          n_emitter=1, n_photon=3)
     solver.seed(10)
-    solver.test_initialization()
+    solver._test_initialization()
 
 
 def test_solver_linear3(linear3_run, linear3_expected):
@@ -183,12 +184,13 @@ def test_add_more_measurements():
                                          n_emitter=n_emitter, n_photon=n_photon)
 
     solver.seed(seed)
-    solver.test_more_measurements()
+    solver._test_more_measurements()
 
 
-@pytest.mark.parametrize('seed', [0, 3, 325, 2949])
+#@pytest.mark.parametrize('seed', [0, 3, 325, 2949])
+@pytest.mark.parametrize('seed', [0])
 def test_add_remove_measurements(seed):
-    n_emitter = 1
+    n_emitter = 2
     n_photon = 3
 
     circuit_ideal, state_ideal = linear_cluster_3qubit_circuit()
@@ -204,7 +206,43 @@ def test_add_remove_measurements(seed):
         solver.remove_op: 1 / 2,
         solver.add_measurement_cnot_and_reset: 1 / 2
     }
-
     solver.solve()
+    circuit = solver.hof[0][1]
+    print(circuit.edge_dict)
+    print(circuit.node_dict)
+
 
     solver.trans_probs = original_trans_prob
+
+
+#@visualization
+#def test_square_4qubit():
+#    graph = nx.Graph([(1, 2), (1, 3), (3, 4), (2, 4), (2, 3)])
+#    state = DensityMatrix.from_graph(graph)
+#    n_emitter = 2
+#    n_photon = 4
+#    ideal_state = dict(
+#        dm=state.data,
+#        n_emitters=n_emitter,
+#        n_photons=n_photon,
+#        name='square4'
+#    )
+#    target_state = state.data
+#    compiler = DensityMatrixCompiler()
+#    metric = Infidelity(target=target_state)
+#    solver = RuleBasedRandomSearchSolver(target=target_state, metric=metric, compiler=compiler,
+#                                         n_emitter=n_emitter, n_photon=n_photon)
+#    solver.seed(1000)
+#    RuleBasedRandomSearchSolver.n_stop = 300
+#    solver.trans_probs = {
+#        solver.remove_op: 1 / 4 + 1 / 20,
+#        solver.add_measurement_cnot_and_reset: 1 / 20,
+#        solver.replace_photon_one_qubit_op: 1 / 4,
+#        solver.add_emitter_one_qubit_op: 1 / 4 + 1 / 20,
+#        solver.add_emitter_cnot: 1 / 10
+#    }
+#    solver.p_dist = [0.4] + 11 * [0.2 / 22] + [0.4] + 11 * [0.2 / 22]
+#    solver.e_dist = [0.2] + 11 * [0.4 / 22] + [0.4] + 11 * [0.4 / 22]
+#    solver.solve()
+#    circuit = solver.hof[0][1]
+#    circuit.draw_circuit()

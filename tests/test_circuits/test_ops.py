@@ -94,3 +94,4 @@ def test_wrapper_gate_unwrap_2():
         assert op.register == operation.register
         assert op.q_registers == operation.q_registers
         assert op.q_registers_type == operation.q_registers_type
+

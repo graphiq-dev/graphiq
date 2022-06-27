@@ -5,7 +5,7 @@ import networkx as nx
 import matplotlib.pyplot as plt
 
 
-def draw_graph(state_graph, show=False, ax=None):
+def draw_graph(state_graph, show=False, ax=None, with_labels=True):
     """
     Allows one to draw the underlying networkX graph with matplotlib library.
 
@@ -19,6 +19,6 @@ def draw_graph(state_graph, show=False, ax=None):
     :rtype: None
     TODO: return fig, ax
     """
-    nx.draw(state_graph.get_graph_id_form(), with_labels=True, font_weight='bold', ax=ax)
+    nx.draw(state_graph.get_graph_id_form(), with_labels=with_labels, font_weight='bold', ax=ax)
     if show:
         plt.show()

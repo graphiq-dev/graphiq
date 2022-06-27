@@ -80,6 +80,9 @@ class RandomSearchSolver(SolverBase):
         :return: a new population
         :rtype: list[(float, CircuitBase)]
         """
+        if k == 0:  # in this case, no selection
+            return population
+
         population_new = []
         for i in range(self.n_pop):
             # select the sub-population for the tournament with uniform random

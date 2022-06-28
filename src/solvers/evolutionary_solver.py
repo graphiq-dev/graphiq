@@ -11,7 +11,7 @@ from src.metrics import MetricBase
 from src.circuit import CircuitBase
 from src.backends.compiler_base import CompilerBase
 
-from src.solvers.random_solver import RandomSearchSolver
+from src.solvers import RandomSearchSolver
 
 from src.backends.density_matrix.compiler import DensityMatrixCompiler
 from src.circuit import CircuitDAG

@@ -30,7 +30,9 @@ def density_matrix_compiler():
     Here, we set the scope to module because, while we want to use a DensityMatrixCompiler multiple times, we don't
     actually need a different copy each time
     """
-    return DensityMatrixCompiler()
+    compiler = DensityMatrixCompiler()
+    compiler.measurement_determinism = 1
+    return compiler
 
 
 def generate_run(n_photon, n_emitter, expected_triple, compiler, seed):
@@ -53,7 +55,6 @@ def check_run(run_info, expected_info):
     assert np.isclose(hof[0][0], 0.0)  # infidelity score is 0, within numerical error
 
     circuit = hof[0][1]
-    print(circuit.depth)
     assert np.isclose(hof[0][0], metric.evaluate(state, circuit))
     assert np.allclose(state, target_state)
 
@@ -63,7 +64,6 @@ def check_run_visual(run_info, expected_info):
     target_state, _, metric = expected_info
 
     circuit = hof[0][1]
-    print(circuit.depth)
     circuit.draw_circuit()
     fig, axs = density_matrix_bars(target_state)
     fig.suptitle("TARGET DENSITY MATRIX")
@@ -120,7 +120,7 @@ def linear4_expected():
 
 @pytest.fixture(scope='module')
 def ghz3_run(solver_stop_100, density_matrix_compiler, ghz3_expected):
-    return generate_run(3, 1, ghz3_expected, density_matrix_compiler, 14)  # 4)
+    return generate_run(3, 1, ghz3_expected, density_matrix_compiler, 0)
 
 
 @pytest.fixture(scope='module')
@@ -131,8 +131,6 @@ def ghz3_expected():
     metric = Infidelity(target=target_state)
 
     return target_state, circuit_ideal, metric
-
-
 
 
 def test_solver_linear3(linear3_run, linear3_expected):
@@ -185,9 +183,8 @@ def test_add_remove_measurements(seed):
 
     solver.trans_probs = original_trans_prob
 
-
-#@visualization
-#def test_square_4qubit():
+# @visualization
+# def test_square_4qubit():
 #    graph = nx.Graph([(1, 2), (1, 3), (3, 4), (2, 4), (2, 3)])
 #    state = DensityMatrix.from_graph(graph)
 #    n_emitter = 2

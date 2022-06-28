@@ -90,7 +90,7 @@ def run_solve(target_function, seed, graph=False):
 if __name__ == '__main__':
     EvolutionarySolver.tournament_k = 0  # indicates no selection
 
-    run_solve(circ.ghz3_state_circuit, 0, graph=False)
-    run_solve(circ.ghz4_state_circuit, 0, graph=False)
-    run_solve(circ.linear_cluster_3qubit_circuit, 0, graph=True)
-    run_solve(circ.linear_cluster_4qubit_circuit, 0, graph=True)
+    run_solve(circ.ghz3_state_circuit, 1, graph=False)
+    run_solve(circ.ghz4_state_circuit, 1, graph=False)
+    run_solve(circ.linear_cluster_3qubit_circuit, 1, graph=True)
+    run_solve(circ.linear_cluster_4qubit_circuit, 2, graph=True)

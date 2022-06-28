@@ -57,7 +57,7 @@ def is_lc_equivalent(adj_matrix1, adj_matrix2, mode='deterministic'):
     # check for random solution 1000 times
     if mode == 'random':
         rand_s = _random_checker(reduced_coeff_matrix, col_list, try_count=1000)
-        if isinstance(rand_s, type(np.array([0]))):
+        if isinstance(rand_s, np.ndarray):
             return True, rand_s.reshape(n_node, 2, 2)  # random result
         else:
             return False, None
@@ -356,8 +356,8 @@ def iso_equal_check(graph1, graph2):
     z_1 = nx.to_numpy_array(graph1)
     iso_z_2 = [nx.to_numpy_array(graph) for graph in iso_graphs_g2]
     for x in iso_z_2:
-        solution = is_lc_equivalent(z_1, x)
-        if isinstance(solution, type(np.array([0]))):
+        suceess, solution = is_lc_equivalent(z_1, x)
+        if isinstance(solution, np.ndarray):
             return True, nx.to_networkx_graph(x)
 
     return False, graph1
@@ -504,7 +504,7 @@ def _doubles(r_matrix):
 
 def _condition(r_matrix):  #
     """
-    Checks if further single "f" transformations are possible
+    Checks if further s1ingle "f" transformations are possible
 
     :param r_matrix: the R matrix = C * Z + D
     :type r_matrix: numpy.ndarray

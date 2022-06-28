@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import time
 
 from src.backends.density_matrix.compiler import DensityMatrixCompiler
-from src.solvers.rule_based_random_solver import RuleBasedRandomSearchSolver
+from src.solvers.evolutionary_solver import EvolutionarySolver
 from src.metrics import Infidelity
 from src.circuit import CircuitDAG
 import src.backends.density_matrix.functions as dmf
@@ -16,10 +16,10 @@ from benchmarks.circuits import bell_state_circuit
 
 if __name__ == "__main__":
     # %% here we have access
-    RuleBasedRandomSearchSolver.n_stop = 40
-    RuleBasedRandomSearchSolver.n_pop = 150
-    RuleBasedRandomSearchSolver.n_hof = 10
-    RuleBasedRandomSearchSolver.tournament_k = 10
+    EvolutionarySolver.n_stop = 40
+    EvolutionarySolver.n_pop = 150
+    EvolutionarySolver.n_hof = 10
+    EvolutionarySolver.tournament_k = 10
 
     # %% comment/uncomment for reproducibility
     # RuleBasedRandomSearchSolver.seed(1)
@@ -35,8 +35,8 @@ if __name__ == "__main__":
 
     n_photon = 3
     n_emitter = 1
-    solver = RuleBasedRandomSearchSolver(target=target, metric=metric, compiler=compiler,
-                                         n_photon=n_photon, n_emitter=n_emitter)
+    solver = EvolutionarySolver(target=target, metric=metric, compiler=compiler,
+                                n_photon=n_photon, n_emitter=n_emitter)
 
     # %% call the solver.solve() function to implement the random search algorithm
     t0 = time.time()

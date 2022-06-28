@@ -1,7 +1,7 @@
 import pytest
 from tests.test_flags import visualization
 
-from src.solvers.rule_based_random_solver import RuleBasedRandomSearchSolver
+from src.solvers.evolutionary_solver import EvolutionarySolver
 import matplotlib.pyplot as plt
 from src.backends.density_matrix.compiler import DensityMatrixCompiler
 from src.metrics import Infidelity
@@ -18,10 +18,10 @@ def solver_stop_100():
     Here, the first two lines will run BEFORE the test, the test will run after the yield, and the lines
     after the yield will run AFTER the test
     """
-    n_stop_original = RuleBasedRandomSearchSolver.n_stop
-    RuleBasedRandomSearchSolver.n_stop = 100
+    n_stop_original = EvolutionarySolver.n_stop
+    EvolutionarySolver.n_stop = 100
     yield
-    RuleBasedRandomSearchSolver.n_stop = n_stop_original
+    EvolutionarySolver.n_stop = n_stop_original
 
 
 @pytest.fixture(scope='module')
@@ -36,8 +36,8 @@ def density_matrix_compiler():
 def generate_run(n_photon, n_emitter, expected_triple, compiler, seed):
     target, _, metric = expected_triple
 
-    solver = RuleBasedRandomSearchSolver(target=target, metric=metric, compiler=compiler,
-                                         n_emitter=n_emitter, n_photon=n_photon)
+    solver = EvolutionarySolver(target=target, metric=metric, compiler=compiler,
+                                n_emitter=n_emitter, n_photon=n_photon)
     solver.seed(seed)
     solver.solve()
 
@@ -53,9 +53,7 @@ def check_run(run_info, expected_info):
     assert np.isclose(hof[0][0], 0.0)  # infidelity score is 0, within numerical error
 
     circuit = hof[0][1]
-    #print(circuit.edge_dict)
-    #print(circuit.node_dict)
-    print(circuit.find_incompatible_edges(circuit.edge_dict['e'][0]))
+    print(circuit.depth)
     assert np.isclose(hof[0][0], metric.evaluate(state, circuit))
     assert np.allclose(state, target_state)
 
@@ -65,6 +63,7 @@ def check_run_visual(run_info, expected_info):
     target_state, _, metric = expected_info
 
     circuit = hof[0][1]
+    print(circuit.depth)
     circuit.draw_circuit()
     fig, axs = density_matrix_bars(target_state)
     fig.suptitle("TARGET DENSITY MATRIX")
@@ -134,13 +133,6 @@ def ghz3_expected():
     return target_state, circuit_ideal, metric
 
 
-@visualization
-def test_solver_initialization(density_matrix_compiler, linear3_expected):
-    target_state, target_circuit, metric = linear3_expected
-    solver = RuleBasedRandomSearchSolver(target=target_state, metric=metric, compiler=density_matrix_compiler,
-                                         n_emitter=1, n_photon=3)
-    solver.seed(10)
-    solver._test_initialization()
 
 
 def test_solver_linear3(linear3_run, linear3_expected):
@@ -171,22 +163,6 @@ def test_solver_ghz3_visualized(ghz3_run, ghz3_expected):
     check_run_visual(ghz3_run, ghz3_expected)
 
 
-def test_add_more_measurements():
-    n_emitter = 1
-    n_photon = 4
-    seed = 10
-    circuit_ideal, state_ideal = linear_cluster_4qubit_circuit()
-    target_state = state_ideal['dm']
-    compiler = DensityMatrixCompiler()
-    metric = Infidelity(target=target_state)
-
-    solver = RuleBasedRandomSearchSolver(target=target_state, metric=metric, compiler=compiler,
-                                         n_emitter=n_emitter, n_photon=n_photon)
-
-    solver.seed(seed)
-    solver._test_more_measurements()
-
-
 @pytest.mark.parametrize('seed', [0, 3, 325, 2949])
 def test_add_remove_measurements(seed):
     n_emitter = 1
@@ -196,8 +172,8 @@ def test_add_remove_measurements(seed):
     target_state = state_ideal['dm']
     compiler = DensityMatrixCompiler()
     metric = Infidelity(target=target_state)
-    solver = RuleBasedRandomSearchSolver(target=target_state, metric=metric, compiler=compiler,
-                                         n_emitter=n_emitter, n_photon=n_photon)
+    solver = EvolutionarySolver(target=target_state, metric=metric, compiler=compiler,
+                                n_emitter=n_emitter, n_photon=n_photon)
     solver.seed(seed)
 
     original_trans_prob = solver.trans_probs
@@ -206,10 +182,6 @@ def test_add_remove_measurements(seed):
         solver.add_measurement_cnot_and_reset: 1 / 2
     }
     solver.solve()
-    #circuit = solver.hof[0][1]
-    #print(circuit.edge_dict)
-    #print(circuit.node_dict)
-
 
     solver.trans_probs = original_trans_prob
 

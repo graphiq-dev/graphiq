@@ -1,3 +1,11 @@
+"""
+Local-Clifford equivalence check, which determines whether two graph states are local-Clifford equivalent.
+In the case they are, one can also find the local Clifford operations to convert one graph state to the other.
+
+# TODO: add references and key equations here to explain the main algorithm
+
+"""
+
 import numpy as np
 import networkx as nx
 from itertools import combinations, permutations

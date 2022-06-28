@@ -187,10 +187,9 @@ def test_add_more_measurements():
     solver._test_more_measurements()
 
 
-#@pytest.mark.parametrize('seed', [0, 3, 325, 2949])
-@pytest.mark.parametrize('seed', [0])
+@pytest.mark.parametrize('seed', [0, 3, 325, 2949])
 def test_add_remove_measurements(seed):
-    n_emitter = 2
+    n_emitter = 1
     n_photon = 3
 
     circuit_ideal, state_ideal = linear_cluster_3qubit_circuit()
@@ -207,9 +206,9 @@ def test_add_remove_measurements(seed):
         solver.add_measurement_cnot_and_reset: 1 / 2
     }
     solver.solve()
-    circuit = solver.hof[0][1]
-    print(circuit.edge_dict)
-    print(circuit.node_dict)
+    #circuit = solver.hof[0][1]
+    #print(circuit.edge_dict)
+    #print(circuit.node_dict)
 
 
     solver.trans_probs = original_trans_prob

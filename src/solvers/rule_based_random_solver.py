@@ -326,7 +326,7 @@ class RuleBasedRandomSearchSolver(RandomSearchSolver):
 
     def add_measurement_cnot_and_reset(self, circuit):
         """
-        Add a MeausrementCNOTandReset operation from an emitter qubit to a photonic qubit such that no consecutive MeasurementCNOTReset is allowed.
+        Add a MeausurementCNOTandReset operation from an emitter qubit to a photonic qubit such that no consecutive MeasurementCNOTReset is allowed.
         This operation cannot be added before the photonic qubit is initialized.
 
         :param circuit: a quantum circuit
@@ -348,7 +348,6 @@ class RuleBasedRandomSearchSolver(RandomSearchSolver):
                                            target=circuit.dag.edges[edge1]['reg'], target_type='p')
         gate.add_labels('Emitter-Photonic')
         circuit.insert_at(gate, [edge0, edge1])
-
 
     # helper functions
 
@@ -387,8 +386,10 @@ class RuleBasedRandomSearchSolver(RandomSearchSolver):
         """
         edge_pair = []
         e_edges = [edge for edge in circuit.edge_dict['e'] if
-                   type(circuit.dag.nodes[edge[1]]['op']) is not (ops.Output and ops.MeasurementCNOTandReset)
-                   and type(circuit.dag.nodes[edge[0]]['op']) is not (ops.Input and ops.MeasurementCNOTandReset)]
+                   type(circuit.dag.nodes[edge[1]]['op']) is not ops.Output and
+                   type(circuit.dag.nodes[edge[1]]['op']) is not ops.MeasurementCNOTandReset and
+                   type(circuit.dag.nodes[edge[0]]['op']) is not ops.Input and
+                   type(circuit.dag.nodes[edge[0]]['op']) is not ops.MeasurementCNOTandReset]
 
         p_edges = [edge for edge in circuit.edge_dict['p'] if
                    type(circuit.dag.nodes[edge[1]]['op']) is not ops.MeasurementCNOTandReset

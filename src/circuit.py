@@ -428,7 +428,7 @@ class CircuitDAG(CircuitBase):
         self.dag = nx.MultiDiGraph()
         self._node_id = 0
         self.edge_dict = {}
-        self.node_dict = {'All': []}
+        self.node_dict = {}
         self._add_reg_if_absent(tuple(range(n_emitter)), tuple(range(n_photon)), tuple(range(n_classical)))
 
     def add(self, operation: OperationBase):
@@ -555,7 +555,7 @@ class CircuitDAG(CircuitBase):
         for attribute in operation.labels:
             self._node_dict_append(attribute, node_id)
         self._node_dict_append(type(operation).__name__, node_id)
-        self._node_dict_append('All', node_id)
+
 
     def _remove_node(self, node):
         """
@@ -588,28 +588,28 @@ class CircuitDAG(CircuitBase):
             self._node_dict_remove(attribute, node)
 
         self._node_dict_remove(type(operation).__name__, node)
-        self._node_dict_remove('All', node)
+
         self.dag.remove_node(node)
 
-    def _add_edge(self, in_edge, out_edge, label, reg_type, reg):
+    def _add_edge(self, in_node, out_node, label, reg_type, reg):
         """
         Helper function for adding an edge in the DAG representation
 
-        :param in_edge: the incoming node
-        :type in_edge: int or str
-        :param out_edge: the outgoing node
-        :type out_edge: int or str
+        :param in_node: the incoming node
+        :type in_node: int or str
+        :param out_node: the outgoing node
+        :type out_node: int or str
         :param label: the key for the edge
         :type label: int or str
-        :param reg_type: the register type of the node
+        :param reg_type: the register type of the edge
         :type reg_type: str
-        :param reg: the register where the node acts on
+        :param reg: the register of the edge
         :type reg: int or str
         :return: nothing
         :rtype: None
         """
-        self.dag.add_edge(in_edge, out_edge, key=label, reg_type=reg_type, reg=reg)
-        self._edge_dict_append(reg_type, (in_edge, out_edge, label))
+        self.dag.add_edge(in_node, out_node, key=label, reg_type=reg_type, reg=reg)
+        self._edge_dict_append(reg_type, (in_node, out_node, label))
 
     def _remove_edge(self, edge_to_remove):
         """
@@ -622,9 +622,6 @@ class CircuitDAG(CircuitBase):
         """
 
         reg_type = self.dag.edges[edge_to_remove]['reg_type']
-        if edge_to_remove not in self.edge_dict[reg_type]:
-            warnings.warn('The edge to be removed does not exist.')
-            return
         self._edge_dict_remove(reg_type, edge_to_remove)
         self.dag.remove_edges_from([edge_to_remove])
 
@@ -637,7 +634,7 @@ class CircuitDAG(CircuitBase):
         :return: a list of node ids for nodes that satisfy all labels
         :rtype: list[int]
         """
-        remaining_nodes = set(self.node_dict['All'])
+        remaining_nodes = set(self.dag.nodes)
         for label in labels:
             remaining_nodes = remaining_nodes.intersection(set(self.node_dict[label]))
         return list(remaining_nodes)
@@ -651,7 +648,7 @@ class CircuitDAG(CircuitBase):
         :return: a list of node ids for nodes that do not satisfy any label in labels
         :rtype: list[int]
         """
-        all_nodes = set(self.node_dict['All'])
+        all_nodes = set(self.dag.nodes)
         exclusion_nodes = set()
         for label in labels:
             exclusion_nodes = exclusion_nodes.union(set(self.node_dict[label]))
@@ -682,12 +679,14 @@ class CircuitDAG(CircuitBase):
 
         # check all "source" nodes to the DAG are Input operations
         input_nodes = [node for node, in_degree in self.dag.in_degree() if in_degree == 0]
+        assert set(input_nodes)  == set(self.node_dict['Input'])
         for input_node in input_nodes:
             if not isinstance(self.dag.nodes[input_node]['op'], Input):
                 raise RuntimeError(f"Source node {input_node} in the DAG is not an Input operation")
 
         # check all "sink" nodes to the DAG are Output operations
         output_nodes = [node for node, out_degree in self.dag.out_degree() if out_degree == 0]
+        assert set(output_nodes) == set(self.node_dict['Output'])
         for output_node in output_nodes:
             if not isinstance(self.dag.nodes[output_node]['op'], Output):
                 raise RuntimeError(f"Sink node {output_node} in the DAG is not an Output operation")
@@ -718,16 +717,17 @@ class CircuitDAG(CircuitBase):
         :return: circuit depth
         :rtype: int
         """
-        # TODO: implement... does this idea even work?
+        # TODO: implement... does this idea even work? I don't think so.
         # TODO: check whether there is a more efficient algorithm (there might be, but this one is easy to understand)
-        input_nodes = [node for node, in_degree in self.dag.in_degree() if in_degree == 0]
-        output_nodes = [node for node, out_degree in self.dag.out_degree() if out_degree == 0]
+        input_nodes = self.node_dict['Input']
+        output_nodes = self.node_dict['Output']
 
-        max_depth = np.inf
+        max_depth = 0
         for input in input_nodes:
             for output in output_nodes:
                 shortest_path = nx.shortest_path_length(self.dag, source=input, target=output)
-        return 0
+                max_depth = max(shortest_path, max_depth)
+        return max_depth
 
     def _node_dict_append(self, key, value):
         """
@@ -972,12 +972,11 @@ class CircuitDAG(CircuitBase):
             for edge in edges_to_remove:
                 # Add edge from preceding node to the new operation node
                 reg_type = self.dag.edges[edge]['reg_type']
-                self._add_edge(edge[0], new_id, edge[2], reg=self.dag.edges[edge]['reg'],
-                               reg_type=reg_type)
+                reg = self.dag.edges[edge]['reg']
+                self._add_edge(edge[0], new_id, edge[2], reg=reg, reg_type=reg_type)
 
                 # Add edge from the new operation node to the final node
-                self._add_edge(new_id, edge[1], edge[2], reg=self.dag.edges[edge]['reg'],
-                               reg_type=reg_type)
+                self._add_edge(new_id, edge[1], edge[2], reg=reg, reg_type=reg_type)
 
                 self._remove_edge(edge)  # remove the unnecessary edges
 

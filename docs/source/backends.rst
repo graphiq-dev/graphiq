@@ -16,7 +16,7 @@ Density Matrix Backend
    :members:
 
 Graph Representation Backend
-=========================
+=============================
 .. automodule:: src.backends.graph
    :members:
 .. automodule:: src.backends.graph.compiler
@@ -27,7 +27,7 @@ Graph Representation Backend
    :members:
 
 Stabilizer Representation Backend
-=========================
+==================================
 .. automodule:: src.backends.stabilizer
    :members:
 .. automodule:: src.backends.stabilizer.compiler

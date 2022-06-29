@@ -338,7 +338,7 @@ class Graph(StateRepresentationBase):
         # TODO
         raise NotImplementedError('To do')
 
-    def draw(self, show=True, ax=None):
+    def draw(self, show=True, ax=None, with_labels=True):
         """
         Draw the underlying networkX graph
 
@@ -349,4 +349,4 @@ class Graph(StateRepresentationBase):
         :return: function returns nothing
         :rtype: None
         """
-        draw_graph(self, show=show, ax=ax)
+        draw_graph(self, show=show, ax=ax, with_labels=with_labels)

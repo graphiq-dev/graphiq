@@ -9,6 +9,8 @@ from benchmarks.circuits import *
 from src.metrics import Infidelity
 from src.io import IO
 
+from src.visualizers.solver_logs import plot_solver_logs
+
 
 def update(obj, attrs):
     """
@@ -23,6 +25,17 @@ def update(obj, attrs):
 
 
 def run_combinations(solvers, targets, compilers, metrics):
+    """
+    Makes all run combinations from lists of solvers, targets, compilers and metrics.
+    Outputs a list of dictionaries (as required by src.benchmarks.pipeline)
+
+    :param solvers:
+    :param targets:
+    :param compilers:
+    :param metrics:
+    :return:
+    """
+
     c = list(itertools.product(solvers, targets, compilers, metrics))
     runs = {}
     for (i, c) in enumerate(c):
@@ -46,10 +59,11 @@ def run_combinations(solvers, targets, compilers, metrics):
 
 def benchmark_run(run: dict, name: str, io: IO):
     """
+    A specific run, consisting of a unique combination of solvers, targets, compilers, and metrics.
 
-    :param run:
-    :param name:
-    :param io:
+    :param run: dictionary containing the main class instances (solver, etc.)
+    :param name: name of the run
+    :param io: IO instance used to save data for the *current* run (not overall benchmarking IO)
     :return:
     """
     solver = run["solver"]
@@ -59,19 +73,21 @@ def benchmark_run(run: dict, name: str, io: IO):
     t1 = time.time()
 
     # here we can save specific information from each solver run, e.g., circuit figures, solver logs, etc.
-    io.save_txt("nothing from this solver run has been saved", "run.txt")
     for log_name, log in solver.logs.items():
-        io.save_dataframe(df=log, filename=f"log_{log_name}.txt")
+        io.save_dataframe(df=log, filename=f"log_{log_name}.csv")
+    fig, axs = plot_solver_logs(solver.logs)
+    io.save_figure(fig=fig, filename=f"log.pdf")
 
     # this line summarizes the performance of this solver run, is added to a pandas DataFrame
     d = dict(
+        name=name,
         solver=run["solver"].__class__.__name__,
         compiler=run["compiler"].__class__.__name__,
         metric=run["compiler"].__class__.__name__,
-        target=run["target"],
-        name=run["solver"].__class__.__name__,
+        # target=run["target"],  # TODO: ideally the target is a QuantumState object, and we can use the __name__ here
         time=(t1-t0),
-        min_cost=solver.hof[0][0],
+        circuit_cost=solver.hof[0][0],
+        circuit_depth=solver.hof[0][1].depth,
     )
     return d
 
@@ -109,7 +125,7 @@ def benchmark(runs: dict, io: IO, remote=True):
         futures = ray.get(futures)
 
     df = pd.DataFrame(futures)
-    io.save_dataframe(df, "benchmark_solver_run.txt")
+    io.save_dataframe(df, "benchmark_solver_run.csv")
     print(f"Total time {time.time() - t0}")
     return df
 

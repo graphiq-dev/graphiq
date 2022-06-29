@@ -22,7 +22,7 @@ if __name__ == "__main__":
     EvolutionarySolver.tournament_k = 10
 
     # %% comment/uncomment for reproducibility
-    # RuleBasedRandomSearchSolver.seed(1)
+    EvolutionarySolver.seed(1)
 
     # %% select which state we want to target
     from benchmarks.circuits import *
@@ -64,3 +64,23 @@ if __name__ == "__main__":
     plt.show()
 
     circuit.draw_circuit()
+
+    #%%
+    fig, axs = plt.subplots(nrows=2, ncols=2, sharey='row', sharex="col")
+    colors = ["teal", "orange"]
+    for col, (log_name, log) in enumerate(solver.logs.items()):
+        c = colors[col]
+        axs[0, col].plot(log['iteration'], log["cost_mean"], color=c, label=f"{log_name}, mean")
+        axs[0, col].fill_between(log['iteration'], log["cost_min"], log["cost_max"], color=c, alpha=0.3, label=f"{log_name}, range")
+
+        axs[1, col].plot(log['iteration'], log["depth_mean"], color=c)
+        axs[1, col].fill_between(log['iteration'], log["depth_min"], log["depth_max"], color=c, alpha=0.3)
+
+        axs[0, col].set(title=f"{log_name}")
+
+    axs[0, 0].set(ylabel="Cost value")
+    axs[1, 0].set(ylabel="Circuit depth")
+    axs[1, 0].set(xlabel="Iteration")
+    axs[1, 1].set(xlabel="Iteration")
+
+    plt.show()

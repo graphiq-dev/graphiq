@@ -4,7 +4,7 @@ import psutil
 import itertools
 
 from src.backends.density_matrix.compiler import DensityMatrixCompiler
-from src.solvers.rule_based_random_solver import RuleBasedRandomSearchSolver
+from src.solvers.evolutionary_solver import EvolutionarySolver
 from benchmarks.circuits import *
 from src.metrics import Infidelity
 from src.io import IO
@@ -15,8 +15,8 @@ from benchmarks.pipeline import benchmark, run_combinations
 if __name__ == "__main__":
     # %% provide all combinations of solvers, targets, compilers, and metrics to run as a list
     solvers = [
-        (RuleBasedRandomSearchSolver, dict(n_stop=30, n_pop=30, n_hof=5, tournament_k=2)),
-        (RuleBasedRandomSearchSolver, dict(n_stop=30, n_pop=30, n_hof=5, tournament_k=5)),
+        (EvolutionarySolver, dict(n_stop=30, n_pop=30, n_hof=5, tournament_k=2)),
+        (EvolutionarySolver, dict(n_stop=30, n_pop=30, n_hof=5, tournament_k=5)),
     ]
 
     # provide a list of targets

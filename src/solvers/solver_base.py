@@ -35,6 +35,11 @@ class SolverBase(ABC):
 
         self.last_seed = None
 
+        self.logs = {
+            "population": [],
+            "hof": []
+        }
+
     @abstractmethod
     def solve(self, *args):
         raise NotImplementedError("Base Solver class, solver method is not implemented.")

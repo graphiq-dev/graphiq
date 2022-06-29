@@ -4,7 +4,7 @@ import psutil
 import itertools
 
 from src.backends.density_matrix.compiler import DensityMatrixCompiler
-from src.solvers.rule_based_random_solver import RuleBasedRandomSearchSolver
+from src.solvers.evolutionary_solver import EvolutionarySolver
 from benchmarks.circuits import *
 from src.metrics import Infidelity
 from src.io import IO
@@ -60,6 +60,8 @@ def benchmark_run(run: dict, name: str, io: IO):
 
     # here we can save specific information from each solver run, e.g., circuit figures, solver logs, etc.
     io.save_txt("nothing from this solver run has been saved", "run.txt")
+    for log_name, log in solver.logs.items():
+        io.save_dataframe(df=log, filename=f"log_{log_name}.txt")
 
     # this line summarizes the performance of this solver run, is added to a pandas DataFrame
     d = dict(
@@ -75,7 +77,14 @@ def benchmark_run(run: dict, name: str, io: IO):
 
 
 def benchmark(runs: dict, io: IO, remote=True):
+    """
+    Runs a sequence of benchmark runs, either using parallel or serial processing.
 
+    :param runs: a list of runs, each being a dictionary containing the important class instances (solvers, etc.)
+    :param io: a top-level IO object for saving benchmark data
+    :param remote: True/False flag. If True, will run solvers in parallel using `ray`
+    :return:
+    """
     if remote:
         import ray
         ray.init(num_cpus=psutil.cpu_count() - 1, ignore_reinit_error=True)
@@ -85,7 +94,7 @@ def benchmark(runs: dict, io: IO, remote=True):
 
     t0 = time.time()
     for name, run in runs.items():
-        io_tmp = IO.new_directory(path=io.path, folder=name, include_date=True, include_time=True, include_id=True)
+        io_tmp = IO.new_directory(path=io.path, folder=name, include_date=True, include_time=True, include_id=False)
 
         if remote:
             futures.append(
@@ -100,7 +109,7 @@ def benchmark(runs: dict, io: IO, remote=True):
         futures = ray.get(futures)
 
     df = pd.DataFrame(futures)
-    io.save_dataframe(df, "benchmark_solver_run.csv")
+    io.save_dataframe(df, "benchmark_solver_run.txt")
     print(f"Total time {time.time() - t0}")
     return df
 
@@ -111,7 +120,7 @@ if __name__ == "__main__":
     compiler = DensityMatrixCompiler()
     metric = Infidelity(target=target)
 
-    solver1 = RuleBasedRandomSearchSolver(target=target, metric=metric, compiler=compiler, n_photon=3, n_emitter=1)
+    solver1 = EvolutionarySolver(target=target, metric=metric, compiler=compiler, n_photon=3, n_emitter=1)
     example_run1 = {
         "solver": solver1,
         "target": target,
@@ -119,7 +128,7 @@ if __name__ == "__main__":
         "compiler": compiler,
     }
 
-    solver2 = RuleBasedRandomSearchSolver(target=target, metric=metric, compiler=compiler, n_photon=3, n_emitter=1)
+    solver2 = EvolutionarySolver(target=target, metric=metric, compiler=compiler, n_photon=3, n_emitter=1)
     example_run2 = {
         "solver": solver2,
         "target": target,

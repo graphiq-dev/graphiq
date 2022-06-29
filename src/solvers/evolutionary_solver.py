@@ -4,6 +4,7 @@ import numpy as np
 import networkx as nx
 import warnings
 import time
+import pandas as pd
 
 import src.backends.density_matrix.functions as dmf
 
@@ -171,10 +172,63 @@ class EvolutionarySolver(RandomSearchSolver):
 
             self.update_hof(population)
             # self.adapt_probabilities(i)
+
+            # this should be the last thing performed *prior* to selecting a new population (after updating HoF)
+            self.update_logs(population=population, iteration=i)
+
             if self.selection_active:
                 population = self.tournament_selection(population, k=self.tournament_k)
 
             print(f"Iteration {i} | Best score: {self.hof[0][0]:.4f}")
+
+        self.logs_to_df()  # convert the logs to a DataFrame
+
+    def update_logs(self, population: list, iteration: int):
+        """
+        Updates the log table, which tracks cost function values through solver iterations.
+
+        :param population: population list for the i-th iteration, as a list of tuples (score, circuit)
+        :param iteration: iteration integer, from 0 to n_stop-1
+        :return:
+        """
+        scores_pop = list(zip(*population))[0]  # get the scores from the population/hof as a list
+        scores_hof = list(zip(*self.hof))[0]
+
+        depth_pop = [circuit.depth for (_, circuit) in population]
+        depth_hof = [circuit.depth for (_, circuit) in self.hof]
+
+        self.logs["population"].append(
+            dict(
+                iteration=iteration,
+                cost_mean=np.mean(scores_pop),
+                cost_variance=np.var(scores_pop),
+                cost_min=np.min(scores_pop),
+                cost_max=np.max(scores_pop),
+                depth_mean=np.mean(depth_pop),
+                depth_variance=np.var(depth_pop),
+                depth_min=np.min(depth_pop),
+                depth_max=np.max(depth_pop),
+            )
+        )
+
+        self.logs["hof"].append(
+            dict(
+                iteration=iteration,
+                cost_mean=np.mean(scores_hof),
+                cost_variance=np.var(scores_hof),
+                cost_min=np.min(scores_hof),
+                cost_max=np.max(scores_hof),
+                depth_mean=np.mean(depth_hof),
+                depth_variance=np.var(depth_hof),
+                depth_min=np.min(depth_hof),
+                depth_max=np.max(depth_hof),
+            )
+        )
+
+    def logs_to_df(self):
+        """ Converts each logs (population, hof, etc.) to a pandas DataFrame for easier visualization/saving """
+        for key, val in self.logs.items():
+            self.logs[key] = pd.DataFrame(val)
 
     def replace_photon_one_qubit_op(self, circuit):
         """

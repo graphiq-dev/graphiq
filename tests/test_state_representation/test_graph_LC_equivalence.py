@@ -63,4 +63,5 @@ def test_star_graph():
         assert isinstance(solution, type(np.array([0]))) or isinstance(solution, type(None))
         a, _ = iso_equal_check(g1, g2)
         print(a)
-        #assert a
+        assert a
+

@@ -37,6 +37,9 @@ extensions = [
     'sphinx.ext.imgmath',
     'sphinx.ext.mathjax',
 ]
+# in order for math module to work on local systems:
+#imgmath_latex = r'...\latex.exe'
+#imgmath_dvipng = r'...\dvipng.exe'
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']

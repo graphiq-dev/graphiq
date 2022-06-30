@@ -29,7 +29,9 @@ import src.visualizers.openqasm.openqasm_lib as oq_lib
 
 
 class OperationBase(ABC):
-    """ """
+    """
+    Base class from which operations will inherit
+    """
 
     _openqasm_info = None  # This is the information necessary to add our Operation into an openQASM script
     # If _openqasm_info is None, a given operation cannot be added to openQASM

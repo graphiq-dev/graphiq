@@ -90,7 +90,7 @@ has a member that satisfies the constraint. Note that this is only true for the 
 However, this is rarely the case and has not practical significance. For smaller B, one should test all possible
 solutions (at most 16) to see if a valid Q can be found.
 
-In order to find a basis for set B, one needs to use the :math:`n^2 x 4n` coefficient matrix of the system of linear
+In order to find a basis for set B, one needs to use the :math:`n^2 * 4n` coefficient matrix of the system of linear
 equations, find the linearly dependent columns (this is done in the code by a row-reduction process), and choose any
 complete basis "B_dependent" for that subspace, and use each member of that basis to form a set of new system of
 linear equations.

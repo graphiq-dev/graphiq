@@ -8,7 +8,7 @@ import time
 import src.backends.density_matrix.functions as dmf
 
 from src.metrics import MetricBase
-from src.circuit import CircuitBase
+
 from src.backends.compiler_base import CompilerBase
 
 from src.solvers import RandomSearchSolver
@@ -37,7 +37,7 @@ class EvolutionarySolver(RandomSearchSolver):
 
     use_adapt_probability = False
 
-    def __init__(self, target, metric: MetricBase, compiler: CompilerBase, circuit: CircuitBase = None,
+    def __init__(self, target, metric: MetricBase, compiler: CompilerBase, circuit: CircuitDAG = None,
                  n_emitter=1, n_photon=1, selection_active=False, *args, **kwargs):
 
         super().__init__(target, metric, compiler, circuit, *args, **kwargs)

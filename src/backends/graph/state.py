@@ -1,5 +1,7 @@
 """
 Graph representation of quantum state
+
+# TODO: Refactor and revise when building the compiler for graph representation
 """
 import networkx as nx
 import warnings
@@ -40,9 +42,10 @@ class Graph(StateRepresentationBase):
         """
         Add a node to the graph.
         It allows node_to_add to be one of following types:
-            QuNode
-            int
-            frozenset
+
+            * QuNode
+            * int
+            * frozenset
 
         :param node_to_add: node id to add to the Graph representation
         :type node_to_add: QuNode OR int OR frozenset
@@ -78,6 +81,8 @@ class Graph(StateRepresentationBase):
         :type first_node: QuNode OR int OR frozenset
         :param second_node: the second node on which to add an edge
         :type second_node: QuNode OR int OR frozenset
+        :return: nothing
+        :rtype: None
         """
         if isinstance(first_node, QuNode):
             node_id1 = first_node.get_id()
@@ -144,7 +149,7 @@ class Graph(StateRepresentationBase):
         Returns the list of edges in the Graph as described by tuples of node IDs
 
         :return: list of tuples of node IDs, corresponding to the graph edges
-        :rtype: list (of tuples)
+        :rtype: list[tuples]
         """
         return [(e[0].get_id(), e[1].get_id()) for e in self.data.edges]
 
@@ -280,9 +285,9 @@ class Graph(StateRepresentationBase):
 
         :param node_id: the id of the node from which we want to remove a photon
         :type node_id: int OR frozenset
-        :param removal_id: id of the photon to remove inside of the node (optional)
+        :param removal_id: id of the photon to remove inside the node (optional)
         :param removal_id: None OR int
-        :return: function returns nothing
+        :return: nothing
         :rtype: None
         """
         if isinstance(node_id, int):
@@ -312,7 +317,7 @@ class Graph(StateRepresentationBase):
 
         :param node_id: the ID of the node to measure
         :type node_id: int OR frozenset
-        :return: function returns nothing
+        :return: nothing
         :rtype: None
         """
         if isinstance(node_id, int):
@@ -346,7 +351,7 @@ class Graph(StateRepresentationBase):
         :type show: bool
         :param ax: axis on which to draw the plot (optional)
         :type ax: matplotlib.axis
-        :return: function returns nothing
+        :return: nothing
         :rtype: None
         """
         draw_graph(self, show=show, ax=ax, with_labels=with_labels)

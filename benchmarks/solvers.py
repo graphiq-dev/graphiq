@@ -15,8 +15,8 @@ from benchmarks.pipeline import benchmark, run_combinations
 if __name__ == "__main__":
     # %% provide all combinations of solvers, targets, compilers, and metrics to run as a list
     solvers = [
-        (EvolutionarySolver, dict(n_stop=30, n_pop=30, n_hof=5, tournament_k=2)),
-        (EvolutionarySolver, dict(n_stop=30, n_pop=30, n_hof=5, tournament_k=5)),
+        (EvolutionarySolver, dict(n_stop=30, n_pop=80, n_hof=10, tournament_k=2)),
+        (EvolutionarySolver, dict(n_stop=30, n_pop=100, n_hof=10, tournament_k=2)),
     ]
 
     # provide a list of targets

@@ -12,18 +12,6 @@ from src.io import IO
 from src.visualizers.solver_logs import plot_solver_logs
 
 
-def update(obj, attrs):
-    """
-    Updates object attributes from a dictionary. Used to update solver attributes, e.g., n_stop, n_pop
-    :param obj:
-    :param attrs:
-    :return:
-    """
-    for key, value in attrs.items():
-        setattr(obj, key, value)
-    return
-
-
 def run_combinations(solvers, targets, compilers, metrics):
     """
     Makes all run combinations from lists of solvers, targets, compilers and metrics.
@@ -45,12 +33,11 @@ def run_combinations(solvers, targets, compilers, metrics):
         compiler = Compiler()
 
         solver = Solver(target=target, metric=metric, compiler=compiler,
-                        n_photon=target_attr['n_photon'], n_emitter=target_attr['n_emitter'])
-        update(solver, solver_attr)
+                        n_photon=target_attr['n_photon'], n_emitter=target_attr['n_emitter'], **solver_attr)
 
         runs[f"run{i}"] = dict(
             solver=solver,
-            target=target,
+            target=target,  # TODO: as per Julie's suggestion, we could remove these as they're already in the solver
             compiler=compiler,
             metric=metric,
         )
@@ -81,6 +68,7 @@ def benchmark_run(run: dict, name: str, io: IO):
     # this line summarizes the performance of this solver run, is added to a pandas DataFrame
     d = dict(
         name=name,
+        path=io.path.name,
         solver=run["solver"].__class__.__name__,
         compiler=run["compiler"].__class__.__name__,
         metric=run["compiler"].__class__.__name__,

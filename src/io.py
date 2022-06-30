@@ -94,12 +94,12 @@ class IO:
         if include_date:
             _str = _str + date
         if include_time:
-            _str = _str + " " + time
+            _str = _str + "_" + time
 
-        _str = _str + " " + folder
+        _str = _str + "_" + folder
 
         if include_id:
-            _str = _str + " - " + "".join(random.choice(string.hexdigits) for _ in range(4))
+            _str = _str + "_" + "".join(random.choice(string.hexdigits) for _ in range(4))
 
         path = path.joinpath(_str)
         return cls(path=path, verbose=verbose)

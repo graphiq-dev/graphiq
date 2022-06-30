@@ -1,5 +1,5 @@
+import copy
 import matplotlib.pyplot as plt
-
 import numpy as np
 import networkx as nx
 import warnings
@@ -20,8 +20,6 @@ from src.metrics import Infidelity
 from src.visualizers.density_matrix import density_matrix_bars
 from src import ops
 
-import benchmarks.circuits as bc
-
 
 class EvolutionarySolver(RandomSearchSolver):
     """
@@ -35,9 +33,9 @@ class EvolutionarySolver(RandomSearchSolver):
     n_hof = 5
     tournament_k = 2  # tournament size for selection of the next population
 
-    single_qubit_ops = list(
-        ops.single_qubit_cliffords()
-    )
+    single_qubit_ops = list(ops.single_qubit_cliffords())
+
+    use_adapt_probability = False
 
     def __init__(self, target, metric: MetricBase, compiler: CompilerBase, circuit: CircuitBase = None,
                  n_emitter=1, n_photon=1, selection_active=False, *args, **kwargs):
@@ -87,11 +85,11 @@ class EvolutionarySolver(RandomSearchSolver):
         :type iteration: int
         :return: nothing
         """
-        self.trans_probs[self.add_emitter_one_qubit_op] += -1 / self.n_stop / 3
-        self.trans_probs[self.replace_photon_one_qubit_op] += -1 / self.n_stop / 3
-        self.trans_probs[self.remove_op] += 1 / self.n_stop
+        self.trans_probs[self.add_emitter_one_qubit_op] = max(self.trans_probs[self.add_emitter_one_qubit_op] - 1 / self.n_stop / 3, 0.01)
+        self.trans_probs[self.replace_photon_one_qubit_op] = max(self.trans_probs[self.replace_photon_one_qubit_op] - 1 / self.n_stop / 3, 0.01)
+        self.trans_probs[self.remove_op] = min(self.trans_probs[self.remove_op] + 1 / self.n_stop, 0.99)
         if self.n_emitter > 1:
-            self.trans_probs[self.add_emitter_cnot] += -1 / self.n_stop / 3
+            self.trans_probs[self.add_emitter_cnot] = max(self.trans_probs[self.add_emitter_cnot] - 1 / self.n_stop / 3, 0.01)
 
         # normalize the probabilities
         total = np.sum(list(self.trans_probs.values()))
@@ -144,12 +142,16 @@ class EvolutionarySolver(RandomSearchSolver):
 
         # Initialize population
         population = []
-        for j in range(self.n_pop):
-            emission_assignment = self.get_emission_assignment(self.n_photon, self.n_emitter)
-            measurement_assignment = self.get_measurement_assignment(self.n_photon, self.n_emitter)
+        if self.circuit is None:
+            for j in range(self.n_pop):
+                emission_assignment = self.get_emission_assignment(self.n_photon, self.n_emitter)
+                measurement_assignment = self.get_measurement_assignment(self.n_photon, self.n_emitter)
 
-            circuit = self.initialization(emission_assignment, measurement_assignment)
-            population.append((np.inf, circuit))  # initialize all population members
+                circuit = self.initialization(emission_assignment, measurement_assignment)
+                population.append((np.inf, circuit))  # initialize all population members
+        else:
+            for j in range(self.n_pop):
+                population.append((np.inf, copy.deepcopy(self.circuit)))
 
         for i in range(self.n_stop):
             for j in range(self.n_pop):
@@ -170,7 +172,9 @@ class EvolutionarySolver(RandomSearchSolver):
                 population[j] = (score, circuit)
 
             self.update_hof(population)
-            # self.adapt_probabilities(i)
+            if EvolutionarySolver.use_adapt_probability:
+                self.adapt_probabilities(i)
+
             if self.selection_active:
                 population = self.tournament_selection(population, k=self.tournament_k)
 
@@ -202,7 +206,6 @@ class EvolutionarySolver(RandomSearchSolver):
         # circuit.replace_op(node, gate)
         circuit._open_qasm_update(gate)
         circuit.dag.nodes[node]['op'] = gate
-
 
     def add_emitter_one_qubit_op(self, circuit):
         """

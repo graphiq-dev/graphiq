@@ -500,12 +500,13 @@ class CircuitDAG(CircuitBase):
         for label in old_operation.labels:
             self._node_dict_remove(label, node)
         self._node_dict_remove(type(old_operation).__name__, node)
+        self._node_dict_remove(old_operation.parse_q_reg_types(), node)
 
         # add entries related to new_operation
-
         for label in new_operation.labels:
             self._node_dict_append(label, node)
         self._node_dict_append(type(new_operation).__name__, node)
+        self._node_dict_append(new_operation.parse_q_reg_types(), node)
 
         # replace the operation in the node
         self._open_qasm_update(new_operation)
@@ -557,6 +558,7 @@ class CircuitDAG(CircuitBase):
         for attribute in operation.labels:
             self._node_dict_append(attribute, node_id)
         self._node_dict_append(type(operation).__name__, node_id)
+        self._node_dict_append(operation.parse_q_reg_types(), node_id)
 
 
     def _remove_node(self, node):
@@ -590,7 +592,7 @@ class CircuitDAG(CircuitBase):
             self._node_dict_remove(attribute, node)
 
         self._node_dict_remove(type(operation).__name__, node)
-
+        self._node_dict_remove(operation.parse_q_reg_types(), node)
         self.dag.remove_node(node)
 
     def _add_edge(self, in_node, out_node, label, reg_type, reg):
@@ -728,7 +730,9 @@ class CircuitDAG(CircuitBase):
         Helper function to add an entry to the node_dict
 
         :param key: key for the node_dict
+        :type key: str
         :param value: value to be appended to the list corresponding to the key
+        :type value: int or str
         :return: nothing
         """
         if key not in self.node_dict.keys():
@@ -740,8 +744,10 @@ class CircuitDAG(CircuitBase):
         """
         Helper function to remove an entry in the list corresponding to the key in node_dict
 
-        :param key:
-        :param value:
+        :param key: key for the node_dict
+        :type key: str
+        :param value: value to be removed from the list corresponding to the key
+        :type value: int or str
         :return: nothing
         """
         if key in self.node_dict.keys():
@@ -754,9 +760,12 @@ class CircuitDAG(CircuitBase):
         """
         Helper function to add an entry to the edge_dict
 
-        :param key:
-        :param value:
-        :return:
+        :param key: key for edge_dict
+        :type key: str
+        :param value: the edge tuple that contains in_node id, out_node id, and the label for the edge (register)
+        :type value: tuple(int, int, str)
+        :return: nothing
+        :rtype: None
         """
         if key not in self.edge_dict.keys():
             self.edge_dict[key] = [value]
@@ -767,9 +776,12 @@ class CircuitDAG(CircuitBase):
         """
          Helper function to remove an entry in the list corresponding to the key in edge_dict
 
-        :param key:
-        :param value:
+        :param key: key for edge_dict
+        :type key: str
+        :param value: the edge tuple that contains in_node id, out_node id, and the label for the edge (register)
+        :type value: tuple(int, int, str)
         :return: nothing
+        :rtype: None
         """
         if key in self.edge_dict.keys():
             try:

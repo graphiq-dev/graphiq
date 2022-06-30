@@ -231,6 +231,25 @@ class OperationBase(ABC):
             raise ValueError(f'The number of classical registers on which the operation acts cannot be changed!')
         self._c_registers = c_reg
 
+    def parse_q_reg_types(self):
+        """
+        Find a proper string description of the register types relevant for this operation
+
+        :raises ValueError: if the quantum register type is not supported
+        :return: a string description
+        :rtype: str
+        """
+        type_description = ''
+        for i in range(len(self.q_registers_type)):
+            if self.q_registers_type[i] == 'e':
+                type_description += 'Emitter-'
+            elif self.q_registers_type[i] == 'p':
+                type_description += 'Photonic-'
+            else:
+                raise ValueError('Detected a non-supported quantum register type.')
+
+        return type_description[:-1]
+
 
 class SingleQubitOperationBase(OperationBase):
     """

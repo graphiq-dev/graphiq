@@ -114,11 +114,11 @@ class EvolutionarySolver(RandomSearchSolver):
         for i in range(n_photon):
             # initialize all photon emission gates
             op = ops.CNOT(control=emission_assignment[i], control_type='e', target=i, target_type='p')
-            op.add_labels(['Emitter-Photonic', 'Fixed'])
+            op.add_labels('Fixed')
             circuit.add(op)
             # initialize all single-qubit Clifford gate for photonic qubits
             op = ops.SingleQubitGateWrapper([ops.Identity, ops.Hadamard], register=i, reg_type='p')
-            op.add_labels(['Photonic', 'Fixed'])
+            op.add_labels('Fixed')
             circuit.add(op)
 
         # initialize all emitter meausurement and reset operations
@@ -126,7 +126,7 @@ class EvolutionarySolver(RandomSearchSolver):
         for j in range(n_emitter):
             op = ops.MeasurementCNOTandReset(control=j, control_type='e', target=measurement_assignment[j],
                                              target_type='p')
-            op.add_labels(['Emitter-Photonic', 'Fixed'])
+            op.add_labels('Fixed')
             circuit.add(op)
         return circuit
 
@@ -201,7 +201,7 @@ class EvolutionarySolver(RandomSearchSolver):
         ind = np.random.choice(len(self.single_qubit_ops), p=self.p_dist)
         op = self.single_qubit_ops[ind]
         gate = ops.SingleQubitGateWrapper(op, reg_type='p', register=reg)
-        gate.add_labels(['Photonic', 'Fixed'])
+        gate.add_labels('Fixed')
 
         # circuit.replace_op(node, gate)
         circuit._open_qasm_update(gate)
@@ -234,7 +234,6 @@ class EvolutionarySolver(RandomSearchSolver):
         ind = np.random.choice(len(self.single_qubit_ops), p=self.e_dist)
         op = self.single_qubit_ops[ind]
         gate = ops.SingleQubitGateWrapper(op, reg_type='e', register=reg)
-        gate.add_labels('Emitter')
         circuit.insert_at(gate, [edge])
 
     def add_emitter_cnot(self, circuit):
@@ -257,7 +256,6 @@ class EvolutionarySolver(RandomSearchSolver):
 
         gate = ops.CNOT(control=circuit.dag.edges[edge0]['reg'], control_type='e',
                         target=circuit.dag.edges[edge1]['reg'], target_type='e')
-        gate.add_labels('Emitter-Emitter')
         circuit.insert_at(gate, [edge0, edge1])
 
     def remove_op(self, circuit, node=None):
@@ -303,7 +301,6 @@ class EvolutionarySolver(RandomSearchSolver):
 
         gate = ops.MeasurementCNOTandReset(control=circuit.dag.edges[edge0]['reg'], control_type='e',
                                            target=circuit.dag.edges[edge1]['reg'], target_type='p')
-        gate.add_labels('Emitter-Photonic')
         circuit.insert_at(gate, [edge0, edge1])
 
     # helper functions

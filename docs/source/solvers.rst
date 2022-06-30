@@ -17,7 +17,4 @@ Evolutionary Solver
 .. automodule:: src.solvers.evolutionary_solver
    :members:
 
-Rule Based Random Solver
-=========================
-.. automodule:: src.solvers.rule_based_random_solver
-   :members:
+

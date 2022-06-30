@@ -9,7 +9,7 @@ import copy
 
 from src.backends.density_matrix.functions import partial_trace
 from src.backends.density_matrix.compiler import DensityMatrixCompiler
-from src.solvers.rule_based_random_solver import RuleBasedRandomSearchSolver
+from src.solvers.evolutionary_solver import EvolutionarySolver
 import benchmarks.circuits as circ
 from src.metrics import Infidelity
 
@@ -141,5 +141,5 @@ if __name__ == "__main__":
     target_list = [circ.ghz3_state_circuit()]
     compiler = DensityMatrixCompiler()
     compiler.measurement_determinism = 1
-    df = benchmark_data(RuleBasedRandomSearchSolver, target_list, Infidelity, compiler,
+    df = benchmark_data(EvolutionarySolver, target_list, Infidelity, compiler,
                         per_target_retries=1, seed_offset=0, save_directory='benchmarks')

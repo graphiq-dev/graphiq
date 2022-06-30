@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 
 from src.backends.density_matrix.compiler import DensityMatrixCompiler
 from src.backends.graph.state import Graph
-from src.solvers.rule_based_random_solver import RuleBasedRandomSearchSolver
+from src.solvers.evolutionary_solver import EvolutionarySolver
 import benchmarks.circuits as circ
 from src.metrics import Infidelity
 from src.visualizers.density_matrix import density_matrix_heatmap
@@ -39,8 +39,8 @@ def run_solve(target_function, seed, graph=False):
     metric = Infidelity(target_state)
 
     # Create a setup the solver
-    solver = RuleBasedRandomSearchSolver(target=target_state, metric=metric, circuit=None, compiler=compiler,
-                                         n_emitter=target['n_emitters'], n_photon=target['n_photons'])
+    solver = EvolutionarySolver(target=target_state, metric=metric, circuit=None, compiler=compiler,
+                                n_emitter=target['n_emitters'], n_photon=target['n_photons'])
 
     solver.seed(seed)  # this makes the result replicable (since there is some randomness inherent to the solver
     solver.n_stop = 115
@@ -88,9 +88,9 @@ def run_solve(target_function, seed, graph=False):
 
 
 if __name__ == '__main__':
-    RuleBasedRandomSearchSolver.tournament_k = 0  # indicates no selection
+    EvolutionarySolver.tournament_k = 0  # indicates no selection
 
-    run_solve(circ.ghz3_state_circuit, 0, graph=False)
-    run_solve(circ.ghz4_state_circuit, 0, graph=False)
-    run_solve(circ.linear_cluster_3qubit_circuit, 0, graph=True)
-    run_solve(circ.linear_cluster_4qubit_circuit, 0, graph=True)
+    run_solve(circ.ghz3_state_circuit, 1, graph=False)
+    run_solve(circ.ghz4_state_circuit, 1, graph=False)
+    run_solve(circ.linear_cluster_3qubit_circuit, 1, graph=True)
+    run_solve(circ.linear_cluster_4qubit_circuit, 2, graph=True)

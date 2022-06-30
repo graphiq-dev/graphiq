@@ -1,5 +1,7 @@
 """
 Graph representation of quantum state
+
+# TODO: Refactor and revise when building the compiler for graph representation
 """
 import networkx as nx
 import warnings
@@ -33,16 +35,19 @@ class Graph(StateRepresentationBase):
         """
 
         super().__init__(data, *args, **kwargs)
-        self.root_node, self.node_dict, self.data = gf.convert_data_to_graph(data, root_node_id)
+        self.root_node, self.node_dict, self.data = gf.convert_data_to_graph(
+            data, root_node_id
+        )
         self.local_cliffords = None  # set this later
 
     def add_node(self, node_to_add):
         """
         Add a node to the graph.
         It allows node_to_add to be one of following types:
-            QuNode
-            int
-            frozenset
+
+            * QuNode
+            * int
+            * frozenset
 
         :param node_to_add: node id to add to the Graph representation
         :type node_to_add: QuNode OR int OR frozenset
@@ -56,7 +61,7 @@ class Graph(StateRepresentationBase):
                 self.node_dict[node_id] = node_to_add
                 self.data.add_node(node_to_add)
             else:
-                warnings.warn('Node already in the graph. Check node identifier.')
+                warnings.warn("Node already in the graph. Check node identifier.")
         elif isinstance(node_to_add, int) or isinstance(node_to_add, frozenset):
             if isinstance(node_to_add, int):
                 node_to_add = frozenset([node_to_add])
@@ -66,9 +71,9 @@ class Graph(StateRepresentationBase):
                 self.node_dict[node_to_add] = tmp_node
                 self.data.add_node(tmp_node)
             else:
-                warnings.warn('Node already in the graph. Check node identifier.')
+                warnings.warn("Node already in the graph. Check node identifier.")
         else:
-            raise ValueError('Invalid data for the node to be added.')
+            raise ValueError("Invalid data for the node to be added.")
 
     def add_edge(self, first_node, second_node):
         """
@@ -78,6 +83,8 @@ class Graph(StateRepresentationBase):
         :type first_node: QuNode OR int OR frozenset
         :param second_node: the second node on which to add an edge
         :type second_node: QuNode OR int OR frozenset
+        :return: nothing
+        :rtype: None
         """
         if isinstance(first_node, QuNode):
             node_id1 = first_node.get_id()
@@ -86,7 +93,7 @@ class Graph(StateRepresentationBase):
                 first_node = frozenset([first_node])
             node_id1 = first_node
         else:
-            raise ValueError('Not supporting input data type')
+            raise ValueError("Not supporting input data type")
 
         if isinstance(second_node, QuNode):
             node_id2 = second_node.get_id()
@@ -95,12 +102,12 @@ class Graph(StateRepresentationBase):
                 second_node = frozenset([second_node])
             node_id2 = second_node
         else:
-            raise ValueError('Not supporting input data type')
+            raise ValueError("Not supporting input data type")
 
         if node_id1 in self.node_dict.keys() and node_id2 in self.node_dict.keys():
             self.data.add_edge(self.node_dict[node_id1], self.node_dict[node_id2])
         else:
-            warnings.warn('At least one of nodes do not exist. Not adding an edge.')
+            warnings.warn("At least one of nodes do not exist. Not adding an edge.")
 
     def get_edges(self):
         """
@@ -144,7 +151,7 @@ class Graph(StateRepresentationBase):
         Returns the list of edges in the Graph as described by tuples of node IDs
 
         :return: list of tuples of node IDs, corresponding to the graph edges
-        :rtype: list (of tuples)
+        :rtype: list[tuples]
         """
         return [(e[0].get_id(), e[1].get_id()) for e in self.data.edges]
 
@@ -229,7 +236,10 @@ class Graph(StateRepresentationBase):
             all_nodes = self.node_dict.values()
 
             for node in all_nodes:
-                if (node, cnode) in self.data.edges() or (cnode, node) in self.data.edges():
+                if (node, cnode) in self.data.edges() or (
+                    cnode,
+                    node,
+                ) in self.data.edges():
                     neighbor_list.append(node)
         return neighbor_list
 
@@ -250,7 +260,7 @@ class Graph(StateRepresentationBase):
             self.node_dict.pop(node_id, None)
             return True
         else:
-            warnings.warn('No node is removed since node id does not exist.')
+            warnings.warn("No node is removed since node id does not exist.")
             return False
 
     def node_is_redundant(self, node_id):
@@ -280,9 +290,9 @@ class Graph(StateRepresentationBase):
 
         :param node_id: the id of the node from which we want to remove a photon
         :type node_id: int OR frozenset
-        :param removal_id: id of the photon to remove inside of the node (optional)
+        :param removal_id: id of the photon to remove inside the node (optional)
         :param removal_id: None OR int
-        :return: function returns nothing
+        :return: nothing
         :rtype: None
         """
         if isinstance(node_id, int):
@@ -298,11 +308,11 @@ class Graph(StateRepresentationBase):
                 new_node_id = node.get_id()
                 self.node_dict[new_node_id] = self.node_dict.pop(node_id)
             else:
-                assert node.count_redundancy() == 1 # just to make sure
+                assert node.count_redundancy() == 1  # just to make sure
                 self.data.remove_node(self.node_dict[node_id])
                 self.node_dict.pop(node_id)
         else:
-            warnings.warn('No node is removed since node id does not exist.')
+            warnings.warn("No node is removed since node id does not exist.")
 
     def measure_x(self, node_id):
         """
@@ -312,7 +322,7 @@ class Graph(StateRepresentationBase):
 
         :param node_id: the ID of the node to measure
         :type node_id: int OR frozenset
-        :return: function returns nothing
+        :return: nothing
         :rtype: None
         """
         if isinstance(node_id, int):
@@ -328,17 +338,17 @@ class Graph(StateRepresentationBase):
                 cnode.remove_id(new_node_id.pop())
                 self.node_dict[frozenset(new_node_id)] = self.node_dict.pop(node_id)
         else:
-            warnings.warn('No action is applied since node id does not exist.')
+            warnings.warn("No action is applied since node id does not exist.")
 
     def measure_y(self, node_id):
         # TODO
-        raise NotImplementedError('To do')
+        raise NotImplementedError("To do")
 
     def measure_z(self, node_id):
         # TODO
-        raise NotImplementedError('To do')
+        raise NotImplementedError("To do")
 
-    def draw(self, show=True, ax=None):
+    def draw(self, show=True, ax=None, with_labels=True):
         """
         Draw the underlying networkX graph
 
@@ -346,7 +356,7 @@ class Graph(StateRepresentationBase):
         :type show: bool
         :param ax: axis on which to draw the plot (optional)
         :type ax: matplotlib.axis
-        :return: function returns nothing
+        :return: nothing
         :rtype: None
         """
-        draw_graph(self, show=show, ax=ax)
+        draw_graph(self, show=show, ax=ax, with_labels=with_labels)

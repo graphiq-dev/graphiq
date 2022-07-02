@@ -105,15 +105,21 @@ class CircuitBase(ABC):
 
     @abstractmethod
     def add(self, operation: OperationBase):
-        raise ValueError('Base class circuit is abstract: it does not support function calls')
+        raise ValueError(
+            "Base class circuit is abstract: it does not support function calls"
+        )
 
     @abstractmethod
     def validate(self):
-        raise ValueError('Base class circuit is abstract: it does not support function calls')
+        raise ValueError(
+            "Base class circuit is abstract: it does not support function calls"
+        )
 
     @abstractmethod
     def sequence(self, unwrapped=False):
-        raise ValueError('Base class circuit is abstract: it does not support function calls')
+        raise ValueError(
+            "Base class circuit is abstract: it does not support function calls"
+        )
 
     def to_openqasm(self):
         """
@@ -122,23 +128,39 @@ class CircuitBase(ABC):
         :return: the openQASM script equivalent to our circuit (on a logical level)
         :rtype: str
         """
-        header_info = oq_lib.openqasm_header() + '\n' + '\n'.join(self.openqasm_imports.keys()) + '\n' \
-                      + '\n'.join(self.openqasm_defs.keys())
+        header_info = (
+            oq_lib.openqasm_header()
+            + "\n"
+            + "\n".join(self.openqasm_imports.keys())
+            + "\n"
+            + "\n".join(self.openqasm_defs.keys())
+        )
 
-        openqasm_str = [header_info, oq_lib.register_initialization_string(self.emitter_registers,
-                                                                           self.photonic_registers,
-                                                                           self.c_registers) + '\n']
+        openqasm_str = [
+            header_info,
+            oq_lib.register_initialization_string(
+                self.emitter_registers, self.photonic_registers, self.c_registers
+            )
+            + "\n",
+        ]
 
         opened_barrier = False
-        barrier_str = ', '.join([f'p{i}' for i in range(self.n_photons)] + [f'e{i}' for i in range(self.n_emitters)])
+        barrier_str = ", ".join(
+            [f"p{i}" for i in range(self.n_photons)]
+            + [f"e{i}" for i in range(self.n_emitters)]
+        )
         for op in self.sequence():
             oq_info = op.openqasm_info()
-            gate_application = oq_info.use_gate(op.q_registers, op.q_registers_type, op.c_registers)
+            gate_application = oq_info.use_gate(
+                op.q_registers, op.q_registers_type, op.c_registers
+            )
 
             # set barrier, if necessary to split out multi-block Operations from each other
             if (opened_barrier or oq_info.multi_comp) and gate_application != "":
-                openqasm_str.append(f'barrier {barrier_str};')
-            if oq_info.multi_comp:  # i.e. multiple visual blocks make this one Operation
+                openqasm_str.append(f"barrier {barrier_str};")
+            if (
+                oq_info.multi_comp
+            ):  # i.e. multiple visual blocks make this one Operation
                 opened_barrier = True
             elif gate_application != "":
                 opened_barrier = False
@@ -146,7 +168,7 @@ class CircuitBase(ABC):
             if gate_application != "":
                 openqasm_str.append(gate_application)
 
-        return '\n'.join(openqasm_str)
+        return "\n".join(openqasm_str)
 
     @property
     def n_quantum(self):
@@ -235,7 +257,7 @@ class CircuitBase(ABC):
         :return: index of added quantum register
         :rtype: int
         """
-        return self._add_register(size, 'e')
+        return self._add_register(size, "e")
 
     def add_photonic_register(self, size=1):
         """
@@ -246,7 +268,7 @@ class CircuitBase(ABC):
         :return: index of added quantum register
         :rtype: int
         """
-        return self._add_register(size, 'p')
+        return self._add_register(size, "p")
 
     def add_classical_register(self, size=1):
         """
@@ -257,7 +279,7 @@ class CircuitBase(ABC):
         :return: index of added classical register
         :rtype: int
         """
-        return self._add_register(size, 'c')
+        return self._add_register(size, "c")
 
     def _add_register(self, size, reg_type: str):
         """
@@ -273,20 +295,22 @@ class CircuitBase(ABC):
         :return: the index number of the added register
         :rtype: int
         """
-        if reg_type == 'p':
+        if reg_type == "p":
             curr_reg = self.photonic_registers
-            reg_description = 'Quantum photonic'
-        elif reg_type == 'e':
+            reg_description = "Quantum photonic"
+        elif reg_type == "e":
             curr_reg = self.emitter_registers
-            reg_description = 'Quantum emitter'
-        elif reg_type == 'c':
+            reg_description = "Quantum emitter"
+        elif reg_type == "c":
             curr_reg = self.c_registers
-            reg_description = 'Classical'
+            reg_description = "Classical"
         else:
-            raise ValueError("Register type must be 'p' (quantum photonic), 'e' (quantum emitter), or 'c' (classical)")
+            raise ValueError(
+                "Register type must be 'p' (quantum photonic), 'e' (quantum emitter), or 'c' (classical)"
+            )
 
         if size < 1:
-            raise ValueError(f'{reg_description} register size must be at least one')
+            raise ValueError(f"{reg_description} register size must be at least one")
 
         curr_reg.append(size)
         return len(curr_reg) - 1
@@ -304,7 +328,7 @@ class CircuitBase(ABC):
         :return: this function returns nothing
         :rtype: None
         """
-        self._expand_register(register, new_size, 'e')
+        self._expand_register(register, new_size, "e")
 
     def expand_photonic_register(self, register, new_size):
         """
@@ -319,7 +343,7 @@ class CircuitBase(ABC):
         :return: this function returns nothing
         :rtype: None
         """
-        self._expand_register(register, new_size, 'p')
+        self._expand_register(register, new_size, "p")
 
     def expand_classical_register(self, register, new_size):
         """
@@ -334,7 +358,7 @@ class CircuitBase(ABC):
         :return: this function returns nothing
         :rtype: None
         """
-        self._expand_register(register, new_size, 'c')
+        self._expand_register(register, new_size, "c")
 
     def _expand_register(self, register, new_size, reg_type: str):
         """
@@ -351,19 +375,23 @@ class CircuitBase(ABC):
         :return: this function returns nothing
         :rtype: None
         """
-        if reg_type == 'e':
+        if reg_type == "e":
             curr_reg = self.emitter_registers
-        elif reg_type == 'p':
+        elif reg_type == "p":
             curr_reg = self.photonic_registers
-        elif reg_type == 'c':
+        elif reg_type == "c":
             curr_reg = self.c_registers
         else:
-            raise ValueError("reg_type must be 'e' (emitter register), 'p' (photonic register), "
-                             "or 'c' (classical register)")
+            raise ValueError(
+                "reg_type must be 'e' (emitter register), 'p' (photonic register), "
+                "or 'c' (classical register)"
+            )
 
         curr_size = curr_reg[register]
         if new_size <= curr_size:
-            raise ValueError(f"New register size {new_size} is not greater than the current size {curr_size}")
+            raise ValueError(
+                f"New register size {new_size} is not greater than the current size {curr_size}"
+            )
         curr_reg[register] = new_size
 
     def draw_circuit(self, show=True, ax=None):
@@ -397,7 +425,9 @@ class CircuitBase(ABC):
                 if definition not in self.openqasm_defs:
                     self.openqasm_defs[definition] = 1
         except ValueError:
-            warnings.warn(UserWarning(f"No openqasm definitions for operation {type(op)}"))
+            warnings.warn(
+                UserWarning(f"No openqasm definitions for operation {type(op)}")
+            )
 
 
 class CircuitDAG(CircuitBase):
@@ -410,7 +440,14 @@ class CircuitDAG(CircuitBase):
     Each connecting edge of the graph corresponds to a qudit or classical bit of the circuit
     """
 
-    def __init__(self, n_emitter=0, n_photon=0, n_classical=0, openqasm_imports=None, openqasm_defs=None):
+    def __init__(
+        self,
+        n_emitter=0,
+        n_photon=0,
+        n_classical=0,
+        openqasm_imports=None,
+        openqasm_defs=None,
+    ):
         """
         Construct a DAG circuit with n_emitter single-qubit emitter quantum registers, n_photon single-qubit photon
         quantum registers, and n_classical single-cbit classical registers.
@@ -429,7 +466,9 @@ class CircuitDAG(CircuitBase):
         self._node_id = 0
         self.edge_dict = {}
         self.node_dict = {}
-        self._add_reg_if_absent(tuple(range(n_emitter)), tuple(range(n_photon)), tuple(range(n_classical)))
+        self._add_reg_if_absent(
+            tuple(range(n_emitter)), tuple(range(n_photon)), tuple(range(n_classical))
+        )
 
     def add(self, operation: OperationBase):
         """
@@ -444,10 +483,20 @@ class CircuitDAG(CircuitBase):
         self._open_qasm_update(operation)
 
         # update registers (if the new operation is adding registers to the circuit)
-        e_reg = tuple([operation.q_registers[i] for i in range(len(operation.q_registers))
-                       if operation.q_registers_type[i] == 'e'])
-        p_reg = tuple([operation.q_registers[i] for i in range(len(operation.q_registers))
-                       if operation.q_registers_type[i] == 'p'])
+        e_reg = tuple(
+            [
+                operation.q_registers[i]
+                for i in range(len(operation.q_registers))
+                if operation.q_registers_type[i] == "e"
+            ]
+        )
+        p_reg = tuple(
+            [
+                operation.q_registers[i]
+                for i in range(len(operation.q_registers))
+                if operation.q_registers_type[i] == "p"
+            ]
+        )
         self._add_reg_if_absent(e_reg, p_reg, operation.c_registers)
         self._add(operation, e_reg, p_reg, operation.c_registers)
 
@@ -467,10 +516,20 @@ class CircuitDAG(CircuitBase):
         self._open_qasm_update(operation)
 
         # update registers (if the new operation is adding registers to the circuit)
-        e_reg = tuple([operation.q_registers[i] for i in range(len(operation.q_registers))
-                       if operation.q_registers_type[i] == 'e'])
-        p_reg = tuple([operation.q_registers[i] for i in range(len(operation.q_registers))
-                       if operation.q_registers_type[i] == 'p'])
+        e_reg = tuple(
+            [
+                operation.q_registers[i]
+                for i in range(len(operation.q_registers))
+                if operation.q_registers_type[i] == "e"
+            ]
+        )
+        p_reg = tuple(
+            [
+                operation.q_registers[i]
+                for i in range(len(operation.q_registers))
+                if operation.q_registers_type[i] == "p"
+            ]
+        )
 
         self._add_reg_if_absent(e_reg, p_reg, operation.c_registers)
         assert len(edges) == len(operation.q_registers)
@@ -491,7 +550,7 @@ class CircuitDAG(CircuitBase):
         :rtype: None
         """
 
-        old_operation = self.dag.nodes[node]['op']
+        old_operation = self.dag.nodes[node]["op"]
         assert old_operation.q_registers == new_operation.q_registers
         assert old_operation.q_registers_type == new_operation.q_registers_type
         assert old_operation.c_registers == new_operation.c_registers
@@ -500,16 +559,17 @@ class CircuitDAG(CircuitBase):
         for label in old_operation.labels:
             self._node_dict_remove(label, node)
         self._node_dict_remove(type(old_operation).__name__, node)
+        self._node_dict_remove(old_operation.parse_q_reg_types(), node)
 
         # add entries related to new_operation
-
         for label in new_operation.labels:
             self._node_dict_append(label, node)
         self._node_dict_append(type(new_operation).__name__, node)
+        self._node_dict_append(new_operation.parse_q_reg_types(), node)
 
         # replace the operation in the node
         self._open_qasm_update(new_operation)
-        self.dag.nodes[node]['op'] = new_operation
+        self.dag.nodes[node]["op"] = new_operation
 
     def find_incompatible_edges(self, first_edge):
         """
@@ -557,7 +617,7 @@ class CircuitDAG(CircuitBase):
         for attribute in operation.labels:
             self._node_dict_append(attribute, node_id)
         self._node_dict_append(type(operation).__name__, node_id)
-
+        self._node_dict_append(operation.parse_q_reg_types(), node_id)
 
     def _remove_node(self, node):
         """
@@ -574,10 +634,12 @@ class CircuitDAG(CircuitBase):
         for in_edge in in_edges:
             for out_edge in out_edges:
                 if in_edge[2] == out_edge[2]:  # i.e. if the keys are the same
-                    reg = self.dag.edges[in_edge]['reg']
-                    reg_type = self.dag.edges[in_edge]['reg_type']
+                    reg = self.dag.edges[in_edge]["reg"]
+                    reg_type = self.dag.edges[in_edge]["reg_type"]
                     label = out_edge[2]
-                    self._add_edge(in_edge[0], out_edge[1], label, reg_type=reg_type, reg=reg)
+                    self._add_edge(
+                        in_edge[0], out_edge[1], label, reg_type=reg_type, reg=reg
+                    )
 
             self._remove_edge(in_edge)
 
@@ -585,12 +647,12 @@ class CircuitDAG(CircuitBase):
             self._remove_edge(out_edge)
 
         # remove all entries relevant for this node in node_dict
-        operation = self.dag.nodes[node]['op']
+        operation = self.dag.nodes[node]["op"]
         for attribute in operation.labels:
             self._node_dict_remove(attribute, node)
 
         self._node_dict_remove(type(operation).__name__, node)
-
+        self._node_dict_remove(operation.parse_q_reg_types(), node)
         self.dag.remove_node(node)
 
     def _add_edge(self, in_node, out_node, label, reg_type, reg):
@@ -623,7 +685,7 @@ class CircuitDAG(CircuitBase):
         :rtype: None
         """
 
-        reg_type = self.dag.edges[edge_to_remove]['reg_type']
+        reg_type = self.dag.edges[edge_to_remove]["reg_type"]
         self._edge_dict_remove(reg_type, edge_to_remove)
         self.dag.remove_edges_from([edge_to_remove])
 
@@ -680,18 +742,26 @@ class CircuitDAG(CircuitBase):
         assert nx.is_directed_acyclic_graph(self.dag)  # check DAG is correct
 
         # check all "source" nodes to the DAG are Input operations
-        input_nodes = [node for node, in_degree in self.dag.in_degree() if in_degree == 0]
+        input_nodes = [
+            node for node, in_degree in self.dag.in_degree() if in_degree == 0
+        ]
         # assert set(input_nodes)  == set(self.node_dict['Input'])
         for input_node in input_nodes:
-            if not isinstance(self.dag.nodes[input_node]['op'], Input):
-                raise RuntimeError(f"Source node {input_node} in the DAG is not an Input operation")
+            if not isinstance(self.dag.nodes[input_node]["op"], Input):
+                raise RuntimeError(
+                    f"Source node {input_node} in the DAG is not an Input operation"
+                )
 
         # check all "sink" nodes to the DAG are Output operations
-        output_nodes = [node for node, out_degree in self.dag.out_degree() if out_degree == 0]
+        output_nodes = [
+            node for node, out_degree in self.dag.out_degree() if out_degree == 0
+        ]
         # assert set(output_nodes) == set(self.node_dict['Output'])
         for output_node in output_nodes:
-            if not isinstance(self.dag.nodes[output_node]['op'], Output):
-                raise RuntimeError(f"Sink node {output_node} in the DAG is not an Output operation")
+            if not isinstance(self.dag.nodes[output_node]["op"], Output):
+                raise RuntimeError(
+                    f"Sink node {output_node} in the DAG is not an Output operation"
+                )
 
     def sequence(self, unwrapped=False):
         """
@@ -705,7 +775,7 @@ class CircuitDAG(CircuitBase):
         :return: the operations which compose this circuit, in the order they should be applied
         :rtype: list or iterator (of OperationBase subclass objects)
         """
-        op_list = [self.dag.nodes[node]['op'] for node in nx.topological_sort(self.dag)]
+        op_list = [self.dag.nodes[node]["op"] for node in nx.topological_sort(self.dag)]
         if not unwrapped:
             return op_list
 
@@ -728,7 +798,9 @@ class CircuitDAG(CircuitBase):
         Helper function to add an entry to the node_dict
 
         :param key: key for the node_dict
+        :type key: str
         :param value: value to be appended to the list corresponding to the key
+        :type value: int or str
         :return: nothing
         """
         if key not in self.node_dict.keys():
@@ -740,8 +812,10 @@ class CircuitDAG(CircuitBase):
         """
         Helper function to remove an entry in the list corresponding to the key in node_dict
 
-        :param key:
-        :param value:
+        :param key: key for the node_dict
+        :type key: str
+        :param value: value to be removed from the list corresponding to the key
+        :type value: int or str
         :return: nothing
         """
         if key in self.node_dict.keys():
@@ -754,9 +828,12 @@ class CircuitDAG(CircuitBase):
         """
         Helper function to add an entry to the edge_dict
 
-        :param key:
-        :param value:
-        :return:
+        :param key: key for edge_dict
+        :type key: str
+        :param value: the edge tuple that contains in_node id, out_node id, and the label for the edge (register)
+        :type value: tuple(int, int, str)
+        :return: nothing
+        :rtype: None
         """
         if key not in self.edge_dict.keys():
             self.edge_dict[key] = [value]
@@ -767,9 +844,12 @@ class CircuitDAG(CircuitBase):
         """
          Helper function to remove an entry in the list corresponding to the key in edge_dict
 
-        :param key:
-        :param value:
+        :param key: key for edge_dict
+        :type key: str
+        :param value: the edge tuple that contains in_node id, out_node id, and the label for the edge (register)
+        :type value: tuple(int, int, str)
         :return: nothing
+        :rtype: None
         """
         if key in self.edge_dict.keys():
             try:
@@ -813,7 +893,7 @@ class CircuitDAG(CircuitBase):
         :rtype: None
         """
         if set(q_reg) != {1}:
-            raise ValueError(f'CircuitDAG class only supports single-qubit registers')
+            raise ValueError(f"CircuitDAG class only supports single-qubit registers")
         self._emitter_registers = q_reg
 
     @CircuitBase.photonic_registers.setter
@@ -829,7 +909,7 @@ class CircuitDAG(CircuitBase):
         :rtype: None
         """
         if set(q_reg) != {1}:
-            raise ValueError(f'CircuitDAG class only supports single-qubit registers')
+            raise ValueError(f"CircuitDAG class only supports single-qubit registers")
         self._photon_registers = q_reg
 
     @CircuitBase.c_registers.setter
@@ -845,7 +925,7 @@ class CircuitDAG(CircuitBase):
         :rtype: None
         """
         if set(c_reg) != {1}:
-            raise ValueError(f'CircuitDAG class only supports single-qubit registers')
+            raise ValueError(f"CircuitDAG class only supports single-qubit registers")
         self._c_registers = c_reg
 
     def _add_register(self, size, reg_type):
@@ -859,20 +939,26 @@ class CircuitDAG(CircuitBase):
         :rtype: None
         """
         if size != 1:
-            raise ValueError(f'_add_register for this circuit class must only add registers of size 1')
+            raise ValueError(
+                f"_add_register for this circuit class must only add registers of size 1"
+            )
 
-        if reg_type == 'e':
+        if reg_type == "e":
             self._add_reg_if_absent((len(self.emitter_registers),), tuple(), tuple())
-        elif reg_type == 'p':
+        elif reg_type == "p":
             self._add_reg_if_absent(tuple(), (len(self.photonic_registers),), tuple())
-        elif reg_type == 'c':
+        elif reg_type == "c":
             self._add_reg_if_absent(tuple(), tuple(), (len(self.c_registers),))
         else:
-            raise ValueError(f"reg_type must be 'e' (emitter qubit), 'p' (photonic qubit), 'c' (classical bit)")
+            raise ValueError(
+                f"reg_type must be 'e' (emitter qubit), 'p' (photonic qubit), 'c' (classical bit)"
+            )
 
     def _expand_register(self, register, new_size, type_reg):
-        raise ValueError(f"Register size cannot be expanded in the {self.__class__.__name__} representation"
-                         f"(they must have a size of 1)")
+        raise ValueError(
+            f"Register size cannot be expanded in the {self.__class__.__name__} representation"
+            f"(they must have a size of 1)"
+        )
 
     def _add_reg_if_absent(self, e_reg, p_reg, c_reg):
         """
@@ -897,43 +983,67 @@ class CircuitDAG(CircuitBase):
         def _check_and_add_register(test_reg, circuit_reg, reg_type: str):
             sorted_reg = list(test_reg)
             sorted_reg.sort()
-            for i in sorted_reg:  # we sort such that we can throw an error if we get discontinuous registers
+            for (
+                i
+            ) in (
+                sorted_reg
+            ):  # we sort such that we can throw an error if we get discontinuous registers
                 if i == len(circuit_reg):
                     circuit_reg.append(1)
                 elif i > len(circuit_reg):
-                    raise ValueError(f"Register numbering must be continuous. {reg_type} register {i} cannot be added."
-                                     f"Next register that can be added is {len(circuit_reg)}")
+                    raise ValueError(
+                        f"Register numbering must be continuous. {reg_type} register {i} cannot be added."
+                        f"Next register that can be added is {len(circuit_reg)}"
+                    )
 
-        _check_and_add_register(e_reg, self.emitter_registers, 'Emitter qubit')
-        _check_and_add_register(p_reg, self.photonic_registers, 'Photonic qubit')
-        _check_and_add_register(c_reg, self.c_registers, 'Classical')
+        _check_and_add_register(e_reg, self.emitter_registers, "Emitter qubit")
+        _check_and_add_register(p_reg, self.photonic_registers, "Photonic qubit")
+        _check_and_add_register(c_reg, self.c_registers, "Classical")
 
         # Update graph to contain necessary registers
         for e in e_reg:
-            if f'e{e}_in' not in self.dag.nodes:
-                self.dag.add_node(f'e{e}_in', op=Input(register=e, reg_type='e'), reg=e)
-                self._node_dict_append('Input', f'e{e}_in')
-                self.dag.add_node(f'e{e}_out', op=Output(register=e, reg_type='e'), reg=e)
-                self._node_dict_append('Output', f'e{e}_out')
-                self.dag.add_edge(f'e{e}_in', f'e{e}_out', key=f'e{e}', reg=e, reg_type='e')
-                self._edge_dict_append('e', tuple(self.dag.in_edges(nbunch=f'e{e}_out', keys=True))[0])
+            if f"e{e}_in" not in self.dag.nodes:
+                self.dag.add_node(f"e{e}_in", op=Input(register=e, reg_type="e"), reg=e)
+                self._node_dict_append("Input", f"e{e}_in")
+                self.dag.add_node(
+                    f"e{e}_out", op=Output(register=e, reg_type="e"), reg=e
+                )
+                self._node_dict_append("Output", f"e{e}_out")
+                self.dag.add_edge(
+                    f"e{e}_in", f"e{e}_out", key=f"e{e}", reg=e, reg_type="e"
+                )
+                self._edge_dict_append(
+                    "e", tuple(self.dag.in_edges(nbunch=f"e{e}_out", keys=True))[0]
+                )
 
         for p in p_reg:
-            if f'p{p}_in' not in self.dag.nodes:
-                self.dag.add_node(f'p{p}_in', op=Input(register=p, reg_type='p'), reg=p)
-                self._node_dict_append('Input', f'p{p}_in')
-                self.dag.add_node(f'p{p}_out', op=Output(register=p, reg_type='p'), reg=p)
-                self._node_dict_append('Output', f'p{p}_out')
-                self.dag.add_edge(f'p{p}_in', f'p{p}_out', key=f'p{p}', reg=p, reg_type='p')
-                self._edge_dict_append('p', tuple(self.dag.in_edges(nbunch=f'p{p}_out', keys=True))[0])
+            if f"p{p}_in" not in self.dag.nodes:
+                self.dag.add_node(f"p{p}_in", op=Input(register=p, reg_type="p"), reg=p)
+                self._node_dict_append("Input", f"p{p}_in")
+                self.dag.add_node(
+                    f"p{p}_out", op=Output(register=p, reg_type="p"), reg=p
+                )
+                self._node_dict_append("Output", f"p{p}_out")
+                self.dag.add_edge(
+                    f"p{p}_in", f"p{p}_out", key=f"p{p}", reg=p, reg_type="p"
+                )
+                self._edge_dict_append(
+                    "p", tuple(self.dag.in_edges(nbunch=f"p{p}_out", keys=True))[0]
+                )
         for c in c_reg:
-            if f'c{c}_in' not in self.dag.nodes:
-                self.dag.add_node(f'c{c}_in', op=Input(register=c, reg_type='c'), reg=c)
-                self._node_dict_append('Input', f'c{c}_in')
-                self.dag.add_node(f'c{c}_out', op=Output(register=c, reg_type='c'), reg=c)
-                self._node_dict_append('Output', f'c{c}_out')
-                self.dag.add_edge(f'c{c}_in', f'c{c}_out', key=f'c{c}', reg=c, reg_type='c')
-                self._edge_dict_append('c', tuple(self.dag.in_edges(nbunch=f'c{c}_out', keys=True))[0])
+            if f"c{c}_in" not in self.dag.nodes:
+                self.dag.add_node(f"c{c}_in", op=Input(register=c, reg_type="c"), reg=c)
+                self._node_dict_append("Input", f"c{c}_in")
+                self.dag.add_node(
+                    f"c{c}_out", op=Output(register=c, reg_type="c"), reg=c
+                )
+                self._node_dict_append("Output", f"c{c}_out")
+                self.dag.add_edge(
+                    f"c{c}_in", f"c{c}_out", key=f"c{c}", reg=c, reg_type="c"
+                )
+                self._edge_dict_append(
+                    "c", tuple(self.dag.in_edges(nbunch=f"c{c}_out", keys=True))[0]
+                )
 
     def _add(self, operation: OperationBase, e_reg, p_reg, c_reg):
         """
@@ -956,17 +1066,21 @@ class CircuitDAG(CircuitBase):
         self._add_node(new_id, operation)
 
         # get all edges that will need to be removed (i.e. the edges on which the Operation is being added)
-        relevant_outputs = [f'e{e}_out' for e in e_reg] + \
-                           [f'p{p}_out' for p in p_reg] + \
-                           [f'c{c}_out' for c in c_reg]
+        relevant_outputs = (
+            [f"e{e}_out" for e in e_reg]
+            + [f"p{p}_out" for p in p_reg]
+            + [f"c{c}_out" for c in c_reg]
+        )
 
         for output in relevant_outputs:
-            edges_to_remove = list(self.dag.in_edges(nbunch=output, keys=True, data=False))
+            edges_to_remove = list(
+                self.dag.in_edges(nbunch=output, keys=True, data=False)
+            )
 
             for edge in edges_to_remove:
                 # Add edge from preceding node to the new operation node
-                reg_type = self.dag.edges[edge]['reg_type']
-                reg = self.dag.edges[edge]['reg']
+                reg_type = self.dag.edges[edge]["reg_type"]
+                reg = self.dag.edges[edge]["reg"]
                 self._add_edge(edge[0], new_id, edge[2], reg=reg, reg_type=reg_type)
 
                 # Add edge from the new operation node to the final node
@@ -993,8 +1107,8 @@ class CircuitDAG(CircuitBase):
         self._add_node(new_id, operation)
 
         for reg_edge in reg_edges:
-            reg = self.dag.edges[reg_edge]['reg']
-            reg_type = self.dag.edges[reg_edge]['reg_type']
+            reg = self.dag.edges[reg_edge]["reg"]
+            reg_type = self.dag.edges[reg_edge]["reg_type"]
             label = reg_edge[2]
 
             self._add_edge(reg_edge[0], new_id, label, reg_type=reg_type, reg=reg)
@@ -1010,4 +1124,3 @@ class CircuitDAG(CircuitBase):
         """
         self._node_id += 1
         return self._node_id
-

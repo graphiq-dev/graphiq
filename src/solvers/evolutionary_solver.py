@@ -1,5 +1,5 @@
+import copy
 import matplotlib.pyplot as plt
-
 import numpy as np
 import networkx as nx
 import warnings
@@ -9,7 +9,7 @@ import pandas as pd
 import src.backends.density_matrix.functions as dmf
 
 from src.metrics import MetricBase
-from src.circuit import CircuitBase
+
 from src.backends.compiler_base import CompilerBase
 
 from src.solvers import RandomSearchSolver
@@ -20,8 +20,6 @@ from src.metrics import Infidelity
 
 from src.visualizers.density_matrix import density_matrix_bars
 from src import ops
-
-import benchmarks.circuits as bc
 
 
 class EvolutionarySolver(RandomSearchSolver):
@@ -36,12 +34,22 @@ class EvolutionarySolver(RandomSearchSolver):
     n_hof = 5
     tournament_k = 2  # tournament size for selection of the next population
 
-    single_qubit_ops = list(
-        ops.single_qubit_cliffords()
-    )
+    single_qubit_ops = list(ops.single_qubit_cliffords())
 
-    def __init__(self, target, metric: MetricBase, compiler: CompilerBase, circuit: CircuitBase = None,
-                 n_emitter=1, n_photon=1, selection_active=False, *args, **kwargs):
+    use_adapt_probability = False
+
+    def __init__(
+        self,
+        target,
+        metric: MetricBase,
+        compiler: CompilerBase,
+        circuit: CircuitDAG = None,
+        n_emitter=1,
+        n_photon=1,
+        selection_active=False,
+        *args,
+        **kwargs,
+    ):
 
         super().__init__(target, metric, compiler, circuit, *args, **kwargs)
 
@@ -88,11 +96,20 @@ class EvolutionarySolver(RandomSearchSolver):
         :type iteration: int
         :return: nothing
         """
-        self.trans_probs[self.add_emitter_one_qubit_op] += -1 / self.n_stop / 3
-        self.trans_probs[self.replace_photon_one_qubit_op] += -1 / self.n_stop / 3
-        self.trans_probs[self.remove_op] += 1 / self.n_stop
+        self.trans_probs[self.add_emitter_one_qubit_op] = max(
+            self.trans_probs[self.add_emitter_one_qubit_op] - 1 / self.n_stop / 3, 0.01
+        )
+        self.trans_probs[self.replace_photon_one_qubit_op] = max(
+            self.trans_probs[self.replace_photon_one_qubit_op] - 1 / self.n_stop / 3,
+            0.01,
+        )
+        self.trans_probs[self.remove_op] = min(
+            self.trans_probs[self.remove_op] + 1 / self.n_stop, 0.99
+        )
         if self.n_emitter > 1:
-            self.trans_probs[self.add_emitter_cnot] += -1 / self.n_stop / 3
+            self.trans_probs[self.add_emitter_cnot] = max(
+                self.trans_probs[self.add_emitter_cnot] - 1 / self.n_stop / 3, 0.01
+            )
 
         # normalize the probabilities
         total = np.sum(list(self.trans_probs.values()))
@@ -116,20 +133,31 @@ class EvolutionarySolver(RandomSearchSolver):
 
         for i in range(n_photon):
             # initialize all photon emission gates
-            op = ops.CNOT(control=emission_assignment[i], control_type='e', target=i, target_type='p')
-            op.add_labels(['Emitter-Photonic', 'Fixed'])
+            op = ops.CNOT(
+                control=emission_assignment[i],
+                control_type="e",
+                target=i,
+                target_type="p",
+            )
+            op.add_labels("Fixed")
             circuit.add(op)
             # initialize all single-qubit Clifford gate for photonic qubits
-            op = ops.SingleQubitGateWrapper([ops.Identity, ops.Hadamard], register=i, reg_type='p')
-            op.add_labels(['Photonic', 'Fixed'])
+            op = ops.SingleQubitGateWrapper(
+                [ops.Identity, ops.Hadamard], register=i, reg_type="p"
+            )
+            op.add_labels("Fixed")
             circuit.add(op)
 
         # initialize all emitter meausurement and reset operations
 
         for j in range(n_emitter):
-            op = ops.MeasurementCNOTandReset(control=j, control_type='e', target=measurement_assignment[j],
-                                             target_type='p')
-            op.add_labels(['Emitter-Photonic', 'Fixed'])
+            op = ops.MeasurementCNOTandReset(
+                control=j,
+                control_type="e",
+                target=measurement_assignment[j],
+                target_type="p",
+            )
+            op.add_labels("Fixed")
             circuit.add(op)
         return circuit
 
@@ -145,32 +173,53 @@ class EvolutionarySolver(RandomSearchSolver):
 
         # Initialize population
         population = []
-        for j in range(self.n_pop):
-            emission_assignment = self.get_emission_assignment(self.n_photon, self.n_emitter)
-            measurement_assignment = self.get_measurement_assignment(self.n_photon, self.n_emitter)
+        if self.circuit is None:
+            for j in range(self.n_pop):
+                emission_assignment = self.get_emission_assignment(
+                    self.n_photon, self.n_emitter
+                )
+                measurement_assignment = self.get_measurement_assignment(
+                    self.n_photon, self.n_emitter
+                )
 
-            circuit = self.initialization(emission_assignment, measurement_assignment)
-            population.append((np.inf, circuit))  # initialize all population members
+                circuit = self.initialization(
+                    emission_assignment, measurement_assignment
+                )
+                population.append(
+                    (np.inf, circuit)
+                )  # initialize all population members
+        else:
+            for j in range(self.n_pop):
+                population.append((np.inf, copy.deepcopy(self.circuit)))
 
         for i in range(self.n_stop):
             for j in range(self.n_pop):
-                transformation = np.random.choice(list(self.trans_probs.keys()), p=list(self.trans_probs.values()))
+                transformation = np.random.choice(
+                    list(self.trans_probs.keys()), p=list(self.trans_probs.values())
+                )
                 circuit = population[j][1]
 
                 transformation(circuit)
 
                 circuit.validate()
 
-                compiled_state = self.compiler.compile(circuit)  # this will pass out a density matrix object
+                compiled_state = self.compiler.compile(
+                    circuit
+                )  # this will pass out a density matrix object
 
-                state_data = dmf.partial_trace(compiled_state.data,
-                                               keep=list(range(self.n_photon)),
-                                               dims=(self.n_photon + self.n_emitter) * [2])
+                state_data = dmf.partial_trace(
+                    compiled_state.data,
+                    keep=list(range(self.n_photon)),
+                    dims=(self.n_photon + self.n_emitter) * [2],
+                )
                 score = self.metric.evaluate(state_data, circuit)
 
                 population[j] = (score, circuit)
 
             self.update_hof(population)
+            if EvolutionarySolver.use_adapt_probability:
+                self.adapt_probabilities(i)
+
             # self.adapt_probabilities(i)
 
             # this should be the last thing performed *prior* to selecting a new population (after updating HoF)
@@ -238,25 +287,24 @@ class EvolutionarySolver(RandomSearchSolver):
         :type circuit: CircuitDAG
         :return: nothing
         """
-        nodes = circuit.get_node_by_labels(['SingleQubitGateWrapper', 'Photonic'])
+        nodes = circuit.get_node_by_labels(["SingleQubitGateWrapper", "Photonic"])
 
         if len(nodes) == 0:
             return
         ind = np.random.randint(len(nodes))
         node = list(nodes)[ind]
 
-        old_op = circuit.dag.nodes[node]['op']
+        old_op = circuit.dag.nodes[node]["op"]
 
         reg = old_op.register
         ind = np.random.choice(len(self.single_qubit_ops), p=self.p_dist)
         op = self.single_qubit_ops[ind]
-        gate = ops.SingleQubitGateWrapper(op, reg_type='p', register=reg)
-        gate.add_labels(['Photonic', 'Fixed'])
+        gate = ops.SingleQubitGateWrapper(op, reg_type="p", register=reg)
+        gate.add_labels("Fixed")
 
         # circuit.replace_op(node, gate)
         circuit._open_qasm_update(gate)
-        circuit.dag.nodes[node]['op'] = gate
-
+        circuit.dag.nodes[node]["op"] = gate
 
     def add_emitter_one_qubit_op(self, circuit):
         """
@@ -268,10 +316,13 @@ class EvolutionarySolver(RandomSearchSolver):
         """
         # make sure only selecting emitter qubits and avoiding adding a gate after final measurement or
         # adding two single-qubit Clifford gates in a row
-        edges = [edge for edge in circuit.edge_dict['e'] if
-                 type(circuit.dag.nodes[edge[1]]['op']) is not ops.Output and
-                 type(circuit.dag.nodes[edge[0]]['op']) is not ops.SingleQubitGateWrapper and
-                 type(circuit.dag.nodes[edge[1]]['op']) is not ops.SingleQubitGateWrapper]
+        edges = [
+            edge
+            for edge in circuit.edge_dict["e"]
+            if type(circuit.dag.nodes[edge[1]]["op"]) is not ops.Output
+            and type(circuit.dag.nodes[edge[0]]["op"]) is not ops.SingleQubitGateWrapper
+            and type(circuit.dag.nodes[edge[1]]["op"]) is not ops.SingleQubitGateWrapper
+        ]
 
         if len(edges) == 0:
             return
@@ -279,13 +330,12 @@ class EvolutionarySolver(RandomSearchSolver):
         ind = np.random.randint(len(edges))
         edge = list(edges)[ind]
 
-        reg = circuit.dag.edges[edge]['reg']
+        reg = circuit.dag.edges[edge]["reg"]
         label = edge[2]
 
         ind = np.random.choice(len(self.single_qubit_ops), p=self.e_dist)
         op = self.single_qubit_ops[ind]
-        gate = ops.SingleQubitGateWrapper(op, reg_type='e', register=reg)
-        gate.add_labels('Emitter')
+        gate = ops.SingleQubitGateWrapper(op, reg_type="e", register=reg)
         circuit.insert_at(gate, [edge])
 
     def add_emitter_cnot(self, circuit):
@@ -306,9 +356,12 @@ class EvolutionarySolver(RandomSearchSolver):
         ind = np.random.randint(len(possible_edge_pairs))
         (edge0, edge1) = possible_edge_pairs[ind]
 
-        gate = ops.CNOT(control=circuit.dag.edges[edge0]['reg'], control_type='e',
-                        target=circuit.dag.edges[edge1]['reg'], target_type='e')
-        gate.add_labels('Emitter-Emitter')
+        gate = ops.CNOT(
+            control=circuit.dag.edges[edge0]["reg"],
+            control_type="e",
+            target=circuit.dag.edges[edge1]["reg"],
+            target_type="e",
+        )
         circuit.insert_at(gate, [edge0, edge1])
 
     def remove_op(self, circuit, node=None):
@@ -323,7 +376,7 @@ class EvolutionarySolver(RandomSearchSolver):
         :rtype: None
         """
         if node is None:
-            nodes = circuit.get_node_exclude_labels(['Fixed', 'Input', 'Output'])
+            nodes = circuit.get_node_exclude_labels(["Fixed", "Input", "Output"])
 
             if len(nodes) == 0:
                 return
@@ -352,9 +405,12 @@ class EvolutionarySolver(RandomSearchSolver):
         ind = np.random.randint(len(possible_edge_pairs))
         (edge0, edge1) = possible_edge_pairs[ind]
 
-        gate = ops.MeasurementCNOTandReset(control=circuit.dag.edges[edge0]['reg'], control_type='e',
-                                           target=circuit.dag.edges[edge1]['reg'], target_type='p')
-        gate.add_labels('Emitter-Photonic')
+        gate = ops.MeasurementCNOTandReset(
+            control=circuit.dag.edges[edge0]["reg"],
+            control_type="e",
+            target=circuit.dag.edges[edge1]["reg"],
+            target_type="p",
+        )
         circuit.insert_at(gate, [edge0, edge1])
 
     # helper functions
@@ -371,8 +427,11 @@ class EvolutionarySolver(RandomSearchSolver):
         """
 
         edge_pair = []
-        edges = [edge for edge in circuit.edge_dict['e'] if
-                 type(circuit.dag.nodes[edge[1]]['op']) is not ops.Output]
+        edges = [
+            edge
+            for edge in circuit.edge_dict["e"]
+            if type(circuit.dag.nodes[edge[1]]["op"]) is not ops.Output
+        ]
 
         for edge in edges:
             possible_edges = set(edges) - circuit.find_incompatible_edges(edge)
@@ -393,15 +452,23 @@ class EvolutionarySolver(RandomSearchSolver):
         :rtype: list[tuple]
         """
         edge_pair = []
-        e_edges = [edge for edge in circuit.edge_dict['e'] if
-                   type(circuit.dag.nodes[edge[1]]['op']) is not ops.Output and
-                   type(circuit.dag.nodes[edge[1]]['op']) is not ops.MeasurementCNOTandReset and
-                   type(circuit.dag.nodes[edge[0]]['op']) is not ops.Input and
-                   type(circuit.dag.nodes[edge[0]]['op']) is not ops.MeasurementCNOTandReset]
+        e_edges = [
+            edge
+            for edge in circuit.edge_dict["e"]
+            if type(circuit.dag.nodes[edge[1]]["op"]) is not ops.Output
+            and type(circuit.dag.nodes[edge[1]]["op"])
+            is not ops.MeasurementCNOTandReset
+            and type(circuit.dag.nodes[edge[0]]["op"]) is not ops.Input
+            and type(circuit.dag.nodes[edge[0]]["op"])
+            is not ops.MeasurementCNOTandReset
+        ]
 
-        p_edges = [edge for edge in circuit.edge_dict['p'] if
-                   type(circuit.dag.nodes[edge[1]]['op']) is not ops.MeasurementCNOTandReset
-                   and type(circuit.dag.nodes[edge[0]]['op']) is not ops.Input]
+        p_edges = [
+            edge
+            for edge in circuit.edge_dict["p"]
+            if type(circuit.dag.nodes[edge[1]]["op"]) is not ops.MeasurementCNOTandReset
+            and type(circuit.dag.nodes[edge[0]]["op"]) is not ops.Input
+        ]
 
         for edge in e_edges:
 
@@ -485,12 +552,12 @@ class EvolutionarySolver(RandomSearchSolver):
             return transition_name
 
         return {
-            'solver name': self.name,
-            'Max iteration #': self.n_stop,
-            'Population size': self.n_pop,
-            'seed': self.last_seed,
-            'Single qubit ops': op_names(self.single_qubit_ops),
-            'Transition probabilities': transition_names(self.trans_probs)
+            "solver name": self.name,
+            "Max iteration #": self.n_stop,
+            "Population size": self.n_pop,
+            "seed": self.last_seed,
+            "Single qubit ops": op_names(self.single_qubit_ops),
+            "Transition probabilities": transition_names(self.trans_probs),
         }
 
 
@@ -510,7 +577,7 @@ if __name__ == "__main__":
     circuit_ideal, state_ideal = linear_cluster_3qubit_circuit()
 
     # %% construct all of our important objects
-    target = state_ideal['dm']
+    target = state_ideal["dm"]
     compiler = DensityMatrixCompiler()
     metric = Infidelity(target=target)
 

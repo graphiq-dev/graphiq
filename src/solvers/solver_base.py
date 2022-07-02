@@ -23,7 +23,13 @@ class SolverBase(ABC):
     target quantum state.
     """
 
-    def __init__(self, target, metric: MetricBase, compiler: CompilerBase, circuit: CircuitBase = None):
+    def __init__(
+        self,
+        target,
+        metric: MetricBase,
+        compiler: CompilerBase,
+        circuit: CircuitBase = None,
+    ):
         self.name = "base"
         self.target = target
         self.metric = metric
@@ -42,7 +48,9 @@ class SolverBase(ABC):
 
     @abstractmethod
     def solve(self, *args):
-        raise NotImplementedError("Base Solver class, solver method is not implemented.")
+        raise NotImplementedError(
+            "Base Solver class, solver method is not implemented."
+        )
 
     @staticmethod
     def seed(seed=None):
@@ -74,10 +82,7 @@ class RandomSearchSolver(SolverBase):
     n_hof = 10
     n_pop = 10
 
-    fixed_ops = [  # ops that should never be removed/swapped
-        ops.Input,
-        ops.Output
-    ]
+    fixed_ops = [ops.Input, ops.Output]  # ops that should never be removed/swapped
 
     single_qubit_ops = [
         ops.Hadamard,
@@ -87,17 +92,22 @@ class RandomSearchSolver(SolverBase):
         ops.CNOT,
     ]
 
-    def __init__(self, target, metric: MetricBase, compiler: CompilerBase,
-                 circuit: CircuitBase = None, *args, **kwargs):
+    def __init__(
+        self,
+        target,
+        metric: MetricBase,
+        compiler: CompilerBase,
+        circuit: CircuitBase = None,
+        *args,
+        **kwargs,
+    ):
 
         super().__init__(target, metric, compiler, circuit)
 
         # hof stores the best circuits and their scores in the form of: (scores, circuits)
         self.hof = [(np.inf, None) for _ in range(self.n_hof)]
 
-        self.trans_probs = {
-            None: None
-        }
+        self.trans_probs = {None: None}
 
         self.transformations = list(self.trans_probs.keys())
 
@@ -145,9 +155,13 @@ class RandomSearchSolver(SolverBase):
             # tourn_pop.sort(key=lambda x: x[0], reverse=False)
             best = min(tourn_pop, key=lambda x: x[0])
 
-            population_new.append(copy.deepcopy(best))  # add the best performing circuit in the tournament
+            population_new.append(
+                copy.deepcopy(best)
+            )  # add the best performing circuit in the tournament
 
         return population_new
 
     def solve(self, *args):
-        raise NotImplementedError("Base Solver class, solver method is not implemented.")
+        raise NotImplementedError(
+            "Base Solver class, solver method is not implemented."
+        )

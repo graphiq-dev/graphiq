@@ -38,8 +38,8 @@ Stabilizer Representation Backend
 .. automodule:: src.backends.stabilizer.functions
    :members:
 
-LC Equivalence Check
-=========================
+Local-Clifford Equivalence Check Module
+=========================================
 .. automodule:: src.backends.lc_equivalence_check
    :members:
 

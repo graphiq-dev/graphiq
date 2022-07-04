@@ -62,6 +62,5 @@ def test_star_graph():
             print(local_clifford_ops(solution), "\n")
         assert isinstance(solution, type(np.array([0]))) or isinstance(solution, type(None))
         a, _ = iso_equal_check(g1, g2)
-        print(a)
         assert a
 

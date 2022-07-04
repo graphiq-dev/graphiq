@@ -13,12 +13,16 @@ is also valid. A binary representation of the stabilizers can be obtained by the
 
    \sigma_0 = I \rightarrow 00,\ \sigma_x \rightarrow 01,\  \sigma_z \rightarrow 10,\  \sigma_y \rightarrow 11
 
+This can be generalized to :math:`n`-qubit case, which gives rise to a :math:`2n`-dimensional vector.
+For example, :math:`\sigma_x \otimes \sigma_y \otimes \cdots \otimes \sigma_z
+\rightarrow \left( 0, 1, \cdots, 1| 1, 1, \cdots, 0 \right)`.
+We note that this convention is different from the one used by many other authors.
+Nevertheless, as we treat :math:`X` and :math:`Z` matrices separately,
+this different convention does not cause any issue.
 
-This can be generalized to :math:`n`-qubit case, that is, :math:`\sigma_x \otimes \sigma_y \otimes \cdots \otimes \sigma_z=
-\left( 0, 1, \cdots, 1| 1, 1, \cdots, 0 \right)`, which is a :math:`2n`-dimensional vector.
-
-The generators set can then be represented by :math:`2n \times n` matrix which can be thought of as two :math:`n \times n`
-square matrices on top of each other. A column in this matrix is a :math:`2n`-dimensional vector representing one stabilizer operator.
+The generators set can then be represented by :math:`2n \times n` matrix,
+which can be thought of as two :math:`n \times n` square matrices on top of each other.
+A column in this matrix is a :math:`2n`-dimensional vector representing one stabilizer operator.
 We name this matrix :math:`S`, the top matrix :math:`Z` matrix, and the bottom matrix :math:`X` matrix.
 
 .. math::
@@ -26,16 +30,18 @@ We name this matrix :math:`S`, the top matrix :math:`Z` matrix, and the bottom m
    S = \begin{bmatrix} Z \\X \end{bmatrix} = \begin{bmatrix} \theta \\ I \end{bmatrix}
 
 
-Under this mapping, if :math:`Z_{ij}` is equal to one and :math:`X_{ij}` is zero, then it means a Pauli :math:`Z` operator acting on
-qubit :math:`i` in the :math:`j`-th stabilizer operator. The other way around which is :math:`Z_{ij} = 0` and :math:`X_{ij} =1` is
+Under this mapping, if :math:`Z_{ij}` is equal to one and :math:`X_{ij}` is zero,
+then it means a Pauli :math:`Z` operator acting on qubit :math:`i` in the :math:`j`-th stabilizer operator.
+The other way around which is :math:`Z_{ij} = 0` and :math:`X_{ij} =1` is
 a Pauli X acting on qubit :math:`i`. And if both elements are 0 or 1, they correspond to identity :math:`I` and
 Pauli :math:`Y` operators, respectively.
-For the special case of graph states, the X matrix is equal to identity :math:`I` and the :math:`Z` matrix is the
-adjacency matrix of the graph usually shown by :math:`\theta`.
+For the special case of graph states, the :math:`X` matrix is equal to identity :math:`I`
+and the :math:`Z` matrix is the adjacency matrix of the graph usually shown by :math:`\theta`.
 
 
-A general :math:`n`-qubit local Clifford operation in this formalism can be represented by a :math:`2n \times 2n` matrix Q,
-which is made of 4 diagonal square matrices :math:`A, B, C` and :math:`D`, that is,
+A general :math:`n`-qubit local Clifford operation in this formalism can be represented by
+a :math:`2n \times 2n` matrix :math:`Q`,which is made of 4 diagonal square matrices :math:`A, B, C` and :math:`D`,
+that is,
 
  .. math::
 
@@ -158,14 +164,14 @@ def is_lc_equivalent(adj_matrix1, adj_matrix2, mode="deterministic"):
     """
     Determines whether two graph states are local-Clifford equivalent or not, given the adjacency matrices of the two.
 
-    :param adj_matrix1: The adjacency matrix of the first graph. This is equal to the binary matrix for representing
+    :param adj_matrix1: the adjacency matrix of the first graph. This is equal to the binary matrix for representing
         Pauli Z part of the symplectic binary representation of the stabilizer generators
     :type adj_matrix1: numpy.ndarray
-    :param adj_matrix2:The adjacency matrix of the second graph
+    :param adj_matrix2: the adjacency matrix of the second graph
     :type adj_matrix2: numpy.ndarray
     :param mode: the mode of the solver is chosen. It can be either 'deterministic' (default) or 'random'.
     :type mode: str
-    :return: If a solution is found, returns an array of single-qubit Clifford 2*2 matrices in the symplectic formalism.
+    :return: If a solution is found, returns an array of single-qubit Clifford 2 x 2 matrices in the symplectic formalism.
         If not, graphs are not LC equivalent and returns None.
     :rtype: bool, numpy.ndarray or None
 
@@ -179,20 +185,20 @@ def is_lc_equivalent(adj_matrix1, adj_matrix2, mode="deterministic"):
     # check for rank to see how many independent equations are there = rank of the matrix
     rank = np.linalg.matrix_rank(coeff_matrix)
     if rank >= 4 * n_node:
-        # print(f'rank = {rank} >= 4n = {4 * n} Two graphs/states are not LC equivalent for sure')
+        # Those two graph states are not LC equivalent for sure
         return False, None
 
     # row reduction applied
-    reduced_coeff_matrix, b, c = sf.row_reduction(coeff_matrix, coeff_matrix * 0)
+    reduced_coeff_matrix, _, last_nonzero_row_index = sf.row_reduction(coeff_matrix, coeff_matrix * 0)
 
-    rank = c + 1
+    rank = last_nonzero_row_index + 1
     reduced_coeff_matrix = np.array(
-        [i for i in reduced_coeff_matrix if i.any()]
+        [row for row in reduced_coeff_matrix if row.any()]
     )  # update the matrix to remove zero rows
     assert (
         np.shape(reduced_coeff_matrix)[0] == rank
-    ), "remaining rows are less than the rank!"
-    rank = np.shape(reduced_coeff_matrix)[0]
+    ), "The number of remaining rows is less than the rank!"
+    # rank = np.shape(reduced_coeff_matrix)[0]
 
     col_list = _col_finder(reduced_coeff_matrix)  # finding linear dependent columns!
     length = len(col_list)
@@ -209,23 +215,21 @@ def is_lc_equivalent(adj_matrix1, adj_matrix2, mode="deterministic"):
     elif mode == "deterministic":
 
         basis = _solution_basis_finder(reduced_coeff_matrix, col_list)
-        sub_set = list(combinations(basis, 2))
+        possible_combinations = list(combinations(basis, 2))
         solution_set = []
-        for x in sub_set:
-            a = x[0] + x[1]
-            solution_set.append(a % 2)
-        for y in solution_set:
-            if _verifier(y):
+        for basis_combination in possible_combinations:
+            possible_solution = basis_combination[0] + basis_combination[1]
+            solution_set.append(possible_solution % 2)
+        for solution in solution_set:
+            if _verifier(solution):
                 # print("solution found! \n")
-                # convert the solution (=y) to an array of n * (2*2) matrices
-                return True, y.reshape(n_node, 2, 2)
+                # convert the solution to an array of n * (2 X 2) matrices
+                return True, solution.reshape(n_node, 2, 2)
 
-        # print("states are NOT LC equivalent")
+        # states are NOT LC equivalent
         return False, None
     else:
-        raise ValueError(
-            'The Mode should be either "random" or "deterministic" (default)'
-        )
+        raise ValueError('The Mode should be either "random" or "deterministic" (default)')
 
 
 def _solution_basis_finder(reduced_coeff_matrix, col_list):
@@ -241,16 +245,17 @@ def _solution_basis_finder(reduced_coeff_matrix, col_list):
     """
 
     length = len(col_list)
-    bbb = []
+    all_basis_elements = []
     for col in col_list:
-        b = reduced_coeff_matrix[:, col]
-        b = b.reshape((np.shape(reduced_coeff_matrix)[1] - length, 1))
-        bbb.append(b)
-    b_matrix = np.array(bbb)  # contains all vectors b as its columns
+        possible_basis = reduced_coeff_matrix[:, col]
+        possible_basis = possible_basis.reshape((np.shape(reduced_coeff_matrix)[1] - length, 1))
+        all_basis_elements.append(possible_basis)
 
-    a_matrix = np.delete(
-        reduced_coeff_matrix, col_list, axis=1
-    )  # removing linear dependent columns!
+    # contains all vectors b as its columns
+    b_matrix = np.array(all_basis_elements)
+
+    # removing linear dependent columns!
+    a_matrix = np.delete(reduced_coeff_matrix, col_list, axis=1)
 
     x_array = ((np.linalg.inv(a_matrix)) % 2 @ b_matrix) % 2
     x_array = x_array.astype(int)
@@ -266,9 +271,7 @@ def _solution_basis_finder(reduced_coeff_matrix, col_list):
     # print(f'solution basis is full rank = {np.shape(v_array)[0]} :',
     #      np.linalg.matrix_rank(v_array[:, :, 0]) == np.shape(v_array)[0])
     # check also that it give zero array as result:
-    assert not (
-        ((reduced_coeff_matrix @ v_array) % 2).any()
-    ), "solution basis is wrong!"
+    assert not ((reduced_coeff_matrix @ v_array) % 2).any(), "solution basis is wrong!"
 
     return v_array.astype(int)
 
@@ -563,9 +566,10 @@ def local_comp_graph(input_graph, node_id):
     adj_matrix = nx.to_numpy_array(input_graph).astype(int)
     identity = np.eye(n_nodes, n_nodes)
     gamma_matrix = np.zeros((n_nodes, n_nodes))
-    gamma_matrix[
-        node_id, node_id
-    ] = 1  # gamma has only a single 1 element on position = diag(i)
+
+    # gamma has only a single 1 element on position = diag(i)
+    gamma_matrix[node_id, node_id] = 1
+
     new_adj_matrix = (
         adj_matrix
         @ (

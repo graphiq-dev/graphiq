@@ -320,22 +320,23 @@ def _vec_solution_finder(reduced_coeff_matrix, col_list, var_vec):
     :return: an array that is one of the vectors in the solution basis for the system of linear equations.
     :rtype: numpy.ndarray
     """
-    # find the matrix equation Ax=b A is the square(rank x rank) matrix out of the reduced_coeff_matrix x is the
+    # find the matrix equation Ax=b where A is the square(rank x rank) matrix out of the reduced_coeff_matrix x is the
     # vector of length=rank to be found by A^(-1)*b.
     # b is the vector obtained from randomly choosing the extra
-    # unknowns of vector rand_vec: b= (-1)* reduced_coeff_matrix * var_vec
+    # unknowns of vector rand_vec that makes the non-homogeneous part of the
+    # system of linear equations; b= (-1)* reduced_coeff_matrix * var_vec
 
     n = int(np.shape(reduced_coeff_matrix)[1] / 4)
-    a = np.delete(
+    a_square_reduced_coeff_matrix = np.delete(
         reduced_coeff_matrix, col_list, axis=1
     )  # removing linear dependent columns!
-    b = (reduced_coeff_matrix @ var_vec) % 2
-    x = ((np.linalg.inv(a)) % 2 @ b) % 2
+    b_nonhomogeneous = (reduced_coeff_matrix @ var_vec) % 2
+    x_unknown_part_of_a_basis_vector = ((np.linalg.inv(a_square_reduced_coeff_matrix)) % 2 @ b_nonhomogeneous) % 2
     # the full var_vec is now the x vector inserted to the var_vec vector to make all 4*n elements
     counter = 0
     for i in range(4 * n):
         if i not in col_list:
-            var_vec[i] = x[i - counter][0]
+            var_vec[i] = x_unknown_part_of_a_basis_vector[i - counter][0]
         else:
             counter = counter + 1
 
@@ -354,11 +355,12 @@ def _verifier(vector):
     """
     # reshapes a 4*n vector into an array of 2*2 matrices which are the a_i, b_i, c_i, d_i  elements in Q = Clifford
     n = int(np.shape(vector)[0] / 4)
-    v = vector.reshape(n, 2, 2)
+    vector_reshaped = vector.reshape(n, 2, 2)
     checklist = []
     for i in range(n):
-        a = (v[i][0, 0] * v[i][1, 1]) + (v[i][0, 1] * v[i][1, 0])  # XOR
-        checklist.append(int(a % 2))
+        determinant_of_clifford = (vector_reshaped[i][0, 0] * vector_reshaped[i][1, 1]) +\
+                                  (vector_reshaped[i][0, 1] * vector_reshaped[i][1, 0])
+        checklist.append(int(determinant_of_clifford % 2))
     return all(checklist)
 
 

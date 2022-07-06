@@ -173,20 +173,20 @@ def is_lc_equivalent(adj_matrix1, adj_matrix2, mode="deterministic"):
     :type adj_matrix2: numpy.ndarray
     :param mode: the mode of the solver is chosen. It can be either 'deterministic' (default) or 'random'.
     :type mode: str
-    :return: If a solution is found, returns an array of single-qubit Clifford 2 x 2 matrices in the symplectic formalism.
-        If not, graphs are not LC equivalent and returns None.
+    :return: If a solution is found, returns an array of single-qubit Clifford :math:`2 \\times 2` matrices
+        in the symplectic formalism. If not, graphs are not LC equivalent and returns None.
     :rtype: bool, numpy.ndarray or None
 
     """
     # gets two adjacency matrices as input and returns a np.array containing n (2*2 array)s = clifford operations on
     # each qubit
-    n_node = np.shape(adj_matrix1)[0]
+    n_nodes = np.shape(adj_matrix1)[0]
     # get the coefficient matrix for the system of linear equations
     coeff_matrix = _coeff_maker(adj_matrix1, adj_matrix2)
 
     # check for rank to see how many independent equations are there = rank of the matrix
     rank = np.linalg.matrix_rank(coeff_matrix)
-    if rank >= 4 * n_node:
+    if rank >= 4 * n_nodes:
         # Those two graph states are not LC equivalent for sure
         return False, None
 
@@ -205,13 +205,14 @@ def is_lc_equivalent(adj_matrix1, adj_matrix2, mode="deterministic"):
     # finding linear dependent columns
     col_list = _col_finder(reduced_coeff_matrix)
     length = len(col_list)
-    assert length == 4 * n_node - rank, "column list is not correct"
+    assert length == 4 * n_nodes - rank, "column list is not correct"
 
     if mode == "random":
         # check for random solution 1000 times
         rand_s = _random_checker(reduced_coeff_matrix, col_list, trial_count=1000)
         if isinstance(rand_s, type(np.array([0]))):
-            return True, rand_s.reshape(n_node, 2, 2)  # random result
+            # random result
+            return True, rand_s.reshape(n_nodes, 2, 2)
         else:
             return False, None
 
@@ -226,7 +227,7 @@ def is_lc_equivalent(adj_matrix1, adj_matrix2, mode="deterministic"):
         for solution in solution_set:
             if _verifier(solution):
                 # convert the solution to an array of n * (2 X 2) matrices
-                return True, solution.reshape(n_node, 2, 2)
+                return True, solution.reshape(n_nodes, 2, 2)
 
         # states are NOT LC equivalent
         return False, None
@@ -256,17 +257,17 @@ def _solution_basis_finder(reduced_coeff_matrix, col_list):
     # contains all vectors b as its columns
     b_matrix = np.array(all_basis_elements)
 
-    # removing linear dependent columns!
+    # removing linear dependent columns
     a_matrix = np.delete(reduced_coeff_matrix, col_list, axis=1)
 
     x_array = ((np.linalg.inv(a_matrix)) % 2 @ b_matrix) % 2
     x_array = x_array.astype(int)
     basis_list = np.eye(length).astype(int)
     llist = []
-    for counter in range(length):
-        llist.append(list((x_array[counter][:, 0])))
-        for i in range(length):
-            llist[counter].insert(col_list[i], basis_list[counter, i])
+    for i in range(length):
+        llist.append(list((x_array[i][:, 0])))
+        for j in range(length):
+            llist[i].insert(col_list[j], basis_list[i, j])
     v_array = np.array(llist)
     v_array = v_array.reshape((length, np.shape(reduced_coeff_matrix)[1], 1))
 
@@ -324,14 +325,14 @@ def _vec_solution_finder(reduced_coeff_matrix, col_list, var_vec):
     :return: an array that is one of the vectors in the solution basis for the system of linear equations.
     :rtype: numpy.ndarray
     """
-    # find the matrix equation Ax=b where A is the square(rank x rank) matrix out of the reduced_coeff_matrix x is the
+    # find the matrix equation Ax=b where A is the square (rank X rank) matrix out of the reduced_coeff_matrix x is the
     # vector of length=rank to be found by A^(-1)*b.
     # b is the vector obtained from randomly choosing the extra
     # unknowns of vector rand_vec that makes the non-homogeneous part of the
     # system of linear equations; b= (-1)* reduced_coeff_matrix * var_vec
 
     n = int(np.shape(reduced_coeff_matrix)[1] / 4)
-    # removing linear dependent columns!d
+    # removing linear dependent columns
     a_square_reduced_coeff_matrix = np.delete(reduced_coeff_matrix, col_list, axis=1)
     b_nonhomogeneous = (reduced_coeff_matrix @ var_vec) % 2
     x_unknown_part_of_a_basis_vector = (
@@ -350,7 +351,7 @@ def _vec_solution_finder(reduced_coeff_matrix, col_list, var_vec):
 
 def _verifier(vector):
     """
-    Verifies if the given matrix elements for a Clifford operation is valid.(if the Clifford matrix is invertible)
+    Verifies if the given matrix elements for a Clifford operation is valid (if the Clifford matrix is invertible)。
 
     :param vector: an array containing the matrix elements of the total Clifford operation needed to convert one graph
         to another.
@@ -443,7 +444,7 @@ def local_clifford_ops(solution):
     Finds a list of operators needed to be applied on each qubit of the first graph to transform in to the second,
         given the Clifford transformation matrix, which is the output of the solver function.
 
-    :param solution: an array of single-qubit Clifford 2*2 matrices in the symplectic formalism
+    :param solution: an array of single-qubit Clifford :math:`2 \\times 2` matrices in the symplectic formalism
     :type solution: numpy.ndarray
     :return: a list of the names of the operations that need to be applied on each qubit in the correct order.
     :rtype: list[str]
@@ -472,8 +473,9 @@ def local_clifford_ops(solution):
 
 def lc_graph_operations(adj_matrix, solution):
     """
-    Finds a list of local complementations needed to be applied on each node of the given graph to transform into target,
-        given the Clifford transformation matrix, which is the output of the solver function.
+    Finds a list of local complementations needed to be applied on each node of the given graph
+        to transform it into the target graph given the Clifford transformation matrix,
+        which is the output of the solver function.
 
     :param adj_matrix: The adjacency matrix of the first graph. This is equal to the binary matrix for
         representing Pauli Z part of the symplectic binary representation of the stabilizer generators
@@ -507,13 +509,13 @@ def lc_graph_operations(adj_matrix, solution):
 
 def iso_equal_check(graph1, graph2):
     """
-    Checks if the graph G1 is LC equivalent to any graph that is isomorphic to G2
+    Checks if the graph1 is LC equivalent to any graph that is isomorphic to graph2
 
     :param graph1: initial graph
     :type graph1: networkx.Graph
     :param graph2: target graph
     :type graph2: networkx.Graph
-    :return: If equivalent (True,the graph that G1 is equivalent to) and if not, (False, G1 itself)
+    :return: If equivalent (True,the graph that graph1 is equivalent to) and if not, (False, graph1 itself)
     :rtype: tuple(bool, networkx.Graph)
     """
     iso_graphs_g2 = iso_graph_finder(graph2)
@@ -557,7 +559,8 @@ def iso_graph_finder(input_graph):
 
 def local_comp_graph(input_graph, node_id):
     """
-    Applies a local complementation on the node (specified by node_id) of the input graph input_graph and returns the resulting graph.
+    Applies a local complementation on the node (specified by node_id) of the input graph input_graph
+    and returns the resulting graph.
 
     :param input_graph: input graph
     :type input_graph: networkx.Graph
@@ -621,9 +624,9 @@ def _R_matrix(adj_matrix, solution):
 
 def _apply_f(r_matrix, i):
     """
-    Applies f_i transformation on the R matrix
+    Applies :math:`f_i` transformation on the :math:`R` matrix
 
-    :param r_matrix: the R matrix = C * Z + D
+    :param r_matrix: the R matrix such that :math:`R = C \\times Z + D`
     :type r_matrix: numpy.ndarray
     :param i: the index of the node or qubit on which the transformation is applied
     :type i: int
@@ -640,7 +643,7 @@ def _apply_f(r_matrix, i):
 
 def _singles(r_matrix):
     """
-    Applies single f_i transformation on R matrix and records index "i" until no more single "f" transforms are needed.
+    Applies single :math:`f_i` transformation on R matrix and records index "i" until no more single "f" transforms are needed.
 
     :param r_matrix: the R matrix = C * Z + D
     :type r_matrix: numpy.ndarray
@@ -658,7 +661,7 @@ def _singles(r_matrix):
 
 def _doubles(r_matrix):
     """
-    Applies double f_ij transformation on R matrix and records index "i,j" until no more double "f"s are needed.
+    Applies double :math:`f_{ij}` transformation on R matrix and records index "i,j" until no more double "f"s are needed.
 
     :param r_matrix: the R matrix = C * Z + D
     :type r_matrix: numpy.ndarray

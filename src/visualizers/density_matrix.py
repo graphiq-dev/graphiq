@@ -24,7 +24,7 @@ def density_matrix_heatmap(rho, axs=None):
     else:
         fig = None
 
-    kwargs = dict(vmin=-1, vmax=1, cmap=cmap_div, linewidths=.5, square=True)
+    kwargs = dict(vmin=-1, vmax=1, cmap=cmap_div, linewidths=0.5, square=True)
     axs[0].set(title="Real")
     axs[1].set(title="Imaginary")
 
@@ -43,6 +43,7 @@ def density_matrix_bars(rho):
     :return: fig (figure handle), axs (list of axes handles)
     :rtype: matplotlib.figure, matplotlib.axes
     """
+
     def bar_plot(deltaz, ax):
         n = deltaz.shape[0]
         X, Y = np.meshgrid(np.arange(n), np.arange(n))
@@ -54,7 +55,7 @@ def density_matrix_bars(rho):
         min_height = -0.25
         colors = cmap_div(deltaz.ravel() * 0.8, alpha=1 - deltaz.ravel())
         ax.bar3d(x, y, z, dx, dy, deltaz, color=colors)
-        ax.set(zlim=[1+min_height, 2-max_height])
+        ax.set(zlim=[1 + min_height, 2 - max_height])
 
         ax.set(
             # xticks=[0, 1, 2, 3],
@@ -67,7 +68,7 @@ def density_matrix_bars(rho):
         rho = rho.full()
 
     fig = plt.figure()  # create a canvas, tell matplotlib it's 3d
-    axs = [fig.add_subplot(1, 2, k, projection='3d') for k in range(1, 3)]
+    axs = [fig.add_subplot(1, 2, k, projection="3d") for k in range(1, 3)]
 
     dz = rho.real
     bar_plot(dz, ax=axs[0])

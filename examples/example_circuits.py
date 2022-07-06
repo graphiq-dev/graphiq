@@ -32,12 +32,16 @@ if __name__ == "__main__":
         state_data = state.data
     else:
         # trace out the ancilla qubit
-        state_data = partial_trace(state.data, keep=list(range(0, circuit.n_quantum-1)), dims=circuit.n_quantum * [2])
+        state_data = partial_trace(
+            state.data,
+            keep=list(range(0, circuit.n_quantum - 1)),
+            dims=circuit.n_quantum * [2],
+        )
 
-    f = fidelity(state_data, ideal_state['dm'])
+    f = fidelity(state_data, ideal_state["dm"])
     print(f"Fidelity with the ideal state is {f}")
 
-    fig, _ = density_matrix_bars(ideal_state['dm'])
+    fig, _ = density_matrix_bars(ideal_state["dm"])
     fig.suptitle("Ideal density matrix")
 
     fig, _ = density_matrix_bars(state_data)

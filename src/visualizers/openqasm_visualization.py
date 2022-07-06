@@ -21,9 +21,9 @@ def draw_openqasm(qasm, show=False, ax=None):
     qc = QuantumCircuit.from_qasm_str(qasm)
     if ax is None:
         fig, ax = plt.subplots()
-        qc.draw(output='mpl', ax=ax, plot_barriers=False)
+        qc.draw(output="mpl", ax=ax, plot_barriers=False)
     else:
-        fig = qc.draw(output='mpl', ax=ax, plot_barriers=False)
+        fig = qc.draw(output="mpl", ax=ax, plot_barriers=False)
     if show:
         plt.show()
 

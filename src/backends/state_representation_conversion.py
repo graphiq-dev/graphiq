@@ -32,7 +32,7 @@ def _graph_finder(x_matrix, z_matrix, pivot):
     :rtype: networkX.Graph
     """
     n, m = np.shape(x_matrix)
-    x_matrix, z_matrix, rank = sf.row_reduction(x_matrix, z_matrix, pivot)
+    x_matrix, z_matrix, rank = sf.row_reduction_old(x_matrix, z_matrix, pivot)
 
 
     if x_matrix[rank][np.shape(x_matrix)[1] - 1] == 0:

@@ -110,7 +110,7 @@ def hadamard_transform(x_matrix, z_matrix, positions):
     return x_matrix, z_matrix
 
 
-def row_reduction(x_matrix, z_matrix, pivot):
+def row_reduction_old(x_matrix, z_matrix, pivot):
     """
     Returns the row reduced matrix X, the transformed matrix Z and the (rank-1) of the X matrix
 
@@ -136,7 +136,7 @@ def row_reduction(x_matrix, z_matrix, pivot):
         # check if the column below is empty to skip it
         if not the_ones:
             pivot = [pivot[0], pivot[1] + 1]
-            x_matrix, z_matrix, rank = row_reduction(x_matrix, z_matrix, pivot)
+            x_matrix, z_matrix, rank = row_reduction_old(x_matrix, z_matrix, pivot)
         else:
             x_matrix = row_swap(x_matrix, the_ones[0], pivot[0])
             z_matrix = row_swap(z_matrix, the_ones[0], pivot[0])
@@ -145,8 +145,92 @@ def row_reduction(x_matrix, z_matrix, pivot):
                 x_matrix = add_rows(x_matrix, pivot[0], j)
                 z_matrix = add_rows(z_matrix, pivot[0], j)
             pivot = [pivot[0] + 1, pivot[1] + 1]
-            x_matrix, z_matrix, rank = row_reduction(x_matrix, z_matrix, pivot)
+            x_matrix, z_matrix, rank = row_reduction_old(x_matrix, z_matrix, pivot)
     return x_matrix, z_matrix, rank
+
+
+def row_reduction(x_matrix, z_matrix):
+    """
+    Turns the x_matrix into a row reduced echelon form. Applies same row operations on z_matrix.
+
+    :param x_matrix: binary matrix for representing Pauli X part of the symplectic binary
+        representation of the stabilizer generators.
+    :type x_matrix: numpy.ndarray
+    :param z_matrix:binary matrix for representing Pauli Z part of the
+        symplectic binary representation of the stabilizer generators
+    :type z_matrix: numpy.ndarray
+    :return: a tuple of the transformed x_matrix and z_matrix and the index of the last non-zero row of the new x_matrix
+    :rtype: tuple(numpy.ndarray, numpy.ndarray, int)
+    """
+
+    pivot = [0, 0]
+    old_pivot = [1, 1]
+
+    while pivot[1] != old_pivot[1]:
+        # all row reduction operations will at least change the column of the pivot by 1 (not true for its row! due
+        # to last column pivot)
+        old_pivot = pivot
+        x_matrix, z_matrix, pivot = _row_red_one_step(x_matrix, z_matrix, pivot)
+    return x_matrix, z_matrix, pivot[0]
+
+
+def _row_red_one_step(x_matrix, z_matrix, pivot):  # one step of the algorithm, only on the pivot provided here
+    """
+    A helper function to apply one step of the row reduction algorithm. It is used in the main row reduction function.
+
+    :param x_matrix: binary matrix for representing Pauli X part of the symplectic binary
+        representation of the stabilizer generators
+    :type x_matrix: numpy.ndarray
+    :param z_matrix:binary matrix for representing Pauli Z part of the
+        symplectic binary representation of the stabilizer generators
+    :type z_matrix: numpy.ndarray
+    :param pivot: a location in the input matrix
+    :type pivot: list[int]
+    :return: a tuple of the transformed x_matrix and z_matrix and the new pivot location
+    :rtype: tuple(numpy.ndarray, numpy.ndarray, list[int])
+    """
+    n_row, n_column = np.shape(x_matrix)
+    if pivot[1] == (n_column - 1):
+        the_ones = []
+        for i in range(pivot[0], n_row):
+            if x_matrix[i, pivot[1]] == 1:
+                the_ones.append(i)
+        if not the_ones:  # empty under (and including) pivot element on last column
+            pivot[0] = pivot[0] - 1
+        else:
+            x_matrix = row_swap(x_matrix, the_ones[0], pivot[0])
+            z_matrix = row_swap(z_matrix, the_ones[0], pivot[0])
+            the_ones.remove(the_ones[0])
+            for j in the_ones:
+                x_matrix = add_rows(x_matrix, pivot[0], j)
+                z_matrix = add_rows(z_matrix, pivot[0], j)
+        return x_matrix, z_matrix, pivot
+    elif pivot[0] == (n_row - 1):
+        if x_matrix[pivot[0], pivot[1]] == 1:
+            return x_matrix, z_matrix, pivot
+        else:
+            pivot = [pivot[0], pivot[1] + 1]
+            return x_matrix, z_matrix, pivot
+
+    else:
+        # list of rows with value 1 under the pivot element
+        the_ones = []
+        for i in range(pivot[0], n_row):
+            if x_matrix[i, pivot[1]] == 1:
+                the_ones.append(i)
+        # check if the column below is empty to skip it
+        if not the_ones:
+            pivot = [pivot[0], pivot[1] + 1]
+            return x_matrix, z_matrix, pivot
+        else:
+            x_matrix = row_swap(x_matrix, the_ones[0], pivot[0])
+            z_matrix = row_swap(z_matrix, the_ones[0], pivot[0])
+            the_ones.remove(the_ones[0])
+            for j in the_ones:
+                x_matrix = add_rows(x_matrix, pivot[0], j)
+                z_matrix = add_rows(z_matrix, pivot[0], j)
+            pivot = [pivot[0] + 1, pivot[1] + 1]
+            return x_matrix, z_matrix, pivot
 
 
 def get_stabilizer_element_by_string(generator):

@@ -19,8 +19,6 @@ if __name__ == "__main__":
     example_circuit = linear_cluster_4qubit_circuit
 
     circuit, ideal_state = example_circuit()
-    circuit_commands = circuit.from_openqasm(circuit.to_openqasm())
-    print(f'circuit openqasm commands: {circuit_commands}')
 
     # Visualize
     circuit.draw_dag()  # DAG visualization

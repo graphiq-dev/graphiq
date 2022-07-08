@@ -937,26 +937,22 @@ class CircuitDAG(CircuitBase):
         :rtype: CircuitBase
         """
 
-        # print(qasm_script)
         for elem in string.whitespace:
             if elem != ' ':  # keep spaces, but no other whitespace
                 qasm_script = qasm_script.replace(elem, '')
 
         # script must start with OPENQASM 2.0; or another openQASM number
         script_list = re.split(';', qasm_script, 1)
-        print(script_list)
         header = script_list[0]
         for elem in string.whitespace:
             header = header.replace(elem, '')
         assert header == 'OPENQASM2.0'
         qasm_script = script_list[1]  # get rid of header now that we've checked it
-        print(qasm_script)
 
         # get rid of any gate declarations--we don't actually need them for the parsing
         search_match = re.search(r'gate[^}]*{[^}]*}', qasm_script)
         while search_match is not None:
             qasm_script = qasm_script.replace(search_match.group(0), '')
-            print(qasm_script)
             search_match = re.search(r'gate[^}]*{[^}]*}', qasm_script)
 
         # Next, we can parse each sentence
@@ -968,10 +964,8 @@ class CircuitDAG(CircuitBase):
 
         circuit = CircuitDAG(n_photon=n_photon, n_emitter=n_emitter, n_classical=n_classical)
         i = 0
-        print(f'all commands: {qasm_commands}')
         while i in range(len(qasm_commands)):
             command = qasm_commands[i]
-            print(f'current command: {command}')
             if ('qreg' in command) or ('creg' in command) or ('barrier' in command) or (command == ''):
                 i += 1
                 continue
@@ -981,7 +975,6 @@ class CircuitDAG(CircuitBase):
                 c_str = re.search(r'c(\d)+\[0\]', command).group(0)
 
                 q_type = q_str[0]
-                print(f'q_str: {q_str}')
                 q_reg = int(re.split('\[', q_str[1:])[0])
                 c_reg = int(re.split('\[', c_str[1:])[0])
 
@@ -996,12 +989,7 @@ class CircuitDAG(CircuitBase):
                     return gate, reg, reg_type, c_reg
 
                 if i + 3 < len(qasm_commands):  # could be a 4 line operation
-                    print(f'commands from here: {qasm_commands[i:]}')
                     if 'if' in qasm_commands[i + 1] and 'reset' in qasm_commands[i + 3]:
-                        print(f'Current command sequence:')
-                        print(command)
-                        print(qasm_commands[i + 1])
-                        print(qasm_commands[i + 3])
                         gate, target_reg, target_type, c_reg = _parse_if(qasm_commands[i + 1])
                         reset_str = re.split(r'\s', qasm_commands[i + 3].strip())[1]
                         reset_type = reset_str[0]
@@ -1037,7 +1025,6 @@ class CircuitDAG(CircuitBase):
             # Parse single-qubit operations
             if command.count('[0]') == 1:  # single qubit operation, from current script generation method
                 command_breakdown = command.split()
-                print(f'command breakdown: {command_breakdown}')
                 name = command_breakdown[0]
                 reg_type = command_breakdown[1][0]
                 reg = int(command_breakdown[1][1:-3])  # we must parse out [0] so -3

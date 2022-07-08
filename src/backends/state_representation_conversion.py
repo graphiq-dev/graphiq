@@ -14,7 +14,7 @@ from src.backends.stabilizer.state import Stabilizer
 # TODO: We currently assume exact state conversion, that is, no need to check local-Clifford equivalency. Need to be
 #       able to convert local-Clifford equivalent states.
 
-def _graph_finder(x_matrix, z_matrix, pivot):
+def _graph_finder(x_matrix, z_matrix):
     """
     A helper function to obtain the (closest) local Clifford-equivalent graph to the stabilizer representation The
     local Clifford equivalency needs to be checked via the stabilizer of the resulting graph and the initial stabilizer
@@ -25,9 +25,6 @@ def _graph_finder(x_matrix, z_matrix, pivot):
     :param z_matrix:binary matrix for representing Pauli Z part of the
         symplectic binary representation of the stabilizer generators
     :type z_matrix: numpy.ndarray
-    :param pivot: a location to start
-    :type pivot: list[int]
-
     :return: a networkx.Graph object that represents the graph corresponding to the stabilizer
     :rtype: networkX.Graph
     """
@@ -161,7 +158,7 @@ def stabilizer_to_graph(input_stabilizer):
     x_matrix, z_matrix = sf.string_to_symplectic(input_stabilizer)
 
     pivot = [0, 0]
-    graph = _graph_finder(x_matrix, z_matrix, pivot)
+    graph = _graph_finder(x_matrix, z_matrix)
     return graph
 
 

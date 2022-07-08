@@ -4,7 +4,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-
 def _tester(n):
     """
     A test function for internal purpose. Searches over all random graphs of size "n" to finally find two that are

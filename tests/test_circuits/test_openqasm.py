@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from qiskit import QuantumCircuit
 
 import src.ops as ops
-import src.visualizers.openqasm.openqasm_lib as oq_lib
+import src.utils.openqasm_lib as oq_lib
 from src.circuit import CircuitDAG
 from tests.test_flags import visualization
 
@@ -110,6 +110,10 @@ def test_gates_wrapper_1(gate_list):
     except Exception as e:
         print(qasm_str)
         raise e
+
+
+def test_load_circuit(initialization_circuit):
+    print(initialization_circuit.from_openqasm(initialization_circuit.to_openqasm()))
 
 
 @visualization

@@ -29,18 +29,16 @@ NOT retroactively apply to the added qubits
 
 
 """
-import copy
 import networkx as nx
 import matplotlib.pyplot as plt
 from abc import ABC, abstractmethod
 import warnings
 import functools
-import numpy as np
+import re
+import string
 
-from src.ops import OperationBase
-from src.ops import Input
-from src.ops import Output
-import src.visualizers.openqasm.openqasm_lib as oq_lib
+import src.ops as ops
+import src.utils.openqasm_lib as oq_lib
 
 from src.visualizers.dag import dag_topology_pos
 from src.visualizers.openqasm_visualization import draw_openqasm
@@ -104,7 +102,7 @@ class CircuitBase(ABC):
         self._c_registers = c_reg
 
     @abstractmethod
-    def add(self, operation: OperationBase):
+    def add(self, operation: ops.OperationBase):
         raise ValueError(
             "Base class circuit is abstract: it does not support function calls"
         )
@@ -470,7 +468,7 @@ class CircuitDAG(CircuitBase):
             tuple(range(n_emitter)), tuple(range(n_photon)), tuple(range(n_classical))
         )
 
-    def add(self, operation: OperationBase):
+    def add(self, operation: ops.OperationBase):
         """
         Add an operation to the end of the circuit (i.e. to be applied after the pre-existing circuit operations
 
@@ -500,7 +498,7 @@ class CircuitDAG(CircuitBase):
         self._add_reg_if_absent(e_reg, p_reg, operation.c_registers)
         self._add(operation, e_reg, p_reg, operation.c_registers)
 
-    def insert_at(self, operation: OperationBase, edges):
+    def insert_at(self, operation: ops.OperationBase, edges):
         """
         Insert an operation among specified edges
 
@@ -537,7 +535,7 @@ class CircuitDAG(CircuitBase):
         # we only count the quantum registers here. (Also only including quantum registers in edges)
         self._insert_at(operation, edges)
 
-    def replace_op(self, node, new_operation: OperationBase):
+    def replace_op(self, node, new_operation: ops.OperationBase):
         """
         Replaces an operation by a new one with the same set of registers it acts on.
 
@@ -601,7 +599,7 @@ class CircuitDAG(CircuitBase):
 
         return set.union(set([first_edge]), set(ancestor_edges), set(descendant_edges))
 
-    def _add_node(self, node_id, operation: OperationBase):
+    def _add_node(self, node_id, operation: ops.OperationBase):
         """
         Helper function for adding a node to the DAG representation
 
@@ -747,7 +745,7 @@ class CircuitDAG(CircuitBase):
         ]
         # assert set(input_nodes)  == set(self.node_dict['Input'])
         for input_node in input_nodes:
-            if not isinstance(self.dag.nodes[input_node]["op"], Input):
+            if not isinstance(self.dag.nodes[input_node]["op"], ops.Input):
                 raise RuntimeError(
                     f"Source node {input_node} in the DAG is not an Input operation"
                 )
@@ -758,7 +756,7 @@ class CircuitDAG(CircuitBase):
         ]
         # assert set(output_nodes) == set(self.node_dict['Output'])
         for output_node in output_nodes:
-            if not isinstance(self.dag.nodes[output_node]["op"], Output):
+            if not isinstance(self.dag.nodes[output_node]["op"], ops.Output):
                 raise RuntimeError(
                     f"Sink node {output_node} in the DAG is not an Output operation"
                 )
@@ -928,6 +926,111 @@ class CircuitDAG(CircuitBase):
             raise ValueError(f"CircuitDAG class only supports single-qubit registers")
         self._c_registers = c_reg
 
+    @classmethod
+    def from_openqasm(cls, qasm_script):
+        """
+        Create a circuit based on an (assumed to be valid) openQASM script
+
+        :param qasm_script: the openqasm script from which a circuit should be built
+        :type qasm_script: str
+        :return: a circuit object
+        :rtype: CircuitBase
+        """
+
+        # print(qasm_script)
+        for elem in string.whitespace:
+            if elem != ' ':  # keep spaces, but no other whitespace
+                qasm_script = qasm_script.replace(elem, '')
+
+        # script must start with OPENQASM 2.0; or another openQASM number
+        script_list = re.split(';', qasm_script, 1)
+        print(script_list)
+        header = script_list[0]
+        for elem in string.whitespace:
+            header = header.replace(elem, '')
+        assert header == 'OPENQASM2.0'
+        qasm_script = script_list[1]  # get rid of header now that we've checked it
+        print(qasm_script)
+
+        # get rid of any gate declarations--we don't actually need them for the parsing
+        search_match = re.search(r'gate[^}]*{[^}]*}', qasm_script)
+        while search_match is not None:
+            qasm_script = qasm_script.replace(search_match.group(0), '')
+            print(qasm_script)
+            search_match = re.search(r'gate[^}]*{[^}]*}', qasm_script)
+
+        # Next, we can parse each sentence
+        qasm_commands = re.split(';', qasm_script)
+
+        n_photon = len([command for command in qasm_commands if 'qregp' in command.replace(' ', '')])
+        n_emitter = len([command for command in qasm_commands if 'qrege' in command.replace(' ', '')])
+        n_classical = len([command for command in qasm_commands if 'creg' in command])
+
+        circuit = CircuitDAG(n_photon=n_photon, n_emitter=n_emitter, n_classical=n_classical)
+        i = 0
+        while i in range(len(qasm_commands)):
+            command = qasm_commands[i]
+            if ('qreg' in command) or ('creg' in command) or ('barrier' in command) or (command == ''):
+                i += 1
+                continue
+
+            if 'measure' in command and '->' in command:
+                q_str = re.search(r'(e|p)(\d)+\[0\]', qasm_script).group(0)
+                c_str = re.search(r'c(\d)+\[0\]', qasm_script).group(0)
+
+                q_type = q_str[0]
+                q_reg = int(re.split('\[', q_str[1:])[0])
+                c_reg = int(re.split('\[', c_str[1:])[0])
+
+                def _parse_if(command):
+                    c_str = re.search(r'c(\d)+==1', command.replace(' ', '')).group(0)
+                    c_reg = int(re.split('==', c_str)[0][1:])
+                    gate = re.search(r'\)[a-z](p|e)(\d)+\[', command.replace(' ', '')).group(0)[1]
+                    reg_str = re.search(r'(p|e)(\d)+\[', command).group(0)
+                    reg = int(reg_str[1:-1])
+                    reg_type = reg_str[0]
+
+                    return gate, reg, reg_type, c_reg
+
+                if i + 2 < len(qasm_commands):  # could be a 3 line operation
+                    if 'if' in qasm_commands[i + 1] and 'reset' in qasm_commands[i + 2]:
+                        gate, target_reg, target_type, c_reg = _parse_if(command[i + 1])
+                        reset_str = re.split(r'\s', qasm_commands[i + 2])[1]
+                        reset_type = reset_str[0]
+                        reset_reg = reset_str[1:-3]
+                        assert reset_type == q_type, 'Reset should be on control qubit'
+                        assert reset_reg == q_reg, 'Reset should be on control qubit'
+
+                        circuit.add(ops.name_to_class_map(f'classical reset {gate}')(control=q_reg,
+                                                                                     control_type=q_type,
+                                                                                     target=target_reg,
+                                                                                     target_type=target_type,
+                                                                                     c_register=c_reg))
+                        i += 3
+                        continue
+
+                if i + 1 < len(qasm_commands):
+                    if 'if' in qasm_commands[i + 1]:
+                        gate, target_reg, target_type, c_reg = _parse_if(qasm_commands[i + 1])
+                        circuit.add(ops.name_to_class_map(f'classical {gate}')(control=q_reg, control_type=q_type,
+                                                                               target=target_reg,
+                                                                               target_type=target_type,
+                                                                               c_register=c_reg))
+                        i += 2
+                        continue
+
+                circuit.add(ops.MeasurementZ(register=q_reg, reg_type=q_type,
+                                             c_register=c_reg))
+                i += 1
+                continue
+
+            # Parse single-qubit operations
+            if ops.name_to_class_map(command) is not None:
+
+                i += 1
+
+        return qasm_commands
+
     def _add_register(self, size, reg_type):
         """
         Helper function for adding a quantum/classical register of a certain size
@@ -1003,10 +1106,10 @@ class CircuitDAG(CircuitBase):
         # Update graph to contain necessary registers
         for e in e_reg:
             if f"e{e}_in" not in self.dag.nodes:
-                self.dag.add_node(f"e{e}_in", op=Input(register=e, reg_type="e"), reg=e)
+                self.dag.add_node(f"e{e}_in", op=ops.Input(register=e, reg_type="e"), reg=e)
                 self._node_dict_append("Input", f"e{e}_in")
                 self.dag.add_node(
-                    f"e{e}_out", op=Output(register=e, reg_type="e"), reg=e
+                    f"e{e}_out", op=ops.Output(register=e, reg_type="e"), reg=e
                 )
                 self._node_dict_append("Output", f"e{e}_out")
                 self.dag.add_edge(
@@ -1018,10 +1121,10 @@ class CircuitDAG(CircuitBase):
 
         for p in p_reg:
             if f"p{p}_in" not in self.dag.nodes:
-                self.dag.add_node(f"p{p}_in", op=Input(register=p, reg_type="p"), reg=p)
+                self.dag.add_node(f"p{p}_in", op=ops.Input(register=p, reg_type="p"), reg=p)
                 self._node_dict_append("Input", f"p{p}_in")
                 self.dag.add_node(
-                    f"p{p}_out", op=Output(register=p, reg_type="p"), reg=p
+                    f"p{p}_out", op=ops.Output(register=p, reg_type="p"), reg=p
                 )
                 self._node_dict_append("Output", f"p{p}_out")
                 self.dag.add_edge(
@@ -1032,10 +1135,10 @@ class CircuitDAG(CircuitBase):
                 )
         for c in c_reg:
             if f"c{c}_in" not in self.dag.nodes:
-                self.dag.add_node(f"c{c}_in", op=Input(register=c, reg_type="c"), reg=c)
+                self.dag.add_node(f"c{c}_in", op=ops.Input(register=c, reg_type="c"), reg=c)
                 self._node_dict_append("Input", f"c{c}_in")
                 self.dag.add_node(
-                    f"c{c}_out", op=Output(register=c, reg_type="c"), reg=c
+                    f"c{c}_out", op=ops.Output(register=c, reg_type="c"), reg=c
                 )
                 self._node_dict_append("Output", f"c{c}_out")
                 self.dag.add_edge(
@@ -1045,7 +1148,7 @@ class CircuitDAG(CircuitBase):
                     "c", tuple(self.dag.in_edges(nbunch=f"c{c}_out", keys=True))[0]
                 )
 
-    def _add(self, operation: OperationBase, e_reg, p_reg, c_reg):
+    def _add(self, operation: ops.OperationBase, e_reg, p_reg, c_reg):
         """
         Add an operation to the circuit
         This function assumes that all registers used by operation are already built
@@ -1088,7 +1191,7 @@ class CircuitDAG(CircuitBase):
 
                 self._remove_edge(edge)  # remove the unnecessary edges
 
-    def _insert_at(self, operation: OperationBase, reg_edges):
+    def _insert_at(self, operation: ops.OperationBase, reg_edges):
         """
         Add an operation to the circuit at a specified position
         This function assumes that all registers used by operation are already built

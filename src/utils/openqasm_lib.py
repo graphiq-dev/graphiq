@@ -1,10 +1,6 @@
 """
 The purpose of this document is to have a single place in which openQASM functionality has to be kept up to date
 
-TODO: maybe come up with a system that doesn't force the quantum registers to
-all come before the classical ones? See if that ever becomes an issue--> if so
-we could just have a quantum-specific escape character, and a classical-specific escape
-character
 TODO: consider what to do if we move onto qudits
 TODO: gate definitions drawn from openQASM 3, so there's actually a global phase shift in the implementations
 in openQASM 2.0 due to the ways in which things were implemented. We should fix that if we ever want to use

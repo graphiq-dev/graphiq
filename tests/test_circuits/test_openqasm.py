@@ -158,6 +158,25 @@ def test_load_circuit_2():
     plot_two_circuits(circuit1, circuit2)
 
 
+def test_load_circuit_3(initialization_circuit):
+    """
+    Here, we check that we get the expected failure when a gate that we do not have defined it used
+    """
+    str = initialization_circuit.to_openqasm()
+    str += 'hshk e0[0];'
+    with pytest.raises(AssertionError):
+        circuit = CircuitDAG.from_openqasm(str)
+
+
+def test_load_circuit_4(initialization_circuit):
+    """
+    Here, we check that we get the expected failure when a gate that we do not have defined it used
+    """
+    str = initialization_circuit.to_openqasm()
+    str += 'h e0[0], e1[0];'
+    with pytest.raises(TypeError):
+        circuit = CircuitDAG.from_openqasm(str)
+
 
 @visualization
 def test_visualization_1(dag):

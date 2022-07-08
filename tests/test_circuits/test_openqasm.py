@@ -113,7 +113,9 @@ def test_gates_wrapper_1(gate_list):
 
 
 def test_load_circuit(initialization_circuit):
-    print(initialization_circuit.from_openqasm(initialization_circuit.to_openqasm()))
+    circuit, commands = initialization_circuit.from_openqasm(initialization_circuit.to_openqasm())
+    print(commands)
+    circuit.draw_circuit()
 
 
 @visualization

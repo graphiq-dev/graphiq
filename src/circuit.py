@@ -968,17 +968,20 @@ class CircuitDAG(CircuitBase):
 
         circuit = CircuitDAG(n_photon=n_photon, n_emitter=n_emitter, n_classical=n_classical)
         i = 0
+        print(f'all commands: {qasm_commands}')
         while i in range(len(qasm_commands)):
             command = qasm_commands[i]
+            print(f'current command: {command}')
             if ('qreg' in command) or ('creg' in command) or ('barrier' in command) or (command == ''):
                 i += 1
                 continue
 
             if 'measure' in command and '->' in command:
-                q_str = re.search(r'(e|p)(\d)+\[0\]', qasm_script).group(0)
-                c_str = re.search(r'c(\d)+\[0\]', qasm_script).group(0)
+                q_str = re.search(r'(e|p)(\d)+\[0\]', command).group(0)
+                c_str = re.search(r'c(\d)+\[0\]', command).group(0)
 
                 q_type = q_str[0]
+                print(f'q_str: {q_str}')
                 q_reg = int(re.split('\[', q_str[1:])[0])
                 c_reg = int(re.split('\[', c_str[1:])[0])
 
@@ -992,21 +995,28 @@ class CircuitDAG(CircuitBase):
 
                     return gate, reg, reg_type, c_reg
 
-                if i + 2 < len(qasm_commands):  # could be a 3 line operation
-                    if 'if' in qasm_commands[i + 1] and 'reset' in qasm_commands[i + 2]:
-                        gate, target_reg, target_type, c_reg = _parse_if(command[i + 1])
-                        reset_str = re.split(r'\s', qasm_commands[i + 2])[1]
+                if i + 3 < len(qasm_commands):  # could be a 4 line operation
+                    print(f'commands from here: {qasm_commands[i:]}')
+                    if 'if' in qasm_commands[i + 1] and 'reset' in qasm_commands[i + 3]:
+                        print(f'Current command sequence:')
+                        print(command)
+                        print(qasm_commands[i + 1])
+                        print(qasm_commands[i + 3])
+                        gate, target_reg, target_type, c_reg = _parse_if(qasm_commands[i + 1])
+                        reset_str = re.split(r'\s', qasm_commands[i + 3].strip())[1]
                         reset_type = reset_str[0]
-                        reset_reg = reset_str[1:-3]
-                        assert reset_type == q_type, 'Reset should be on control qubit'
-                        assert reset_reg == q_reg, 'Reset should be on control qubit'
+                        reset_reg = int(reset_str[1:-3])
+                        assert reset_type == q_type, f'Reset should be on control qubit, reset type is:{reset_type}, ' \
+                                                     f'control qubit type was: {q_type}'
+                        assert reset_reg == q_reg, f'Reset should be on control qubit. Reset reg is: {reset_reg}, ' \
+                                                   f'control reg is: {q_reg}'
 
                         circuit.add(ops.name_to_class_map(f'classical reset {gate}')(control=q_reg,
                                                                                      control_type=q_type,
                                                                                      target=target_reg,
                                                                                      target_type=target_type,
                                                                                      c_register=c_reg))
-                        i += 3
+                        i += 4
                         continue
 
                 if i + 1 < len(qasm_commands):
@@ -1025,11 +1035,36 @@ class CircuitDAG(CircuitBase):
                 continue
 
             # Parse single-qubit operations
-            if ops.name_to_class_map(command) is not None:
+            if command.count('[0]') == 1:  # single qubit operation, from current script generation method
+                command_breakdown = command.split()
+                print(f'command breakdown: {command_breakdown}')
+                name = command_breakdown[0]
+                reg_type = command_breakdown[1][0]
+                reg = int(command_breakdown[1][1:-3])  # we must parse out [0] so -3
+                gate_class = ops.name_to_class_map(name)
+                if gate_class is not None:
+                    circuit.add(gate_class(reg=reg, reg_type=reg_type))
+                else:
+                    circuit_list = [ops.name_to_class_map(letter) for letter in name]
+                    assert None not in circuit_list, f"Gate not recognized, parsing invalid/" \
+                                                     f"{name} parsed to {circuit_list}"
+                    circuit.add(ops.SingleQubitGateWrapper([circuit_list], reg=reg, reg_type=reg_type))
+            elif command.count('[0]') == 2:  # two-qubit gate
+                command_breakdown = command.split()
+                name = command_breakdown[0]
+                control_type = command_breakdown[1][0]
+                control_reg = int(command_breakdown[1][1:-4])  # we must parse out [0], so -4
+                target_type = command_breakdown[2][0]
+                target_reg = int(command_breakdown[2][1:-3])  # we must parse out [0] so -3
+                gate_class = ops.name_to_class_map(name)
+                assert gate_class is not None, "gate name not recognized, parsing failed"
+                circuit.add(gate_class(control=control_reg, control_type=control_type,
+                                       target=target_reg, target_type=target_type))
+            else:
+                raise ValueError(f'command not recognized, cannot be parsed')
+            i += 1
 
-                i += 1
-
-        return qasm_commands
+        return circuit, qasm_commands
 
     def _add_register(self, size, reg_type):
         """

@@ -10,6 +10,14 @@ from tests.test_flags import visualization
 OPENQASM_V = 2
 
 
+def plot_two_circuits(circuit1, circuit2):
+    fig, ax = plt.subplots(2)
+    circuit1.draw_circuit(show=False, ax=ax[0])
+    circuit2.draw_circuit(show=False, ax=ax[1])
+    plt.title('Circuits should be the same!')
+    plt.show()
+
+
 @pytest.fixture(scope='function')
 def all_gate_circuit():
     dag = CircuitDAG()
@@ -112,10 +120,43 @@ def test_gates_wrapper_1(gate_list):
         raise e
 
 
-def test_load_circuit(initialization_circuit):
-    circuit, commands = initialization_circuit.from_openqasm(initialization_circuit.to_openqasm())
-    print(commands)
-    circuit.draw_circuit()
+@visualization
+def test_load_circuit_1(initialization_circuit):
+    """
+    Tests that we can load a circuit in from our own openQASM scripts
+    and retrieve the same original circuit
+    """
+    circuit = initialization_circuit.from_openqasm(initialization_circuit.to_openqasm())
+    plot_two_circuits(initialization_circuit, circuit)
+
+
+@visualization
+def test_load_circuit_2():
+    """
+    Tests that we can load a circuit in from our own openQASM scripts
+    and retrieve the same original circuit
+
+    This time, we try to test all operations
+    """
+    circuit1 = CircuitDAG(n_emitter=1, n_photon=2, n_classical=2)
+    circuit1.add(ops.SingleQubitGateWrapper([ops.Hadamard, ops.Phase, ops.SigmaY], register=0, reg_type='e'))
+    circuit1.add(ops.Hadamard(register=1, reg_type='p'))
+    circuit1.add(ops.SigmaX(register=0, reg_type='p'))
+    circuit1.add(ops.SigmaX(register=0, reg_type='e'))
+    circuit1.add(ops.SigmaY(register=0, reg_type='e'))
+    circuit1.add(ops.SigmaZ(register=0, reg_type='e'))
+    circuit1.add(ops.Phase(register=1, reg_type='p'))
+    circuit1.add(ops.Identity(register=0, reg_type='p'))
+    circuit1.add(ops.CNOT(control=0, control_type='e', target=1, target_type='p'))
+    circuit1.add(ops.CPhase(control=0, control_type='p', target=1, target_type='p'))
+    circuit1.add(ops.MeasurementCNOTandReset(control=0, control_type='e', target=0, target_type='p', c_register=1))
+    circuit1.add(ops.MeasurementZ(register=1, reg_type='p', c_register=0))
+    circuit1.add(ops.ClassicalCNOT(control=0, control_type='e', target=1, target_type='p', c_register=0))
+    circuit1.add(ops.ClassicalCPhase(control=0, control_type='p', target=0, target_type='e', c_register=1))
+
+    circuit2 = CircuitDAG.from_openqasm(circuit1.to_openqasm())
+    plot_two_circuits(circuit1, circuit2)
+
 
 
 @visualization

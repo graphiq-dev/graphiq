@@ -1043,12 +1043,12 @@ class CircuitDAG(CircuitBase):
                 reg = int(command_breakdown[1][1:-3])  # we must parse out [0] so -3
                 gate_class = ops.name_to_class_map(name)
                 if gate_class is not None:
-                    circuit.add(gate_class(reg=reg, reg_type=reg_type))
+                    circuit.add(gate_class(register=reg, reg_type=reg_type))
                 else:
                     circuit_list = [ops.name_to_class_map(letter) for letter in name]
                     assert None not in circuit_list, f"Gate not recognized, parsing invalid/" \
                                                      f"{name} parsed to {circuit_list}"
-                    circuit.add(ops.SingleQubitGateWrapper([circuit_list], reg=reg, reg_type=reg_type))
+                    circuit.add(ops.SingleQubitGateWrapper(circuit_list, register=reg, reg_type=reg_type))
             elif command.count('[0]') == 2:  # two-qubit gate
                 command_breakdown = command.split()
                 name = command_breakdown[0]
@@ -1064,7 +1064,7 @@ class CircuitDAG(CircuitBase):
                 raise ValueError(f'command not recognized, cannot be parsed')
             i += 1
 
-        return circuit, qasm_commands
+        return circuit
 
     def _add_register(self, size, reg_type):
         """

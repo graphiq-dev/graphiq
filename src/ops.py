@@ -633,6 +633,7 @@ class MeasurementCNOTandReset(ClassicalControlledPairOperationBase):
 
     _openqasm_info = oq_lib.measurement_cnot_and_reset()
     # _openqasm_info = oq_lib.cnot_info()
+
     def __init__(
         self, control=0, control_type="e", target=0, target_type="p", c_register=0
     ):

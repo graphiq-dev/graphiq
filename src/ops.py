@@ -756,16 +756,16 @@ def name_to_class_map(name):
     :return:
     """
     map = {
-        'CX': CNOT,
-        'x': SigmaX,
-        'y': SigmaY,
-        'z': SigmaZ,
-        'h': Hadamard,
-        's': Phase,
-        'cz': CPhase,
-        'classical x': ClassicalCNOT,
-        'classical z': ClassicalCPhase,
-        'classical reset x': MeasurementCNOTandReset
+        "CX": CNOT,
+        "x": SigmaX,
+        "y": SigmaY,
+        "z": SigmaZ,
+        "h": Hadamard,
+        "s": Phase,
+        "cz": CPhase,
+        "classical x": ClassicalCNOT,
+        "classical z": ClassicalCPhase,
+        "classical reset x": MeasurementCNOTandReset,
     }
     if name in map:
         return map[name]

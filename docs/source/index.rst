@@ -18,6 +18,7 @@ Contents
    circuits
    backends
    metrics
+   noise
    solvers
    guidelines
 

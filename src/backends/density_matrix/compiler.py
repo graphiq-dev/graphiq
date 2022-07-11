@@ -54,9 +54,9 @@ def reg_to_index_func(n_photon):
     """
 
     def reg_to_index(reg, reg_type):
-        if reg_type == 'p':
+        if reg_type == "p":
             return reg
-        elif reg_type == 'e':
+        elif reg_type == "e":
             return reg + n_photon
 
     return reg_to_index
@@ -70,6 +70,7 @@ class DensityMatrixCompiler(CompilerBase):
     # TODO: refactor to return a QuantumState object rather than a DensityMatrix object
     # TODO: [longer term] refactor to take a QuantumState object input instead of creating its own initial state?
     """
+
     name = "density_matrix"
     ops = [  # the accepted operations for a given compiler
         ops.Input,
@@ -96,7 +97,7 @@ class DensityMatrixCompiler(CompilerBase):
         :rtype: None
         """
         super().__init__(*args, **kwargs)
-        self._measurement_determinism = 'probabilistic'
+        self._measurement_determinism = "probabilistic"
 
     @property
     def measurement_determinism(self):
@@ -121,10 +122,12 @@ class DensityMatrixCompiler(CompilerBase):
         :return: nothing
         :rtype: None
         """
-        if measurement_setting in ['probabilistic', 1, 0]:
+        if measurement_setting in ["probabilistic", 1, 0]:
             self._measurement_determinism = measurement_setting
         else:
-            raise ValueError('Measurement determinism can only be set to "probabilistic", 0, or 1')
+            raise ValueError(
+                'Measurement determinism can only be set to "probabilistic", 0, or 1'
+            )
 
     def compile(self, circuit: CircuitBase):
         """
@@ -143,7 +146,9 @@ class DensityMatrixCompiler(CompilerBase):
         # sources = [x for x in circuit.dag.nodes() if circuit.dag.in_degree(x) == 0]
 
         # TODO: make this more general, but for now we assume all registers are initialized to |0>
-        init = np.outer(np.array([1, 0]), np.array([1, 0])).astype('complex64')  # initialization of quantum registers
+        init = np.outer(np.array([1, 0]), np.array([1, 0])).astype(
+            "complex64"
+        )  # initialization of quantum registers
 
         # TODO: refactor to be a QuantumState object which contains a density matrix
         state = DensityMatrix(data=reduce(np.kron, circuit.n_quantum * [init]))
@@ -153,12 +158,16 @@ class DensityMatrixCompiler(CompilerBase):
         # Get functions which will map from registers to a unique index
         q_index = reg_to_index_func(circuit.n_photons)
 
-        seq = circuit.sequence(unwrapped=True)  # the unwrapping allows us to support Wrapper operation types
+        seq = circuit.sequence(
+            unwrapped=True
+        )  # the unwrapping allows us to support Wrapper operation types
         # print(f'sequence unwrapped: {seq}')
         for op in seq:
             if type(op) not in self.ops:
-                raise RuntimeError(f"The Operation class {op.__class__.__name__} is not valid with "
-                                   f"the {self.__class__.__name__} compiler")
+                raise RuntimeError(
+                    f"The Operation class {op.__class__.__name__} is not valid with "
+                    f"the {self.__class__.__name__} compiler"
+                )
 
             if isinstance(op.noise, nm.NoNoise):
                 self._compile_one_gate(state, op, circuit.n_quantum, q_index, classical_registers)

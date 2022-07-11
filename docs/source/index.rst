@@ -20,7 +20,6 @@ Contents
    metrics
    noise
    solvers
-   guidelines
 
 
 

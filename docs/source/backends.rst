@@ -4,8 +4,9 @@ Backends
 The backends, or compilers, simulate the operation of a quantum circuit using an underlying representation of the propagating quantum state.
 Currently, three compilers are in development using the density matrix, graph, and stabilizer formalisms.
 
+
 Density Matrix Backend
-=========================
+------------------------------
 .. automodule:: src.backends.density_matrix
    :members:
 .. automodule:: src.backends.density_matrix.compiler
@@ -16,7 +17,7 @@ Density Matrix Backend
    :members:
 
 Graph Representation Backend
-=============================
+------------------------------
 .. automodule:: src.backends.graph
    :members:
 .. automodule:: src.backends.graph.compiler
@@ -27,7 +28,7 @@ Graph Representation Backend
    :members:
 
 Stabilizer Representation Backend
-==================================
+------------------------------
 .. automodule:: src.backends.stabilizer
    :members:
 .. automodule:: src.backends.stabilizer.compiler
@@ -36,3 +37,9 @@ Stabilizer Representation Backend
    :members:
 .. automodule:: src.backends.stabilizer.functions
    :members:
+
+Local-Clifford Equivalence Check Module
+------------------------------
+.. automodule:: src.backends.lc_equivalence_check
+   :members:
+

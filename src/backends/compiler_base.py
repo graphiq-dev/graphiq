@@ -16,10 +16,9 @@ class CompilerBase(ABC):
     Base class for compiler implementations.
     In general, compilers compile circuits using a specific representation(s) for the underlying quantum state
     """
+
     name = "base"
-    ops = [  # the accepted operations for a given compiler
-        ops.OperationBase
-    ]
+    ops = [ops.OperationBase]  # the accepted operations for a given compiler
 
     def __init__(self, *args, **kwargs):
         """
@@ -48,9 +47,13 @@ class CompilerBase(ABC):
 
         for i, op in enumerate(seq):
             if type(op) in self.ops:
-                logging.info(f"Operation {i} {type(op).__name__} is valid with {type(self).__name__}")
+                logging.info(
+                    f"Operation {i} {type(op).__name__} is valid with {type(self).__name__}"
+                )
             else:
-                logging.error(f"Error: Operation {i} {type(op).__name__} is not valid with {type(self).__name__}")
+                logging.error(
+                    f"Error: Operation {i} {type(op).__name__} is not valid with {type(self).__name__}"
+                )
                 valid = False
 
         return valid

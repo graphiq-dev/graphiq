@@ -54,13 +54,18 @@ def convert_data_to_graph(graph_data, root_id):
                 node_dict[node] = tmp_node
                 graph.add_node(tmp_node)
             else:
-                raise ValueError('Data type in the graph is not supported.')
+                raise ValueError("Data type in the graph is not supported.")
 
         for data_pair in graph_data.edges():
             if isinstance(data_pair[0], QuNode):
-                graph.add_edge(node_dict[data_pair[0].get_id()], node_dict[data_pair[1].get_id()])
-            elif (isinstance(data_pair[0], int) or isinstance(data_pair[0], frozenset)) and \
-                 (isinstance(data_pair[1], int) or isinstance(data_pair[1], frozenset)):
+                graph.add_edge(
+                    node_dict[data_pair[0].get_id()], node_dict[data_pair[1].get_id()]
+                )
+            elif (
+                isinstance(data_pair[0], int) or isinstance(data_pair[0], frozenset)
+            ) and (
+                isinstance(data_pair[1], int) or isinstance(data_pair[1], frozenset)
+            ):
                 # Cast ints to frozensets if necessary
                 new_data_pair = [data_pair[0], data_pair[1]]
                 if isinstance(data_pair[0], int):
@@ -107,6 +112,7 @@ class QuNode:
     A class that represents a node of qubit(s). Only simple redundancy encoding is allowed.
     No other QECC is allowed.
     """
+
     def __init__(self, id_set):
         """
         Creates a node of qubits
@@ -123,7 +129,7 @@ class QuNode:
         elif isinstance(id_set, int):
             self.id = frozenset([id_set])
         else:
-            raise ValueError('QuNode only accepts frozenset and int as id.')
+            raise ValueError("QuNode only accepts frozenset and int as id.")
 
     def count_redundancy(self):
         """
@@ -149,7 +155,7 @@ class QuNode:
         elif isinstance(id_set, int):
             self.id = frozenset([id_set])
         else:
-            raise ValueError('QuNode only accepts frozenset and int as id.')
+            raise ValueError("QuNode only accepts frozenset and int as id.")
 
     def remove_id(self, photon_id):
         """

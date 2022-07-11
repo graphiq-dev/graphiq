@@ -15,16 +15,16 @@ def symplectic_to_string(x_matrix, z_matrix):
     n_row, n_column = x_matrix.shape
     generator_list = []
     for i in range(n_row):
-        generator = ''
+        generator = ""
         for j in range(n_column):
             if x_matrix[i, j] == 1 and z_matrix[i, j] == 0:
-                generator = generator + 'X'
+                generator = generator + "X"
             elif x_matrix[i, j] == 1 and z_matrix[i, j] == 1:
-                generator = generator + 'Y'
+                generator = generator + "Y"
             elif x_matrix[i, j] == 0 and z_matrix[i, j] == 1:
-                generator = generator + 'Z'
+                generator = generator + "Z"
             else:
-                generator = generator + 'I'
+                generator = generator + "I"
         generator_list.append(generator)
     return generator_list
 
@@ -45,12 +45,12 @@ def string_to_symplectic(generator_list):
     for i in range(n_row):
         generator = generator_list[i]
         for j in range(n_column):
-            if generator[j].lower() == 'x':
+            if generator[j].lower() == "x":
                 x_matrix[i, j] = 1
-            elif generator[j].lower() == 'y':
+            elif generator[j].lower() == "y":
                 x_matrix[i, j] = 1
                 z_matrix[i, j] = 1
-            elif generator[j].lower() == 'z':
+            elif generator[j].lower() == "z":
                 z_matrix[i, j] = 1
     return x_matrix, z_matrix
 
@@ -85,7 +85,9 @@ def add_rows(input_matrix, row_to_add, resulting_row):
     :return: the matrix after adding two rows modulo 2 and putting in the row of the second input
     :rtype: numpy.ndarray
     """
-    input_matrix[resulting_row] = (input_matrix[row_to_add] + input_matrix[resulting_row]) % 2
+    input_matrix[resulting_row] = (
+        input_matrix[row_to_add] + input_matrix[resulting_row]
+    ) % 2
     return input_matrix
 
 
@@ -174,7 +176,9 @@ def row_reduction(x_matrix, z_matrix):
     return x_matrix, z_matrix, pivot[0]
 
 
-def _row_red_one_step(x_matrix, z_matrix, pivot):  # one step of the algorithm, only on the pivot provided here
+def _row_red_one_step(
+    x_matrix, z_matrix, pivot
+):  # one step of the algorithm, only on the pivot provided here
     """
     A helper function to apply one step of the row reduction algorithm. It is used in the main row reduction function.
 
@@ -244,11 +248,11 @@ def get_stabilizer_element_by_string(generator):
     """
     stabilizer_elem = 1
     for pauli in generator:
-        if pauli.lower() == 'x':
+        if pauli.lower() == "x":
             stabilizer_elem = dmf.tensor([stabilizer_elem, dmf.sigmax()])
-        elif pauli.lower() == 'y':
+        elif pauli.lower() == "y":
             stabilizer_elem = dmf.tensor([stabilizer_elem, dmf.sigmay()])
-        elif pauli.lower() == 'z':
+        elif pauli.lower() == "z":
             stabilizer_elem = dmf.tensor([stabilizer_elem, dmf.sigmaz()])
         else:
             stabilizer_elem = dmf.tensor([stabilizer_elem, np.eye(2)])

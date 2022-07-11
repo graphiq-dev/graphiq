@@ -195,7 +195,9 @@ def is_lc_equivalent(adj_matrix1, adj_matrix2, mode="deterministic", seed=0):
         return False, None
 
     # row reduction applied
-    reduced_coeff_matrix, _, last_nonzero_row_index = sf.row_reduction(coeff_matrix, coeff_matrix * 0)
+    reduced_coeff_matrix, _, last_nonzero_row_index = sf.row_reduction(
+        coeff_matrix, coeff_matrix * 0
+    )
 
     rank = last_nonzero_row_index + 1
     # update the matrix to remove zero rows
@@ -213,7 +215,9 @@ def is_lc_equivalent(adj_matrix1, adj_matrix2, mode="deterministic", seed=0):
     if mode == "random":
         # Use random mode to get the fast convergence for large states
         # Check for random solutions 1000 times
-        rand_solution = _random_checker(reduced_coeff_matrix, col_list, trial_count=1000, seed=seed)
+        rand_solution = _random_checker(
+            reduced_coeff_matrix, col_list, trial_count=1000, seed=seed
+        )
         if isinstance(rand_solution, np.ndarray):
             # random result
             return True, rand_solution.reshape(n_nodes, 2, 2)
@@ -236,7 +240,9 @@ def is_lc_equivalent(adj_matrix1, adj_matrix2, mode="deterministic", seed=0):
         # states are NOT LC equivalent
         return False, None
     else:
-        raise ValueError('The mode should be either "random" or "deterministic" (default)')
+        raise ValueError(
+            'The mode should be either "random" or "deterministic" (default)'
+        )
 
 
 def _solution_basis_finder(reduced_coeff_matrix, col_list):
@@ -256,7 +262,9 @@ def _solution_basis_finder(reduced_coeff_matrix, col_list):
     all_basis_elements = []
     for col in col_list:
         possible_basis = reduced_coeff_matrix[:, col]
-        possible_basis = possible_basis.reshape( (np.shape(reduced_coeff_matrix)[1] - length, 1))
+        possible_basis = possible_basis.reshape(
+            (np.shape(reduced_coeff_matrix)[1] - length, 1)
+        )
         all_basis_elements.append(possible_basis)
 
     # contains all vectors b as its columns
@@ -344,7 +352,9 @@ def _vec_solution_finder(reduced_coeff_matrix, col_list, var_vec):
     a_square_reduced_coeff_matrix = np.delete(reduced_coeff_matrix, col_list, axis=1)
 
     b_nonhomogeneous = (reduced_coeff_matrix @ var_vec) % 2
-    x_unknown_part_of_a_basis_vector = ((np.linalg.inv(a_square_reduced_coeff_matrix)) % 2 @ b_nonhomogeneous) % 2
+    x_unknown_part_of_a_basis_vector = (
+        (np.linalg.inv(a_square_reduced_coeff_matrix)) % 2 @ b_nonhomogeneous
+    ) % 2
 
     # the full var_vec is now the x vector inserted to the var_vec vector to make all 4*n elements
     counter = 0
@@ -647,7 +657,11 @@ def _apply_f(r_matrix, i):
     identity = np.eye(n_nodes, n_nodes)
     gamma_matrix = np.zeros((n_nodes, n_nodes))
     gamma_matrix[i, i] = 1
-    r_matrix = (r_matrix@ (gamma_matrix @ r_matrix + r_matrix[i, i] * gamma_matrix + identity)% 2) % 2
+    r_matrix = (
+        r_matrix
+        @ (gamma_matrix @ r_matrix + r_matrix[i, i] * gamma_matrix + identity)
+        % 2
+    ) % 2
     return r_matrix
 
 
@@ -664,7 +678,9 @@ def _singles(r_matrix):
     n_nodes = np.shape(r_matrix)[0]
     singles_list = []
     for i in range(n_nodes):
-        if r_matrix[i, i] == 1 and (not np.array_equal(r_matrix[i], np.eye(n_nodes)[i])):
+        if r_matrix[i, i] == 1 and (
+            not np.array_equal(r_matrix[i], np.eye(n_nodes)[i])
+        ):
             singles_list.append(i)
             r_matrix = _apply_f(r_matrix, i)
     return r_matrix, singles_list

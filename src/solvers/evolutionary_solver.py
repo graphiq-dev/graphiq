@@ -187,7 +187,9 @@ class EvolutionarySolver(RandomSearchSolver):
                     self.n_photon, self.n_emitter
                 )
 
-                circuit = self.initialization(emission_assignment, measurement_assignment)
+                circuit = self.initialization(
+                    emission_assignment, measurement_assignment
+                )
                 # initialize all population members
                 population.append((np.inf, circuit))
         else:

@@ -19,7 +19,6 @@ Contents
    backends
    metrics
    solvers
-   guidelines
 
 
 

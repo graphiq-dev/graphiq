@@ -160,42 +160,62 @@ def get_controlled_gate(number_qubits, control_qubit, target_qubit, target_gate)
     if control_qubit < target_qubit:
 
         # tensor identities before the control qubit
-        gate_cond0 = np.kron(gate_cond0, np.identity(2 ** control_qubit))
-        gate_cond1 = np.kron(gate_cond1, np.identity(2 ** control_qubit))
+        gate_cond0 = np.kron(gate_cond0, np.identity(2**control_qubit))
+        gate_cond1 = np.kron(gate_cond1, np.identity(2**control_qubit))
 
         # tensor the gate on the control qubit
-        gate_cond0 = np.kron(gate_cond0, ketz0_state() @ np.transpose(np.conjugate(ketz0_state())))
-        gate_cond1 = np.kron(gate_cond1, ketz1_state() @ np.transpose(np.conjugate(ketz1_state())))
+        gate_cond0 = np.kron(
+            gate_cond0, ketz0_state() @ np.transpose(np.conjugate(ketz0_state()))
+        )
+        gate_cond1 = np.kron(
+            gate_cond1, ketz1_state() @ np.transpose(np.conjugate(ketz1_state()))
+        )
 
         # the rest is identity for the gate action conditioned on zero
-        gate_cond0 = np.kron(gate_cond0, np.identity(2 ** (number_qubits - control_qubit - 1)))
+        gate_cond0 = np.kron(
+            gate_cond0, np.identity(2 ** (number_qubits - control_qubit - 1))
+        )
 
         # tensor identities between the control qubit and the target qubit
-        gate_cond1 = np.kron(gate_cond1, np.identity(2 ** (target_qubit - control_qubit - 1)))
+        gate_cond1 = np.kron(
+            gate_cond1, np.identity(2 ** (target_qubit - control_qubit - 1))
+        )
         # tensor the gate on the target qubit
         gate_cond1 = np.kron(gate_cond1, target_gate)
         # tensor identities after the target qubit
-        gate_cond1 = np.kron(gate_cond1, np.identity(2 ** (number_qubits - target_qubit - 1)))
+        gate_cond1 = np.kron(
+            gate_cond1, np.identity(2 ** (number_qubits - target_qubit - 1))
+        )
     elif control_qubit > target_qubit:
         # tensor identities before the control qubit for the gate action conditioned on zero
-        gate_cond0 = np.kron(gate_cond0, np.identity(2 ** control_qubit))
+        gate_cond0 = np.kron(gate_cond0, np.identity(2**control_qubit))
 
         # tensor identities before the target qubit
-        gate_cond1 = np.kron(gate_cond1, np.identity(2 ** target_qubit))
+        gate_cond1 = np.kron(gate_cond1, np.identity(2**target_qubit))
         # tensor the gate on the target qubit
         gate_cond1 = np.kron(gate_cond1, target_gate)
         # tensor identities between the control qubit and the target qubit
-        gate_cond1 = np.kron(gate_cond1, np.identity(2 ** (control_qubit - target_qubit - 1)))
+        gate_cond1 = np.kron(
+            gate_cond1, np.identity(2 ** (control_qubit - target_qubit - 1))
+        )
 
         # tensor the gate on the control qubit
-        gate_cond0 = np.kron(gate_cond0, ketz0_state() @ np.transpose(np.conjugate(ketz0_state())))
-        gate_cond1 = np.kron(gate_cond1, ketz1_state() @ np.transpose(np.conjugate(ketz1_state())))
+        gate_cond0 = np.kron(
+            gate_cond0, ketz0_state() @ np.transpose(np.conjugate(ketz0_state()))
+        )
+        gate_cond1 = np.kron(
+            gate_cond1, ketz1_state() @ np.transpose(np.conjugate(ketz1_state()))
+        )
 
         # tensor identities after the control qubit
-        gate_cond0 = np.kron(gate_cond0, np.identity(2 ** (number_qubits - control_qubit - 1)))
-        gate_cond1 = np.kron(gate_cond1, np.identity(2 ** (number_qubits - control_qubit - 1)))
+        gate_cond0 = np.kron(
+            gate_cond0, np.identity(2 ** (number_qubits - control_qubit - 1))
+        )
+        gate_cond1 = np.kron(
+            gate_cond1, np.identity(2 ** (number_qubits - control_qubit - 1))
+        )
     else:
-        raise ValueError('Control qubit and target qubit cannot be the same qubit!')
+        raise ValueError("Control qubit and target qubit cannot be the same qubit!")
     return gate_cond0 + gate_cond1
 
 
@@ -217,17 +237,27 @@ def get_controlled_gate_efficient(n_qubits, control_qubit, target_qubit, target_
     :rtype: numpy.ndarray
     """
     if control_qubit < target_qubit:
-        final_gate = np.kron(np.kron(np.eye(2 ** control_qubit), np.eye(2) - sigmaz()),
-                             np.eye(2 ** (target_qubit - control_qubit - 1)))
-        final_gate = np.kron(np.kron(final_gate, target_gate - np.eye(2)), np.eye(2 ** (n_qubits - target_qubit - 1)))
+        final_gate = np.kron(
+            np.kron(np.eye(2**control_qubit), np.eye(2) - sigmaz()),
+            np.eye(2 ** (target_qubit - control_qubit - 1)),
+        )
+        final_gate = np.kron(
+            np.kron(final_gate, target_gate - np.eye(2)),
+            np.eye(2 ** (n_qubits - target_qubit - 1)),
+        )
 
     elif control_qubit > target_qubit:
-        final_gate = np.kron(np.kron(np.eye(2 ** target_qubit), target_gate - np.eye(2)),
-                             np.eye(2 ** (control_qubit - target_qubit - 1)))
-        final_gate = np.kron(np.kron(final_gate, np.eye(2) - sigmaz()), np.eye(2 ** (n_qubits - control_qubit - 1)))
+        final_gate = np.kron(
+            np.kron(np.eye(2**target_qubit), target_gate - np.eye(2)),
+            np.eye(2 ** (control_qubit - target_qubit - 1)),
+        )
+        final_gate = np.kron(
+            np.kron(final_gate, np.eye(2) - sigmaz()),
+            np.eye(2 ** (n_qubits - control_qubit - 1)),
+        )
     else:
-        raise ValueError('Control qubit and target qubit cannot be the same qubit!')
-    final_gate = np.eye(2 ** n_qubits) + final_gate / 2
+        raise ValueError("Control qubit and target qubit cannot be the same qubit!")
+    final_gate = np.eye(2**n_qubits) + final_gate / 2
     return final_gate
 
 
@@ -245,8 +275,10 @@ def get_single_qubit_gate(number_qubits, qubit_position, target_gate):
     :rtype: numpy.ndarray
     """
 
-    final_gate = np.kron(np.identity(2 ** qubit_position), target_gate)
-    final_gate = np.kron(final_gate, np.identity(2 ** (number_qubits - qubit_position - 1)))
+    final_gate = np.kron(np.identity(2**qubit_position), target_gate)
+    final_gate = np.kron(
+        final_gate, np.identity(2 ** (number_qubits - qubit_position - 1))
+    )
     return final_gate
 
 
@@ -265,8 +297,12 @@ def swap_two_qubits(state_matrix, qubit1_position, qubit2_position):
     :rtype: numpy.ndarray
     """
     number_qubits = int(np.log2(np.sqrt(state_matrix.size)))
-    cnot12 = get_controlled_gate(number_qubits, qubit1_position, qubit2_position, sigmax())
-    cnot21 = get_controlled_gate(number_qubits, qubit2_position, qubit1_position, sigmax())
+    cnot12 = get_controlled_gate(
+        number_qubits, qubit1_position, qubit2_position, sigmax()
+    )
+    cnot21 = get_controlled_gate(
+        number_qubits, qubit2_position, qubit1_position, sigmax()
+    )
 
     # SWAP gate can be decomposed as three CNOT gates
     swap = cnot12 @ cnot21 @ cnot12
@@ -288,7 +324,9 @@ def get_reset_qubit_kraus(n_qubits, qubit_position):
     kraus0 = np.array([[1, 0], [0, 0]])
     kraus1 = np.array([[0, 1], [0, 0]])
     full_kraus0 = get_single_qubit_gate(n_qubits, qubit_position, kraus0)
-    full_kraus1 = get_single_qubit_gate(n_qubits, qubit_position, kraus1) # technically not a gate, but this function works
+    full_kraus1 = get_single_qubit_gate(
+        n_qubits, qubit_position, kraus1
+    )  # technically not a gate, but this function works
     return [full_kraus0, full_kraus1]
 
 
@@ -308,8 +346,9 @@ def trace_out_qubit(state_matrix, qubit_position):
     target_op2 = np.transpose(np.conjugate(ketz1_state()))
     k0 = get_single_qubit_gate(number_qubits, qubit_position, target_op1)
     k1 = get_single_qubit_gate(number_qubits, qubit_position, target_op2)
-    final_state = (k0 @ state_matrix @ np.transpose(np.conjugate(k0))
-                   + k1 @ state_matrix @ np.transpose(np.conjugate(k1)))
+    final_state = k0 @ state_matrix @ np.transpose(
+        np.conjugate(k0)
+    ) + k1 @ state_matrix @ np.transpose(np.conjugate(k1))
     return final_state
 
 
@@ -452,9 +491,23 @@ def projectors_zbasis(number_qubits, measure_register):
     :rtype: [numpy.ndarray, numpy.ndarray]
     """
     if not (0 <= measure_register < number_qubits):
-        raise ValueError("Register index must be at least 0 and less than the number of qubit registers")
-    m0 = reduce(np.kron, [projectorz0() if i == measure_register else np.identity(2) for i in range(number_qubits)])
-    m1 = reduce(np.kron, [projectorz1() if i == measure_register else np.identity(2) for i in range(number_qubits)])
+        raise ValueError(
+            "Register index must be at least 0 and less than the number of qubit registers"
+        )
+    m0 = reduce(
+        np.kron,
+        [
+            projectorz0() if i == measure_register else np.identity(2)
+            for i in range(number_qubits)
+        ],
+    )
+    m1 = reduce(
+        np.kron,
+        [
+            projectorz1() if i == measure_register else np.identity(2)
+            for i in range(number_qubits)
+        ],
+    )
 
     return [m0, m1]
 
@@ -474,7 +527,6 @@ def fidelity(rho, sigma):
     return np.real(np.trace(sqrtm(sqrtm(rho) @ sigma @ sqrtm(rho))) ** 2)
 
 
-
 def fidelity_pure(rho, sigma):
     """
     Return the fidelity between states rho, sigma
@@ -486,8 +538,7 @@ def fidelity_pure(rho, sigma):
     :return: the fidelity between 0 and 1
     :rtype: int
     """
-    return np.real(np.trace(rho @ sigma)**2)
-
+    return np.real(np.trace(rho @ sigma) ** 2)
 
 
 def bipartite_partial_transpose(rho, dim1, dim2, subsys):
@@ -510,18 +561,28 @@ def bipartite_partial_transpose(rho, dim1, dim2, subsys):
     """
     # print(rho.size)
     # print(dim1*dim2)
-    assert (int(np.sqrt(rho.size)) == dim1 * dim2)
+    assert int(np.sqrt(rho.size)) == dim1 * dim2
 
     if subsys == 0:
         mask = [1, 0]
     elif subsys == 1:
         mask = [0, 1]
     else:
-        raise ValueError('The function bipartite_partial_transpose accepts only bipartite states.')
+        raise ValueError(
+            "The function bipartite_partial_transpose accepts only bipartite states."
+        )
     pt_dims = np.arange(4).reshape(2, 2).T
-    pt_index = np.concatenate([[pt_dims[n, mask[n]] for n in range(2)],
-                               [pt_dims[n, 1 - mask[n]] for n in range(2)]])
-    rho_pt = rho.reshape(np.array([dim1, dim1, dim2, dim2])).transpose(pt_index).reshape(rho.shape)
+    pt_index = np.concatenate(
+        [
+            [pt_dims[n, mask[n]] for n in range(2)],
+            [pt_dims[n, 1 - mask[n]] for n in range(2)],
+        ]
+    )
+    rho_pt = (
+        rho.reshape(np.array([dim1, dim1, dim2, dim2]))
+        .transpose(pt_index)
+        .reshape(rho.shape)
+    )
     return rho_pt
 
 
@@ -559,7 +620,10 @@ def project_to_z0_and_remove(rho, locations):
     :rtype: numpy.ndarray
     """
     n_qubits = len(locations)
-    m0 = reduce(np.kron, [projectorz0() if locations[i] else np.identity(2) for i in range(n_qubits)])
+    m0 = reduce(
+        np.kron,
+        [projectorz0() if locations[i] else np.identity(2) for i in range(n_qubits)],
+    )
     new_rho = m0 @ rho @ np.conjugate(m0.T)
     new_rho = new_rho / np.trace(new_rho)
 
@@ -570,5 +634,3 @@ def project_to_z0_and_remove(rho, locations):
     dims = n_qubits * [2]
     final_rho = partial_trace(new_rho, keeps, dims)
     return final_rho
-
-

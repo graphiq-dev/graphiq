@@ -4,12 +4,22 @@ from tests.test_flags import visualization
 
 
 def test_graph_initialization_adding(graph_rep_1):
-    assert set(graph_rep_1.get_nodes_id_form()) == {frozenset([1]), frozenset([2]), frozenset([3])}
-    assert set(graph_rep_1.get_edges_id_form()) == {(frozenset([1]), frozenset([2])), (frozenset([2]), frozenset([3]))}
+    assert set(graph_rep_1.get_nodes_id_form()) == {
+        frozenset([1]),
+        frozenset([2]),
+        frozenset([3]),
+    }
+    assert set(graph_rep_1.get_edges_id_form()) == {
+        (frozenset([1]), frozenset([2])),
+        (frozenset([2]), frozenset([3])),
+    }
     graph_rep_1.add_node(4)
     graph_rep_1.add_edge(3, 4)
-    assert set(graph_rep_1.get_edges_id_form()) == {(frozenset([1]), frozenset([2])), (frozenset([2]), frozenset([3])),
-                                                  (frozenset([3]), frozenset([4]))}
+    assert set(graph_rep_1.get_edges_id_form()) == {
+        (frozenset([1]), frozenset([2])),
+        (frozenset([2]), frozenset([3])),
+        (frozenset([3]), frozenset([4])),
+    }
 
 
 @visualization

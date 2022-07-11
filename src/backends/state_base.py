@@ -14,6 +14,7 @@ class StateRepresentationBase(ABC):
     """
     Base class for state representation
     """
+
     def __init__(self, data, *args, **kwargs):
         """
         Construct an empty state representation base

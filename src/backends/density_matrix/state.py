@@ -35,7 +35,7 @@ class DensityMatrix(StateRepresentationBase):
         else:
             # check if state_data is positive semi-definite
             if not is_psd(data):
-                raise ValueError('The input matrix is not a valid density matrix')
+                raise ValueError("The input matrix is not a valid density matrix")
 
             if not np.equal(np.trace(data), 1):
                 data = data / np.trace(data)
@@ -87,7 +87,8 @@ class DensityMatrix(StateRepresentationBase):
             self._data = unitary @ self._data @ np.transpose(np.conjugate(unitary))
         else:
             raise ValueError(
-                'The density matrix of the state has a different size from the unitary gate to be applied.')
+                "The density matrix of the state has a different size from the unitary gate to be applied."
+            )
 
     def apply_channel(self, kraus_ops):
         """
@@ -105,12 +106,16 @@ class DensityMatrix(StateRepresentationBase):
             return
         if self._data.shape[0] == kraus_ops[0].shape[1]:
             for i in range(len(kraus_ops)):
-                tmp_state = tmp_state + kraus_ops[i] @ self._data @ np.conjugate(kraus_ops[i].T)
+                tmp_state = tmp_state + kraus_ops[i] @ self._data @ np.conjugate(
+                    kraus_ops[i].T
+                )
             self._data = tmp_state
         else:
-            raise ValueError('Kraus operators have wrong dimensions.')
+            raise ValueError("Kraus operators have wrong dimensions.")
 
-    def apply_measurement_TO_DEBUG(self, projectors, measurement_determinism='probabilistic'):
+    def apply_measurement_TO_DEBUG(
+        self, projectors, measurement_determinism="probabilistic"
+    ):
         """
         # TODO: replace the other apply_measurement function by this one, and also debug to find out why it
         # gives different tests results in test_benchmark_fidelity.py
@@ -133,7 +138,7 @@ class DensityMatrix(StateRepresentationBase):
                     prob = 0
                 probs.append(prob)
 
-            if measurement_determinism == 'probabilistic':
+            if measurement_determinism == "probabilistic":
                 outcome = np.random.choice([0, 1], p=probs / np.sum(probs))
             elif measurement_determinism == 1:
                 if probs[1] > 0:
@@ -147,7 +152,9 @@ class DensityMatrix(StateRepresentationBase):
                 else:
                     outcome = 1
             else:
-                raise ValueError(f'measurement_determinism parameter must be "probabilistic", 0, or 1')
+                raise ValueError(
+                    f'measurement_determinism parameter must be "probabilistic", 0, or 1'
+                )
 
             m, norm = projectors[outcome], probs[outcome]
 
@@ -158,7 +165,9 @@ class DensityMatrix(StateRepresentationBase):
             # TODO: this is the dm *unconditioned* on the outcome
             # self._data = sum([m @ self._data @ m for m in projectors])
         else:
-            raise ValueError('The density matrix of the state has a different size from the POVM elements.')
+            raise ValueError(
+                "The density matrix of the state has a different size from the POVM elements."
+            )
 
     def apply_measurement(self, projectors, measurement_determinism):
         """
@@ -173,7 +182,7 @@ class DensityMatrix(StateRepresentationBase):
         :return: the measurement outcome
         :rtype: int
         """
-        if measurement_determinism == 'probabilistic':
+        if measurement_determinism == "probabilistic":
             return self.apply_probabilistic_measurement(projectors)
         elif measurement_determinism == 1:
             return self.apply_deterministic_measurement(projectors, set_measurement=1)
@@ -206,7 +215,9 @@ class DensityMatrix(StateRepresentationBase):
             # TODO: this is the dm *unconditioned* on the outcome
             # self._data = sum([m @ self._data @ m for m in projectors])
         else:
-            raise ValueError('The density matrix of the state has a different size from the POVM elements.')
+            raise ValueError(
+                "The density matrix of the state has a different size from the POVM elements."
+            )
 
         return outcome
 
@@ -246,11 +257,13 @@ class DensityMatrix(StateRepresentationBase):
             # TODO: this is the dm *unconditioned* on the outcome
             # self._data = sum([m @ self._data @ m for m in projectors])
         else:
-            raise ValueError('The density matrix of the state has a different size from the POVM elements.')
+            raise ValueError(
+                "The density matrix of the state has a different size from the POVM elements."
+            )
 
         return outcome
 
-    def draw(self, style='bar', show=True):
+    def draw(self, style="bar", show=True):
         """
         Draw a bar graph or heatmap of the DensityMatrix representation data
 
@@ -263,7 +276,7 @@ class DensityMatrix(StateRepresentationBase):
 
         TODO: add a "ax" parameter to match the other viewing utils
         """
-        if style == 'bar':
+        if style == "bar":
             fig, axs = density_matrix_bars(self.data)
         else:
             fig, axs = density_matrix_heatmap(self.data)

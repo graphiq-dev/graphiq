@@ -18,7 +18,19 @@ def test_trace_1():
 
 
 def test_controlled_gate():
-    assert np.array_equal(get_controlled_gate(4, 1, 2, sigmaz()), get_controlled_gate_efficient(4, 1, 2, sigmaz()))
-    assert np.array_equal(get_controlled_gate(4, 1, 2, sigmax()), get_controlled_gate_efficient(4, 1, 2, sigmax()))
-    assert np.array_equal(get_controlled_gate(5, 2, 4, sigmaz()), get_controlled_gate_efficient(5, 2, 4, sigmaz()))
-    assert np.array_equal(get_controlled_gate(5, 4, 1, sigmay()), get_controlled_gate_efficient(5, 4, 1, sigmay()))
+    assert np.array_equal(
+        get_controlled_gate(4, 1, 2, sigmaz()),
+        get_controlled_gate_efficient(4, 1, 2, sigmaz()),
+    )
+    assert np.array_equal(
+        get_controlled_gate(4, 1, 2, sigmax()),
+        get_controlled_gate_efficient(4, 1, 2, sigmax()),
+    )
+    assert np.array_equal(
+        get_controlled_gate(5, 2, 4, sigmaz()),
+        get_controlled_gate_efficient(5, 2, 4, sigmaz()),
+    )
+    assert np.array_equal(
+        get_controlled_gate(5, 4, 1, sigmay()),
+        get_controlled_gate_efficient(5, 4, 1, sigmay()),
+    )

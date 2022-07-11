@@ -22,7 +22,7 @@ TODO: consider refactoring register notation to not use tuples (which can be con
 """
 from abc import ABC
 import itertools
-import src.visualizers.openqasm.openqasm_lib as oq_lib
+import src.utils.openqasm_lib as oq_lib
 
 
 """ Base classes from which operations will inherit """
@@ -633,6 +633,7 @@ class MeasurementCNOTandReset(ClassicalControlledPairOperationBase):
 
     _openqasm_info = oq_lib.measurement_cnot_and_reset()
     # _openqasm_info = oq_lib.cnot_info()
+
     def __init__(
         self, control=0, control_type="e", target=0, target_type="p", c_register=0
     ):
@@ -743,3 +744,29 @@ def single_qubit_cliffords():
         return c[0] + c[1]  # where a is a tuple of lists
 
     return map(flatten_gates, itertools.product(a, b))
+
+
+def name_to_class_map(name):
+    """
+    Maps our openqasm naming scheme to operation classes. Does not handle multi-gate wrappers
+    Does not handle multi-line openqasm components
+
+    :param name: gate name in openqasm
+    :type name: str
+    :return:
+    """
+    map = {
+        "CX": CNOT,
+        "x": SigmaX,
+        "y": SigmaY,
+        "z": SigmaZ,
+        "h": Hadamard,
+        "s": Phase,
+        "cz": CPhase,
+        "classical x": ClassicalCNOT,
+        "classical z": ClassicalCPhase,
+        "classical reset x": MeasurementCNOTandReset,
+    }
+    if name in map:
+        return map[name]
+    return None

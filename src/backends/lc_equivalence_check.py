@@ -278,7 +278,7 @@ def _solution_basis_finder(reduced_coeff_matrix, col_list):
     v_array = v_array.reshape((length, np.shape(reduced_coeff_matrix)[1], 1))
 
     # check also that it gives zero array as result:
-    assert not ((reduced_coeff_matrix @ v_array) % 2).any(), "solution basis is wrong!"
+    assert not ((reduced_coeff_matrix @ v_array) % 2).any(), "solution basis is wrong."
 
     return v_array.astype(int)
 
@@ -343,10 +343,10 @@ def _vec_solution_finder(reduced_coeff_matrix, col_list, var_vec):
     n = int(np.shape(reduced_coeff_matrix)[1] / 4)
     # removing linearly dependent columns
     a_square_reduced_coeff_matrix = np.delete(reduced_coeff_matrix, col_list, axis=1)
+
     b_nonhomogeneous = (reduced_coeff_matrix @ var_vec) % 2
-    x_unknown_part_of_a_basis_vector = (
-        (np.linalg.inv(a_square_reduced_coeff_matrix)) % 2 @ b_nonhomogeneous
-    ) % 2
+    x_unknown_part_of_a_basis_vector = ((np.linalg.inv(a_square_reduced_coeff_matrix)) % 2 @ b_nonhomogeneous) % 2
+
     # the full var_vec is now the x vector inserted to the var_vec vector to make all 4*n elements
     counter = 0
     for i in range(4 * n):

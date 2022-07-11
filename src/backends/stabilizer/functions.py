@@ -110,7 +110,7 @@ def hadamard_transform(x_matrix, z_matrix, positions):
     return x_matrix, z_matrix
 
 
-def row_reduction_old(x_matrix, z_matrix, pivot):
+def _row_reduction_old(x_matrix, z_matrix, pivot):
     """
     Returns the row reduced matrix X, the transformed matrix Z and the (rank-1) of the X matrix
 
@@ -136,7 +136,7 @@ def row_reduction_old(x_matrix, z_matrix, pivot):
         # check if the column below is empty to skip it
         if not the_ones:
             pivot = [pivot[0], pivot[1] + 1]
-            x_matrix, z_matrix, rank = row_reduction_old(x_matrix, z_matrix, pivot)
+            x_matrix, z_matrix, rank = _row_reduction_old(x_matrix, z_matrix, pivot)
         else:
             x_matrix = row_swap(x_matrix, the_ones[0], pivot[0])
             z_matrix = row_swap(z_matrix, the_ones[0], pivot[0])
@@ -145,7 +145,7 @@ def row_reduction_old(x_matrix, z_matrix, pivot):
                 x_matrix = add_rows(x_matrix, pivot[0], j)
                 z_matrix = add_rows(z_matrix, pivot[0], j)
             pivot = [pivot[0] + 1, pivot[1] + 1]
-            x_matrix, z_matrix, rank = row_reduction_old(x_matrix, z_matrix, pivot)
+            x_matrix, z_matrix, rank = _row_reduction_old(x_matrix, z_matrix, pivot)
     return x_matrix, z_matrix, rank
 
 

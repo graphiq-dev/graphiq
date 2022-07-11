@@ -114,9 +114,8 @@ Solving for vector :math:`x` will result in finding one of the members :math:`b`
 As evident here, the size of :math:`B` is equal to the size of :math:`B_{dependent}`
 which is equal to the number of linearly dependent columns in the initial coefficient matrix.
 
-If :math:`Q` is found, the graphs are local-Clifford equivalent. In this case,
- one can translate the sub-matrices :math:`Q^{(i)}` to local
-Clifford operations (combination of :math:`H` and :math:`P` gates)
+If :math:`Q` is found, the graphs are local-Clifford equivalent. In this case, one can translate the sub-matrices
+:math:`Q^{(i)}` to local Clifford operations (combination of :math:`H` and :math:`P` gates)
 needed (via :py:func:`local_clifford_ops` function) to convert one graph state to the other.
 
 All general local-Clifford operations :math:`Q` on graph states are proved to be equivalent to a series of local

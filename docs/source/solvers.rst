@@ -8,7 +8,7 @@ Solvers are individual algorithm implementations for synthesizing or identifying
    :members:
 
 Evolutionary Solver
-=========================
+------------------------------
 .. automodule:: src.solvers.evolutionary_solver
    :members:
 

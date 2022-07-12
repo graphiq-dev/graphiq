@@ -174,7 +174,7 @@ class DensityMatrixCompiler(CompilerBase):
                     state, op, circuit.n_quantum, q_index, classical_registers
                 )
             else:
-                if issubclass(op.noise, nm.AdditionNoiseBase):
+                if isinstance(op.noise, nm.AdditionNoiseBase):
                     if op.noise.after_gate:
                         self._compile_one_gate(
                             state, op, circuit.n_quantum, q_index, classical_registers
@@ -189,7 +189,7 @@ class DensityMatrixCompiler(CompilerBase):
                         self._compile_one_gate(
                             state, op, circuit.n_quantum, q_index, classical_registers
                         )
-                elif issubclass(op.noise, nm.ReplacementNoiseBase):
+                elif isinstance(op.noise, nm.ReplacementNoiseBase):
                     self._compile_one_noisy_gate(
                         state, op, circuit.n_quantum, q_index, classical_registers
                     )
@@ -336,22 +336,22 @@ class DensityMatrixCompiler(CompilerBase):
             pass
 
         elif type(op) is ops.Identity:
-            op.noise.apply(state, n_quantum, q_index)
+            op.noise.apply(state, n_quantum, q_index(op.register, op.reg_type))
 
         elif type(op) is ops.Hadamard:
-            op.noise.apply(state, n_quantum, q_index)
+            op.noise.apply(state, n_quantum, q_index(op.register, op.reg_type))
 
         elif type(op) is ops.Phase:
-            op.noise.apply(state, n_quantum, q_index)
+            op.noise.apply(state, n_quantum, q_index(op.register, op.reg_type))
 
         elif type(op) is ops.SigmaX:
-            op.noise.apply(state, n_quantum, q_index)
+            op.noise.apply(state, n_quantum, q_index(op.register, op.reg_type))
 
         elif type(op) is ops.SigmaY:
-            op.noise.apply(state, n_quantum, q_index)
+            op.noise.apply(state, n_quantum, q_index(op.register, op.reg_type))
 
         elif type(op) is ops.SigmaZ:
-            op.noise.apply(state, n_quantum, q_index)
+            op.noise.apply(state, n_quantum, q_index(op.register, op.reg_type))
 
         # TODO: Handle two-qubit noisy gates
         elif type(op) is ops.CNOT:
@@ -442,5 +442,6 @@ class DensityMatrixCompiler(CompilerBase):
                 f"{type(op)} is invalid or not implemented for {self.__class__.__name__}."
             )
 
-    def _apply_additional_noise(self, state, op, q_index):
-        pass
+    def _apply_additional_noise(self, state, op, n_quantum, q_index, classical_registers):
+        op.noise.apply(state, n_quantum, q_index(op.register, op.reg_type))
+

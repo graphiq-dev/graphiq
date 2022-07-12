@@ -34,3 +34,9 @@ def test_controlled_gate():
         get_controlled_gate(5, 4, 1, sigmay()),
         get_controlled_gate_efficient(5, 4, 1, sigmay()),
     )
+
+
+def test_single_qubit_unitary():
+    assert np.allclose(single_qubit_unitary(2, 1, 0, 0, 0), np.eye(4))
+    print(single_qubit_unitary(2, 1, np.pi / 180, 0, 0))
+    print(single_qubit_unitary(2, 1, np.pi/180 , 0, 0))

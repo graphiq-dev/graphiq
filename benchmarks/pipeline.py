@@ -32,8 +32,14 @@ def run_combinations(solvers, targets, compilers, metrics):
         metric = Metric(target=target)
         compiler = Compiler()
 
-        solver = Solver(target=target, metric=metric, compiler=compiler,
-                        n_photon=target_attr['n_photon'], n_emitter=target_attr['n_emitter'], **solver_attr)
+        solver = Solver(
+            target=target,
+            metric=metric,
+            compiler=compiler,
+            n_photon=target_attr["n_photon"],
+            n_emitter=target_attr["n_emitter"],
+            **solver_attr,
+        )
 
         runs[f"run{i}"] = dict(
             solver=solver,
@@ -56,6 +62,8 @@ def benchmark_run(run: dict, name: str, io: IO):
     solver = run["solver"]
 
     t0 = time.time()
+    run["solver"].io = io
+    run["solver"].save_openqasm = "both"
     run["solver"].solve()
     t1 = time.time()
 
@@ -73,7 +81,7 @@ def benchmark_run(run: dict, name: str, io: IO):
         compiler=run["compiler"].__class__.__name__,
         metric=run["compiler"].__class__.__name__,
         # target=run["target"],  # TODO: ideally the target is a QuantumState object, and we can use the __name__ here
-        time=(t1-t0),
+        time=(t1 - t0),
         circuit_cost=solver.hof[0][0],
         circuit_depth=solver.hof[0][1].depth,
     )
@@ -91,6 +99,7 @@ def benchmark(runs: dict, io: IO, remote=True):
     """
     if remote:
         import ray
+
         ray.init(num_cpus=psutil.cpu_count() - 1, ignore_reinit_error=True)
         benchmark_run_remote = ray.remote(benchmark_run)
 
@@ -98,16 +107,19 @@ def benchmark(runs: dict, io: IO, remote=True):
 
     t0 = time.time()
     for name, run in runs.items():
-        io_tmp = IO.new_directory(path=io.path, folder=name, include_date=True, include_time=True, include_id=False)
+        io_tmp = IO.new_directory(
+            path=io.path,
+            folder=name,
+            include_date=True,
+            include_time=True,
+            include_id=False,
+            verbose=False,
+        )
 
         if remote:
-            futures.append(
-                benchmark_run_remote.remote(run, name=name, io=io_tmp)
-            )
+            futures.append(benchmark_run_remote.remote(run, name=name, io=io_tmp))
         else:
-            futures.append(
-                benchmark_run(run, name=name, io=io_tmp)
-            )
+            futures.append(benchmark_run(run, name=name, io=io_tmp))
 
     if remote:
         futures = ray.get(futures)
@@ -120,11 +132,13 @@ def benchmark(runs: dict, io: IO, remote=True):
 
 if __name__ == "__main__":
     # define a single run by creating an instance of each object
-    target = ghz3_state_circuit()[1]['dm']
+    target = ghz3_state_circuit()[1]["dm"]
     compiler = DensityMatrixCompiler()
     metric = Infidelity(target=target)
 
-    solver1 = EvolutionarySolver(target=target, metric=metric, compiler=compiler, n_photon=3, n_emitter=1)
+    solver1 = EvolutionarySolver(
+        target=target, metric=metric, compiler=compiler, n_photon=3, n_emitter=1
+    )
     example_run1 = {
         "solver": solver1,
         "target": target,
@@ -132,7 +146,9 @@ if __name__ == "__main__":
         "compiler": compiler,
     }
 
-    solver2 = EvolutionarySolver(target=target, metric=metric, compiler=compiler, n_photon=3, n_emitter=1)
+    solver2 = EvolutionarySolver(
+        target=target, metric=metric, compiler=compiler, n_photon=3, n_emitter=1
+    )
     example_run2 = {
         "solver": solver2,
         "target": target,
@@ -146,6 +162,8 @@ if __name__ == "__main__":
         "example_run2": example_run2,
     }
 
-    io = IO.new_directory(folder="benchmarks", include_date=True, include_time=True, include_id=False)
+    io = IO.new_directory(
+        folder="benchmarks", include_date=True, include_time=True, include_id=False
+    )
     df = benchmark(runs=runs, io=io, remote=True)
     print(df)

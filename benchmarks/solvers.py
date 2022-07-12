@@ -21,21 +21,19 @@ if __name__ == "__main__":
 
     # provide a list of targets
     targets = [
-        (ghz3_state_circuit()[1]['dm'], dict(name='ghz3', n_photon=3, n_emitter=1)),
-        (ghz4_state_circuit()[1]['dm'], dict(name='ghz4', n_photon=4, n_emitter=1)),
+        (ghz3_state_circuit()[1]["dm"], dict(name="ghz3", n_photon=3, n_emitter=1)),
+        (ghz4_state_circuit()[1]["dm"], dict(name="ghz4", n_photon=4, n_emitter=1)),
     ]
 
-    compilers = [
-        DensityMatrixCompiler
-    ]
+    compilers = [DensityMatrixCompiler]
 
-    metrics = [
-        Infidelity
-    ]
+    metrics = [Infidelity]
 
     # take all combinations of the lists provided above
     runs = run_combinations(solvers, targets, compilers, metrics)
 
-    io = IO.new_directory(folder="benchmarks", include_date=True, include_time=True, include_id=False)
+    io = IO.new_directory(
+        folder="benchmarks", include_date=True, include_time=True, include_id=False
+    )
     df = benchmark(runs=runs, io=io, remote=True)
     print(df)

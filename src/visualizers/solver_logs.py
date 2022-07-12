@@ -9,15 +9,26 @@ def plot_solver_logs(logs: dict):
     :param logs: dictionary containing a log (pd.DataFrame) for population and hof
     :return:
     """
-    fig, axs = plt.subplots(nrows=2, ncols=2, sharey='row', sharex="col")
+    fig, axs = plt.subplots(nrows=2, ncols=2, sharey="row", sharex="col")
     colors = ["teal", "orange"]
     for col, (log_name, log) in enumerate(logs.items()):
         c = colors[col]
-        axs[0, col].plot(log['iteration'], log["cost_mean"], color=c, label=f"{log_name}, mean")
-        axs[0, col].fill_between(log['iteration'], log["cost_min"], log["cost_max"], color=c, alpha=0.3, label=f"{log_name}, range")
+        axs[0, col].plot(
+            log["iteration"], log["cost_mean"], color=c, label=f"{log_name}, mean"
+        )
+        axs[0, col].fill_between(
+            log["iteration"],
+            log["cost_min"],
+            log["cost_max"],
+            color=c,
+            alpha=0.3,
+            label=f"{log_name}, range",
+        )
 
-        axs[1, col].plot(log['iteration'], log["depth_mean"], color=c)
-        axs[1, col].fill_between(log['iteration'], log["depth_min"], log["depth_max"], color=c, alpha=0.3)
+        axs[1, col].plot(log["iteration"], log["depth_mean"], color=c)
+        axs[1, col].fill_between(
+            log["iteration"], log["depth_min"], log["depth_max"], color=c, alpha=0.3
+        )
 
         axs[0, col].set(title=f"{log_name}")
 

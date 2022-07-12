@@ -73,5 +73,6 @@ if __name__ == "__main__":
 
     #%%
     from src.visualizers.solver_logs import plot_solver_logs
+
     fig, axs = plot_solver_logs(solver.logs)
     plt.show()

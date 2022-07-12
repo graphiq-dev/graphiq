@@ -1,28 +1,23 @@
 """
 Evolutionary solver.
 """
-
 import copy
-import matplotlib.pyplot as plt
 import numpy as np
-import networkx as nx
+import matplotlib.pyplot as plt
 import warnings
 import time
 import pandas as pd
 
 import src.backends.density_matrix.functions as dmf
-
-from src.metrics import MetricBase
-
 from src.backends.compiler_base import CompilerBase
-
-from src.solvers import RandomSearchSolver
-
 from src.backends.density_matrix.compiler import DensityMatrixCompiler
+from src.solvers import RandomSearchSolver
 from src.circuit import CircuitDAG
+from src.metrics import MetricBase
 from src.metrics import Infidelity
 
 from src.visualizers.density_matrix import density_matrix_bars
+from src.io import IO
 from src import ops
 
 
@@ -48,14 +43,29 @@ class EvolutionarySolver(RandomSearchSolver):
         metric: MetricBase,
         compiler: CompilerBase,
         circuit: CircuitDAG = None,
+        io: IO = None,
         n_emitter=1,
         n_photon=1,
         selection_active=False,
+        save_openqasm: str = "none",
         *args,
         **kwargs,
     ):
+        """
 
-        super().__init__(target, metric, compiler, circuit, *args, **kwargs)
+        :param target:
+        :param metric:
+        :param compiler:
+        :param circuit:
+        :param io:
+        :param n_emitter:
+        :param n_photon:
+        :param selection_active:
+        :param save_openqasm:
+        :param args:
+        :param kwargs:
+        """
+        super().__init__(target, metric, compiler, circuit, io, *args, **kwargs)
 
         self.n_emitter = n_emitter
         self.n_photon = n_photon
@@ -63,6 +73,8 @@ class EvolutionarySolver(RandomSearchSolver):
         # transformation functions and their relative probabilities
         self.trans_probs = self.initialize_transformation_probabilities()
         self.selection_active = selection_active
+
+        self.save_openqasm = save_openqasm
 
         self.p_dist = [0.5] + 11 * [0.1 / 22] + [0.4] + 11 * [0.1 / 22]
         self.e_dist = [0.5] + 11 * [0.02 / 22] + [0.48] + 11 * [0.02 / 22]
@@ -167,6 +179,8 @@ class EvolutionarySolver(RandomSearchSolver):
             circuit.add(op)
         return circuit
 
+    """ Main solver algorithm """
+
     def solve(self):
         """
         The main function for the solver
@@ -228,6 +242,7 @@ class EvolutionarySolver(RandomSearchSolver):
 
             # this should be the last thing performed *prior* to selecting a new population (after updating HoF)
             self.update_logs(population=population, iteration=i)
+            self.save_circuits(population=population, hof=self.hof, iteration=i)
 
             if self.selection_active:
                 population = self.tournament_selection(population, k=self.tournament_k)
@@ -235,6 +250,8 @@ class EvolutionarySolver(RandomSearchSolver):
             print(f"Iteration {i} | Best score: {self.hof[0][0]:.4f}")
 
         self.logs_to_df()  # convert the logs to a DataFrame
+
+    """ Logging and saving openQASM strings """
 
     def update_logs(self, population: list, iteration: int):
         """
@@ -244,7 +261,9 @@ class EvolutionarySolver(RandomSearchSolver):
         :param iteration: iteration integer, from 0 to n_stop-1
         :return:
         """
-        scores_pop = list(zip(*population))[0]  # get the scores from the population/hof as a list
+        scores_pop = list(zip(*population))[
+            0
+        ]  # get the scores from the population/hof as a list
         scores_hof = list(zip(*self.hof))[0]
 
         depth_pop = [circuit.depth for (_, circuit) in population]
@@ -278,10 +297,44 @@ class EvolutionarySolver(RandomSearchSolver):
             )
         )
 
+    def save_circuits(self, population: list, hof: list, iteration: int = -1):
+        """
+        Saves the population and/or the HoF circuits over iterations as openQASM strings.
+        :param population: list of (score, circuit) pairs
+        :param hof: list of (score, circuit) pairs
+        :param iteration: integer step in the solver algorithm
+        :return:
+        """
+        if self.io is None or self.save_openqasm == "none":
+            return
+
+        elif self.io is not None and self.save_openqasm == "hof":
+            self._save_hof(hof, iteration=iteration)
+
+        elif self.io is not None and self.save_openqasm == "pop":
+            self._save_pop(population, iteration=iteration)
+
+        elif self.io is not None and self.save_openqasm == "both":
+            self._save_pop(population, iteration=iteration)
+            self._save_hof(hof, iteration=iteration)
+        return
+
+    def _save_pop(self, pop, iteration):
+            for i, (score, circuit) in enumerate(pop):
+                name = f"pop/pop{i}_iteration{iteration}.txt"
+                self.io.save_json(circuit.to_openqasm(), name)
+
+    def _save_hof(self, hof, iteration):
+            for i, (score, circuit) in enumerate(hof):
+                name = f"hof/hof{i}_iteration{iteration}.txt"
+                self.io.save_json(circuit.to_openqasm(), name)
+
     def logs_to_df(self):
-        """ Converts each logs (population, hof, etc.) to a pandas DataFrame for easier visualization/saving """
+        """Converts each logs (population, hof, etc.) to a pandas DataFrame for easier visualization/saving"""
         for key, val in self.logs.items():
             self.logs[key] = pd.DataFrame(val)
+
+    """ Circuit transformations """
 
     def replace_photon_one_qubit_op(self, circuit):
         """

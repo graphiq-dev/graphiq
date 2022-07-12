@@ -41,6 +41,7 @@ class DeterministicNoise(NoiseBase):
     Base class for noise that happens with certainty
 
     """
+
     def __init__(self, noise_position, noise_parameters):
         super().__init__(noise_position, noise_parameters)
 
@@ -50,6 +51,7 @@ class ProbabilisticNoise(NoiseBase):
     Base class for noise that introduces probabilistic events
 
     """
+
     def __init__(self, noise_position, noise_parameters):
         super().__init__(noise_position, noise_parameters)
 
@@ -59,6 +61,7 @@ class MixedUnitaryError(ProbabilisticNoise):
     Mixed unitary error, described by an ensemble of unitaries
 
     """
+
     def __init__(self, noise_position, noise_parameters):
         super().__init__(noise_position, noise_parameters)
 
@@ -68,6 +71,6 @@ class CoherentUnitaryError(DeterministicNoise):
     Coherent unitary error described by a single unitary
 
     """
-    def __init__(self,noise_position, noise_parameters):
-        super().__init__(noise_position, noise_parameters)
 
+    def __init__(self, noise_position, noise_parameters):
+        super().__init__(noise_position, noise_parameters)

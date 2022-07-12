@@ -28,7 +28,7 @@ Graph Representation Backend
    :members:
 
 Stabilizer Representation Backend
-------------------------------
+------------------------------------
 .. automodule:: src.backends.stabilizer
    :members:
 .. automodule:: src.backends.stabilizer.compiler
@@ -39,7 +39,7 @@ Stabilizer Representation Backend
    :members:
 
 Local-Clifford Equivalence Check Module
-------------------------------
+----------------------------------------
 .. automodule:: src.backends.lc_equivalence_check
    :members:
 

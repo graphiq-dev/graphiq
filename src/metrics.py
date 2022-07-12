@@ -36,7 +36,9 @@ class MetricBase(ABC):
 
     @abstractmethod
     def evaluate(self, state, circuit):
-        raise NotImplementedError("Please use an inherited class, not the base metric class")
+        raise NotImplementedError(
+            "Please use an inherited class, not the base metric class"
+        )
 
     def increment(self):
         """
@@ -77,20 +79,21 @@ class Infidelity(MetricBase):
         :rtype: float
         """
         # TODO: replace by actual fidelity check
-        #fid = fidelity(self.target, state)
+        # fid = fidelity(self.target, state)
         fid = fidelity_pure(self.target, state)
         self.increment()
 
         if self._inc % self.log_steps == 0:
             self.log.append(fid)
 
-        return 1-fid
+        return 1 - fid
 
 
 class MetricCircuitDepth(MetricBase):
     """
     A Circuit Depth based metric object
     """
+
     def __init__(self, log_steps=1, depth_penalty=None, *args, **kwargs):
         """
         Create MetricCircuitDepth object
@@ -105,7 +108,9 @@ class MetricCircuitDepth(MetricBase):
         super().__init__(log_steps=log_steps, *args, **kwargs)
         self.differentiable = False
         if depth_penalty is None:
-            self.depth_penalty = lambda x: x  # by default, the penalty for depth is the depth itself
+            self.depth_penalty = (
+                lambda x: x
+            )  # by default, the penalty for depth is the depth itself
         else:
             self.depth_penalty = depth_penalty
 
@@ -136,6 +141,7 @@ class Metrics(object):
     """
     Wraps around one or more metric functions, evaluating each and logging the values
     """
+
     _all = {  # metrics that can be used, which can be specified by the dictionary keys or as a class instance
         "fidelity": Infidelity,
         "circuit-depth": MetricCircuitDepth,
@@ -158,7 +164,9 @@ class Metrics(object):
             elif metric in self._all.keys():
                 _metrics.append(self._all[metric]())
             else:
-                raise UserWarning(f"{metric} is not a recognized metric - it will not be evaluated.")
+                raise UserWarning(
+                    f"{metric} is not a recognized metric - it will not be evaluated."
+                )
         self._metrics = _metrics
 
     def evaluate(self, state, circuit):
@@ -191,17 +199,14 @@ class Metrics(object):
 
 
 if __name__ == "__main__":
-    """ Metric usage example """
+    """Metric usage example"""
     # set how often to log the metric evaluations
     MetricBase.log_steps = 3
     Infidelity.log_steps = 1
 
     _, ideal_state = bell_state_circuit()
 
-    metrics = Metrics([
-        MetricCircuitDepth(),
-        Infidelity(ideal_state)
-    ])
+    metrics = Metrics([MetricCircuitDepth(), Infidelity(ideal_state)])
 
     for _ in range(10):
         metrics.evaluate(state=None, circuit=None)

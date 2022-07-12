@@ -10,10 +10,34 @@ def test_single_qubit_clifford_combo():
     assert next(clifford_iter) == [ops.Identity, ops.SigmaY]
     assert next(clifford_iter) == [ops.Identity, ops.SigmaZ]
 
-    assert next(clifford_iter) == [ops.Hadamard, ops.Phase, ops.Hadamard, ops.Phase, ops.Identity]
-    assert next(clifford_iter) == [ops.Hadamard, ops.Phase, ops.Hadamard, ops.Phase, ops.SigmaX]
-    assert next(clifford_iter) == [ops.Hadamard, ops.Phase, ops.Hadamard, ops.Phase, ops.SigmaY]
-    assert next(clifford_iter) == [ops.Hadamard, ops.Phase, ops.Hadamard, ops.Phase, ops.SigmaZ]
+    assert next(clifford_iter) == [
+        ops.Hadamard,
+        ops.Phase,
+        ops.Hadamard,
+        ops.Phase,
+        ops.Identity,
+    ]
+    assert next(clifford_iter) == [
+        ops.Hadamard,
+        ops.Phase,
+        ops.Hadamard,
+        ops.Phase,
+        ops.SigmaX,
+    ]
+    assert next(clifford_iter) == [
+        ops.Hadamard,
+        ops.Phase,
+        ops.Hadamard,
+        ops.Phase,
+        ops.SigmaY,
+    ]
+    assert next(clifford_iter) == [
+        ops.Hadamard,
+        ops.Phase,
+        ops.Hadamard,
+        ops.Phase,
+        ops.SigmaZ,
+    ]
 
     assert next(clifford_iter) == [ops.Hadamard, ops.Phase, ops.Identity]
     assert next(clifford_iter) == [ops.Hadamard, ops.Phase, ops.SigmaX]
@@ -40,40 +64,42 @@ def test_single_qubit_clifford_combo():
 
 
 def test_unwrapping_base_gate_1():
-    """ Checks that an arbitrary, non-composed operation can be correctly unwrapped"""
-    sigma_x_unwrapped = ops.SigmaX(register=1, reg_type='p').unwrap()
+    """Checks that an arbitrary, non-composed operation can be correctly unwrapped"""
+    sigma_x_unwrapped = ops.SigmaX(register=1, reg_type="p").unwrap()
     assert len(sigma_x_unwrapped) == 1
     assert sigma_x_unwrapped[0].register == 1
-    assert sigma_x_unwrapped[0].reg_type == 'p'
+    assert sigma_x_unwrapped[0].reg_type == "p"
     assert isinstance(sigma_x_unwrapped[0], ops.SigmaX)
 
 
 def test_unwrapping_base_gate_2():
-    """ Checks that an arbitrary, non-composed operation can be correctly unwrapped"""
-    sigma_cnot_unwrapped = ops.CNOT(control=1, control_type='e', target=2, target_type='p').unwrap()
+    """Checks that an arbitrary, non-composed operation can be correctly unwrapped"""
+    sigma_cnot_unwrapped = ops.CNOT(
+        control=1, control_type="e", target=2, target_type="p"
+    ).unwrap()
     assert len(sigma_cnot_unwrapped) == 1
     assert sigma_cnot_unwrapped[0].control == 1
-    assert sigma_cnot_unwrapped[0].control_type == 'e'
+    assert sigma_cnot_unwrapped[0].control_type == "e"
     assert sigma_cnot_unwrapped[0].target == 2
-    assert sigma_cnot_unwrapped[0].target_type == 'p'
+    assert sigma_cnot_unwrapped[0].target_type == "p"
     assert isinstance(sigma_cnot_unwrapped[0], ops.CNOT)
 
 
 def test_wrapper_gate_1():
-    """ Checks that an error is thrown in the wrapper is empty """
+    """Checks that an error is thrown in the wrapper is empty"""
     with pytest.raises(ValueError):
         ops.SingleQubitGateWrapper([], register=0)
 
 
 def test_wrapper_gate_2():
-    """ Checks that an error is thrown in the wrapper contains multi-qubit gates"""
+    """Checks that an error is thrown in the wrapper contains multi-qubit gates"""
     with pytest.raises(AssertionError):
         gates = [ops.CNOT, ops.Hadamard, ops.Phase]
         ops.SingleQubitGateWrapper(gates)
 
 
 def test_wrapper_gate_unwrap_1():
-    """ Test unwrap a single operation """
+    """Test unwrap a single operation"""
     gates = [ops.Hadamard]
     operation = ops.SingleQubitGateWrapper(gates)
     unwrapped = operation.unwrap()
@@ -85,7 +111,7 @@ def test_wrapper_gate_unwrap_1():
 
 
 def test_wrapper_gate_unwrap_2():
-    """ Test unwrap multiple operations """
+    """Test unwrap multiple operations"""
     gates = [ops.Hadamard, ops.Phase, ops.Hadamard, ops.Phase, ops.Identity]
     operation = ops.SingleQubitGateWrapper(gates)
     unwrapped = operation.unwrap()
@@ -94,4 +120,3 @@ def test_wrapper_gate_unwrap_2():
         assert op.register == operation.register
         assert op.q_registers == operation.q_registers
         assert op.q_registers_type == operation.q_registers_type
-

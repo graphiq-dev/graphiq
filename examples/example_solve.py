@@ -26,17 +26,23 @@ if __name__ == "__main__":
 
     # %% select which state we want to target
     from benchmarks.circuits import *
+
     circuit_ideal, state_ideal = linear_cluster_3qubit_circuit()
 
     # %% construct all of our important objects
-    target = state_ideal['dm']
+    target = state_ideal["dm"]
     compiler = DensityMatrixCompiler()
     metric = Infidelity(target=target)
 
     n_photon = 3
     n_emitter = 1
-    solver = EvolutionarySolver(target=target, metric=metric, compiler=compiler,
-                                n_photon=n_photon, n_emitter=n_emitter)
+    solver = EvolutionarySolver(
+        target=target,
+        metric=metric,
+        compiler=compiler,
+        n_photon=n_photon,
+        n_emitter=n_emitter,
+    )
 
     # %% call the solver.solve() function to implement the random search algorithm
     t0 = time.time()
@@ -50,9 +56,9 @@ if __name__ == "__main__":
     circuit = solver.hof[0][1]
     state = compiler.compile(circuit)  # this will pass out a density matrix object
 
-    state_data = dmf.partial_trace(state.data,
-                                   keep=list(range(n_photon)),
-                                   dims=(n_photon + n_emitter) * [2])
+    state_data = dmf.partial_trace(
+        state.data, keep=list(range(n_photon)), dims=(n_photon + n_emitter) * [2]
+    )
 
     # extract the best performing circuit
     fig, axs = density_matrix_bars(target)

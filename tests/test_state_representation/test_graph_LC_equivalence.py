@@ -1,6 +1,6 @@
+import pytest
 from src.backends.lc_equivalence_check import *
 import matplotlib.pyplot as plt
-
 import numpy as np
 
 
@@ -21,7 +21,7 @@ def _tester(n):
         z_1 = nx.to_numpy_array(g1).astype(int)
         z_2 = nx.to_numpy_array(g2).astype(int)
 
-        success, solution = is_lc_equivalent(z_1, z_2, mode='deterministic')
+        success, solution = is_lc_equivalent(z_1, z_2, mode="deterministic")
 
         if isinstance(solution, np.ndarray):
             plt.figure(1)
@@ -33,34 +33,32 @@ def _tester(n):
     return solution, (g1, g2)
 
 
-def test_equivalence():
-    for n in range(2, 5):
-        solution, (G1, G2) = _tester(n)
-        z_1 = nx.to_numpy_array(G1).astype(int)
+@pytest.mark.parametrize("n_nodes", [2, 3, 4])
+def test_equivalence(n_nodes):
+    solution, (graph1, graph2) = _tester(n_nodes)
+    z_1 = nx.to_numpy_array(graph1).astype(int)
+
+    g_list = lc_graph_operations(z_1, solution)
+    print("LC operations needed on nodes:", g_list)
+    g_new = graph1
+    for i in g_list:
+        g_new = local_comp_graph(g_new, i)
+
+    z_new = nx.to_numpy_array(g_new)
+    z_2 = nx.to_numpy_array(graph2).astype(int)
+    assert nx.is_isomorphic(g_new, graph2), "found graphs are not LC equivalent"
+    assert np.array_equal(z_new, z_2), "found graphs are not LC equivalent"
 
 
-        g_list = lc_graph_operations(z_1, solution)
-        print("LC operations needed on nodes:", g_list)
-        g_new = G1
-        for i in g_list:
-            g_new = local_comp_graph(g_new, i)
-
-        z_new = nx.to_numpy_array(g_new)
-        z_2 = nx.to_numpy_array(G2).astype(int)
-        assert (nx.is_isomorphic(g_new, G2)), "found graphs are not LC equivalent"
-        assert (np.array_equal(z_new, z_2)), "found graphs are not LC equivalent"
-
-
-def test_star_graph():
-    for n in range(2, 7):
-        g1 = nx.complete_graph(n)
-        g2 = nx.star_graph(n - 1)
-        z_1 = nx.to_numpy_array(g1).astype(int)
-        z_2 = nx.to_numpy_array(g2).astype(int)
-        success, solution = is_lc_equivalent(z_1, z_2, mode='deterministic')
-        if isinstance(solution, type(np.array([0]))):
-            print(local_clifford_ops(solution), "\n")
-        assert isinstance(solution, type(np.array([0]))) or isinstance(solution, type(None))
-        a, _ = iso_equal_check(g1, g2)
-        assert a
-
+@pytest.mark.parametrize("n_nodes", [2, 3, 4, 5, 6])
+def test_star_graph(n_nodes):
+    g1 = nx.complete_graph(n_nodes)
+    g2 = nx.star_graph(n_nodes - 1)
+    z_1 = nx.to_numpy_array(g1).astype(int)
+    z_2 = nx.to_numpy_array(g2).astype(int)
+    success, solution = is_lc_equivalent(z_1, z_2, mode="deterministic")
+    if isinstance(solution, np.ndarray):
+        print(local_clifford_ops(solution), "\n")
+    assert isinstance(solution, np.ndarray) or solution is None
+    is_equivalent, _ = iso_equal_check(g1, g2)
+    assert is_equivalent

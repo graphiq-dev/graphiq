@@ -1,10 +1,6 @@
 """
 The purpose of this document is to have a single place in which openQASM functionality has to be kept up to date
 
-TODO: maybe come up with a system that doesn't force the quantum registers to
-all come before the classical ones? See if that ever becomes an issue--> if so
-we could just have a quantum-specific escape character, and a classical-specific escape
-character
 TODO: consider what to do if we move onto qudits
 TODO: gate definitions drawn from openQASM 3, so there's actually a global phase shift in the implementations
 in openQASM 2.0 due to the ways in which things were implemented. We should fix that if we ever want to use
@@ -22,6 +18,7 @@ class OpenQASMInfo:
     This keeps track of the import statements useful to building a component, of
     how to formulate a gate definitions in openqasm, and of how to apply a gate between specific qubits
     """
+
     def __init__(self, gate_name, imports: list, definitions, usage, multi_comp):
         """
         Create a openQASMInfo object
@@ -55,7 +52,7 @@ class OpenQASMInfo:
         :return: a list of import string
         :rtype: list
         """
-        return [f'import {i};\n' for i in self.imports]
+        return [f"import {i};\n" for i in self.imports]
 
     @property
     def define_gate(self):
@@ -83,6 +80,8 @@ class OpenQASMInfo:
         :rtype: str
         """
         return self.usage(q_registers, q_registers_type, c_registers)
+
+
 # -------------------------- General Helpers-------------------------------------
 
 
@@ -94,7 +93,7 @@ def openqasm_header():
     :return: the header
     :rtype: str
     """
-    return 'OPENQASM 2.0;'
+    return "OPENQASM 2.0;"
 
 
 def register_initialization_string(e_reg, p_reg, c_reg):
@@ -114,18 +113,18 @@ def register_initialization_string(e_reg, p_reg, c_reg):
     register_strs = []
 
     for r, b in enumerate(p_reg):
-        q_str = f'qreg p{r}[{b}];'
+        q_str = f"qreg p{r}[{b}];"
         register_strs.append(q_str)
 
     for r, b in enumerate(e_reg):
-        q_str = f'qreg e{r}[{b}];'
+        q_str = f"qreg e{r}[{b}];"
         register_strs.append(q_str)
 
     for r, b in enumerate(c_reg):
-        c_str = f'creg c{r}[{b}];'
+        c_str = f"creg c{r}[{b}];"
         register_strs.append(c_str)
 
-    return '\n'.join(register_strs)
+    return "\n".join(register_strs)
 
 
 # --------------------- Gate Specific Definitions -------------------------------
@@ -142,9 +141,9 @@ def cnot_info():
     definition = ""
 
     def usage(q_reg, q_reg_type, c_reg):
-        return f'CX {q_reg_type[0]}{q_reg[0]}[0], {q_reg_type[1]}{q_reg[1]}[0];'
+        return f"CX {q_reg_type[0]}{q_reg[0]}[0], {q_reg_type[1]}{q_reg[1]}[0];"
 
-    return OpenQASMInfo('CX', imports, definition, usage, False)
+    return OpenQASMInfo("CX", imports, definition, usage, False)
 
 
 def sigma_x_info():
@@ -152,9 +151,9 @@ def sigma_x_info():
     definition = "gate x a { U(pi, 0, pi) a; }"
 
     def usage(q_reg, q_reg_type, c_reg):
-        return f'x {q_reg_type[0]}{q_reg[0]}[0];'
+        return f"x {q_reg_type[0]}{q_reg[0]}[0];"
 
-    return OpenQASMInfo('x', imports, definition, usage, False)
+    return OpenQASMInfo("x", imports, definition, usage, False)
 
 
 def sigma_y_info():
@@ -162,9 +161,9 @@ def sigma_y_info():
     definition = "gate y a { U(pi, pi / 2, pi / 2) a; }"
 
     def usage(q_reg, q_reg_type, c_reg):
-        return f'y {q_reg_type[0]}{q_reg[0]}[0];'
+        return f"y {q_reg_type[0]}{q_reg[0]}[0];"
 
-    return OpenQASMInfo('y', imports, definition, usage, False)
+    return OpenQASMInfo("y", imports, definition, usage, False)
 
 
 def sigma_z_info():
@@ -172,9 +171,9 @@ def sigma_z_info():
     definition = "gate z a { U(0, pi/2, pi/2) a; }"
 
     def usage(q_reg, q_reg_type, c_reg):
-        return f'z {q_reg_type[0]}{q_reg[0]}[0];'
+        return f"z {q_reg_type[0]}{q_reg[0]}[0];"
 
-    return OpenQASMInfo('z', imports, definition, usage, False)
+    return OpenQASMInfo("z", imports, definition, usage, False)
 
 
 def hadamard_info():
@@ -182,9 +181,9 @@ def hadamard_info():
     definition = "gate h a { U(pi/2, 0, pi) a; }"
 
     def usage(q_reg, q_reg_type, c_reg):
-        return f'h {q_reg_type[0]}{q_reg[0]}[0];'
+        return f"h {q_reg_type[0]}{q_reg[0]}[0];"
 
-    return OpenQASMInfo('h', imports, definition, usage, False)
+    return OpenQASMInfo("h", imports, definition, usage, False)
 
 
 def phase_info():
@@ -193,9 +192,9 @@ def phase_info():
     definition = "gate s a { U(0, pi/2, 0) a; }"
 
     def usage(q_reg, q_reg_type, c_reg):
-        return f's {q_reg_type[0]}{q_reg[0]}[0];'
+        return f"s {q_reg_type[0]}{q_reg[0]}[0];"
 
-    return OpenQASMInfo('s', imports, definition, usage, False)
+    return OpenQASMInfo("s", imports, definition, usage, False)
 
 
 def single_qubit_wrapper_info(op_list):
@@ -211,28 +210,28 @@ def single_qubit_wrapper_info(op_list):
     definitions = []
     gate_name = ""
     def_usage = ""
-    gate_name_dict = {
-        "": empty_info()
-    }
+    gate_name_dict = {"": empty_info()}
 
     for op_class in op_list:
         oq_info = op_class.openqasm_info()
         gate_name_dict[oq_info.gate_name] = oq_info
-        if oq_info.gate_name == "":  # this is a gate we don't actually need (effectively identity)
+        if (
+            oq_info.gate_name == ""
+        ):  # this is a gate we don't actually need (effectively identity)
             continue
 
         imports = imports + oq_info.import_strings
         definitions = definitions + oq_info.define_gate
         gate_name += oq_info.gate_name
-        def_usage += f'{oq_info.gate_name} a;\n'
+        def_usage += f"{oq_info.gate_name} a;\n"
 
     if gate_name in gate_name_dict:  # i.e. gate is already somehow defined
         return gate_name_dict[gate_name]
 
-    definitions.append('gate ' + gate_name + ' a { \n' + def_usage + '}')
+    definitions.append("gate " + gate_name + " a { \n" + def_usage + "}")
 
     def usage(q_reg, q_reg_type, c_reg):
-        return f'{gate_name} {q_reg_type[0]}{q_reg[0]}[0];'
+        return f"{gate_name} {q_reg_type[0]}{q_reg[0]}[0];"
 
     return OpenQASMInfo(gate_name, imports, definitions, usage, False)
 
@@ -242,9 +241,9 @@ def cphase_info():
     definition = "gate cz a, b { U(pi/2, 0, pi) b; CX a, b; U(pi/2, 0, pi) b; }"  # H on target, CX, H on target
 
     def usage(q_reg, q_reg_type, c_reg):
-        return f'cz {q_reg_type[0]}{q_reg[0]}[0], {q_reg_type[1]}{q_reg[1]}[0];'
+        return f"cz {q_reg_type[0]}{q_reg[0]}[0], {q_reg_type[1]}{q_reg[1]}[0];"
 
-    return OpenQASMInfo('cz', imports, definition, usage, False)
+    return OpenQASMInfo("cz", imports, definition, usage, False)
 
 
 def classical_cnot_info():
@@ -252,10 +251,12 @@ def classical_cnot_info():
     definition = sigma_x_info().definitions[0]
 
     def usage(q_reg, q_reg_type, c_reg):
-        return f"measure {q_reg_type[0]}{q_reg[0]}[0] -> c{c_reg[0]}[0]; \n" \
-               f"if (c{c_reg[0]}==1) x {q_reg_type[1]}{q_reg[1]}[0];" \
+        return (
+            f"measure {q_reg_type[0]}{q_reg[0]}[0] -> c{c_reg[0]}[0]; \n"
+            f"if (c{c_reg[0]}==1) x {q_reg_type[1]}{q_reg[1]}[0];"
+        )
 
-    return OpenQASMInfo('ccnot', imports, definition, usage, True)
+    return OpenQASMInfo("ccnot", imports, definition, usage, True)
 
 
 def classical_cphase_info():
@@ -263,10 +264,12 @@ def classical_cphase_info():
     definition = sigma_z_info().definitions[0]
 
     def usage(q_reg, q_reg_type, c_reg):
-        return f"measure {q_reg_type[0]}{q_reg[0]}[0] -> c{c_reg[0]}[0]; \n" \
-               f"if (c{c_reg[0]}==1) z {q_reg_type[1]}{q_reg[1]}[0];"
+        return (
+            f"measure {q_reg_type[0]}{q_reg[0]}[0] -> c{c_reg[0]}[0]; \n"
+            f"if (c{c_reg[0]}==1) z {q_reg_type[1]}{q_reg[1]}[0];"
+        )
 
-    return OpenQASMInfo('ccphase', imports, definition, usage, True)
+    return OpenQASMInfo("ccphase", imports, definition, usage, True)
 
 
 def measurement_cnot_and_reset():
@@ -274,12 +277,14 @@ def measurement_cnot_and_reset():
     definition = sigma_x_info().definitions[0]
 
     def usage(q_reg, q_reg_type, c_reg):
-        return f"measure {q_reg_type[0]}{q_reg[0]}[0] -> c{c_reg[0]}[0]; \n" \
-               f"if (c{c_reg[0]}==1) x {q_reg_type[1]}{q_reg[1]}[0]; \n" \
-               f"barrier {q_reg_type[0]}{q_reg[0]}, {q_reg_type[1]}{q_reg[1]}; \n" \
-               f"reset {q_reg_type[0]}{q_reg[0]}[0];"
+        return (
+            f"measure {q_reg_type[0]}{q_reg[0]}[0] -> c{c_reg[0]}[0]; \n"
+            f"if (c{c_reg[0]}==1) x {q_reg_type[1]}{q_reg[1]}[0]; \n"
+            f"barrier {q_reg_type[0]}{q_reg[0]}, {q_reg_type[1]}{q_reg[1]}; \n"
+            f"reset {q_reg_type[0]}{q_reg[0]}[0];"
+        )
 
-    return OpenQASMInfo('ccnot_and_reset', imports, definition, usage, True)
+    return OpenQASMInfo("ccnot_and_reset", imports, definition, usage, True)
 
 
 def z_measurement_info():
@@ -289,7 +294,7 @@ def z_measurement_info():
     def usage(q_reg, q_reg_type, c_reg):
         return f"measure {q_reg_type[0]}{q_reg[0]}[0] -> c{c_reg[0]}[0];"
 
-    return OpenQASMInfo('measure z', imports, definition, usage, False)
+    return OpenQASMInfo("measure z", imports, definition, usage, False)
 
 
 def empty_info():

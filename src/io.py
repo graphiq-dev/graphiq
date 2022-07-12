@@ -34,7 +34,7 @@ class IO:
     """
 
     # default save path always points to `data/` no matter where this repository is located
-    default_path = pathlib.Path(__file__).parent.parent.joinpath('data')
+    default_path = pathlib.Path(__file__).parent.parent.joinpath("data")
 
     def __init__(self, path=None, verbose=True):
         """
@@ -58,8 +58,15 @@ class IO:
         self.path = pathlib.Path(path)
 
     @classmethod
-    def new_directory(cls, path=None, folder="",
-                      include_date=False, include_time=False, include_id=False, verbose=True):
+    def new_directory(
+        cls,
+        path=None,
+        folder="",
+        include_date=False,
+        include_time=False,
+        include_id=False,
+        verbose=True,
+    ):
         """
 
         :param path: The parent folder.
@@ -86,7 +93,9 @@ class IO:
         date = datetime.date.today().isoformat()
         time = datetime.datetime.now().strftime("%H-%M-%S")
         if not folder:  # if empty string
-            warnings.warn("No folder entered. Saving to a folder with a unique identifier")
+            warnings.warn(
+                "No folder entered. Saving to a folder with a unique identifier"
+            )
             include_data, include_id, verbose = True, True, True
 
         # build the full folder name with date, time, and uuid, if selected
@@ -99,7 +108,11 @@ class IO:
         _str = _str + "_" + folder
 
         if include_id:
-            _str = _str + "_" + "".join(random.choice(string.hexdigits) for _ in range(4))
+            _str = (
+                _str
+                + " - "
+                + "".join(random.choice(string.hexdigits) for _ in range(4))
+            )
 
         path = path.joinpath(_str)
         return cls(path=path, verbose=verbose)
@@ -180,7 +193,7 @@ class IO:
         """
         full_path = self.path.joinpath(filename)
         os.makedirs(full_path.parent, exist_ok=True)
-        df.to_csv(str(full_path), sep=',', index=False, header=True)
+        df.to_csv(str(full_path), sep=",", index=False, header=True)
         if self.verbose:
             print(f"{current_time()} | Saved to {full_path} successfully.")
 
@@ -212,7 +225,7 @@ class IO:
         """
         full_path = self.path.joinpath(filename)
         os.makedirs(full_path.parent, exist_ok=True)
-        fig.savefig(full_path, dpi=300, bbox_inches='tight')
+        fig.savefig(full_path, dpi=300, bbox_inches="tight")
         if self.verbose:
             print(f"{current_time()} | Saved figure to {full_path} successfully.")
 
@@ -245,7 +258,9 @@ class IO:
         :rtype: None
         """
         full_path = self.path.joinpath(filename)
-        file = np.loadtxt(str(full_path), dtype=np.complex if complex_vals else np.float)
+        file = np.loadtxt(
+            str(full_path), dtype=np.complex if complex_vals else np.float
+        )
         if self.verbose:
             print(f"{current_time()} | Loaded from {full_path} successfully.")
         return file
@@ -255,7 +270,7 @@ class IO:
         """
         Helper method for saving to json files
         """
-        with open(path, 'w+') as json_file:
+        with open(path, "w+") as json_file:
             json.dump(variable, json_file, indent=4)
 
     @staticmethod
@@ -272,7 +287,7 @@ class IO:
         """
         Helper method for saving to text files
         """
-        with open(path, 'w') as txt_file:
+        with open(path, "w") as txt_file:
             txt_file.write(variable)
 
     @staticmethod

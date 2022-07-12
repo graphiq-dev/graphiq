@@ -320,14 +320,14 @@ class EvolutionarySolver(RandomSearchSolver):
         return
 
     def _save_pop(self, pop, iteration):
-            for i, (score, circuit) in enumerate(pop):
-                name = f"pop/pop{i}_iteration{iteration}.txt"
-                self.io.save_json(circuit.to_openqasm(), name)
+        for i, (score, circuit) in enumerate(pop):
+            name = f"pop/pop{i}_iteration{iteration}.txt"
+            self.io.save_json(circuit.to_openqasm(), name)
 
     def _save_hof(self, hof, iteration):
-            for i, (score, circuit) in enumerate(hof):
-                name = f"hof/hof{i}_iteration{iteration}.txt"
-                self.io.save_json(circuit.to_openqasm(), name)
+        for i, (score, circuit) in enumerate(hof):
+            name = f"hof/hof{i}_iteration{iteration}.txt"
+            self.io.save_json(circuit.to_openqasm(), name)
 
     def logs_to_df(self):
         """Converts each logs (population, hof, etc.) to a pandas DataFrame for easier visualization/saving"""

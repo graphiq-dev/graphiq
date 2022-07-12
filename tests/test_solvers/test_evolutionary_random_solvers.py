@@ -191,6 +191,7 @@ def test_add_remove_measurements(seed):
         n_photon=n_photon,
     )
     solver.seed(seed)
+    solver.n_stop = 10
 
     original_trans_prob = solver.trans_probs
     solver.trans_probs = {
@@ -202,16 +203,21 @@ def test_add_remove_measurements(seed):
     solver.trans_probs = original_trans_prob
 
 
-@pytest.mark.parametrize("seed", [0, 3, 325, 2949])
 def test_solver_logging(seed):
     n_emitter = 1
     n_photon = 2
 
-    circuit_ideal, state_ideal = linear_cluster_3qubit_circuit()
+    circuit_ideal, state_ideal = bell_state_circuit()
     target_state = state_ideal["dm"]
     compiler = DensityMatrixCompiler()
     metric = Infidelity(target=target_state)
-    io = IO.new_directory(folder="_tests", include_date=False, include_time=False, include_id=False, verbose=False)
+    io = IO.new_directory(
+        folder="_tests",
+        include_date=False,
+        include_time=False,
+        include_id=False,
+        verbose=False,
+    )
     solver = EvolutionarySolver(
         target=target_state,
         metric=metric,

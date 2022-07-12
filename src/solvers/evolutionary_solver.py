@@ -123,7 +123,9 @@ class EvolutionarySolver(RandomSearchSolver):
             self.trans_probs[key] *= 1 / total
 
     @staticmethod
-    def initialization(emission_assignment, measurement_assignment, noise_model_mapping={}):
+    def initialization(
+        emission_assignment, measurement_assignment, noise_model_mapping={}
+    ):
         """
         Initialize a quantum circuit with photon emission, emitter measurements
 
@@ -154,20 +156,18 @@ class EvolutionarySolver(RandomSearchSolver):
             circuit.add(op)
             # initialize all single-qubit Clifford gate for photonic qubits
             noise = []
-            if 'Identity' in noise_model_mapping.keys():
-                noise.append(noise_model_mapping['Identity'])
+            if "Identity" in noise_model_mapping.keys():
+                noise.append(noise_model_mapping["Identity"])
             else:
                 noise.append(nm.NoNoise())
-            if 'Hadamard' in noise_model_mapping.keys():
-                noise.append(noise_model_mapping['Hadamard'])
+            if "Hadamard" in noise_model_mapping.keys():
+                noise.append(noise_model_mapping["Hadamard"])
             else:
                 noise.append(nm.NoNoise())
             op = ops.SingleQubitGateWrapper(
                 [ops.Identity, ops.Hadamard], register=i, reg_type="p", noise=noise
             )
             op.add_labels("Fixed")
-
-
 
             circuit.add(op)
 
@@ -209,7 +209,11 @@ class EvolutionarySolver(RandomSearchSolver):
                     self.n_photon, self.n_emitter
                 )
 
-                circuit = self.initialization(emission_assignment, measurement_assignment, self.noise_model_mapping)
+                circuit = self.initialization(
+                    emission_assignment,
+                    measurement_assignment,
+                    self.noise_model_mapping,
+                )
                 # initialize all population members
                 population.append((np.inf, circuit))
         else:

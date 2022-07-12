@@ -175,16 +175,16 @@ class DensityMatrixCompiler(CompilerBase):
                 )
             else:
                 if isinstance(op.noise, nm.AdditionNoiseBase):
-                    if op.noise.after_gate:
+                    if op.noise.noise_parameters["After gate"]:
                         self._compile_one_gate(
                             state, op, circuit.n_quantum, q_index, classical_registers
                         )
-                        self._apply_additional_noise(
-                            state, op, circuit.n_quantum, q_index, classical_registers
+                        op.noise.apply(
+                            state, circuit.n_quantum, q_index(op.register, op.reg_type)
                         )
                     else:
-                        self._apply_additional_noise(
-                            state, op, circuit.n_quantum, q_index, classical_registers
+                        op.noise.apply(
+                            state, circuit.n_quantum, q_index(op.register, op.reg_type)
                         )
                         self._compile_one_gate(
                             state, op, circuit.n_quantum, q_index, classical_registers
@@ -329,8 +329,20 @@ class DensityMatrixCompiler(CompilerBase):
     def _compile_one_noisy_gate(
         self, state, op, n_quantum, q_index, classical_registers
     ):
+        """
+        Compile one noisy gate
+
+        # TODO: remove redundant code
+
+        :param state:
+        :param op:
+        :param n_quantum:
+        :param q_index:
+        :param classical_registers:
+        :return:
+        """
         if type(op) is ops.Input:
-            pass  # TODO: should think about best way to handle inputs/outputs
+            pass
 
         elif type(op) is ops.Output:
             pass
@@ -441,7 +453,3 @@ class DensityMatrixCompiler(CompilerBase):
             raise ValueError(
                 f"{type(op)} is invalid or not implemented for {self.__class__.__name__}."
             )
-
-    def _apply_additional_noise(self, state, op, n_quantum, q_index, classical_registers):
-        op.noise.apply(state, n_quantum, q_index(op.register, op.reg_type))
-

@@ -38,8 +38,10 @@ def density_matrix_compiler():
 
 def generate_run(n_photon, n_emitter, expected_triple, compiler, seed):
     target, _, metric = expected_triple
-    noise_model_mapping = {'Identity': nm.OneQubitGateReplacement(np.pi / 180, 0, 0),
-                         'SigmaX': nm.PauliError(pauli_gate='Y')}
+    noise_model_mapping = {
+        "Identity": nm.OneQubitGateReplacement(np.pi / 180, 0, 0),
+        "SigmaX": nm.PauliError({"Pauli error": "Y"}),
+    }
 
     solver = EvolutionarySolver(
         target=target,
@@ -47,7 +49,7 @@ def generate_run(n_photon, n_emitter, expected_triple, compiler, seed):
         compiler=compiler,
         n_emitter=n_emitter,
         n_photon=n_photon,
-        noise_model_mapping=noise_model_mapping
+        noise_model_mapping=noise_model_mapping,
     )
     solver.seed(seed)
     solver.solve()
@@ -63,11 +65,11 @@ def generate_run(n_photon, n_emitter, expected_triple, compiler, seed):
 def check_run(run_info, expected_info):
     hof, state = run_info
     target_state, _, metric = expected_info
-    #assert np.isclose(hof[0][0], 0.0)  # infidelity score is 0, within numerical error
+    # assert np.isclose(hof[0][0], 0.0)  # infidelity score is 0, within numerical error
 
     circuit = hof[0][1]
     assert np.isclose(hof[0][0], metric.evaluate(state, circuit))
-    #assert np.allclose(state, target_state)
+    # assert np.allclose(state, target_state)
 
 
 def check_run_visual(run_info, expected_info):
@@ -200,6 +202,7 @@ def test_add_remove_measurements(seed):
     solver.solve()
 
     solver.trans_probs = original_trans_prob
+
 
 # @visualization
 # def test_square_4qubit():

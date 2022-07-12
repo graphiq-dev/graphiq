@@ -29,11 +29,11 @@ class NoiseBase(ABC):
     Base class from which noise model will inherit
     """
 
-    def __init__(self, noise_parameters=[]):
+    def __init__(self, noise_parameters={}):
         """
 
-        :param noise_parameters: a list of parameters to describe the noise model
-        :type noise_parameters: list
+        :param noise_parameters: a dictionary of parameters to describe the noise model
+        :type noise_parameters: dict
         :return: nothing
         :rtype: None
         """
@@ -60,9 +60,11 @@ class AdditionNoiseBase(NoiseBase):
     Base class for noise added before the operation
     """
 
-    def __init__(self, noise_parameters=[], after_gate=True):
+    def __init__(self, noise_parameters={}):
+        if "After gate" not in noise_parameters.keys():
+            noise_parameters["After gate"] = True
+
         super().__init__(noise_parameters)
-        self.after_gate = after_gate
 
     def get_backend_dependent_noise(self, *args):
         """
@@ -84,7 +86,7 @@ class ReplacementNoiseBase(NoiseBase):
     Base class for noisy gate that replaces the original gate
     """
 
-    def __init__(self, noise_parameters=[]):
+    def __init__(self, noise_parameters={}):
         super().__init__(noise_parameters)
 
     def apply(self, *args):
@@ -106,12 +108,14 @@ class NoNoise(AdditionNoiseBase):
     def __init__(self):
         super().__init__()
 
-    def get_backend_dependent_noise(self, state_rep: StateRepresentationBase, n_quantum, *args):
+    def get_backend_dependent_noise(
+        self, state_rep: StateRepresentationBase, n_quantum, *args
+    ):
         if isinstance(state_rep, DensityMatrix):
             return np.eye(state_rep.data.shape[0])
         elif isinstance(state_rep, Stabilizer):
             # TODO: Find the correct representation
-            return n_quantum * 'I'
+            return n_quantum * "I"
         elif isinstance(state_rep, Graph):
             # TODO: Implement
             return
@@ -124,14 +128,30 @@ class NoNoise(AdditionNoiseBase):
 
 
 class OneQubitGateReplacement(ReplacementNoiseBase):
+    """
+    A replacement type of noise for one-qubit gates
+    """
+
     def __init__(self, theta, phi, lam):
-        noise_parameters = [theta, phi, lam]
+        noise_parameters = {"theta": theta, "phi": phi, "lambda": lam}
         super().__init__(noise_parameters)
 
     def get_backend_dependent_noise(self, state_rep, n_quantum, reg):
+        """
+
+        :param state_rep:
+        :param n_quantum:
+        :param reg:
+        :return:
+        """
         if isinstance(state_rep, DensityMatrix):
-            return dmf.single_qubit_unitary(n_quantum, reg, self.noise_parameters[0], self.noise_parameters[1],
-                                            self.noise_parameters[2])
+            return dmf.single_qubit_unitary(
+                n_quantum,
+                reg,
+                self.noise_parameters["theta"],
+                self.noise_parameters["phi"],
+                self.noise_parameters["lambda"],
+            )
         elif isinstance(state_rep, Stabilizer):
             # TODO: Find the correct representation
             return
@@ -142,9 +162,15 @@ class OneQubitGateReplacement(ReplacementNoiseBase):
             raise TypeError("Backend type is not supported.")
 
     def apply(self, state_rep: StateRepresentationBase, n_quantum, reg):
+        """
+
+        :param state_rep:
+        :param n_quantum:
+        :param reg:
+        :return:
+        """
         if isinstance(state_rep, DensityMatrix):
-            noisy_gate = dmf.single_qubit_unitary(n_quantum, reg, self.noise_parameters[0], self.noise_parameters[1],
-                                                  self.noise_parameters[2])
+            noisy_gate = self.get_backend_dependent_noise(state_rep, n_quantum, reg)
             state_rep.apply_unitary(noisy_gate)
         elif isinstance(state_rep, Stabilizer):
             # TODO: Find the correct representation
@@ -157,14 +183,26 @@ class OneQubitGateReplacement(ReplacementNoiseBase):
 
 
 class TwoQubitControlledGateReplacement(ReplacementNoiseBase):
+    """
+    A replacement type of gate for two-qubit controlled unitary gate
+
+    """
+
     def __init__(self, theta, phi, lam, gamma):
-        noise_parameters = [theta, phi, lam, gamma]
+        noise_parameters = {"theta": theta, "phi": phi, "lambda": lam, "gamma": gamma}
         super().__init__(noise_parameters)
 
     def get_backend_dependent_noise(self, state_rep, n_quantum, ctr_reg, target_reg):
         if isinstance(state_rep, DensityMatrix):
-            return dmf.controlled_unitary(n_quantum, ctr_reg, target_reg, self.noise_parameters[0],
-                                          self.noise_parameters[1], self.noise_parameters[2], self.noise_parameters[3])
+            return dmf.controlled_unitary(
+                n_quantum,
+                ctr_reg,
+                target_reg,
+                self.noise_parameters["theta"],
+                self.noise_parameters["phi"],
+                self.noise_parameters["lambda"],
+                self.noise_parameters["gamma"],
+            )
         elif isinstance(state_rep, Stabilizer):
             # TODO: Find the correct representation
             return
@@ -176,9 +214,15 @@ class TwoQubitControlledGateReplacement(ReplacementNoiseBase):
 
     def apply(self, state_rep: StateRepresentationBase, n_quantum, ctr_reg, target_reg):
         if isinstance(state_rep, DensityMatrix):
-            noisy_gate = dmf.controlled_unitary(n_quantum, ctr_reg, target_reg, self.noise_parameters[0],
-                                                self.noise_parameters[1], self.noise_parameters[2],
-                                                self.noise_parameters[3])
+            noisy_gate = dmf.controlled_unitary(
+                n_quantum,
+                ctr_reg,
+                target_reg,
+                self.noise_parameters[0],
+                self.noise_parameters[1],
+                self.noise_parameters[2],
+                self.noise_parameters[3],
+            )
             state_rep.apply_unitary(noisy_gate)
         elif isinstance(state_rep, Stabilizer):
             # TODO: Find the correct representation
@@ -196,8 +240,8 @@ class MixedUnitaryError(AdditionNoiseBase):
 
     """
 
-    def __init__(self, noise_parameters, after_gate=True):
-        super().__init__(noise_parameters, after_gate)
+    def __init__(self, noise_parameters={}):
+        super().__init__(noise_parameters)
 
     def get_backend_dependent_noise(self, state_rep: StateRepresentationBase):
         pass
@@ -209,28 +253,36 @@ class CoherentUnitaryError(AdditionNoiseBase):
 
     """
 
-    def __init__(self, noise_parameters=[]):
+    def __init__(self, noise_parameters={}):
         super().__init__(noise_parameters)
 
 
 class PauliError(CoherentUnitaryError):
-    def __init__(self, noise_parameters=[], pauli_gate='I'):
+    """
+    Pauli error
+
+    """
+
+    def __init__(self, noise_parameters={}):
         """
 
-        :type pauli_gate: str
+        :param noise_parameters: a dictionary of parameters
+
         """
+        if "Pauli error" not in noise_parameters.keys():
+            noise_parameters["Pauli error"] = "I"
         super().__init__(noise_parameters)
-        self.pauli = pauli_gate
 
     def get_backend_dependent_noise(self, state_rep, n_quantum, reg):
+        pauli_error = self.noise_parameters["Pauli error"]
         if isinstance(state_rep, DensityMatrix):
-            if self.pauli == 'X':
+            if pauli_error == "X":
                 return dmf.get_single_qubit_gate(n_quantum, reg, dmf.sigmax())
-            elif self.pauli == 'Y':
+            elif pauli_error == "Y":
                 return dmf.get_single_qubit_gate(n_quantum, reg, dmf.sigmay())
-            elif self.pauli == 'Z':
+            elif pauli_error == "Z":
                 return dmf.get_single_qubit_gate(n_quantum, reg, dmf.sigmaz())
-            elif self.pauli == 'I':
+            elif pauli_error == "I":
                 return np.eye(n_quantum)
             else:
                 raise ValueError("Wrong description of a Pauli matrix.")
@@ -263,8 +315,37 @@ class GeneralKrausError(AdditionNoiseBase):
 
     """
 
-    def __init__(self, noise_parameters=[]):
+    def __init__(self, kraus_ops):
+        """
+
+        :param kraus_ops:
+        """
+        noise_parameters = {"Kraus": kraus_ops}
         super().__init__(noise_parameters)
+
+    def get_backend_dependent_noise(self, state_rep, n_quantum, ctr_reg, target_reg):
+        if isinstance(state_rep, DensityMatrix):
+            return self.noise_parameters["Kraus"]
+        elif isinstance(state_rep, Stabilizer):
+            # TODO: Raise "not supported error"
+            return
+        elif isinstance(state_rep, Graph):
+            # TODO: Raise "not supported error"
+            return
+        else:
+            raise TypeError("Backend type is not supported.")
+
+    def apply(self, state_rep: StateRepresentationBase, n_quantum, reg):
+        if isinstance(state_rep, DensityMatrix):
+            state_rep.apply_channel(self.noise_parameters["Kraus"])
+        elif isinstance(state_rep, Stabilizer):
+            # TODO: Raise "not supported error"
+            pass
+        elif isinstance(state_rep, Graph):
+            # TODO: Raise "not supported error"
+            pass
+        else:
+            raise TypeError("Backend type is not supported.")
 
 
 class DepolarizingNoise(AdditionNoiseBase):
@@ -273,8 +354,46 @@ class DepolarizingNoise(AdditionNoiseBase):
 
     """
 
-    def __init__(self, noise_parameters=[]):
+    def __init__(self, depolarizing_prob):
+        noise_parameters = {"Depolarizing probability": depolarizing_prob}
         super().__init__(noise_parameters)
+
+    def get_backend_dependent_noise(self, state_rep, n_quantum, reg):
+        depolarizing_prob = self.noise_parameters["Depolarizing probability"]
+        if isinstance(state_rep, DensityMatrix):
+            kraus_x = np.sqrt(depolarizing_prob) * dmf.get_single_qubit_gate(
+                n_quantum, reg, dmf.sigmax()
+            )
+            kraus_y = np.sqrt(depolarizing_prob) * dmf.get_single_qubit_gate(
+                n_quantum, reg, dmf.sigmay()
+            )
+            kraus_z = np.sqrt(depolarizing_prob) * dmf.get_single_qubit_gate(
+                n_quantum, reg, dmf.sigmaz()
+            )
+            kraus_i = np.sqrt(1 - depolarizing_prob) * np.eye(n_quantum)
+            kraus_ops = [kraus_i, kraus_x, kraus_y, kraus_z]
+            return kraus_ops
+        elif isinstance(state_rep, Stabilizer):
+            # TODO: Find the correct representation
+            return
+        elif isinstance(state_rep, Graph):
+            # TODO: Implement
+            return
+        else:
+            raise TypeError("Backend type is not supported.")
+
+    def apply(self, state_rep: StateRepresentationBase, n_quantum, reg):
+        if isinstance(state_rep, DensityMatrix):
+            kraus_ops = self.get_backend_dependent_noise(state_rep, n_quantum, reg)
+            state_rep.apply_channel(kraus_ops)
+        elif isinstance(state_rep, Stabilizer):
+            # TODO: Find the correct representation
+            pass
+        elif isinstance(state_rep, Graph):
+            # TODO: Implement
+            pass
+        else:
+            raise TypeError("Backend type is not supported.")
 
 
 class ResetError(NoiseBase):
@@ -283,5 +402,5 @@ class ResetError(NoiseBase):
 
     """
 
-    def __init__(self, noise_position, noise_parameters):
-        super().__init__(noise_position, noise_parameters)
+    def __init__(self, noise_parameters={}):
+        super().__init__(noise_parameters)

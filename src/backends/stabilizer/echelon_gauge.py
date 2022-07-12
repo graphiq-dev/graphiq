@@ -315,6 +315,40 @@ def rref(x_matrix, z_matrix, r_vector):
     return x_matrix, z_matrix, r_vector
 
 
+def height_func_list(x_matrix, z_matrix):
+    """
+    Calculates the height_function for all qubit in the graph given the stabilizer tableau of a graph state with ordered
+    nodes. Node ordering should correspond to the rows present in the adjacency matrix. (i-th node must be i-th row)
+
+    :param x_matrix: x matrix in the symplectic representation of the stabilizers
+    :type x_matrix: np.ndarray
+    :param z_matrix: z matrix in the symplectic representation of the stabilizers
+    :type z_matrix: np.ndarray
+    :return: the height as a function of qubit positions in graph. This is related to the entanglement entropy with
+    respect to the bi-partition of the state at the given position.
+    :rtype: int
+    """
+    number_of_qubits = np.shape(x_matrix)[0]
+    r_vector = np.zeros([number_of_qubits, 1])
+    height_list = []
+
+    x_matrix, z_matrix, r_vector = rref(x_matrix, z_matrix, r_vector)
+
+    for qubit_position in range(number_of_qubits):
+        left_most_nontrivial = []
+        for row_i in range(number_of_qubits):
+            for column_j in range(number_of_qubits):
+                if not (x_matrix[row_i, column_j] == 0 and z_matrix[row_i, column_j] == 0):
+                    left_most_nontrivial.append(column_j)
+                    break
+        assert len(left_most_nontrivial) == number_of_qubits, "Invalid input. One of the stabilizers is identity on " \
+                                                              "all qubits!"
+        number_of_non_trivial_generators = len([x for x in left_most_nontrivial if x - qubit_position > 0])
+        height = number_of_qubits - (qubit_position + 1) - number_of_non_trivial_generators
+        height_list.append(height)
+    return height_list
+
+
 def height_function(x_matrix, z_matrix, qubit_position):
     """
     Calculates the height_function for the desired qubit in the graph given the label (position) of the qubit/node.
@@ -329,42 +363,11 @@ def height_function(x_matrix, z_matrix, qubit_position):
     bi-partition of the state at the given position.
     :rtype: int
     """
-    number_of_qubits = np.shape(x_matrix)[0]
-    r_vector = np.zeros([number_of_qubits, 1])
-    non_trivial_generators = 0
-    height = 0
 
-    x_matrix, z_matrix, r_vector = rref(x_matrix, z_matrix, r_vector)
-
-    left_most_nontrivial = []
-    for row_i in range(number_of_qubits):
-        for column_j in range(number_of_qubits):
-            if not (x_matrix[row_i, column_j] == 0 and z_matrix[row_i, column_j] == 0):
-                left_most_nontrivial.append(column_j)
-                break
-    assert len(left_most_nontrivial) == number_of_qubits, "Invalid input. One of the stabilizers is identity on all " \
-                                                          "qubits!"
-    number_of_non_trivial_generators = len([x - qubit_position for x in left_most_nontrivial if x - qubit_position > 0])
-
-    height = number_of_qubits - (qubit_position + 1) - number_of_non_trivial_generators
+    height = height_func_list(x_matrix, z_matrix)[qubit_position]
     return height
 
 
-# def edge_list_finder(G):
-#     if isinstance(G, nx.classes.graph.Graph):
-#         pass
-#     if isinstance(G, np.ndarray):
-#         G = nx.to_networkx_graph(G)
-#     edge_list1 = []
-#     for line in nx.generate_edgelist(G, data=False):
-#         a = (str(int(line.split()[0]) + 1), ', ', str(int(line.split()[1]) + 1),
-#              '; ')
-# the plus +1 part make it compatible with matlab indexing node for graphs, node 0 in python = node 1 in sophia's matlab
-# code
-#         edge_list1.append(''.join(list(a)))
-#     b = ''.join(edge_list1)
-#     b = b[:-2]  # delete the last semicolon
-#     return b
 def height_dict(x_matrix=None, z_matrix=None, graph=None):
     """
     Generates the height_function dictionary for all qubits, given the x and z matrices or the graph the state
@@ -381,8 +384,8 @@ def height_dict(x_matrix=None, z_matrix=None, graph=None):
     """
     if x_matrix is None or z_matrix is None:
         if isinstance(graph, nx.classes.graph.Graph):
+            number_of_qubits = len(graph.nodes())
             z_matrix = nx.to_numpy_array(graph)
-            number_of_qubits = np.shape(z_matrix)[0]
             x_matrix = np.eye(number_of_qubits)
         elif graph:
             raise ValueError('graph should be a valid networkx graph object')
@@ -392,12 +395,9 @@ def height_dict(x_matrix=None, z_matrix=None, graph=None):
     number_of_qubits = np.shape(x_matrix)[0]
     positions = [-1] + [*range(number_of_qubits)]
     # the first element of qubit positions list is set to -1 for symmetric plotting of the height function.
-    height_x = [0]
+    height_x = [0] + height_func_list(x_matrix, z_matrix)
     # the first element of height function is set to zero and corresponds to an imaginary qubit at position -1.
-    for i in range(number_of_qubits):
-        height_x.append(height_function(x_matrix, z_matrix, i))
-        positions.append(i)
-    # h_max = max(height_x)
+
     h_dict = {positions[i]: height_x[i] for i in range(number_of_qubits+1)}
     return h_dict
 

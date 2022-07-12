@@ -138,11 +138,15 @@ class OneQubitGateReplacement(ReplacementNoiseBase):
 
     def get_backend_dependent_noise(self, state_rep, n_quantum, reg):
         """
+        Return the backend-dependent noise representation
 
-        :param state_rep:
-        :param n_quantum:
-        :param reg:
-        :return:
+        :param state_rep: the state representation
+        :type state_rep: subclass of StateRepresentationBase
+        :param n_quantum: number of qubits
+        :type n_quantum: int
+        :param reg: the register where the noise is applied
+        :type reg: int
+        :return: a backend-dependent noise representation
         """
         if isinstance(state_rep, DensityMatrix):
             return dmf.single_qubit_unitary(
@@ -163,11 +167,15 @@ class OneQubitGateReplacement(ReplacementNoiseBase):
 
     def apply(self, state_rep: StateRepresentationBase, n_quantum, reg):
         """
+        Apply the noisy gate to the state representation state_rep
 
-        :param state_rep:
-        :param n_quantum:
-        :param reg:
-        :return:
+        :param state_rep: the state representation
+        :type state_rep: subclass of StateRepresentationBase
+        :param n_quantum: number of qubits
+        :type n_quantum: int
+        :param reg: the register where the noise is applied
+        :type reg: int
+        :return: nothing
         """
         if isinstance(state_rep, DensityMatrix):
             noisy_gate = self.get_backend_dependent_noise(state_rep, n_quantum, reg)
@@ -193,6 +201,14 @@ class TwoQubitControlledGateReplacement(ReplacementNoiseBase):
         super().__init__(noise_parameters)
 
     def get_backend_dependent_noise(self, state_rep, n_quantum, ctr_reg, target_reg):
+        """
+
+        :param state_rep:
+        :param n_quantum:
+        :param ctr_reg:
+        :param target_reg:
+        :return:
+        """
         if isinstance(state_rep, DensityMatrix):
             return dmf.controlled_unitary(
                 n_quantum,
@@ -213,6 +229,14 @@ class TwoQubitControlledGateReplacement(ReplacementNoiseBase):
             raise TypeError("Backend type is not supported.")
 
     def apply(self, state_rep: StateRepresentationBase, n_quantum, ctr_reg, target_reg):
+        """
+
+        :param state_rep:
+        :param n_quantum:
+        :param ctr_reg:
+        :param target_reg:
+        :return:
+        """
         if isinstance(state_rep, DensityMatrix):
             noisy_gate = dmf.controlled_unitary(
                 n_quantum,
@@ -240,10 +264,14 @@ class MixedUnitaryError(AdditionNoiseBase):
 
     """
 
-    def __init__(self, noise_parameters={}):
+    def __init__(self, unitaries_list, prob_list):
+        noise_parameters = {"Unitaries": unitaries_list, "Probabilities": prob_list}
         super().__init__(noise_parameters)
 
     def get_backend_dependent_noise(self, state_rep: StateRepresentationBase):
+        pass
+
+    def apply(self):
         pass
 
 
@@ -253,24 +281,30 @@ class CoherentUnitaryError(AdditionNoiseBase):
 
     """
 
-    def __init__(self, noise_parameters={}):
+    def __init__(self, unitary):
+        noise_parameters = {"Unitary": unitary}
         super().__init__(noise_parameters)
 
+    def get_backend_dependent_noise(self, state_rep: StateRepresentationBase):
+        pass
 
-class PauliError(CoherentUnitaryError):
+    def apply(self):
+        pass
+
+
+class PauliError(AdditionNoiseBase):
     """
-    Pauli error
+    Pauli error specified by the name of Pauli
 
     """
 
-    def __init__(self, noise_parameters={}):
+    def __init__(self, pauli_error):
         """
 
-        :param noise_parameters: a dictionary of parameters
-
+        :param pauli_error: a description of the type of Pauli error
+        :type pauli_error: str
         """
-        if "Pauli error" not in noise_parameters.keys():
-            noise_parameters["Pauli error"] = "I"
+        noise_parameters = {"Pauli error": pauli_error}
         super().__init__(noise_parameters)
 
     def get_backend_dependent_noise(self, state_rep, n_quantum, reg):
@@ -283,7 +317,7 @@ class PauliError(CoherentUnitaryError):
             elif pauli_error == "Z":
                 return dmf.get_single_qubit_gate(n_quantum, reg, dmf.sigmaz())
             elif pauli_error == "I":
-                return np.eye(n_quantum)
+                return np.eye(2**n_quantum)
             else:
                 raise ValueError("Wrong description of a Pauli matrix.")
         elif isinstance(state_rep, Stabilizer):
@@ -370,7 +404,7 @@ class DepolarizingNoise(AdditionNoiseBase):
             kraus_z = np.sqrt(depolarizing_prob) * dmf.get_single_qubit_gate(
                 n_quantum, reg, dmf.sigmaz()
             )
-            kraus_i = np.sqrt(1 - depolarizing_prob) * np.eye(n_quantum)
+            kraus_i = np.sqrt(1 - depolarizing_prob) * np.eye(2**n_quantum)
             kraus_ops = [kraus_i, kraus_x, kraus_y, kraus_z]
             return kraus_ops
         elif isinstance(state_rep, Stabilizer):
@@ -400,6 +434,7 @@ class ResetError(NoiseBase):
     """
     Reset error
 
+    # TODO: implement this
     """
 
     def __init__(self, noise_parameters={}):

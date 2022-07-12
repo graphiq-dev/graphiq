@@ -10,6 +10,7 @@ import warnings
 import time
 
 import src.backends.density_matrix.functions as dmf
+import src.noise.noise_models as nm
 
 from src.metrics import MetricBase
 
@@ -50,6 +51,7 @@ class EvolutionarySolver(RandomSearchSolver):
         n_emitter=1,
         n_photon=1,
         selection_active=False,
+        noise_model_mapping={},
         *args,
         **kwargs,
     ):
@@ -62,7 +64,7 @@ class EvolutionarySolver(RandomSearchSolver):
         # transformation functions and their relative probabilities
         self.trans_probs = self.initialize_transformation_probabilities()
         self.selection_active = selection_active
-
+        self.noise_model_mapping = noise_model_mapping
         self.p_dist = [0.5] + 11 * [0.1 / 22] + [0.4] + 11 * [0.1 / 22]
         self.e_dist = [0.5] + 11 * [0.02 / 22] + [0.48] + 11 * [0.02 / 22]
 
@@ -121,7 +123,7 @@ class EvolutionarySolver(RandomSearchSolver):
             self.trans_probs[key] *= 1 / total
 
     @staticmethod
-    def initialization(emission_assignment, measurement_assignment):
+    def initialization(emission_assignment, measurement_assignment, noise_model_mapping={}):
         """
         Initialize a quantum circuit with photon emission, emitter measurements
 
@@ -145,12 +147,20 @@ class EvolutionarySolver(RandomSearchSolver):
                 target_type="p",
             )
             op.add_labels("Fixed")
+            if type(op).__name__ in noise_model_mapping.keys():
+                op.noise = noise_model_mapping[type(op).__name__]
+            else:
+                op.noise = nm.NoNoise()
             circuit.add(op)
             # initialize all single-qubit Clifford gate for photonic qubits
             op = ops.SingleQubitGateWrapper(
                 [ops.Identity, ops.Hadamard], register=i, reg_type="p"
             )
             op.add_labels("Fixed")
+            if type(op).__name__ in noise_model_mapping.keys():
+                op.noise = noise_model_mapping[type(op).__name__]
+            else:
+                op.noise = nm.NoNoise()
             circuit.add(op)
 
         # initialize all emitter meausurement and reset operations
@@ -163,6 +173,10 @@ class EvolutionarySolver(RandomSearchSolver):
                 target_type="p",
             )
             op.add_labels("Fixed")
+            if type(op).__name__ in noise_model_mapping.keys():
+                op.noise = noise_model_mapping[type(op).__name__]
+            else:
+                op.noise = nm.NoNoise()
             circuit.add(op)
         return circuit
 
@@ -188,7 +202,7 @@ class EvolutionarySolver(RandomSearchSolver):
                 )
 
                 circuit = self.initialization(
-                    emission_assignment, measurement_assignment
+                    emission_assignment, measurement_assignment, self.noise_model_mapping
                 )
                 # initialize all population members
                 population.append((np.inf, circuit))
@@ -251,7 +265,10 @@ class EvolutionarySolver(RandomSearchSolver):
         op = self.single_qubit_ops[ind]
         gate = ops.SingleQubitGateWrapper(op, reg_type="p", register=reg)
         gate.add_labels("Fixed")
-
+        if type(gate).__name__ in self.noise_model_mapping.keys():
+            gate.noise = self.noise_model_mapping[type(gate).__name__]
+        else:
+            gate.noise = nm.NoNoise()
         # circuit.replace_op(node, gate)
         circuit._open_qasm_update(gate)
         circuit.dag.nodes[node]["op"] = gate
@@ -287,6 +304,10 @@ class EvolutionarySolver(RandomSearchSolver):
         ind = np.random.choice(len(self.single_qubit_ops), p=self.e_dist)
         op = self.single_qubit_ops[ind]
         gate = ops.SingleQubitGateWrapper(op, reg_type="e", register=reg)
+        if type(gate).__name__ in self.noise_model_mapping.keys():
+            gate.noise = self.noise_model_mapping[type(gate).__name__]
+        else:
+            gate.noise = nm.NoNoise()
         circuit.insert_at(gate, [edge])
 
     def add_emitter_cnot(self, circuit):
@@ -314,6 +335,11 @@ class EvolutionarySolver(RandomSearchSolver):
             target=circuit.dag.edges[edge1]["reg"],
             target_type="e",
         )
+
+        if type(gate).__name__ in self.noise_model_mapping.keys():
+            gate.noise = self.noise_model_mapping[type(gate).__name__]
+        else:
+            gate.noise = nm.NoNoise()
         circuit.insert_at(gate, [edge0, edge1])
 
     def remove_op(self, circuit, node=None):
@@ -363,6 +389,12 @@ class EvolutionarySolver(RandomSearchSolver):
             target=circuit.dag.edges[edge1]["reg"],
             target_type="p",
         )
+
+        if type(gate).__name__ in self.noise_model_mapping.keys():
+            gate.noise = self.noise_model_mapping[type(gate).__name__]
+        else:
+            gate.noise = nm.NoNoise()
+
         circuit.insert_at(gate, [edge0, edge1])
 
     # helper functions

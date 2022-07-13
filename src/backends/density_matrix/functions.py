@@ -160,7 +160,7 @@ def get_controlled_gate(n_qubits, control_qubit, target_qubit, target_gate):
     assert n_qubits > 1
     if control_qubit < target_qubit:
         final_gate = np.kron(
-            np.kron(np.eye(2 ** control_qubit), np.eye(2) - sigmaz()),
+            np.kron(np.eye(2**control_qubit), np.eye(2) - sigmaz()),
             np.eye(2 ** (target_qubit - control_qubit - 1)),
         )
         final_gate = np.kron(
@@ -170,7 +170,7 @@ def get_controlled_gate(n_qubits, control_qubit, target_qubit, target_gate):
 
     elif control_qubit > target_qubit:
         final_gate = np.kron(
-            np.kron(np.eye(2 ** target_qubit), target_gate - np.eye(2)),
+            np.kron(np.eye(2**target_qubit), target_gate - np.eye(2)),
             np.eye(2 ** (control_qubit - target_qubit - 1)),
         )
         final_gate = np.kron(
@@ -179,7 +179,7 @@ def get_controlled_gate(n_qubits, control_qubit, target_qubit, target_gate):
         )
     else:
         raise ValueError("Control qubit and target qubit cannot be the same qubit!")
-    final_gate = np.eye(2 ** n_qubits) + final_gate / 2
+    final_gate = np.eye(2**n_qubits) + final_gate / 2
     return final_gate
 
 
@@ -198,7 +198,7 @@ def get_single_qubit_gate(n_qubits, qubit_position, target_gate):
     """
     if n_qubits == 1:
         return target_gate
-    final_gate = np.kron(np.identity(2 ** qubit_position), target_gate)
+    final_gate = np.kron(np.identity(2**qubit_position), target_gate)
     final_gate = np.kron(final_gate, np.identity(2 ** (n_qubits - qubit_position - 1)))
     return final_gate
 
@@ -248,7 +248,9 @@ def get_multi_qubit_gate(n_qubits, qubit_positions, target_gates):
     :rtype: numpy.ndarray
     """
     assert len(qubit_positions) == len(target_gates)
-    target_gates_dict = {qubit_positions[i]: target_gates[i] for i in range(len(qubit_positions))}
+    target_gates_dict = {
+        qubit_positions[i]: target_gates[i] for i in range(len(qubit_positions))
+    }
     return _get_multi_qubit_gate(n_qubits, target_gates_dict)
 
 
@@ -650,7 +652,9 @@ def one_qubit_unitary(n_qubits, qubit_position, theta, phi, lam):
     return get_single_qubit_gate(n_qubits, qubit_position, gate)
 
 
-def two_qubit_controlled_unitary(n_qubits, ctr_qubit, target_qubit, theta, phi, lam, gamma):
+def two_qubit_controlled_unitary(
+    n_qubits, ctr_qubit, target_qubit, theta, phi, lam, gamma
+):
     """
     Define a generic 4-parameter two-qubit gate that is a controlled unitary gate. :math:`|0\\rangle \\langle 0|
     \\otimes I + e^{i \\gamma} |1\\rangle \\langle 1| \otimes U(\\theta, \\phi, \\lambda)`, where :math:`U(\\theta,

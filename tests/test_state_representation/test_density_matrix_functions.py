@@ -36,7 +36,7 @@ def test_multi_qubit_gate():
     qubit_positions = [1, 3]
     target_gates = [sigmax(), sigmaz()]
     assert np.allclose(
-        get_multi_qubit_gate(4,qubit_positions, target_gates),
+        get_multi_qubit_gate(4, qubit_positions, target_gates),
         get_single_qubit_gate(4, 1, sigmax()) @ get_single_qubit_gate(4, 3, sigmaz()),
     )
 

@@ -1,11 +1,13 @@
 """
 The Noise objects are objects that tell the compiler the noise model of each gate.
 
-A noise can be placed before or after the execution of the gate. It can also alter the behavior of the gate.
-To allow the flexibility to place the noise, the user needs to specify where to put the noise:
-'Before', 'After' or 'Replace'.
+A noise can be placed before or after the execution of the gate. It can also alter the behavior of the gate. To allow
+the flexibility to place the noise, the user needs to specify where to put the noise. Currently, we support placing
+additional noise before or after a gate as well as replacing a gate. 
 
-# TODO: Think about coherent vs. individual errors
+Currently, we only consider individual errors.
+
+# TODO: Think about coherent errors
 # TODO: Think about how to specify errors for a family/type of gates
 # TODO: Think about how to quickly initialize noise models for all gates
 
@@ -15,6 +17,7 @@ import numpy as np
 import networkx as nx
 import src.backends.density_matrix.functions as dmf
 
+from itertools import combinations
 from abc import ABC
 from src.backends.density_matrix.state import DensityMatrix
 from src.backends.stabilizer.state import Stabilizer
@@ -149,7 +152,7 @@ class OneQubitGateReplacement(ReplacementNoiseBase):
         :return: a backend-dependent noise representation
         """
         if isinstance(state_rep, DensityMatrix):
-            return dmf.single_qubit_unitary(
+            return dmf.one_qubit_unitary(
                 n_quantum,
                 reg,
                 self.noise_parameters["theta"],
@@ -210,7 +213,7 @@ class TwoQubitControlledGateReplacement(ReplacementNoiseBase):
         :return:
         """
         if isinstance(state_rep, DensityMatrix):
-            return dmf.controlled_unitary(
+            return dmf.two_qubit_controlled_unitary(
                 n_quantum,
                 ctr_reg,
                 target_reg,
@@ -238,7 +241,7 @@ class TwoQubitControlledGateReplacement(ReplacementNoiseBase):
         :return:
         """
         if isinstance(state_rep, DensityMatrix):
-            noisy_gate = dmf.controlled_unitary(
+            noisy_gate = dmf.two_qubit_controlled_unitary(
                 n_quantum,
                 ctr_reg,
                 target_reg,
@@ -382,7 +385,7 @@ class GeneralKrausError(AdditionNoiseBase):
             raise TypeError("Backend type is not supported.")
 
 
-class DepolarizingNoise(AdditionNoiseBase):
+class SingleQubitDepolarizingNoise(AdditionNoiseBase):
     """
     Depolarizing noise described by a depolarizing probability
 
@@ -393,15 +396,22 @@ class DepolarizingNoise(AdditionNoiseBase):
         super().__init__(noise_parameters)
 
     def get_backend_dependent_noise(self, state_rep, n_quantum, reg):
+        """
+
+        :param state_rep:
+        :param n_quantum:
+        :param reg:
+        :return:
+        """
         depolarizing_prob = self.noise_parameters["Depolarizing probability"]
         if isinstance(state_rep, DensityMatrix):
-            kraus_x = np.sqrt(depolarizing_prob) * dmf.get_single_qubit_gate(
+            kraus_x = np.sqrt(depolarizing_prob / 3) * dmf.get_single_qubit_gate(
                 n_quantum, reg, dmf.sigmax()
             )
-            kraus_y = np.sqrt(depolarizing_prob) * dmf.get_single_qubit_gate(
+            kraus_y = np.sqrt(depolarizing_prob / 3) * dmf.get_single_qubit_gate(
                 n_quantum, reg, dmf.sigmay()
             )
-            kraus_z = np.sqrt(depolarizing_prob) * dmf.get_single_qubit_gate(
+            kraus_z = np.sqrt(depolarizing_prob / 3) * dmf.get_single_qubit_gate(
                 n_quantum, reg, dmf.sigmaz()
             )
             kraus_i = np.sqrt(1 - depolarizing_prob) * np.eye(2**n_quantum)
@@ -419,6 +429,65 @@ class DepolarizingNoise(AdditionNoiseBase):
     def apply(self, state_rep: StateRepresentationBase, n_quantum, reg):
         if isinstance(state_rep, DensityMatrix):
             kraus_ops = self.get_backend_dependent_noise(state_rep, n_quantum, reg)
+            state_rep.apply_channel(kraus_ops)
+        elif isinstance(state_rep, Stabilizer):
+            # TODO: Find the correct representation
+            pass
+        elif isinstance(state_rep, Graph):
+            # TODO: Implement
+            pass
+        else:
+            raise TypeError("Backend type is not supported.")
+
+
+class MultiQubitDepolarizingNoise(AdditionNoiseBase):
+    """
+    Depolarizing noise described by a depolarizing probability
+
+    """
+
+    def __init__(self, depolarizing_prob):
+        noise_parameters = {"Depolarizing probability": depolarizing_prob}
+        super().__init__(noise_parameters)
+
+    def get_backend_dependent_noise(self, state_rep, n_quantum, reg_list):
+        """
+
+        :param state_rep:
+        :param n_quantum:
+        :param reg_list:
+        :return:
+        """
+        depolarizing_prob = self.noise_parameters["Depolarizing probability"]
+        if isinstance(state_rep, DensityMatrix):
+            single_qubit_kraus = [np.eye(2), dmf.sigmax(), dmf.sigmay(), dmf.sigmaz()]
+            kraus_ops_iter = combinations(single_qubit_kraus, len(reg_list))
+            n_kraus = 4 ** len(reg_list)
+            all_kraus_ops = []
+            for kraus_op in kraus_ops_iter:
+                all_kraus_ops.append(
+                    np.sqrt(depolarizing_prob / (n_kraus - 1))
+                    * dmf.get_multi_qubit_gate(n_quantum, reg_list, kraus_op)
+                )
+
+            all_kraus_ops[0] = (
+                all_kraus_ops[0]
+                / np.sqrt(depolarizing_prob / (n_kraus - 1))
+                * np.sqrt(1 - depolarizing_prob)
+            )
+            return all_kraus_ops
+        elif isinstance(state_rep, Stabilizer):
+            # TODO: Find the correct representation
+            return
+        elif isinstance(state_rep, Graph):
+            # TODO: Implement
+            return
+        else:
+            raise TypeError("Backend type is not supported.")
+
+    def apply(self, state_rep: StateRepresentationBase, n_quantum, reg_list):
+        if isinstance(state_rep, DensityMatrix):
+            kraus_ops = self.get_backend_dependent_noise(state_rep, n_quantum, reg_list)
             state_rep.apply_channel(kraus_ops)
         elif isinstance(state_rep, Stabilizer):
             # TODO: Find the correct representation

@@ -133,6 +133,9 @@ class EvolutionarySolver(RandomSearchSolver):
         :type emission_assignment: list[int]
         :param measurement_assignment: which photonic qubit is targeted after measuring each emitter
         :type measurement_assignment: list[int]
+        :param noise_model_mapping: a dictionary that stores the mapping between an operation
+            and its associated noise model
+        :type noise_model_mapping: dict
         :return: nothing
         :rtype: None
         """
@@ -147,12 +150,11 @@ class EvolutionarySolver(RandomSearchSolver):
                 control_type="e",
                 target=i,
                 target_type="p",
+                noise=EvolutionarySolver._identify_noise(
+                    ops.CNOT.__name__, noise_model_mapping
+                ),
             )
             op.add_labels("Fixed")
-            if type(op).__name__ in noise_model_mapping.keys():
-                op.noise = noise_model_mapping[type(op).__name__]
-            else:
-                op.noise = nm.NoNoise()
             circuit.add(op)
             # initialize all single-qubit Clifford gate for photonic qubits
             noise = []
@@ -164,8 +166,12 @@ class EvolutionarySolver(RandomSearchSolver):
                 noise.append(noise_model_mapping["Hadamard"])
             else:
                 noise.append(nm.NoNoise())
+            op_list = [ops.Identity, ops.Hadamard]
             op = ops.SingleQubitGateWrapper(
-                [ops.Identity, ops.Hadamard], register=i, reg_type="p", noise=noise
+                op_list,
+                register=i,
+                reg_type="p",
+                noise=EvolutionarySolver._identify_noise(op_list, noise_model_mapping),
             )
             op.add_labels("Fixed")
 
@@ -179,12 +185,11 @@ class EvolutionarySolver(RandomSearchSolver):
                 control_type="e",
                 target=measurement_assignment[j],
                 target_type="p",
+                noise=EvolutionarySolver._identify_noise(
+                    ops.MeasurementCNOTandReset.__name__, noise_model_mapping
+                ),
             )
             op.add_labels("Fixed")
-            if type(op).__name__ in noise_model_mapping.keys():
-                op.noise = noise_model_mapping[type(op).__name__]
-            else:
-                op.noise = nm.NoNoise()
             circuit.add(op)
         return circuit
 
@@ -252,6 +257,49 @@ class EvolutionarySolver(RandomSearchSolver):
 
             print(f"Iteration {i} | Best score: {self.hof[0][0]:.4f}")
 
+    @staticmethod
+    def _wrap_noise(op, noise_model_mapping):
+        """
+        A helper function to consolidate noise models for SingleQubitWrapper operation
+
+        :param op: a list of operations
+        :type op: list[ops.OperationBase]
+        :param noise_model_mapping: a dictionary that stores the mapping between an operation
+            and its associated noise model
+        :type noise_model_mapping: dict
+        :return: a list of noise models
+        :rtype: list[nm.NoiseBase]
+        """
+        noise = []
+        for each_op in op:
+            if each_op.__name__ in noise_model_mapping.keys():
+                noise.append(noise_model_mapping[each_op.__name__])
+            else:
+                noise.append(nm.NoNoise())
+        return noise
+
+    @staticmethod
+    def _identify_noise(op, noise_model_mapping):
+        """
+        A helper function to identify the noise model for an operation
+
+        :param op: an operation or its name
+        :type op: ops.OperationBase or str
+        :param noise_model_mapping: a dictionary that stores the mapping between an operation
+            and its associated noise model
+        :type noise_model_mapping: dict
+        :return: a noise model
+        :rtype: nm.NoiseBase
+        """
+        if type(op) != str:
+            op_name = type(op).__name__
+        else:
+            op_name = op
+        if op_name in noise_model_mapping.keys():
+            return noise_model_mapping[op_name]
+        else:
+            return nm.NoNoise()
+
     def replace_photon_one_qubit_op(self, circuit):
         """
         Replace one single-qubit Clifford gate applied on a photonic qubit to another one.
@@ -273,13 +321,7 @@ class EvolutionarySolver(RandomSearchSolver):
         reg = old_op.register
         ind = np.random.choice(len(self.single_qubit_ops), p=self.p_dist)
         op = self.single_qubit_ops[ind]
-        noise = []
-        for each_op in op:
-
-            if each_op.__name__ in self.noise_model_mapping.keys():
-                noise.append(self.noise_model_mapping[each_op.__name__])
-            else:
-                noise.append(nm.NoNoise())
+        noise = self._wrap_noise(op, self.noise_model_mapping)
         gate = ops.SingleQubitGateWrapper(op, reg_type="p", register=reg, noise=noise)
         gate.add_labels("Fixed")
         # circuit.replace_op(node, gate)
@@ -316,12 +358,7 @@ class EvolutionarySolver(RandomSearchSolver):
 
         ind = np.random.choice(len(self.single_qubit_ops), p=self.e_dist)
         op = self.single_qubit_ops[ind]
-        noise = []
-        for each_op in op:
-            if each_op.__name__ in self.noise_model_mapping.keys():
-                noise.append(self.noise_model_mapping[each_op.__name__])
-            else:
-                noise.append(nm.NoNoise())
+        noise = self._wrap_noise(op, self.noise_model_mapping)
         gate = ops.SingleQubitGateWrapper(op, reg_type="e", register=reg, noise=noise)
 
         circuit.insert_at(gate, [edge])
@@ -350,12 +387,9 @@ class EvolutionarySolver(RandomSearchSolver):
             control_type="e",
             target=circuit.dag.edges[edge1]["reg"],
             target_type="e",
+            noise=self._identify_noise(ops.CNOT.__name__, self.noise_model_mapping),
         )
 
-        if type(gate).__name__ in self.noise_model_mapping.keys():
-            gate.noise = self.noise_model_mapping[type(gate).__name__]
-        else:
-            gate.noise = nm.NoNoise()
         circuit.insert_at(gate, [edge0, edge1])
 
     def remove_op(self, circuit, node=None):
@@ -404,12 +438,10 @@ class EvolutionarySolver(RandomSearchSolver):
             control_type="e",
             target=circuit.dag.edges[edge1]["reg"],
             target_type="p",
+            noise=self._identify_noise(
+                ops.MeasurementCNOTandReset.__name__, self.noise_model_mapping
+            ),
         )
-
-        if type(gate).__name__ in self.noise_model_mapping.keys():
-            gate.noise = self.noise_model_mapping[type(gate).__name__]
-        else:
-            gate.noise = nm.NoNoise()
 
         circuit.insert_at(gate, [edge0, edge1])
 
@@ -559,49 +591,3 @@ class EvolutionarySolver(RandomSearchSolver):
             "Single qubit ops": op_names(self.single_qubit_ops),
             "Transition probabilities": transition_names(self.trans_probs),
         }
-
-
-if __name__ == "__main__":
-    # %% here we have access
-    EvolutionarySolver.n_stop = 40
-    EvolutionarySolver.n_pop = 150
-    EvolutionarySolver.n_hof = 10
-    EvolutionarySolver.tournament_k = 10
-
-    # %% comment/uncomment for reproducibility
-    # RuleBasedRandomSearchSolver.seed(1)
-
-    # %% select which state we want to target
-    from benchmarks.circuits import *
-
-    circuit_ideal, state_ideal = linear_cluster_3qubit_circuit()
-
-    # %% construct all of our important objects
-    target = state_ideal["dm"]
-    compiler = DensityMatrixCompiler()
-    metric = Infidelity(target=target)
-
-    solver = EvolutionarySolver(target=target, metric=metric, compiler=compiler)
-
-    # %% call the solver.solve() function to implement the random search algorithm
-    t0 = time.time()
-    solver.solve()
-    t1 = time.time()
-
-    # %% print/plot the results
-    print(solver.hof)
-    print(f"Total time {t1 - t0}")
-
-    circuit = solver.hof[0][1]
-
-    # extract the best performing circuit
-    fig, axs = density_matrix_bars(target)
-    fig.suptitle("Target density matrix")
-    plt.show()
-
-    state = compiler.compile(circuit)
-    fig, axs = density_matrix_bars(state.data)
-    fig.suptitle("Simulated density matrix")
-    plt.show()
-
-    circuit.draw_circuit()

@@ -41,7 +41,7 @@ def generate_run(n_photon, n_emitter, expected_triple, compiler, seed):
     noise_model_mapping = {
         "Identity": nm.OneQubitGateReplacement(np.pi / 180, 0, 0),
         "SigmaX": nm.PauliError("Y"),
-        # "Hadamard": nm.SingleQubitDepolarizingNoise(0.01),
+        "CNOT": nm.MultiQubitDepolarizingNoise(0.01),
     }
 
     solver = EvolutionarySolver(

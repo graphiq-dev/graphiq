@@ -34,6 +34,7 @@ class NoiseBase(ABC):
 
     def __init__(self, noise_parameters={}):
         """
+        Initialize a base class for noise model
 
         :param noise_parameters: a dictionary of parameters to describe the noise model
         :type noise_parameters: dict
@@ -45,7 +46,7 @@ class NoiseBase(ABC):
 
     def get_backend_dependent_noise(self, *args):
         """
-        An abstract method to obtain backend dependent noise representation
+        An abstract method to obtain a backend-dependent noise representation
 
         """
         raise NotImplementedError("Base class is abstract.")
@@ -71,7 +72,7 @@ class AdditionNoiseBase(NoiseBase):
 
     def get_backend_dependent_noise(self, *args):
         """
-        An abstract method to obtain backend dependent noise representation
+        An abstract method to obtain a backend-dependent noise representation
 
         """
         raise NotImplementedError("Base class is abstract.")
@@ -126,8 +127,14 @@ class NoNoise(AdditionNoiseBase):
             raise TypeError("Backend type is not supported.")
 
     def apply(self, state_rep: StateRepresentationBase, *args):
+        """
+        No action is needed
 
-        return state_rep
+        :param state_rep:
+        :param args:
+        :return: nothing
+        """
+        pass
 
 
 class OneQubitGateReplacement(ReplacementNoiseBase):
@@ -241,14 +248,8 @@ class TwoQubitControlledGateReplacement(ReplacementNoiseBase):
         :return:
         """
         if isinstance(state_rep, DensityMatrix):
-            noisy_gate = dmf.two_qubit_controlled_unitary(
-                n_quantum,
-                ctr_reg,
-                target_reg,
-                self.noise_parameters[0],
-                self.noise_parameters[1],
-                self.noise_parameters[2],
-                self.noise_parameters[3],
+            noisy_gate = self.get_backend_dependent_noise(
+                state_rep, n_quantum, ctr_reg, target_reg
             )
             state_rep.apply_unitary(noisy_gate)
         elif isinstance(state_rep, Stabilizer):
@@ -265,6 +266,7 @@ class MixedUnitaryError(AdditionNoiseBase):
     """
     Mixed unitary error, described by an ensemble of unitaries
 
+    # TODO: implement this
     """
 
     def __init__(self, unitaries_list, prob_list):
@@ -282,6 +284,7 @@ class CoherentUnitaryError(AdditionNoiseBase):
     """
     Coherent unitary error described by a single unitary
 
+    # TODO: implement this
     """
 
     def __init__(self, unitary):
@@ -297,7 +300,7 @@ class CoherentUnitaryError(AdditionNoiseBase):
 
 class PauliError(AdditionNoiseBase):
     """
-    Pauli error specified by the name of Pauli
+    One-qubit Pauli error specified by the name of Pauli
 
     """
 
@@ -385,9 +388,11 @@ class GeneralKrausError(AdditionNoiseBase):
             raise TypeError("Backend type is not supported.")
 
 
-class SingleQubitDepolarizingNoise(AdditionNoiseBase):
+class OneQubitDepolarizingNoise(AdditionNoiseBase):
     """
     Depolarizing noise described by a depolarizing probability
+
+    This is a special case of MultiQubitDepolarizingNoise and might be removed.
 
     """
 
@@ -397,11 +402,12 @@ class SingleQubitDepolarizingNoise(AdditionNoiseBase):
 
     def get_backend_dependent_noise(self, state_rep, n_quantum, reg):
         """
+        Return a backend-dependent noise representation of this noise model
 
         :param state_rep:
         :param n_quantum:
         :param reg:
-        :return:
+        :return: a backend-dependent noise representation
         """
         depolarizing_prob = self.noise_parameters["Depolarizing probability"]
         if isinstance(state_rep, DensityMatrix):
@@ -427,6 +433,13 @@ class SingleQubitDepolarizingNoise(AdditionNoiseBase):
             raise TypeError("Backend type is not supported.")
 
     def apply(self, state_rep: StateRepresentationBase, n_quantum, reg):
+        """
+
+        :param state_rep:
+        :param n_quantum:
+        :param reg:
+        :return: nothing
+        """
         if isinstance(state_rep, DensityMatrix):
             kraus_ops = self.get_backend_dependent_noise(state_rep, n_quantum, reg)
             state_rep.apply_channel(kraus_ops)
@@ -452,6 +465,7 @@ class MultiQubitDepolarizingNoise(AdditionNoiseBase):
 
     def get_backend_dependent_noise(self, state_rep, n_quantum, reg_list):
         """
+        Return a backend-dependent noise representation of this noise model
 
         :param state_rep:
         :param n_quantum:
@@ -486,6 +500,13 @@ class MultiQubitDepolarizingNoise(AdditionNoiseBase):
             raise TypeError("Backend type is not supported.")
 
     def apply(self, state_rep: StateRepresentationBase, n_quantum, reg_list):
+        """
+
+        :param state_rep:
+        :param n_quantum:
+        :param reg_list:
+        :return: nothing
+        """
         if isinstance(state_rep, DensityMatrix):
             kraus_ops = self.get_backend_dependent_noise(state_rep, n_quantum, reg_list)
             state_rep.apply_channel(kraus_ops)

@@ -14,7 +14,7 @@ def test_multi_qubit_depolarizing():
     state2 = DensityMatrix(data=reduce(np.kron, n_quantum * [init]))
 
     noise1 = nm.MultiQubitDepolarizingNoise(0.1)
-    noise2 = nm.SingleQubitDepolarizingNoise(0.1)
+    noise2 = nm.OneQubitDepolarizingNoise(0.1)
     kraus_op_list1 = noise1.get_backend_dependent_noise(state1, n_quantum, [1])
     kraus_op_list2 = noise2.get_backend_dependent_noise(state1, n_quantum, 1)
     noise1.apply(state1, n_quantum, [1])

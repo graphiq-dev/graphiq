@@ -6,7 +6,7 @@ from abc import ABC, abstractmethod
 import numpy as np
 
 from benchmarks.circuits import bell_state_circuit
-from src.backends.density_matrix.functions import fidelity, fidelity_pure
+import src.backends.density_matrix.functions as dmf
 
 
 class MetricBase(ABC):
@@ -80,13 +80,53 @@ class Infidelity(MetricBase):
         """
         # TODO: replace by actual fidelity check
         # fid = fidelity(self.target, state)
-        fid = fidelity_pure(self.target, state)
+        fid = dmf.fidelity_pure(self.target, state)
         self.increment()
 
         if self._inc % self.log_steps == 0:
             self.log.append(fid)
 
         return 1 - fid
+
+
+class TraceDistance(MetricBase):
+    def __init__(self, target, log_steps=1, *args, **kwargs):
+        """
+        Creates a TraceDistance Metric object, which computes the trace distance between the current state and the
+        target state.
+
+        :param target: the ideal state against which we compute fidelity
+        :type target: QuantumState
+        :param log_steps: the metric values are computed at every log_steps optimization step
+        :type log_steps: int
+        :return: nothing
+        :rtype: None
+        """
+        super().__init__(log_steps=log_steps, *args, **kwargs)
+        self.target = target
+        self.differentiable = False
+
+    def evaluate(self, state, circuit):
+        """
+        Evaluates the fidelity from a given state and circuit
+
+        :param state: the state to evaluate
+        :type state: QuantumState
+        :param circuit: circuit which generated state
+                        Not used for the fidelity evaluation, but argument is provided for API consistency
+        :type circuit: CircuitBase (or subclass of it)
+        :return: the fidelity
+        :rtype: float
+        """
+        # TODO: replace by actual fidelity check
+        # fid = fidelity(self.target, state)
+        trace_distance = dmf.trace_distance(self.target, state)
+        self.increment()
+
+        if self._inc % self.log_steps == 0:
+            self.log.append(trace_distance)
+
+        return trace_distance
 
 
 class MetricCircuitDepth(MetricBase):

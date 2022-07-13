@@ -43,6 +43,7 @@ def sigmaz():
 def hadamard():
     """
     Return the Hadamard matrix for a qubit
+
     :return: Hadamard matrix
     :rtype: numpy.ndarray
     """
@@ -51,7 +52,7 @@ def hadamard():
 
 def phase():
     """
-    Return the phase matrix P = diag(1, i)
+    Return the phase matrix :math:`P = \\begin{bmatrix} 1 & 0 \\\ 0 & i \\end{bmatrix}`
 
     :return: the phase matrtix
     :rtype: numpy.ndarray
@@ -529,16 +530,30 @@ def fidelity(rho, sigma):
 
 def fidelity_pure(rho, sigma):
     """
-    Return the fidelity between states rho, sigma
+    Return the fidelity between two states rho and sigma
 
     :param rho: the first state
     :type rho: numpy.ndarray
     :param sigma: the second state
     :type sigma: numpy.ndarray
     :return: the fidelity between 0 and 1
-    :rtype: int
+    :rtype: float
     """
     return np.real(np.trace(rho @ sigma) ** 2)
+
+
+def trace_distance(rho, sigma):
+    """
+    Return the trace distance between two states rho and sigma
+
+    :param rho: the first state
+    :type rho: numpy.ndarray
+    :param sigma: the second state
+    :type sigma: numpy.ndarray
+    :return: the trace distance between 0 and 1
+    :rtype: float
+    """
+    return np.real(np.linalg.norm(rho - sigma, "nuc") / 2)
 
 
 def bipartite_partial_transpose(rho, dim1, dim2, subsys):
@@ -559,8 +574,6 @@ def bipartite_partial_transpose(rho, dim1, dim2, subsys):
     :return: the partial transpose matrix of rho
     :rtype: numpy.ndarray
     """
-    # print(rho.size)
-    # print(dim1*dim2)
     assert int(np.sqrt(rho.size)) == dim1 * dim2
 
     if subsys == 0:
@@ -640,6 +653,9 @@ def single_qubit_unitary(n_qubits, qubit_position, theta, phi, lam):
     """
     Define a generic 3-parameter single-qubit rotation gate.
 
+    :math:`U(\\theta, \\phi, \\lambda) = \\begin{bmatrix} \\cos(\\frac{\\theta}{2}) & -e^{i \\lambda}\\sin(\\frac{\\theta}{2})\\\ e^{i
+    \\phi}\\sin(\\frac{\\theta}{2}) & e^{i (\\phi+\\lambda)}\cos(\\frac{\\theta}{2})\\end{bmatrix}`
+
     :param n_qubits: number of qubits
     :type n_qubits: int
     :param qubit_position: position of the target qubit
@@ -667,7 +683,10 @@ def single_qubit_unitary(n_qubits, qubit_position, theta, phi, lam):
 
 def controlled_unitary(n_qubits, ctr_qubit, target_qubit, theta, phi, lam, gamma):
     """
-    Define a generic 4-parameter two-qubit gate that is a controlled unitary gate.
+    Define a generic 4-parameter two-qubit gate that is a controlled unitary gate. :math:`|0\\rangle \\langle 0|
+    \\otimes I + e^{i \\gamma} |1\\rangle \\langle 1| \otimes U(\\theta, \\phi, \\lambda)`, where :math:`U(\\theta,
+    \\phi, \\lambda) = \\begin{bmatrix} \\cos(\\frac{\\theta}{2}) & -e^{i \\lambda} \\sin(\\frac{\\theta}{2}) \\\ e^{
+    i \\phi}\\sin(\\frac{\\theta}{2}) & e^{i (\\phi+\\lambda)}\cos(\\frac{\\theta}{2})\\end{bmatrix}`
 
     :param n_qubits: number of qubits
     :type n_qubits: int

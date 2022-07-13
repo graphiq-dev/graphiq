@@ -4,7 +4,7 @@ from tests.test_flags import visualization
 from src.solvers.evolutionary_solver import EvolutionarySolver
 import matplotlib.pyplot as plt
 from src.backends.density_matrix.compiler import DensityMatrixCompiler
-from src.metrics import Infidelity
+from src.metrics import Infidelity, TraceDistance
 import src.backends.density_matrix.functions as dmf
 from src.visualizers.density_matrix import density_matrix_bars
 from benchmarks.circuits import *
@@ -101,12 +101,36 @@ def linear3_run(solver_stop_100, density_matrix_compiler, linear3_expected):
 
 
 @pytest.fixture(scope="module")
+def linear3_run_trace_distance(
+    solver_stop_100, density_matrix_compiler, linear3_expected_trace_distance
+):
+    """
+    Again, we set the fixture scope to module. Arguably, this is more important than last time because actually
+    running the solve takes (relatively) long.
+
+    Since we want to apply 2 separate tests on the same run (one visual, one non-visual), it makes sense to have a
+    common fixture that only gets called once per module
+    """
+    return generate_run(
+        3, 1, linear3_expected_trace_distance, density_matrix_compiler, 10
+    )
+
+
+@pytest.fixture(scope="module")
 def linear3_expected():
     circuit_ideal, state_ideal = linear_cluster_3qubit_circuit()
     target_state = state_ideal["dm"]
 
     metric = Infidelity(target=target_state)
 
+    return target_state, circuit_ideal, metric
+
+
+@pytest.fixture(scope="module")
+def linear3_expected_trace_distance():
+    circuit_ideal, state_ideal = linear_cluster_3qubit_circuit()
+    target_state = state_ideal["dm"]
+    metric = TraceDistance(target=target_state)
     return target_state, circuit_ideal, metric
 
 
@@ -123,11 +147,37 @@ def linear4_run(solver_stop_100, density_matrix_compiler, linear4_expected):
 
 
 @pytest.fixture(scope="module")
+def linear4_run_trace_distance(
+    solver_stop_100, density_matrix_compiler, linear4_expected_trace_distance
+):
+    """
+    Again, we set the fixture scope to module. Arguably, this is more important than last time because actually
+    running the solve takes (relatively) long.
+
+    Since we want to apply 2 separate tests on the same run (one visual, one non-visual), it makes sense to have a
+    common fixture that only gets called once per module
+    """
+    return generate_run(
+        4, 1, linear4_expected_trace_distance, density_matrix_compiler, 10
+    )
+
+
+@pytest.fixture(scope="module")
 def linear4_expected():
     circuit_ideal, state_ideal = linear_cluster_4qubit_circuit()
     target_state = state_ideal["dm"]
 
     metric = Infidelity(target=target_state)
+    # metric = TraceDistance(target=target_state)
+    return target_state, circuit_ideal, metric
+
+
+@pytest.fixture(scope="module")
+def linear4_expected_trace_distance():
+    circuit_ideal, state_ideal = linear_cluster_4qubit_circuit()
+    target_state = state_ideal["dm"]
+
+    metric = TraceDistance(target=target_state)
 
     return target_state, circuit_ideal, metric
 
@@ -151,6 +201,12 @@ def test_solver_linear3(linear3_run, linear3_expected):
     check_run(linear3_run, linear3_expected)
 
 
+def test_solver_linear3_trace_distance(
+    linear3_run_trace_distance, linear3_expected_trace_distance
+):
+    check_run(linear3_run_trace_distance, linear3_expected_trace_distance)
+
+
 @visualization
 def test_solver_linear3_visualized(linear3_run, linear3_expected):
     check_run_visual(linear3_run, linear3_expected)
@@ -158,6 +214,12 @@ def test_solver_linear3_visualized(linear3_run, linear3_expected):
 
 def test_solver_linear4(linear4_run, linear4_expected):
     check_run(linear4_run, linear4_expected)
+
+
+def test_solver_linear4_trace_distance(
+    linear4_run_trace_distance, linear4_expected_trace_distance
+):
+    check_run(linear4_run_trace_distance, linear4_expected_trace_distance)
 
 
 @visualization
@@ -175,34 +237,6 @@ def test_solver_ghz3(ghz3_run, ghz3_expected, density_matrix_compiler):
 @visualization
 def test_solver_ghz3_visualized(ghz3_run, ghz3_expected):
     check_run_visual(ghz3_run, ghz3_expected)
-
-
-@pytest.mark.parametrize("seed", [0, 3, 325, 2949])
-def test_add_remove_measurements(seed):
-    n_emitter = 1
-    n_photon = 3
-
-    circuit_ideal, state_ideal = linear_cluster_3qubit_circuit()
-    target_state = state_ideal["dm"]
-    compiler = DensityMatrixCompiler()
-    metric = Infidelity(target=target_state)
-    solver = EvolutionarySolver(
-        target=target_state,
-        metric=metric,
-        compiler=compiler,
-        n_emitter=n_emitter,
-        n_photon=n_photon,
-    )
-    solver.seed(seed)
-
-    original_trans_prob = solver.trans_probs
-    solver.trans_probs = {
-        solver.remove_op: 1 / 2,
-        solver.add_measurement_cnot_and_reset: 1 / 2,
-    }
-    solver.solve()
-
-    solver.trans_probs = original_trans_prob
 
 
 # @visualization

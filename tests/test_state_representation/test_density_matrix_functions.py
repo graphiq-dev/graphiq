@@ -17,26 +17,15 @@ def test_trace_1():
     assert np.isclose(outcome1, 0.5)
 
 
-def test_controlled_gate():
-    assert np.array_equal(
-        get_controlled_gate(4, 1, 2, sigmaz()),
-        get_controlled_gate_efficient(4, 1, 2, sigmaz()),
-    )
-    assert np.array_equal(
-        get_controlled_gate(4, 1, 2, sigmax()),
-        get_controlled_gate_efficient(4, 1, 2, sigmax()),
-    )
-    assert np.array_equal(
-        get_controlled_gate(5, 2, 4, sigmaz()),
-        get_controlled_gate_efficient(5, 2, 4, sigmaz()),
-    )
-    assert np.array_equal(
-        get_controlled_gate(5, 4, 1, sigmay()),
-        get_controlled_gate_efficient(5, 4, 1, sigmay()),
-    )
-
-
 def test_single_qubit_unitary():
     assert np.allclose(single_qubit_unitary(2, 1, 0, 0, 0), np.eye(4))
-    print(single_qubit_unitary(2, 1, np.pi / 180, 0, 0))
-    print(single_qubit_unitary(2, 1, np.pi / 180, 0, 0))
+    assert np.allclose(single_qubit_unitary(1, 1, 0, 0, np.pi / 2), phase())
+    assert np.allclose(single_qubit_unitary(1, 1, np.pi / 2, 0, np.pi), hadamard())
+    assert np.allclose(
+        single_qubit_unitary(2, 1, 0, 0, np.pi / 2),
+        get_single_qubit_gate(2, 1, phase()),
+    )
+    assert np.allclose(
+        single_qubit_unitary(2, 1, np.pi / 2, 0, np.pi),
+        get_single_qubit_gate(2, 1, hadamard()),
+    )

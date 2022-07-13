@@ -140,87 +140,7 @@ def projectorz1():
     return np.array([[0.0, 0.0], [0.0, 1.0]])
 
 
-def get_controlled_gate(number_qubits, control_qubit, target_qubit, target_gate):
-    """
-    Define a controlled unitary gate.
-
-    :param number_qubits: specify the number of qubits in the system
-    :type number_qubits: int
-    :param control_qubit: specify the index of the control qubit (starting from zero)
-    :type control_qubit: int
-    :param target_qubit: specify the index of the target qubit
-    :type target_qubit: int
-    :param target_gate: specify the gate to be applied conditioned on the control_qubit in the ket one state
-    :type target_gate: numpy.ndarray
-
-    :return: a controlled unitary gate on the appropriate qubits and with the appropriate target gate
-    :rtype: numpy.ndarray
-    """
-    gate_cond0 = np.array([[1]])
-    gate_cond1 = np.array([[1]])
-    if control_qubit < target_qubit:
-
-        # tensor identities before the control qubit
-        gate_cond0 = np.kron(gate_cond0, np.identity(2**control_qubit))
-        gate_cond1 = np.kron(gate_cond1, np.identity(2**control_qubit))
-
-        # tensor the gate on the control qubit
-        gate_cond0 = np.kron(
-            gate_cond0, ketz0_state() @ np.transpose(np.conjugate(ketz0_state()))
-        )
-        gate_cond1 = np.kron(
-            gate_cond1, ketz1_state() @ np.transpose(np.conjugate(ketz1_state()))
-        )
-
-        # the rest is identity for the gate action conditioned on zero
-        gate_cond0 = np.kron(
-            gate_cond0, np.identity(2 ** (number_qubits - control_qubit - 1))
-        )
-
-        # tensor identities between the control qubit and the target qubit
-        gate_cond1 = np.kron(
-            gate_cond1, np.identity(2 ** (target_qubit - control_qubit - 1))
-        )
-        # tensor the gate on the target qubit
-        gate_cond1 = np.kron(gate_cond1, target_gate)
-        # tensor identities after the target qubit
-        gate_cond1 = np.kron(
-            gate_cond1, np.identity(2 ** (number_qubits - target_qubit - 1))
-        )
-    elif control_qubit > target_qubit:
-        # tensor identities before the control qubit for the gate action conditioned on zero
-        gate_cond0 = np.kron(gate_cond0, np.identity(2**control_qubit))
-
-        # tensor identities before the target qubit
-        gate_cond1 = np.kron(gate_cond1, np.identity(2**target_qubit))
-        # tensor the gate on the target qubit
-        gate_cond1 = np.kron(gate_cond1, target_gate)
-        # tensor identities between the control qubit and the target qubit
-        gate_cond1 = np.kron(
-            gate_cond1, np.identity(2 ** (control_qubit - target_qubit - 1))
-        )
-
-        # tensor the gate on the control qubit
-        gate_cond0 = np.kron(
-            gate_cond0, ketz0_state() @ np.transpose(np.conjugate(ketz0_state()))
-        )
-        gate_cond1 = np.kron(
-            gate_cond1, ketz1_state() @ np.transpose(np.conjugate(ketz1_state()))
-        )
-
-        # tensor identities after the control qubit
-        gate_cond0 = np.kron(
-            gate_cond0, np.identity(2 ** (number_qubits - control_qubit - 1))
-        )
-        gate_cond1 = np.kron(
-            gate_cond1, np.identity(2 ** (number_qubits - control_qubit - 1))
-        )
-    else:
-        raise ValueError("Control qubit and target qubit cannot be the same qubit!")
-    return gate_cond0 + gate_cond1
-
-
-def get_controlled_gate_efficient(n_qubits, control_qubit, target_qubit, target_gate):
+def get_controlled_gate(n_qubits, control_qubit, target_qubit, target_gate):
     """
     Define a controlled unitary gate.
 
@@ -232,11 +152,12 @@ def get_controlled_gate_efficient(n_qubits, control_qubit, target_qubit, target_
     :type target_qubit: int
     :param target_gate: specify the gate to be applied conditioned on the control_qubit in the ket one state
     :type target_gate: numpy.ndarray
-
     :raises ValueError: if the target and control qubits are the same
+    :raises AssertionError: if the number of qubits is at most 1
     :return: a controlled unitary gate on the appropriate qubits and with the appropriate target gate
     :rtype: numpy.ndarray
     """
+    assert n_qubits > 1
     if control_qubit < target_qubit:
         final_gate = np.kron(
             np.kron(np.eye(2**control_qubit), np.eye(2) - sigmaz()),
@@ -275,7 +196,8 @@ def get_single_qubit_gate(number_qubits, qubit_position, target_gate):
     :return: This function returns the resulting matrix that acts on the whole state
     :rtype: numpy.ndarray
     """
-
+    if number_qubits == 1:
+        return target_gate
     final_gate = np.kron(np.identity(2**qubit_position), target_gate)
     final_gate = np.kron(
         final_gate, np.identity(2 ** (number_qubits - qubit_position - 1))
@@ -293,17 +215,14 @@ def swap_two_qubits(state_matrix, qubit1_position, qubit2_position):
     :type qubit1_position: int
     :param qubit2_position: second qubit index
     :type qubit2_position: int
-
+    :raises AssertionError: if the number of qubits is at most 1
     :return: the matrix with swapped qubits
     :rtype: numpy.ndarray
     """
-    number_qubits = int(np.log2(np.sqrt(state_matrix.size)))
-    cnot12 = get_controlled_gate(
-        number_qubits, qubit1_position, qubit2_position, sigmax()
-    )
-    cnot21 = get_controlled_gate(
-        number_qubits, qubit2_position, qubit1_position, sigmax()
-    )
+    n_qubits = int(np.log2(np.sqrt(state_matrix.size)))
+    assert n_qubits > 1
+    cnot12 = get_controlled_gate(n_qubits, qubit1_position, qubit2_position, sigmax())
+    cnot21 = get_controlled_gate(n_qubits, qubit2_position, qubit1_position, sigmax())
 
     # SWAP gate can be decomposed as three CNOT gates
     swap = cnot12 @ cnot21 @ cnot12
@@ -342,14 +261,16 @@ def trace_out_qubit(state_matrix, qubit_position):
     :return: the density matrix of the state with the qubit traced out
     :rtype: numpy.ndarray
     """
-    number_qubits = int(np.log2(np.sqrt(state_matrix.size)))
+    n_qubits = int(np.log2(np.sqrt(state_matrix.size)))
+    if n_qubits == 1:
+        return np.array(np.trace(state_matrix))
     target_op1 = np.transpose(np.conjugate(ketz0_state()))
     target_op2 = np.transpose(np.conjugate(ketz1_state()))
-    k0 = get_single_qubit_gate(number_qubits, qubit_position, target_op1)
-    k1 = get_single_qubit_gate(number_qubits, qubit_position, target_op2)
-    final_state = k0 @ state_matrix @ np.transpose(
-        np.conjugate(k0)
-    ) + k1 @ state_matrix @ np.transpose(np.conjugate(k1))
+    kraus0 = get_single_qubit_gate(n_qubits, qubit_position, target_op1)
+    kraus1 = get_single_qubit_gate(n_qubits, qubit_position, target_op2)
+    final_state = kraus0 @ state_matrix @ np.transpose(
+        np.conjugate(kraus0)
+    ) + kraus1 @ state_matrix @ np.transpose(np.conjugate(kraus1))
     return final_state
 
 
@@ -365,17 +286,18 @@ def is_hermitian(input_matrix):
     return np.array_equal(input_matrix, np.conjugate(input_matrix.T))
 
 
-def is_psd(input_matrix):
+def is_psd(input_matrix, perturbation=1e-15):
     """
     Check if a matrix is positive semidefinite. This method works efficiently for positive definite matrix.
     For positive-semidefinite matrices, we add a small perturbation of the identity matrix.
 
     :param input_matrix: an input matrix for checking positive semidefiniteness
     :type input_matrix: numpy.ndarray
+    :param perturbation: small constant added to perturb the matrix
+    :type perturbation: double
     :return: True or False
     :rtype: bool
     """
-    perturbation = 1e-15
     # first check if it is a Hermitian matrix
     if not is_hermitian(input_matrix):
         return False
@@ -389,18 +311,18 @@ def is_psd(input_matrix):
         return False
 
 
-def create_n_plus_state(number_qubits):
+def create_n_plus_state(n_qubits):
     """
     Create a product state that consists n tensor factors of the ket plus state.
 
-    :param number_qubits: size (number of qubits) in the state to build
-    :type number_qubits: int
+    :param n_qubits: size (number of qubits) in the state to build
+    :type n_qubits: int
     :return: the product state
     :rtype: numpy.ndarray
     """
     final_state = np.array([[1]])
     rho_init = np.matmul(ketx0_state(), np.transpose(np.conjugate(ketx0_state())))
-    for i in range(number_qubits):
+    for i in range(n_qubits):
         final_state = np.kron(final_state, rho_init)
     return final_state
 

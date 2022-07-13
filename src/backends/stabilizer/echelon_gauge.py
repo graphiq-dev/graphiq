@@ -384,8 +384,9 @@ def height_dict(x_matrix=None, z_matrix=None, graph=None):
     """
     if x_matrix is None or z_matrix is None:
         if isinstance(graph, nx.classes.graph.Graph):
-            number_of_qubits = len(graph.nodes())
-            z_matrix = nx.to_numpy_array(graph)
+            number_of_qubits = len(graph)
+            node_list = [*range(number_of_qubits)]
+            z_matrix = nx.to_numpy_array(graph, nodelist=node_list)
             x_matrix = np.eye(number_of_qubits)
         elif graph:
             raise ValueError('graph should be a valid networkx graph object')

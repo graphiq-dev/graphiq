@@ -2,6 +2,7 @@
 This file contains helper functions for graph representation
 """
 import networkx as nx
+import itertools
 
 
 def convert_data_to_graph(graph_data, root_id):
@@ -105,6 +106,30 @@ def convert_data_to_graph(graph_data, root_id):
             root_node = node_dict[root_id]
 
     return root_node, node_dict, graph
+
+
+def local_complementation(graph, node_id):
+    """
+    Takes the local complementation of the graph around node.
+
+    Local complementation: let n(node) be the set of neighbours of node. If a, b \in n(node) and (a, b) is in
+    the set of edges E of graph, then remove (a, b) from E. If a, b in n(node) and (a, b) is NOT in E, then
+    add (a, b) into E.
+
+    :param graph: the graph to edit
+    :type graph: Graph
+    :param node: the ID of the node around which local complementation should take place
+    :type node: int or frozenset
+    :return: nothing
+    :rtype: None
+    """
+    neighbors = graph.get_neighbors(node_id)
+    neighbor_pairs = itertools.combinations(neighbors, 2)
+    for a, b in neighbor_pairs:
+        if graph.edge_exists(a, b):
+            graph.remove_edge(a, b)
+        else:
+            graph.add_edge(a, b)
 
 
 class QuNode:

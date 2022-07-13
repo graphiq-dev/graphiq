@@ -164,6 +164,20 @@ class Graph(StateRepresentationBase):
         """
         return [node.get_id() for node in self.data.nodes]
 
+    def edge_exists(self, node1, node2):
+        """
+        Checks whether an edge (parameterized by 2 nodes) exists
+
+        :param node1: First node of potential edge
+        :type node1: int, frozenset, or QuNode
+        :param node2: Second node of potential edge
+        :type node2: int, frozenset, or QuNode
+        :return: True if the edge exists, False otherwise
+        :rtype: bool
+        """
+        node1, node2 = self._node_as_qunode(node1), self._node_as_qunode(node2)
+        return self.data.has_edge(node1, node2)
+
     @property
     def n_node(self):
         """
@@ -230,18 +244,7 @@ class Graph(StateRepresentationBase):
         # TODO: refactor to use https://networkx.org/documentation/stable/reference/classes/generated/networkx.Graph.neighbors.html
         if isinstance(node_id, int):
             node_id = frozenset([node_id])
-        neighbor_list = list()
-        if node_id in self.node_dict.keys():
-            cnode = self.node_dict[node_id]
-            all_nodes = self.node_dict.values()
-
-            for node in all_nodes:
-                if (node, cnode) in self.data.edges() or (
-                    cnode,
-                    node,
-                ) in self.data.edges():
-                    neighbor_list.append(node)
-        return neighbor_list
+        return list(self.data.neighbors(self.node_dict[node_id]))
 
     def remove_node(self, node_id):
         """
@@ -261,6 +264,24 @@ class Graph(StateRepresentationBase):
             return True
         else:
             warnings.warn("No node is removed since node id does not exist.")
+            return False
+
+    def remove_edge(self, id1, id2):
+        """
+        Removes an edge from the graph if it exists
+
+        :param id1: ID of the first node of the edge
+        :type id1:  int or frozenset
+        :param id2: ID of the second node of the edge
+        :type id2: int or frozenset
+        :return: True if edge successfully removed, False otherwise
+        """
+        node1, node2 = self._node_as_qunode(id1), self._node_as_qunode(id2)
+        try:
+            self.data.remove_edge(node1, node2)
+            return True
+        except nx.NetworkxError:
+            warnings.warn("No edge is removed since edge does not exist.")
             return False
 
     def node_is_redundant(self, node_id):
@@ -360,3 +381,21 @@ class Graph(StateRepresentationBase):
         :rtype: None
         """
         draw_graph(self, show=show, ax=ax, with_labels=with_labels)
+
+    def _node_as_qunode(self, node):
+        """
+        Converts a node_id (either int or frozenset) to its equivalent QuNode object in the graph OR
+        returns the QuNode object unchanged
+
+        :param node: either the node we want, or the node_id of the node
+        :type node: int, frozenset, QuNode
+        :return: the corresponding node in the graph
+        :rtype: QuNode
+        """
+        if isinstance(node, int):
+            node = frozenset([node])
+
+        if isinstance(node, frozenset):
+            node = self.node_dict[node]
+
+        return node

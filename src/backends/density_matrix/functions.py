@@ -142,7 +142,7 @@ def projectorz1():
 
 def get_controlled_gate(n_qubits, control_qubit, target_qubit, target_gate):
     """
-    Define a controlled unitary gate.
+    Define a two-qubit controlled unitary gate.
 
     :param n_qubits: specify the number of qubits in the system
     :type n_qubits: int
@@ -160,7 +160,7 @@ def get_controlled_gate(n_qubits, control_qubit, target_qubit, target_gate):
     assert n_qubits > 1
     if control_qubit < target_qubit:
         final_gate = np.kron(
-            np.kron(np.eye(2**control_qubit), np.eye(2) - sigmaz()),
+            np.kron(np.eye(2 ** control_qubit), np.eye(2) - sigmaz()),
             np.eye(2 ** (target_qubit - control_qubit - 1)),
         )
         final_gate = np.kron(
@@ -170,7 +170,7 @@ def get_controlled_gate(n_qubits, control_qubit, target_qubit, target_gate):
 
     elif control_qubit > target_qubit:
         final_gate = np.kron(
-            np.kron(np.eye(2**target_qubit), target_gate - np.eye(2)),
+            np.kron(np.eye(2 ** target_qubit), target_gate - np.eye(2)),
             np.eye(2 ** (control_qubit - target_qubit - 1)),
         )
         final_gate = np.kron(
@@ -179,16 +179,16 @@ def get_controlled_gate(n_qubits, control_qubit, target_qubit, target_gate):
         )
     else:
         raise ValueError("Control qubit and target qubit cannot be the same qubit!")
-    final_gate = np.eye(2**n_qubits) + final_gate / 2
+    final_gate = np.eye(2 ** n_qubits) + final_gate / 2
     return final_gate
 
 
-def get_single_qubit_gate(number_qubits, qubit_position, target_gate):
+def get_single_qubit_gate(n_qubits, qubit_position, target_gate):
     """
     Returns the matrix resulting from the "target_gate" matrix, after it has been tensored with the necessary identities
 
-    :param number_qubits: number of qubits in the system
-    :type number_qubits: int
+    :param n_qubits: number of qubits in the system
+    :type n_qubits: int
     :param qubit_position: the position of qubit that the target_gate acts on, qubit index starting from zero
     :type qubit_position: int
     :param target_gate: the single-qubit version of the target gate
@@ -196,13 +196,60 @@ def get_single_qubit_gate(number_qubits, qubit_position, target_gate):
     :return: This function returns the resulting matrix that acts on the whole state
     :rtype: numpy.ndarray
     """
-    if number_qubits == 1:
+    if n_qubits == 1:
         return target_gate
-    final_gate = np.kron(np.identity(2**qubit_position), target_gate)
-    final_gate = np.kron(
-        final_gate, np.identity(2 ** (number_qubits - qubit_position - 1))
-    )
+    final_gate = np.kron(np.identity(2 ** qubit_position), target_gate)
+    final_gate = np.kron(final_gate, np.identity(2 ** (n_qubits - qubit_position - 1)))
     return final_gate
+
+
+def _get_multi_qubit_gate(n_qubits, target_gates_dict):
+    """
+    Returns the matrix resulting from the "target_gate" matrix, after it has been tensored with the necessary identities
+
+    :param n_qubits: number of qubits in the system
+    :type n_qubits: int
+    :param target_gates_dict: a dictionary where
+    the key is the qubit position and the value is a single-qubit gate that is non-identity components of the final
+    gate
+    :type target_gates_dct: dict
+    :return: the resulting matrix that acts on the whole state
+    :rtype: numpy.ndarray
+    """
+    qubit_positions = sorted(target_gates_dict)
+
+    assert n_qubits >= len(qubit_positions)
+    final_gate = 1
+    previous_position = 0
+    for position in qubit_positions:
+        final_gate = np.kron(
+            final_gate, np.identity(2 ** (position - previous_position))
+        )
+        final_gate = np.kron(final_gate, target_gates_dict[position])
+        previous_position = position + 1
+    if n_qubits - qubit_positions[-1] - 1 > 0:
+        final_gate = np.kron(
+            final_gate, np.identity(2 ** (n_qubits - qubit_positions[-1] - 1))
+        )
+    return final_gate
+
+
+def get_multi_qubit_gate(n_qubits, qubit_positions, target_gates):
+    """
+    Returns the matrix resulting from the "target_gate" matrix, after it has been tensored with the necessary identities
+
+    :param n_qubits: number of qubits in the system
+    :type n_qubits: int
+    :param qubit_positions: a list of positions for non-identity gates
+    :type qubit_positions: list[int]
+    :param target_gates: a list of gates
+    :type target_gates: list[numpy.ndarray]
+    :return: the resulting matrix that acts on the whole state
+    :rtype: numpy.ndarray
+    """
+    assert len(qubit_positions) == len(target_gates)
+    target_gates_dict = {qubit_positions[i]: target_gates[i] for i in range(len(qubit_positions))}
+    return _get_multi_qubit_gate(n_qubits, target_gates_dict)
 
 
 def swap_two_qubits(state_matrix, qubit1_position, qubit2_position):
@@ -444,7 +491,7 @@ def fidelity(rho, sigma):
     :param sigma: the second state
     :type sigma: numpy.ndarray
     :return: the fidelity between 0 and 1
-    :rtype: int
+    :rtype: float
     """
 
     return np.real(np.trace(sqrtm(sqrtm(rho) @ sigma @ sqrtm(rho))) ** 2)
@@ -550,7 +597,7 @@ def project_to_z0_and_remove(rho, locations):
     :param rho: the density matrix to evaluate the negativity
     :type rho: numpy.ndarray
     :param locations: a list of zeros/ones
-    :type locations: list or numpy.array
+    :type locations: list or numpy.ndarray
     :return: density matrix after measuring qubits specified by locations mask in Z basis
     :rtype: numpy.ndarray
     """
@@ -571,9 +618,9 @@ def project_to_z0_and_remove(rho, locations):
     return final_rho
 
 
-def single_qubit_unitary(n_qubits, qubit_position, theta, phi, lam):
+def one_qubit_unitary(n_qubits, qubit_position, theta, phi, lam):
     """
-    Define a generic 3-parameter single-qubit rotation gate.
+    Define a generic 3-parameter one-qubit unitary gate.
 
     :math:`U(\\theta, \\phi, \\lambda) = \\begin{bmatrix} \\cos(\\frac{\\theta}{2}) & -e^{i \\lambda}\\sin(\\frac{\\theta}{2})\\\ e^{i
     \\phi}\\sin(\\frac{\\theta}{2}) & e^{i (\\phi+\\lambda)}\cos(\\frac{\\theta}{2})\\end{bmatrix}`
@@ -588,7 +635,7 @@ def single_qubit_unitary(n_qubits, qubit_position, theta, phi, lam):
     :type phi: float or double
     :param lam: an angle
     :type lam: float or double
-    :return: a single-qubit unitary matrix that can be directly applied to an n-qubit state
+    :return: a one-qubit unitary matrix that can be directly applied to an n-qubit state
     :rtype: numpy.ndarray
     """
     gate = np.array(
@@ -603,7 +650,7 @@ def single_qubit_unitary(n_qubits, qubit_position, theta, phi, lam):
     return get_single_qubit_gate(n_qubits, qubit_position, gate)
 
 
-def controlled_unitary(n_qubits, ctr_qubit, target_qubit, theta, phi, lam, gamma):
+def two_qubit_controlled_unitary(n_qubits, ctr_qubit, target_qubit, theta, phi, lam, gamma):
     """
     Define a generic 4-parameter two-qubit gate that is a controlled unitary gate. :math:`|0\\rangle \\langle 0|
     \\otimes I + e^{i \\gamma} |1\\rangle \\langle 1| \otimes U(\\theta, \\phi, \\lambda)`, where :math:`U(\\theta,

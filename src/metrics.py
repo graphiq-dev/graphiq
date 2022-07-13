@@ -108,18 +108,17 @@ class TraceDistance(MetricBase):
 
     def evaluate(self, state, circuit):
         """
-        Evaluates the fidelity from a given state and circuit
+        Evaluates the trace distance from a given state and circuit
 
         :param state: the state to evaluate
-        :type state: QuantumState
+        :type state: QuantumState (currently numpy.ndarray)
         :param circuit: circuit which generated state
-                        Not used for the fidelity evaluation, but argument is provided for API consistency
+                        Not used for the trace distance evaluation, but argument is provided for API consistency
         :type circuit: CircuitBase (or subclass of it)
-        :return: the fidelity
+        :return: the trace distance
         :rtype: float
         """
-        # TODO: replace by actual fidelity check
-        # fid = fidelity(self.target, state)
+
         trace_distance = dmf.trace_distance(self.target, state)
         self.increment()
 

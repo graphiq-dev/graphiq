@@ -5,10 +5,9 @@ A noise can be placed before or after the execution of the gate. It can also alt
 the flexibility to place the noise, the user needs to specify where to put the noise. Currently, we support placing
 additional noise before or after a gate as well as replacing a gate. 
 
-Currently, we only consider individual errors.
+Currently, we consider only individual errors.
 
 # TODO: Think about coherent errors
-# TODO: Think about how to specify errors for a family/type of gates
 # TODO: Think about how to quickly initialize noise models for all gates
 
 """
@@ -93,10 +92,18 @@ class ReplacementNoiseBase(NoiseBase):
     def __init__(self, noise_parameters={}):
         super().__init__(noise_parameters)
 
-    def apply(self, *args):
+    def get_backend_dependent_noise(self, *args):
+        """
+        An abstract method to obtain a backend-dependent noise representation
+
+        """
         raise NotImplementedError("Base class is abstract.")
 
-    def get_backend_dependent_noise(self, *args):
+    def apply(self, *args):
+        """
+        An abstract method for applying the noise model
+
+        """
         raise NotImplementedError("Base class is abstract.")
 
 
@@ -115,6 +122,14 @@ class NoNoise(AdditionNoiseBase):
     def get_backend_dependent_noise(
         self, state_rep: StateRepresentationBase, n_quantum, *args
     ):
+        """
+
+
+        :param state_rep:
+        :param n_quantum:
+        :return:
+        :rtype:
+        """
         if isinstance(state_rep, DensityMatrix):
             return np.eye(state_rep.data.shape[0])
         elif isinstance(state_rep, Stabilizer):
@@ -353,18 +368,38 @@ class GeneralKrausError(AdditionNoiseBase):
     """
     A general error described by Kraus operators
 
+    This error may only work for the DensityMatrix backend.
+
     """
 
     def __init__(self, kraus_ops):
         """
+        Construct a GeneralKrausError object
 
         :param kraus_ops:
+        :type kraus_ops:
+        :return: nothing
+        :rtype: None
         """
         noise_parameters = {"Kraus": kraus_ops}
         super().__init__(noise_parameters)
 
-    def get_backend_dependent_noise(self, state_rep, n_quantum, ctr_reg, target_reg):
+    def get_backend_dependent_noise(self, state_rep, n_quantum, reg_list):
+        """
+        Return a backend-dependent noise representation of this noise model
+
+        :param state_rep: a state representation
+        :type state_rep: StateRepresentationBase
+        :param n_quantum: the number of qubits
+        :type n_quantum: int
+        :param reg_list: register
+        :type reg_list: list[int]
+        :return: a list of Kraus operators of the error
+        :rtype: list[numpy.ndarray] for DensityMatrix backend
+        """
         if isinstance(state_rep, DensityMatrix):
+            # initial_kraus = self.noise_parameters["Kraus"]
+
             return self.noise_parameters["Kraus"]
         elif isinstance(state_rep, Stabilizer):
             # TODO: Raise "not supported error"
@@ -375,9 +410,21 @@ class GeneralKrausError(AdditionNoiseBase):
         else:
             raise TypeError("Backend type is not supported.")
 
-    def apply(self, state_rep: StateRepresentationBase, n_quantum, reg):
+    def apply(self, state_rep: StateRepresentationBase, n_quantum, reg_list):
+        """
+        Apply the noise model to the state representation state_rep
+
+        :param state_rep: a state representation
+        :type state_rep: StateRepresentationBase
+        :param n_quantum: the number of qubits
+        :type n_quantum: int
+        :param reg_list: a list of registers where non-identity gates are applied
+        :type reg_list: list[int]
+        :return: nothing
+        """
         if isinstance(state_rep, DensityMatrix):
-            state_rep.apply_channel(self.noise_parameters["Kraus"])
+            kraus_ops = self.get_backend_dependent_noise(state_rep, n_quantum, reg_list)
+            state_rep.apply_channel(kraus_ops)
         elif isinstance(state_rep, Stabilizer):
             # TODO: Raise "not supported error"
             pass
@@ -405,8 +452,11 @@ class OneQubitDepolarizingNoise(AdditionNoiseBase):
         Return a backend-dependent noise representation of this noise model
 
         :param state_rep:
+        :type state_rep:
         :param n_quantum:
+        :type n_quantum: int
         :param reg:
+        :type reg: int
         :return: a backend-dependent noise representation
         """
         depolarizing_prob = self.noise_parameters["Depolarizing probability"]
@@ -460,6 +510,12 @@ class MultiQubitDepolarizingNoise(AdditionNoiseBase):
     """
 
     def __init__(self, depolarizing_prob):
+        """
+        Construct a multi-qubit depolarizing noise model
+
+        :param depolarizing_prob: the depolarizing probability
+        :type depolarizing_prob: float
+        """
         noise_parameters = {"Depolarizing probability": depolarizing_prob}
         super().__init__(noise_parameters)
 
@@ -467,10 +523,14 @@ class MultiQubitDepolarizingNoise(AdditionNoiseBase):
         """
         Return a backend-dependent noise representation of this noise model
 
-        :param state_rep:
-        :param n_quantum:
-        :param reg_list:
-        :return:
+        :param state_rep: a state representation
+        :type state_rep: StateRepresentationBase
+        :param n_quantum: the number of qubits
+        :type n_quantum: int
+        :param reg_list: a list of register numbers
+        :type reg_list: list[int]
+        :return: the backend-dependent noise representation
+        :rtype: list[numpy.ndarray] for DensityMatrix backend
         """
         depolarizing_prob = self.noise_parameters["Depolarizing probability"]
         if isinstance(state_rep, DensityMatrix):

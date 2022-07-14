@@ -171,7 +171,7 @@ class EvolutionarySolver(RandomSearchSolver):
                 op_list,
                 register=i,
                 reg_type="p",
-                noise=EvolutionarySolver._identify_noise(op_list, noise_model_mapping),
+                noise=EvolutionarySolver._wrap_noise(op_list, noise_model_mapping),
             )
             op.add_labels("Fixed")
 
@@ -272,10 +272,11 @@ class EvolutionarySolver(RandomSearchSolver):
         """
         noise = []
         for each_op in op:
-            if each_op.__name__ in noise_model_mapping.keys():
-                noise.append(noise_model_mapping[each_op.__name__])
-            else:
-                noise.append(nm.NoNoise())
+            noise.append(
+                EvolutionarySolver._identify_noise(
+                    each_op.__name__, noise_model_mapping
+                )
+            )
         return noise
 
     @staticmethod
@@ -415,8 +416,8 @@ class EvolutionarySolver(RandomSearchSolver):
 
     def add_measurement_cnot_and_reset(self, circuit):
         """
-        Add a MeausurementCNOTandReset operation from an emitter qubit to a photonic qubit such that no consecutive MeasurementCNOTReset is allowed.
-        This operation cannot be added before the photonic qubit is initialized.
+        Add a MeausurementCNOTandReset operation from an emitter qubit to a photonic qubit such that no consecutive
+        MeasurementCNOTReset is allowed. This operation cannot be added before the photonic qubit is initialized.
 
         :param circuit: a quantum circuit
         :type circuit: CircuitDAG

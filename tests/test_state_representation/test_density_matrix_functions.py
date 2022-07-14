@@ -1,9 +1,9 @@
 import pytest
-
+import numpy as np
 from src.backends.density_matrix.functions import *
 
 
-def test_trace_1():
+def test_measurement_prob():
     n_qubits = 8
     q_register = 0
     st = ketx0_state()

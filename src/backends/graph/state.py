@@ -5,6 +5,7 @@ Graph representation of quantum state
 """
 import networkx as nx
 import warnings
+import itertools
 
 from src.backends.state_base import StateRepresentationBase
 import src.backends.graph.functions as gf
@@ -362,8 +363,17 @@ class Graph(StateRepresentationBase):
             warnings.warn("No action is applied since node id does not exist.")
 
     def measure_y(self, node_id):
-        # TODO
-        raise NotImplementedError("To do")
+        """
+        Apply a y measurement to the graph at the qubit corresponding
+        to node_id
+
+        :param node_id: the node id of the qubit which we are measuring
+        :type node_id: int or frozenset
+        :return: nothing
+        :rtype: None
+        """
+        self.local_complementation(node_id)
+        self.remove_node(node_id)
 
     def measure_z(self, node_id):
         # TODO
@@ -399,3 +409,63 @@ class Graph(StateRepresentationBase):
             node = self.node_dict[node]
 
         return node
+
+    def local_complementation(self, node_id):
+        """
+        Takes the local complementation of the graph around node.
+
+        Local complementation: let n(node) be the set of neighbours of node. If a, b \in n(node) and (a, b) is in
+        the set of edges E of graph, then remove (a, b) from E. If a, b in n(node) and (a, b) is NOT in E, then
+        add (a, b) into E.
+
+        :param graph: the graph to edit
+        :type graph: Graph
+        :param node: the ID of the node around which local complementation should take place
+        :type node: int or frozenset
+        :return: nothing
+        :rtype: None
+        """
+        neighbors = self.get_neighbors(node_id)
+        neighbor_pairs = itertools.combinations(neighbors, 2)
+        for a, b in neighbor_pairs:
+            if self.edge_exists(a, b):
+                self.remove_edge(a, b)
+            else:
+                self.add_edge(a, b)
+
+    def merge(self, id1, id2):
+        """
+        Merges two nodes in the graph by:
+        1. Creating a new node, new_node, where the node_id is union(node1_id, node2_id) --> union of the frozen sets
+        2. For any edges of the form (a, node1) or (a, node2) with a in V (the set of nodes of the graph),
+           add the edge (a, new_node) to the graph
+        3. Remove node1, node2 and all their associated edges
+
+        Note that this is NOT the fusion gate function, as it doesn't take into account possibility of
+        failure. We also DO NOT check whether there is an existing edge between node1, node2 prior to merging.
+         It is merely a function that deterministically merges nodes.
+
+        :param id1: the ID of the first node in the graph to merge
+        :type id1: int or frozenset
+        :param id2: the ID of the second node in the graph to merge
+        :type id2: int or frozenset
+        :return: nothing
+        :rtype: None
+        """
+        if isinstance(id1, int):
+            id1 = frozenset([id1])
+        if isinstance(id2, int):
+            id2 = frozenset([id2])
+
+        new_id = frozenset(set(id1).union(set(id2)))
+
+        node1 = self.node_dict[id1]
+        node2 = self.node_dict[id2]
+
+        self.add_node(new_id)
+        for edge in list(self.data.edges(node1)) + list(self.data.edges(node2)):
+            other_node = edge[0] if edge[1] is node1 else edge[1]
+            self.add_edge(other_node, new_id)
+
+        self.remove_node(id1)
+        self.remove_node(id2)

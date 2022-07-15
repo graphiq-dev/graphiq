@@ -199,13 +199,20 @@ class DensityMatrixCompiler(CompilerBase):
 
     def _compile_one_gate(self, state, op, n_quantum, q_index, classical_registers):
         """
+        Compile one ideal gate
 
-        :param state:
-        :param op:
-        :param n_quantum:
-        :param q_index:
-        :param classical_registers:
-        :return:
+        :param state: the density matrix representation of the state to be evolved
+        :type state: DensityMatrix
+        :param op: the operation to be applied
+        :type op: OperationBase
+        :param n_quantum: the number of qubits
+        :type n_quantum: int
+        :param q_index: a function that maps register + register type to a matrix index (zero-indexed)
+        :type q_index: function
+        :param classical_registers: a list of values for classical registers
+        :type classical_registers: list
+        :return: nothing
+        :rtype: None
         """
         if type(op) is ops.Input:
             pass  # TODO: should think about best way to handle inputs/outputs
@@ -341,14 +348,14 @@ class DensityMatrixCompiler(CompilerBase):
 
         :param state: the density matrix representation of the state to be evolved
         :type state: DensityMatrix
-        :param op:
+        :param op: the operation to be applied
         :type op: OperationBase
         :param n_quantum: the number of qubits
         :type n_quantum: int
-        :param q_index:
-        :type q_index:
-        :param classical_registers:
-        :type classical_registers:
+        :param q_index: a function that maps register + register type to a matrix index (zero-indexed)
+        :type q_index: function
+        :param classical_registers: a list of values for classical registers
+        :type classical_registers: list
         :return: nothing
         :rtype: None
         """
@@ -356,7 +363,7 @@ class DensityMatrixCompiler(CompilerBase):
             pass
 
         elif isinstance(op, ops.SingleQubitOperationBase):
-            op.noise.apply(state, n_quantum, q_index(op.register, op.reg_type))
+            op.noise.apply(state, n_quantum, [q_index(op.register, op.reg_type)])
 
         elif isinstance(op, ops.ControlledPairOperationBase):
             op.noise.apply(
@@ -451,13 +458,13 @@ class DensityMatrixCompiler(CompilerBase):
         :type op: OperationBase
         :param n_quantum: the number of qubits
         :type n_quantum: int
-        :param q_index:
-        :type q_index:
+        :param q_index: a function that maps register + register type to a matrix index (zero-indexed)
+        :type q_index: function
         :return: nothing
         :rtype: None
         """
         if isinstance(op, ops.SingleQubitOperationBase):
-            op.noise.apply(state, n_quantum, q_index(op.register, op.reg_type))
+            op.noise.apply(state, n_quantum, [q_index(op.register, op.reg_type)])
         elif isinstance(op, ops.ControlledPairOperationBase):
             op.noise.apply(
                 state,

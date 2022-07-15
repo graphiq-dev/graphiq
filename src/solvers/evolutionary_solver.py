@@ -1,5 +1,7 @@
 """
-Evolutionary solver.
+Evolutionary solver which includes a random search solver as a special case.
+This solver is based on certain physical rules imposed by a platform.
+One can set these rules by the set of allowed transformations.
 """
 
 import copy
@@ -7,7 +9,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import networkx as nx
 import warnings
-import time
 
 import src.backends.density_matrix.functions as dmf
 import src.noise.noise_models as nm
@@ -91,11 +92,57 @@ class EvolutionarySolver(RandomSearchSolver):
             trans_probs[key] *= 1 / total
         return trans_probs
 
+    def set_allowed_transformations(self, allowed_transformations):
+        """
+        Set allowed transformation and corresponding probabilities
+
+        :param allowed_transformations:
+        :type allowed_transformations:
+        :return: nothing
+        :rtype: None
+        """
+        # TODO: implement this function
+        pass
+
+    def update_emitter_one_qubit_gate_probs(self, e_prob_list):
+        """
+        Update the probability distribution of one-qubit Clifford gates for emitter qubits
+
+        :param e_prob_list: a list of probabilities
+        :type e_prob_list: list[float]
+        :return: nothing
+        :rtype: None
+        """
+        assert len(e_prob_list) == len(self.single_qubit_ops)
+        e_prob_list = np.array(e_prob_list)
+        assert (e_prob_list >= 0).all()
+        total_prob = sum(e_prob_list)
+        assert total_prob > 0
+        self.e_dist = list(e_prob_list / total_prob)
+
+    def update_photonic_one_qubit_gate_probs(self, p_prob_list):
+        """
+        Update the probability distribution of one-qubit Clifford gates for photonic qubits
+
+        :param p_prob_list: a list of probabilities
+        :type p_prob_list: list[float]
+        :return: nothing
+        :rtype: None
+        """
+        assert len(p_prob_list) == len(self.single_qubit_ops)
+        p_prob_list = np.array(p_prob_list)
+        assert (p_prob_list >= 0).all()
+        total_prob = sum(p_prob_list)
+        assert total_prob > 0
+        self.p_dist = list(p_prob_list / total_prob)
+
     def adapt_probabilities(self, iteration: int):
         """
         Changes the probability of selecting circuit transformations at each iteration.
         Generally, transformations that add gates are selected with higher probability at the beginning.
         As the search progresses, transformations that remove gates are selected with higher probability.
+
+        TODO: check whether the input iteration is needed.
 
         :param iteration: i-th iteration of the search method, which ranges from 0 to n_stop
         :type iteration: int

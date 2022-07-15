@@ -293,9 +293,8 @@ def get_reset_qubit_kraus(n_qubits, qubit_position):
     kraus0 = np.array([[1, 0], [0, 0]])
     kraus1 = np.array([[0, 1], [0, 0]])
     full_kraus0 = get_single_qubit_gate(n_qubits, qubit_position, kraus0)
-    full_kraus1 = get_single_qubit_gate(
-        n_qubits, qubit_position, kraus1
-    )  # technically not a gate, but this function works
+    # full_kraus1 is technically not a gate, but this function works
+    full_kraus1 = get_single_qubit_gate(n_qubits, qubit_position, kraus1)
     return [full_kraus0, full_kraus1]
 
 
@@ -343,7 +342,7 @@ def is_psd(input_matrix, perturbation=1e-15):
     :param input_matrix: an input matrix for checking positive semidefiniteness
     :type input_matrix: numpy.ndarray
     :param perturbation: small constant added to perturb the matrix
-    :type perturbation: double
+    :type perturbation: float
     :return: True or False
     :rtype: bool
     """
@@ -501,7 +500,7 @@ def fidelity(rho, sigma):
 
 def fidelity_pure(rho, sigma):
     """
-    Return the fidelity between two states rho and sigma
+    Return the fidelity between two states rho and sigma, assuming rho or sigma is pure
 
     :param rho: the first state
     :type rho: numpy.ndarray
@@ -581,7 +580,7 @@ def negativity(rho, dim1, dim2):
     :param dim2: dimension of the second system
     :type dim2: int
     :return: the negativity of rho
-    :rtype: double
+    :rtype: float
     """
     rho_pt = bipartite_partial_transpose(rho, dim1, dim2, 0)
 
@@ -593,8 +592,8 @@ def negativity(rho, dim1, dim2):
 
 def project_to_z0_and_remove(rho, locations):
     """
-    Return the density matrix after applying Z measurements on qubits specified by locations mask
-    It removes all these qubits under measurement.
+    Return the density matrix after applying Z measurements on qubits specified by locations mask.
+    It removes all these qubits under measurements.
 
     :param rho: the density matrix to evaluate the negativity
     :type rho: numpy.ndarray
@@ -624,8 +623,9 @@ def one_qubit_unitary(n_qubits, qubit_position, theta, phi, lam):
     """
     Define a generic 3-parameter one-qubit unitary gate.
 
-    :math:`U(\\theta, \\phi, \\lambda) = \\begin{bmatrix} \\cos(\\frac{\\theta}{2}) & -e^{i \\lambda}\\sin(\\frac{\\theta}{2})\\\ e^{i
-    \\phi}\\sin(\\frac{\\theta}{2}) & e^{i (\\phi+\\lambda)}\cos(\\frac{\\theta}{2})\\end{bmatrix}`
+    :math:`U(\\theta, \\phi, \\lambda) = \\begin{bmatrix} \\cos(\\frac{\\theta}{2}) & -e^{i \\lambda}\\sin(\\frac{
+    \\theta}{2})\\\ e^{i \\phi}\\sin(\\frac{\\theta}{2}) & e^{i (\\phi+\\lambda)}\cos(\\frac{\\theta}{2})\\end{
+    bmatrix}`
 
     :param n_qubits: number of qubits
     :type n_qubits: int
@@ -656,7 +656,8 @@ def two_qubit_controlled_unitary(
     n_qubits, ctr_qubit, target_qubit, theta, phi, lam, gamma
 ):
     """
-    Define a generic 4-parameter two-qubit gate that is a controlled unitary gate. :math:`|0\\rangle \\langle 0|
+    Define a generic 4-parameter two-qubit gate that is a controlled unitary gate.
+    :math:`|0\\rangle \\langle 0|
     \\otimes I + e^{i \\gamma} |1\\rangle \\langle 1| \otimes U(\\theta, \\phi, \\lambda)`, where :math:`U(\\theta,
     \\phi, \\lambda) = \\begin{bmatrix} \\cos(\\frac{\\theta}{2}) & -e^{i \\lambda} \\sin(\\frac{\\theta}{2}) \\\ e^{
     i \\phi}\\sin(\\frac{\\theta}{2}) & e^{i (\\phi+\\lambda)}\cos(\\frac{\\theta}{2})\\end{bmatrix}`

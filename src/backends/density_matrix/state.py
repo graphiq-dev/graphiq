@@ -1,44 +1,50 @@
 """
-Density Matrix representation for states
+Density matrix representation for states.
+
+It supports applications of unitary operations, quantum channels and measurements on the state.
+
 """
 import networkx as nx
 import numpy as np
 import matplotlib.pyplot as plt
+import src.backends.density_matrix.functions as dmf
 
-from src.backends.density_matrix.functions import is_psd, create_n_plus_state, apply_cz
 from src.backends.state_base import StateRepresentationBase
 from src.backends.graph.state import Graph
 from src.visualizers.density_matrix import density_matrix_heatmap, density_matrix_bars
 from src.backends.state_representation_conversion import graph_to_density
-
-
-# TODO: accept single input (# of qubits) as input and initialize as unentangled qubits
+from functools import reduce
 
 
 class DensityMatrix(StateRepresentationBase):
     """
-    Density matrix of a graph state
+    Density matrix of a state
     """
 
     def __init__(self, data, *args, **kwargs):
         """
-        Construct a DensityMatrix object
+        Construct a DensityMatrix object from a numpy.ndarray or from the number of qubits. If an integer is specified,
+        then the state is initialized as a product state of :math:`|0\\rangle` with the given number of qubits.
 
-        :param data: density matrix
-        :type data: numpy.ndarray
+        :param data: density matrix or the number of qubits
+        :type data: numpy.ndarray or int
         :return: nothing
         :rtype: None
         """
 
-        if not isinstance(data, np.ndarray):
-            raise TypeError("Input must be a numpy.ndarray")
-        else:
-            # check if state_data is positive semi-definite
-            if not is_psd(data):
+        if isinstance(data, np.ndarray):
+            if not dmf.is_psd(data):
+                # check if state_data is positive semi-definite
                 raise ValueError("The input matrix is not a valid density matrix")
 
             if not np.equal(np.trace(data), 1):
                 data = data / np.trace(data)
+        elif isinstance(data, int):
+            # initialize as a tensor product of |0> state
+            init = np.outer(np.array([1, 0]), np.array([1, 0])).astype("complex64")
+            data = reduce(np.kron, data * [init])
+        else:
+            raise TypeError("Input must be a numpy.ndarray or an integer")
 
         super().__init__(data, *args, **kwargs)
 

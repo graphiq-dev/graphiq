@@ -1,25 +1,112 @@
-import pytest
 import numpy as np
+from src import ops
 from functools import reduce
+import src.backends.density_matrix.functions as dmf
 import src.noise.noise_models as nm
-from src.backends.density_matrix.compiler import DensityMatrixCompiler
-import src.ops as ops
 from src.backends.density_matrix.state import DensityMatrix
 
 
-def test_multi_qubit_depolarizing():
-    n_quantum = 3
-    state1 = DensityMatrix(n_quantum)
-    state2 = DensityMatrix(n_quantum)
+def _state_initialization(n_quantum, state=dmf.state_ketz0()):
+    return DensityMatrix(data=reduce(np.kron, n_quantum * [dmf.ket2dm(state)]))
 
-    noise1 = nm.MultiQubitDepolarizingNoise(0.1)
-    noise2 = nm.OneQubitDepolarizingNoise(0.1)
-    kraus_op_list1 = noise1.get_backend_dependent_noise(state1, n_quantum, [1])
-    kraus_op_list2 = noise2.get_backend_dependent_noise(state1, n_quantum, [1])
-    noise1.apply(state1, n_quantum, [1])
-    noise2.apply(state2, n_quantum, [1])
+
+def test_depolarizing_noise():
+    n_quantum = 3
+    qubit_position = 1
+    qubit_state = dmf.state_ketx0()
+    state1 = _state_initialization(n_quantum, qubit_state)
+    state2 = _state_initialization(n_quantum, qubit_state)
+    depolarizing_prob = 0.1
+    noise1 = nm.DepolarizingNoise(depolarizing_prob)
+
+    kraus_x = np.sqrt(depolarizing_prob / 3) * dmf.get_single_qubit_gate(
+        n_quantum, qubit_position, dmf.sigmax()
+    )
+    kraus_y = np.sqrt(depolarizing_prob / 3) * dmf.get_single_qubit_gate(
+        n_quantum, qubit_position, dmf.sigmay()
+    )
+    kraus_z = np.sqrt(depolarizing_prob / 3) * dmf.get_single_qubit_gate(
+        n_quantum, qubit_position, dmf.sigmaz()
+    )
+
+    kraus_ops = [
+        np.sqrt(1 - depolarizing_prob) * np.eye(2**n_quantum),
+        kraus_x,
+        kraus_y,
+        kraus_z,
+    ]
+
+    noise1.apply(state1, n_quantum, [qubit_position])
+    state2.apply_channel(kraus_ops)
 
     assert np.allclose(state1.data, state2.data)
 
-    for i in range(len(kraus_op_list1)):
-        assert np.allclose(kraus_op_list1[i], kraus_op_list2[i])
+
+def test_no_noise():
+    n_quantum = 5
+    qubit_state = dmf.state_kety0()
+    state1 = _state_initialization(n_quantum, qubit_state)
+    state2 = _state_initialization(n_quantum, qubit_state)
+    noise = nm.NoNoise()
+    noise.apply(state1)
+
+    assert np.allclose(state1.data, state2.data)
+
+
+def test_one_qubit_replacement():
+    n_quantum = 5
+    qubit_position = 2
+    state1 = _state_initialization(n_quantum, dmf.state_ketx0())
+    state2 = _state_initialization(n_quantum, dmf.state_ketx0())
+    noise = nm.OneQubitGateReplacement(np.pi / 2, 0, np.pi)
+
+    hadamard_gate = dmf.get_single_qubit_gate(n_quantum, qubit_position, dmf.hadamard())
+    assert np.allclose(
+        noise.get_backend_dependent_noise(state1, n_quantum, [qubit_position]),
+        hadamard_gate,
+    )
+    noise.apply(state1, n_quantum, [qubit_position])
+
+    state2.apply_unitary(hadamard_gate)
+    assert np.allclose(state1.data, state2.data)
+
+
+def test_two_qubit_replacement():
+    n_quantum = 5
+    control_qubit = 2
+    target_qubit = 0
+    state1 = _state_initialization(n_quantum, dmf.state_ketx1())
+    state2 = _state_initialization(n_quantum, dmf.state_ketx1())
+    noise = nm.TwoQubitControlledGateReplacement(np.pi, 0, np.pi, 0)
+
+    cnot_gate = dmf.get_controlled_gate(
+        n_quantum, control_qubit, target_qubit, dmf.sigmax()
+    )
+    assert np.allclose(
+        noise.get_backend_dependent_noise(
+            state1, n_quantum, control_qubit, target_qubit
+        ),
+        cnot_gate,
+    )
+    noise.apply(state1, n_quantum, control_qubit, target_qubit)
+
+    state2.apply_unitary(cnot_gate)
+    assert np.allclose(state1.data, state2.data)
+
+
+def test_pauli_error():
+    n_quantum = 5
+    qubit_position = 2
+    state1 = _state_initialization(n_quantum, dmf.state_ketx0())
+    state2 = _state_initialization(n_quantum, dmf.state_ketx0())
+    noise = nm.PauliError("X")
+
+    x_gate = dmf.get_single_qubit_gate(n_quantum, qubit_position, dmf.sigmax())
+    assert np.allclose(
+        noise.get_backend_dependent_noise(state1, n_quantum, [qubit_position]),
+        x_gate,
+    )
+    noise.apply(state1, n_quantum, [qubit_position])
+
+    state2.apply_unitary(x_gate)
+    assert np.allclose(state1.data, state2.data)

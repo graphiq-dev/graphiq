@@ -12,7 +12,7 @@ from scipy.linalg import sqrtm
 
 def sigmax():
     """
-    Return sigma X matrix
+    Return :math:`\\sigma_x` matrix
 
     :return: sigma X matrix
     :rtype: numpy.ndarray
@@ -22,7 +22,7 @@ def sigmax():
 
 def sigmay():
     """
-    Return sigma Y matrix
+    Return :math:`\\sigma_y` matrix
 
     :return: sigma Y matrix
     :rtype: numpy.ndarray
@@ -32,7 +32,7 @@ def sigmay():
 
 def sigmaz():
     """
-    Return sigma Z matrix
+    Return :math:`\\sigma_z`matrix
 
     :return: sigma Z matrix
     :rtype: numpy.ndarray
@@ -60,47 +60,47 @@ def phase():
     return np.diag([1.0, 1.0j])
 
 
-def ketx0_state():
+def state_ketx0():
     """
-    Return normalized eigenvector of sigma x matrix with eigenvalue +1
+    Return normalized eigenvector of :math:`\\sigma_x` matrix with eigenvalue +1
 
-    :return: normalized eigenvector of sigma x matrix, with eigenvalue +1
+    :return: normalized eigenvector of :math:`\\sigma_x` matrix, with eigenvalue +1
     :rtype: numpy.ndarray
     """
     return 1 / np.sqrt(2) * np.array([[1.0], [1.0]])
 
 
-def ketx1_state():
+def state_ketx1():
     """
-    Return normalized eigenvector of sigma x matrix with eigenvalue -1
+    Return normalized eigenvector of :math:`\\sigma_x` matrix with eigenvalue -1
 
-    :return: normalized eigenvector of sigma x matrix, with eigenvalue -1
+    :return: normalized eigenvector of :math:`\\sigma_x` matrix, with eigenvalue -1
     :rtype: numpy.ndarray
     """
     return 1 / np.sqrt(2) * np.array([[1.0], [-1.0]])
 
 
-def ketz0_state():
+def state_ketz0():
     """
-    Return normalized eigenvector of sigma z matrix with eigenvalue +1
+    Return normalized eigenvector of :math:`\\sigma_z` matrix with eigenvalue +1
 
-    :return: normalized eigenvector of sigma z matrix, with eigenvalue +1
+    :return: normalized eigenvector of :math:`\\sigma_z` matrix, with eigenvalue +1
     :rtype: numpy.ndarray
     """
     return np.array([[1.0], [0.0]])
 
 
-def ketz1_state():
+def state_ketz1():
     """
-    Return normalized eigenvector of sigma z matrix with eigenvalue -1
+    Return normalized eigenvector of :math:`\\sigma_z` matrix with eigenvalue -1
 
-    :return: normalized eigenvector of sigma z matrix, with eigenvalue -1
+    :return: normalized eigenvector of :math:`\\sigma_z` matrix, with eigenvalue -1
     :rtype: numpy.ndarray
     """
     return np.array([[0.0], [1.0]])
 
 
-def kety0_state():
+def state_kety0():
     """
     Return normalized eigenvector of sigma y matrix with eigenvalue +1
 
@@ -110,7 +110,7 @@ def kety0_state():
     return 1 / np.sqrt(2) * np.array([[1.0], [1.0j]])
 
 
-def kety1_state():
+def state_kety1():
     """
     Return normalized eigenvector of sigma y matrix with eigenvalue -1
 
@@ -120,7 +120,7 @@ def kety1_state():
     return 1 / np.sqrt(2) * np.array([[1.0], [-1.0j]])
 
 
-def projectorz0():
+def projector_ketz0():
     """
     Returns the projector in the 0 computational basis for a single qubit
 
@@ -130,7 +130,7 @@ def projectorz0():
     return np.array([[1.0, 0.0], [0.0, 0.0]])
 
 
-def projectorz1():
+def projector_ketz1():
     """
     Returns the projector in the 1 computational basis for a single qubit
 
@@ -205,13 +205,12 @@ def get_single_qubit_gate(n_qubits, qubit_position, target_gate):
 
 def _get_multi_qubit_gate(n_qubits, target_gates_dict):
     """
-    Returns the matrix resulting from the "target_gate" matrix, after it has been tensored with the necessary identities
+    Returns the matrix resulting from the "target_gate" matrix, after tensoring with the necessary identities
 
     :param n_qubits: number of qubits in the system
     :type n_qubits: int
-    :param target_gates_dict: a dictionary where
-    the key is the qubit position and the value is a single-qubit gate that is non-identity components of the final
-    gate
+    :param target_gates_dict: a dictionary where the key is the qubit position
+        and the value is a single-qubit gate that is non-identity components of the final gate
     :type target_gates_dct: dict
     :return: the resulting matrix that acts on the whole state
     :rtype: numpy.ndarray
@@ -244,6 +243,7 @@ def get_multi_qubit_gate(n_qubits, qubit_positions, target_gates):
     :type qubit_positions: list[int]
     :param target_gates: a list of gates
     :type target_gates: list[numpy.ndarray]
+    :raises AssertionError: if the number of qubit positions to apply gates is not equal to the number of gates
     :return: the resulting matrix that acts on the whole state
     :rtype: numpy.ndarray
     """
@@ -312,8 +312,8 @@ def trace_out_qubit(state_matrix, qubit_position):
     n_qubits = int(np.log2(np.sqrt(state_matrix.size)))
     if n_qubits == 1:
         return np.array(np.trace(state_matrix))
-    target_op1 = np.transpose(np.conjugate(ketz0_state()))
-    target_op2 = np.transpose(np.conjugate(ketz1_state()))
+    target_op1 = np.transpose(np.conjugate(state_ketz0()))
+    target_op2 = np.transpose(np.conjugate(state_ketz1()))
     kraus0 = get_single_qubit_gate(n_qubits, qubit_position, target_op1)
     kraus1 = get_single_qubit_gate(n_qubits, qubit_position, target_op2)
     final_state = kraus0 @ state_matrix @ np.transpose(
@@ -365,11 +365,11 @@ def create_n_plus_state(n_qubits):
 
     :param n_qubits: size (number of qubits) in the state to build
     :type n_qubits: int
-    :return: the product state
+    :return: the product state of :math:`| + \\rangle`
     :rtype: numpy.ndarray
     """
     final_state = np.array([[1]])
-    rho_init = np.matmul(ketx0_state(), np.transpose(np.conjugate(ketx0_state())))
+    rho_init = np.matmul(state_ketx0(), np.transpose(np.conjugate(state_ketx0())))
     for i in range(n_qubits):
         final_state = np.kron(final_state, rho_init)
     return final_state
@@ -448,35 +448,35 @@ def apply_cz(state_matrix, control_qubit, target_qubit):
     return cz @ state_matrix @ np.transpose(np.conjugate(cz))
 
 
-def projectors_zbasis(number_qubits, measure_register):
+def projectors_zbasis(n_qubits, measure_register):
     """
     Get the z projector basis for a state of number_qubits size, where the "measure_register" qubit
     is the only one projected
 
-    :param number_qubits: total number of qubits in the state
-    :type number_qubits: int
+    :param n_qubits: total number of qubits in the state
+    :type n_qubits: int
     :param measure_register: the index of the register to measure
     :type measure_register: int
     :raises ValueError: if measure_register is not a valid register index
     :return: a list of projectors (0 projector and 1 projector)
     :rtype: [numpy.ndarray, numpy.ndarray]
     """
-    if not (0 <= measure_register < number_qubits):
+    if not (0 <= measure_register < n_qubits):
         raise ValueError(
             "Register index must be at least 0 and less than the number of qubit registers"
         )
     m0 = reduce(
         np.kron,
         [
-            projectorz0() if i == measure_register else np.identity(2)
-            for i in range(number_qubits)
+            projector_ketz0() if i == measure_register else np.identity(2)
+            for i in range(n_qubits)
         ],
     )
     m1 = reduce(
         np.kron,
         [
-            projectorz1() if i == measure_register else np.identity(2)
-            for i in range(number_qubits)
+            projector_ketz1() if i == measure_register else np.identity(2)
+            for i in range(n_qubits)
         ],
     )
 
@@ -509,7 +509,12 @@ def fidelity_pure(rho, sigma):
     :return: the fidelity between 0 and 1
     :rtype: float
     """
-    return np.real(np.trace(rho @ sigma) ** 2)
+    if np.allclose(np.real(np.trace(rho @ rho)), 1.0) or np.allclose(
+        np.real(np.trace(sigma @ sigma)), 1.0
+    ):
+        return np.real(np.trace(rho @ sigma) ** 2)
+    else:
+        raise ValueError("This function cannot be applied to two mixed states.")
 
 
 def trace_distance(rho, sigma):
@@ -605,7 +610,10 @@ def project_to_z0_and_remove(rho, locations):
     n_qubits = len(locations)
     m0 = reduce(
         np.kron,
-        [projectorz0() if locations[i] else np.identity(2) for i in range(n_qubits)],
+        [
+            projector_ketz0() if locations[i] else np.identity(2)
+            for i in range(n_qubits)
+        ],
     )
     new_rho = m0 @ rho @ np.conjugate(m0.T)
     new_rho = new_rho / np.trace(new_rho)
@@ -623,9 +631,9 @@ def one_qubit_unitary(n_qubits, qubit_position, theta, phi, lam):
     """
     Define a generic 3-parameter one-qubit unitary gate.
 
-    :math:`U(\\theta, \\phi, \\lambda) = \\begin{bmatrix} \\cos(\\frac{\\theta}{2}) & -e^{i \\lambda}\\sin(\\frac{
-    \\theta}{2})\\\ e^{i \\phi}\\sin(\\frac{\\theta}{2}) & e^{i (\\phi+\\lambda)}\cos(\\frac{\\theta}{2})\\end{
-    bmatrix}`
+    :math:`U(\\theta, \\phi, \\lambda) = \\begin{bmatrix} \\cos(\\frac{\\theta}{2}) & -e^{i \\lambda}
+    \\sin(\\frac{\\theta}{2})\\\ e^{i \\phi}\\sin(\\frac{\\theta}{2}) &
+    e^{i (\\phi+\\lambda)}\\cos(\\frac{\\theta}{2})\\end{bmatrix}`
 
     :param n_qubits: number of qubits
     :type n_qubits: int
@@ -658,9 +666,10 @@ def two_qubit_controlled_unitary(
     """
     Define a generic 4-parameter two-qubit gate that is a controlled unitary gate.
     :math:`|0\\rangle \\langle 0|
-    \\otimes I + e^{i \\gamma} |1\\rangle \\langle 1| \otimes U(\\theta, \\phi, \\lambda)`, where :math:`U(\\theta,
-    \\phi, \\lambda) = \\begin{bmatrix} \\cos(\\frac{\\theta}{2}) & -e^{i \\lambda} \\sin(\\frac{\\theta}{2}) \\\ e^{
-    i \\phi}\\sin(\\frac{\\theta}{2}) & e^{i (\\phi+\\lambda)}\cos(\\frac{\\theta}{2})\\end{bmatrix}`
+    \\otimes I + e^{i \\gamma} |1\\rangle \\langle 1| \\otimes U(\\theta, \\phi, \\lambda)`,
+    where :math:`U(\\theta,\\phi, \\lambda) =
+    \\begin{bmatrix} \\cos(\\frac{\\theta}{2}) & -e^{i \\lambda} \\sin(\\frac{\\theta}{2}) \\\ e^{i \\phi}
+    \\sin(\\frac{\\theta}{2}) & e^{i (\\phi+\\lambda)}\\cos(\\frac{\\theta}{2})\\end{bmatrix}`
 
     :param n_qubits: number of qubits
     :type n_qubits: int

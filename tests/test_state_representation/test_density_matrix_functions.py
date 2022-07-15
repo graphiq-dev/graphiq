@@ -6,7 +6,7 @@ from src.backends.density_matrix.functions import *
 def test_measurement_prob():
     n_qubits = 8
     q_register = 0
-    st = ketx0_state()
+    st = state_ketx0()
 
     st = reduce(np.kron, n_qubits * [st @ np.conjugate(st.T)])
     m0, m1 = projectors_zbasis(n_qubits, q_register)

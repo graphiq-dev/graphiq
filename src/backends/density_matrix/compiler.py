@@ -2,7 +2,7 @@
 Compilation tools for simulating a circuit with a purely Density Matrix based backend
 """
 
-from functools import reduce
+# from functools import reduce
 
 import numpy as np
 
@@ -146,12 +146,13 @@ class DensityMatrixCompiler(CompilerBase):
         # sources = [x for x in circuit.dag.nodes() if circuit.dag.in_degree(x) == 0]
 
         # TODO: make this more general, but for now we assume all registers are initialized to |0>
-        init = np.outer(np.array([1, 0]), np.array([1, 0])).astype(
-            "complex64"
-        )  # initialization of quantum registers
+        # initialization of quantum registers
+        # init = np.outer(np.array([1, 0]), np.array([1, 0])).astype("complex64")
 
         # TODO: refactor to be a QuantumState object which contains a density matrix
-        state = DensityMatrix(data=reduce(np.kron, circuit.n_quantum * [init]))
+        # state = DensityMatrix(data=reduce(np.kron, circuit.n_quantum * [init]))
+
+        state = DensityMatrix(data=circuit.n_quantum)
         classical_registers = np.zeros(circuit.n_classical)
 
         # TODO: support self-defined mapping functions later instead of using the default above

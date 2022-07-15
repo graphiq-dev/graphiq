@@ -373,11 +373,10 @@ class Graph(StateRepresentationBase):
         :rtype: None
         """
         self.local_complementation(node_id)
-        self.remove_node(node_id)
+        self.remove_node(node_id)  # TODO: double check, does redundant encoding matter here?
 
     def measure_z(self, node_id):
-        # TODO
-        raise NotImplementedError("To do")
+        self.remove_node(node_id)
 
     def draw(self, show=True, ax=None, with_labels=True):
         """

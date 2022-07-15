@@ -4,6 +4,7 @@ Classes to compute metrics on a circuit and/or system states
 
 from abc import ABC, abstractmethod
 import numpy as np
+import networkx as nx
 
 from benchmarks.circuits import bell_state_circuit
 from src.backends.density_matrix.functions import fidelity, fidelity_pure
@@ -135,6 +136,21 @@ class MetricCircuitDepth(MetricBase):
             self.log.append(val)
 
         return val
+
+
+class ExactGED(MetricBase):
+    """
+    TODO: docstring
+    """
+    def __init__(self, target, log_steps=1, *args, **kwargs):
+        self.target = target
+        super().__init__(log_steps=log_steps, *args, **kwargs)
+
+    def evaluate(self, state, circuit):
+        # https://networkx.org/documentation/stable/reference/algorithms/generated/networkx.algorithms.similarity.optimize_graph_edit_distance.html
+        # https://networkx.org/documentation/stable/reference/algorithms/generated/networkx.algorithms.similarity.graph_edit_distance.html#networkx.algorithms.similarity.graph_edit_distance
+        # TODO: tune weights later
+        return nx.graph_edit_distance(self.target.data, state.data)
 
 
 class Metrics(object):

@@ -78,9 +78,8 @@ class Infidelity(MetricBase):
         :return: the fidelity
         :rtype: float
         """
-        # TODO: replace by actual fidelity check
-        # fid = fidelity(self.target, state)
-        fid = dmf.fidelity_pure(self.target, state)
+
+        fid = dmf.fidelity(self.target, state)
         self.increment()
 
         if self._inc % self.log_steps == 0:
@@ -165,8 +164,8 @@ class MetricCircuitDepth(MetricBase):
         :return: the scalar penalty resulting from circuit depth. By default, this is the circuit depth itself
         :rtype: float or int
         """
-        # TODO: replace this by an actual circuit depth evaluation
-        depth = np.random.random()
+
+        depth = circuit.depth
         val = self.depth_penalty(depth)
         self.increment()
 

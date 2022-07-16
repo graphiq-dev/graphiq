@@ -32,7 +32,6 @@ def test_single_qubit_unitary():
 
 
 def test_multi_qubit_gate():
-
     qubit_positions = [1, 3]
     target_gates = [sigmax(), sigmaz()]
     assert np.allclose(
@@ -47,7 +46,6 @@ def test_multi_qubit_gate():
 
 
 def test_multi_qubit_gate2():
-
     assert np.allclose(
         get_multi_qubit_gate(5, [4, 3], [sigmax(), hadamard()]),
         get_single_qubit_gate(5, 4, sigmax()) @ get_single_qubit_gate(5, 3, hadamard()),
@@ -55,8 +53,15 @@ def test_multi_qubit_gate2():
 
 
 def test_multi_qubit_gate3():
-
     assert np.allclose(
         get_multi_qubit_gate(1, [0], [sigmax()]),
         get_single_qubit_gate(1, 0, sigmax()),
     )
+
+
+def test_fidelity():
+    rho = 1 / 2 * (ket2dm(state_ketx0()) + ket2dm(state_ketx1()))
+    sigma = np.eye(2) / 2
+    assert np.allclose(fidelity(rho, sigma), 1.0)
+    assert np.allclose(fidelity(rho, ket2dm(state_ketx0())), 0.5)
+    assert np.allclose(fidelity(ket2dm(state_ketx0()), ket2dm(state_ketx1())), 0)

@@ -359,6 +359,18 @@ def is_psd(input_matrix, perturbation=1e-15):
         return False
 
 
+def is_pure(rho):
+    """
+    Determine if the input state rho is pure
+
+    :param rho: a density matrix to check purity
+    :type rho: numpy.ndarray
+    :return: True if rho is pure; False if rho is mixed
+    :rtype: bool
+    """
+    return np.allclose(np.real(np.trace(rho @ rho)), 1.0)
+
+
 def create_n_plus_state(n_qubits):
     """
     Create a product state that consists n tensor factors of the ket plus state.
@@ -487,20 +499,10 @@ def fidelity(rho, sigma):
     """
     Return the fidelity between states rho, sigma
 
-    :param rho: the first state
-    :type rho: numpy.ndarray
-    :param sigma: the second state
-    :type sigma: numpy.ndarray
-    :return: the fidelity between 0 and 1
-    :rtype: float
-    """
+    :math:`F(\\rho, \\sigma):=Tr[\\sqrt{\\sqrt{\\rho} \\sigma \\sqrt{\\rho}}]^2`
 
-    return np.real(np.trace(sqrtm(sqrtm(rho) @ sigma @ sqrtm(rho))) ** 2)
-
-
-def fidelity_pure(rho, sigma):
-    """
-    Return the fidelity between two states rho and sigma, assuming rho or sigma is pure
+    If both rho and sigma are pure, then it simplifies as
+    :math:`F(\\rho, \\sigma):=Tr[\\rho \\sigma]`
 
     :param rho: the first state
     :type rho: numpy.ndarray
@@ -509,12 +511,22 @@ def fidelity_pure(rho, sigma):
     :return: the fidelity between 0 and 1
     :rtype: float
     """
-    if np.allclose(np.real(np.trace(rho @ rho)), 1.0) or np.allclose(
-        np.real(np.trace(sigma @ sigma)), 1.0
-    ):
-        return np.real(np.trace(rho @ sigma) ** 2)
+    if is_pure(rho) and is_pure(sigma):
+        # if both states are pure
+        return np.real(np.trace(rho @ sigma))
     else:
-        raise ValueError("This function cannot be applied to two mixed states.")
+        # if either one is mixed
+        # check if either rho or sigma is full rank
+        if np.linalg.matrix_rank(rho) == rho.shape[0]:
+            return np.real(np.trace(sqrtm(sqrtm(rho) @ sigma @ sqrtm(rho))) ** 2)
+        elif np.linalg.matrix_rank(sigma) == sigma.shape[0]:
+            return np.real(np.trace(sqrtm(sqrtm(sigma) @ rho @ sqrtm(sigma))) ** 2)
+        else:
+            # singular matrices may cause issues for the sqrtm function
+            # add a small perturbation to make rho full rank
+            perturbation = 1e-15
+            rho = rho + perturbation * np.eye(rho.shape[0])
+            return np.real(np.trace(sqrtm(sqrtm(rho) @ sigma @ sqrtm(rho))) ** 2)
 
 
 def trace_distance(rho, sigma):

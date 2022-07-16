@@ -36,13 +36,10 @@ def density_matrix_compiler():
     return compiler
 
 
-def generate_run(n_photon, n_emitter, expected_triple, compiler, seed):
+def generate_run(
+    n_photon, n_emitter, expected_triple, compiler, noise_model_mapping, seed
+):
     target, _, metric = expected_triple
-    noise_model_mapping = {
-        "Identity": nm.OneQubitGateReplacement(np.pi / 180, 0, 0),
-        "SigmaX": nm.DepolarizingNoise(0.01),
-        "CNOT": nm.DepolarizingNoise(0.01),
-    }
 
     solver = EvolutionarySolver(
         target=target,
@@ -66,11 +63,9 @@ def generate_run(n_photon, n_emitter, expected_triple, compiler, seed):
 def check_run(run_info, expected_info):
     hof, state = run_info
     target_state, _, metric = expected_info
-    # assert np.isclose(hof[0][0], 0.0)  # infidelity score is 0, within numerical error
 
     circuit = hof[0][1]
     assert np.isclose(hof[0][0], metric.evaluate(state, circuit))
-    # assert np.allclose(state, target_state)
 
 
 def check_run_visual(run_info, expected_info):
@@ -89,20 +84,8 @@ def check_run_visual(run_info, expected_info):
 
 
 @pytest.fixture(scope="module")
-def linear3_run(solver_stop_100, density_matrix_compiler, linear3_expected):
-    """
-    Again, we set the fixture scope to module. Arguably, this is more important than last time because actually
-    running the solve takes (relatively) long.
-
-    Since we want to apply 2 separate tests on the same run (one visual, one non-visual), it makes sense to have a
-    common fixture that only gets called once per module
-    """
-    return generate_run(3, 1, linear3_expected, density_matrix_compiler, 10)
-
-
-@pytest.fixture(scope="module")
-def linear3_run_trace_distance(
-    solver_stop_100, density_matrix_compiler, linear3_expected_trace_distance
+def linear3_run(
+    solver_stop_100, density_matrix_compiler, linear3_expected, linear3_noise_model
 ):
     """
     Again, we set the fixture scope to module. Arguably, this is more important than last time because actually
@@ -112,8 +95,42 @@ def linear3_run_trace_distance(
     common fixture that only gets called once per module
     """
     return generate_run(
-        3, 1, linear3_expected_trace_distance, density_matrix_compiler, 10
+        3, 1, linear3_expected, density_matrix_compiler, linear3_noise_model, 10
     )
+
+
+@pytest.fixture(scope="module")
+def linear3_run_trace_distance(
+    solver_stop_100,
+    density_matrix_compiler,
+    linear3_expected_trace_distance,
+    linear3_noise_model,
+):
+    """
+    Again, we set the fixture scope to module. Arguably, this is more important than last time because actually
+    running the solve takes (relatively) long.
+
+    Since we want to apply 2 separate tests on the same run (one visual, one non-visual), it makes sense to have a
+    common fixture that only gets called once per module
+    """
+    return generate_run(
+        3,
+        1,
+        linear3_expected_trace_distance,
+        density_matrix_compiler,
+        linear3_noise_model,
+        10,
+    )
+
+
+@pytest.fixture(scope="module")
+def linear3_noise_model():
+    noise_model_mapping = {
+        "Identity": nm.OneQubitGateReplacement(np.pi / 180, 0, 0),
+        "SigmaX": nm.DepolarizingNoise(0.01),
+        "CNOT": nm.DepolarizingNoise(0.01),
+    }
+    return noise_model_mapping
 
 
 @pytest.fixture(scope="module")
@@ -135,20 +152,18 @@ def linear3_expected_trace_distance():
 
 
 @pytest.fixture(scope="module")
-def linear4_run(solver_stop_100, density_matrix_compiler, linear4_expected):
-    """
-    Again, we set the fixture scope to module. Arguably, this is more important than last time because actually
-    running the solve takes (relatively) long.
-
-    Since we want to apply 2 separate tests on the same run (one visual, one non-visual), it makes sense to have a
-    common fixture that only gets called once per module
-    """
-    return generate_run(4, 1, linear4_expected, density_matrix_compiler, 10)
+def linear4_noise_model():
+    noise_model_mapping = {
+        "Hadamard": nm.HadamardPerturbedError(np.pi / 360, 0, 0),
+        "CNOT": nm.DepolarizingNoise(0.01),
+        "MeasurementCNOTandReset": nm.SimgaXPerturbedError(0, np.pi / 180, 0),
+    }
+    return noise_model_mapping
 
 
 @pytest.fixture(scope="module")
-def linear4_run_trace_distance(
-    solver_stop_100, density_matrix_compiler, linear4_expected_trace_distance
+def linear4_run(
+    solver_stop_100, density_matrix_compiler, linear4_expected, linear4_noise_model
 ):
     """
     Again, we set the fixture scope to module. Arguably, this is more important than last time because actually
@@ -158,7 +173,31 @@ def linear4_run_trace_distance(
     common fixture that only gets called once per module
     """
     return generate_run(
-        4, 1, linear4_expected_trace_distance, density_matrix_compiler, 10
+        4, 1, linear4_expected, density_matrix_compiler, linear4_noise_model, 10
+    )
+
+
+@pytest.fixture(scope="module")
+def linear4_run_trace_distance(
+    solver_stop_100,
+    density_matrix_compiler,
+    linear4_expected_trace_distance,
+    linear4_noise_model,
+):
+    """
+    Again, we set the fixture scope to module. Arguably, this is more important than last time because actually
+    running the solve takes (relatively) long.
+
+    Since we want to apply 2 separate tests on the same run (one visual, one non-visual), it makes sense to have a
+    common fixture that only gets called once per module
+    """
+    return generate_run(
+        4,
+        1,
+        linear4_expected_trace_distance,
+        density_matrix_compiler,
+        linear4_noise_model,
+        10,
     )
 
 
@@ -168,7 +207,7 @@ def linear4_expected():
     target_state = state_ideal["dm"]
 
     metric = Infidelity(target=target_state)
-    # metric = TraceDistance(target=target_state)
+
     return target_state, circuit_ideal, metric
 
 
@@ -183,8 +222,21 @@ def linear4_expected_trace_distance():
 
 
 @pytest.fixture(scope="module")
-def ghz3_run(solver_stop_100, density_matrix_compiler, ghz3_expected):
-    return generate_run(3, 1, ghz3_expected, density_matrix_compiler, 0)
+def ghz3_noise_model():
+    noise_model_mapping = {
+        "Phase": nm.PhasePerturbedError(0, 0, np.pi / 180),
+        "SigmaX": nm.DepolarizingNoise(0.01),
+        "CNOT": nm.DepolarizingNoise(0.01),
+        "Identity": nm.PauliError("X"),
+    }
+    return noise_model_mapping
+
+
+@pytest.fixture(scope="module")
+def ghz3_run(solver_stop_100, density_matrix_compiler, ghz3_expected, ghz3_noise_model):
+    return generate_run(
+        3, 1, ghz3_expected, density_matrix_compiler, ghz3_noise_model, 0
+    )
 
 
 @pytest.fixture(scope="module")
@@ -237,36 +289,3 @@ def test_solver_ghz3(ghz3_run, ghz3_expected, density_matrix_compiler):
 @visualization
 def test_solver_ghz3_visualized(ghz3_run, ghz3_expected):
     check_run_visual(ghz3_run, ghz3_expected)
-
-
-# @visualization
-# def test_square_4qubit():
-#    graph = nx.Graph([(1, 2), (1, 3), (3, 4), (2, 4), (2, 3)])
-#    state = DensityMatrix.from_graph(graph)
-#    n_emitter = 2
-#    n_photon = 4
-#    ideal_state = dict(
-#        dm=state.data,
-#        n_emitters=n_emitter,
-#        n_photons=n_photon,
-#        name='square4'
-#    )
-#    target_state = state.data
-#    compiler = DensityMatrixCompiler()
-#    metric = Infidelity(target=target_state)
-#    solver = RuleBasedRandomSearchSolver(target=target_state, metric=metric, compiler=compiler,
-#                                         n_emitter=n_emitter, n_photon=n_photon)
-#    solver.seed(1000)
-#    RuleBasedRandomSearchSolver.n_stop = 300
-#    solver.trans_probs = {
-#        solver.remove_op: 1 / 4 + 1 / 20,
-#        solver.add_measurement_cnot_and_reset: 1 / 20,
-#        solver.replace_photon_one_qubit_op: 1 / 4,
-#        solver.add_emitter_one_qubit_op: 1 / 4 + 1 / 20,
-#        solver.add_emitter_cnot: 1 / 10
-#    }
-#    solver.p_dist = [0.4] + 11 * [0.2 / 22] + [0.4] + 11 * [0.2 / 22]
-#    solver.e_dist = [0.2] + 11 * [0.4 / 22] + [0.4] + 11 * [0.4 / 22]
-#    solver.solve()
-#    circuit = solver.hof[0][1]
-#    circuit.draw_circuit()

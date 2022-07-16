@@ -53,14 +53,15 @@ class MetricBase(ABC):
 class Infidelity(MetricBase):
     def __init__(self, target, log_steps=1, *args, **kwargs):
         """
-        Creates a Fidelity Metric object (which computes fidelity with respect to the ideal_state
+        Creates an Infidelity Metric object, which computes 1-fidelity with respect to the ideal_state
+        TODO: take the targe state as a QuantumState object instead of a numpy.ndarray
 
         :param target: the ideal state against which we compute fidelity
-        :type target: QuantumState
+        :type target: QuantumState (currently numpy.ndarray)
         :param log_steps: the metric values are computed at every log_steps optimization step
         :type log_steps: int
         :raises AssertionError: if targe is not a valid density matrix
-        :return: the function returns nothing
+        :return: nothing
         :rtype: None
         """
         super().__init__(log_steps=log_steps, *args, **kwargs)
@@ -70,15 +71,16 @@ class Infidelity(MetricBase):
 
     def evaluate(self, state, circuit):
         """
-        Evaluates the fidelity from a given state and circuit
+        Evaluates the infidelity from a given state and circuit
+        TODO: take the state as a QuantumState object instead of a numpy.ndarray
 
         :param state: the state to evaluate
-        :type state: QuantumState
+        :type state: QuantumState (currently numpy.ndarray)
         :param circuit: circuit which generated state
                         Not used for the fidelity evaluation, but argument is provided for API consistency
         :type circuit: CircuitBase (or subclass of it)
         :raises AssertionError: if the state is not a valid density matrix
-        :return: the fidelity
+        :return: infidelity = 1 - fidelity
         :rtype: float
         """
 
@@ -97,9 +99,10 @@ class TraceDistance(MetricBase):
         """
         Creates a TraceDistance Metric object, which computes the trace distance between the current state and the
         target state.
+        TODO: take the targe state as a QuantumState object instead of a numpy.ndarray
 
         :param target: the ideal state against which we compute fidelity
-        :type target: QuantumState
+        :type target: QuantumState (currently a numpy.ndarray)
         :param log_steps: the metric values are computed at every log_steps optimization step
         :type log_steps: int
         :return: nothing
@@ -112,6 +115,7 @@ class TraceDistance(MetricBase):
     def evaluate(self, state, circuit):
         """
         Evaluates the trace distance from a given state and circuit
+        TODO: take the state as a QuantumState object instead of a numpy.ndarray
 
         :param state: the state to evaluate
         :type state: QuantumState (currently numpy.ndarray)

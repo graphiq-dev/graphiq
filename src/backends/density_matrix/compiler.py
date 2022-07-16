@@ -376,7 +376,7 @@ class DensityMatrixCompiler(CompilerBase):
                 ],
             )
 
-        # TODO: Handle the following two-qubit noisy gates, currently no replacement
+        # TODO: Handle the following two-qubit noisy gates, currently no replacement or partial replacement
         else:
 
             if type(op) is ops.ClassicalCNOT:
@@ -385,10 +385,16 @@ class DensityMatrixCompiler(CompilerBase):
                     n_quantum, q_index(op.control, op.control_type)
                 )
 
-                # apply an X gate on the target qubit conditioned on the measurement outcome = 1
-                unitary = dm.get_single_qubit_gate(
-                    n_quantum, q_index(op.target, op.target_type), dm.sigmax()
-                )
+                if isinstance(op.noise, nm.OneQubitGateReplacement):
+                    # apply whatever unitary given by the noise model to the target qubit
+                    unitary = op.noise.get_backend_dependent_noise(
+                        state, n_quantum, [q_index(op.target, op.target_type)]
+                    )
+                else:
+                    # apply an X gate on the target qubit conditioned on the measurement outcome = 1
+                    unitary = dm.get_single_qubit_gate(
+                        n_quantum, q_index(op.target, op.target_type), dm.sigmax()
+                    )
 
                 state.apply_measurement_controlled_gate(
                     projectors,
@@ -400,11 +406,16 @@ class DensityMatrixCompiler(CompilerBase):
                 projectors = dm.projectors_zbasis(
                     n_quantum, q_index(op.control, op.control_type)
                 )
-
-                # apply a Z gate on the target qubit conditioned on the measurement outcome = 1
-                unitary = dm.get_single_qubit_gate(
-                    n_quantum, q_index(op.target, op.target_type), dm.sigmaz()
-                )
+                if isinstance(op.noise, nm.OneQubitGateReplacement):
+                    # Apply whatever unitary given by the noise model to the target qubit
+                    unitary = op.noise.get_backend_dependent_noise(
+                        state, n_quantum, [q_index(op.target, op.target_type)]
+                    )
+                else:
+                    # apply a Z gate on the target qubit conditioned on the measurement outcome = 1
+                    unitary = dm.get_single_qubit_gate(
+                        n_quantum, q_index(op.target, op.target_type), dm.sigmaz()
+                    )
                 state.apply_measurement_controlled_gate(
                     projectors,
                     unitary,
@@ -416,10 +427,16 @@ class DensityMatrixCompiler(CompilerBase):
                     n_quantum, q_index(op.control, op.control_type)
                 )
 
-                # apply an X gate on the target qubit conditioned on the measurement outcome = 1
-                unitary = dm.get_single_qubit_gate(
-                    n_quantum, q_index(op.target, op.target_type), dm.sigmax()
-                )
+                if isinstance(op.noise, nm.OneQubitGateReplacement):
+                    # Apply whatever unitary given by the noise model to the target qubit
+                    unitary = op.noise.get_backend_dependent_noise(
+                        state, n_quantum, [q_index(op.target, op.target_type)]
+                    )
+                else:
+                    # apply an X gate on the target qubit conditioned on the measurement outcome = 1
+                    unitary = dm.get_single_qubit_gate(
+                        n_quantum, q_index(op.target, op.target_type), dm.sigmax()
+                    )
 
                 state.apply_measurement_controlled_gate(
                     projectors,
@@ -435,6 +452,7 @@ class DensityMatrixCompiler(CompilerBase):
                 state.apply_channel(reset_kraus_ops)
 
             elif type(op) is ops.MeasurementZ:
+                # TODO: implement measurement-related error model
 
                 projectors = dm.projectors_zbasis(
                     n_quantum, q_index(op.register, op.reg_type)

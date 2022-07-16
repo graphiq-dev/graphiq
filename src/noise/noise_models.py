@@ -7,7 +7,7 @@ additional noise before or after a gate as well as replacing a gate.
 
 Currently, we consider only individual errors.
 
-TODO: Think about coherent errors
+TODO: Maybe think about coherent errors
 TODO: Think about how to quickly initialize noise models for all gates
 TODO: Implement more noise models
 TODO: Check incompatibility between noise models and operations, between noise models and backend representations
@@ -143,7 +143,7 @@ class NoNoise(AdditionNoiseBase):
             # TODO: Find the correct representation for Stabilizer backend
             return n_quantum * "I"
         elif isinstance(state_rep, Graph):
-            # TODO: Implement this for Graph backend
+            # simply return None
             return
         else:
             raise TypeError("Backend type is not supported.")
@@ -170,7 +170,7 @@ class OneQubitGateReplacement(ReplacementNoiseBase):
         A one-qubit unitary gate is specified by three parameters :math:`\\theta, \\phi, \\lambda` as follows:
 
         :math:`U(\\theta, \\phi, \\lambda) = \\begin{bmatrix} \\cos(\\frac{\\theta}{2}) & -e^{i \\lambda}\\sin(\\frac{
-        \\theta}{2})\\\ e^{i \\phi}\\sin(\\frac{\\theta}{2}) & e^{i (\\phi+\\lambda)}\cos(\\frac{\\theta}{2})
+        \\theta}{2})\\\ e^{i \\phi}\\sin(\\frac{\\theta}{2}) & e^{i (\\phi+\\lambda)}\\cos(\\frac{\\theta}{2})
         \\end{bmatrix}`.
 
         This replacement noise replaces the original gate by a single-qubit gate specified by these three parameters.
@@ -257,9 +257,10 @@ class TwoQubitControlledGateReplacement(ReplacementNoiseBase):
         as follows:
 
         :math:`|0\\rangle \\langle 0|\\otimes I +
-         e^{i \\gamma} |1\\rangle \\langle 1| \\otimes U(\\theta, \\phi, \\lambda)`, where :math:`U(\\theta,
-        \phi, \\lambda) = \\begin{bmatrix} \\cos(\\frac{\\theta}{2}) & -e^{i \\lambda} \\sin(\\frac{\\theta}{2}) \\\ e^{
-        i \\phi}\\sin(\\frac{\\theta}{2}) & e^{i (\\phi+\\lambda)}\\cos(\\frac{\\theta}{2})\\end{bmatrix}`
+        e^{i \\gamma} |1\\rangle \\langle 1| \\otimes U(\\theta, \\phi, \\lambda)`,
+        where :math:`U(\\theta,\\phi, \\lambda) =
+        \\begin{bmatrix} \\cos(\\frac{\\theta}{2}) & -e^{i \\lambda} \\sin(\\frac{\\theta}{2}) \\\
+        e^{i \\phi}\\sin(\\frac{\\theta}{2}) & e^{i (\\phi+\\lambda)}\\cos(\\frac{\\theta}{2})\\end{bmatrix}`
 
 
         :param theta: an angle between 0 and :math:`2 \\pi`
@@ -421,6 +422,87 @@ class PauliError(AdditionNoiseBase):
             raise TypeError("Backend type is not supported.")
 
 
+class LocalCliffordError(AdditionNoiseBase):
+    """
+    A local Clifford error specified by a list of one-qubit unitary that consists of the local Clifford
+
+    """
+
+    def __init__(self, local_clifford):
+        """
+        Construct a one-qubit Clifford gate error
+
+        :param local_clifford:
+        :type local_clifford:
+        :return: nothing
+        :rtype: None
+        """
+        noise_parameters = {"Local Clifford error": local_clifford}
+        super().__init__(noise_parameters)
+
+    def get_backend_dependent_noise(self, state_rep, n_quantum, reg_list):
+        """
+        Return a backend-dependent noise representation of this noise model
+
+        :param state_rep: a state representation
+        :type state_rep: StateRepresentationBase
+        :param n_quantum: the number of qubits
+        :type n_quantum: int
+        :param reg_list: a list of register numbers
+        :type reg_list: list[int]
+        :return: the backend-dependent noise representation
+        :rtype: list[numpy.ndarray] for DensityMatrix backend
+        """
+        pauli_error = self.noise_parameters["Pauli error"]
+        assert len(reg_list) == 1
+        if isinstance(state_rep, DensityMatrix):
+            if pauli_error == "X":
+                return dmf.get_single_qubit_gate(n_quantum, reg_list[0], dmf.sigmax())
+            elif pauli_error == "Y":
+                return dmf.get_single_qubit_gate(n_quantum, reg_list[0], dmf.sigmay())
+            elif pauli_error == "Z":
+                return dmf.get_single_qubit_gate(n_quantum, reg_list[0], dmf.sigmaz())
+            elif pauli_error == "I":
+                return np.eye(2**n_quantum)
+            else:
+                raise ValueError("Wrong description of a Pauli matrix.")
+        elif isinstance(state_rep, Stabilizer):
+            # TODO: Find the correct representation
+            return
+        elif isinstance(state_rep, Graph):
+            # TODO: Implement
+            return
+        else:
+            raise TypeError("Backend type is not supported.")
+
+    def apply(self, state_rep: StateRepresentationBase, n_quantum, reg_list):
+        """
+        Apply the noise to the state representation state_rep
+
+        :param state_rep: the state representation
+        :type state_rep: subclass of StateRepresentationBase
+        :param n_quantum: number of qubits
+        :type n_quantum: int
+        :param reg_list: a list of registers where the noise is applied
+        :type reg_list: list[int]
+        :return: nothing
+        :rtype: None
+        """
+        if isinstance(state_rep, DensityMatrix):
+            noisy_gate = self.get_backend_dependent_noise(
+                state_rep, n_quantum, reg_list
+            )
+            state_rep.apply_unitary(noisy_gate)
+        elif isinstance(state_rep, Stabilizer):
+            # TODO: Find the correct representation for Stabilizer backend
+            pass
+        elif isinstance(state_rep, Graph):
+            # TODO: Implement this for Graph backend
+            pass
+        else:
+            raise TypeError("Backend type is not supported.")
+
+
 class DepolarizingNoise(AdditionNoiseBase):
     """
     Depolarizing noise described by a depolarizing probability
@@ -501,6 +583,81 @@ class DepolarizingNoise(AdditionNoiseBase):
             pass
         else:
             raise TypeError("Backend type is not supported.")
+
+
+class HadamardPerturbedError(OneQubitGateReplacement):
+    """
+    A noisy version of Hadamard gate is used to replace the original gate.
+    The noise is specified by the perturbation angles that deviate from
+    the original parameters :math:`(\\pi/2, 0, \\pi)`.
+    """
+
+    def __init__(self, theta_pert, phi_pert, lam_pert):
+        """
+        Construct a HadamardPerturbedError object
+
+        :param theta_pert: the perturbation added to the theta angle
+        :type theta_pert: float
+        :param phi_pert: the perturbation added to the phi angle
+        :type phi_pert: float
+        :param lam_pert: the perturbation added to the lambda angle
+        :type lam_pert: float
+        :return: nothing
+        :rtype: None
+        """
+        super().__init__(np.pi / 2 + theta_pert, phi_pert, np.pi + lam_pert)
+        self.noise_parameters["Perturbation"] = (theta_pert, phi_pert, lam_pert)
+        self.noise_parameters["Original parameters"] = (np.pi / 2, 0, np.pi)
+
+
+class PhasePerturbedError(OneQubitGateReplacement):
+    """
+    A noisy version of Phase gate is used to replace the original gate.
+    The noise is specified by the perturbation angles that deviate from
+    the original parameters :math:`(0, 0, \\pi/2)`.
+    """
+
+    def __init__(self, theta_pert, phi_pert, lam_pert):
+        """
+        Construct a HadamardPerturbedError object
+
+        :param theta_pert: the perturbation added to the theta angle
+        :type theta_pert: float
+        :param phi_pert: the perturbation added to the phi angle
+        :type phi_pert: float
+        :param lam_pert: the perturbation added to the lambda angle
+        :type lam_pert: float
+        :return: nothing
+        :rtype: None
+        """
+        super().__init__(theta_pert, phi_pert, np.pi / 2 + lam_pert)
+        self.noise_parameters["Perturbation"] = (theta_pert, phi_pert, lam_pert)
+        self.noise_parameters["Original parameters"] = (0, 0, np.pi / 2)
+
+
+class SimgaXPerturbedError(OneQubitGateReplacement):
+    """
+    A noisy version of :math:`\\sigma_X` gate is used to replace the original gate.
+    The noise is specified by the perturbation angles that deviate from
+    the original parameters :math:`(\\pi, 0, \\pi)`.
+    """
+
+    def __init__(self, theta_pert, phi_pert, lam_pert):
+        """
+        Construct a HadamardPerturbedError object
+
+        :param theta_pert: the perturbation added to the theta angle
+        :type theta_pert: float
+        :param phi_pert: the perturbation added to the phi angle
+        :type phi_pert: float
+        :param lam_pert: the perturbation added to the lambda angle
+        :type lam_pert: float
+        :return: nothing
+        :rtype: None
+        """
+        super().__init__(np.pi + theta_pert, phi_pert, np.pi + lam_pert)
+        self.noise_parameters["Perturbation"] = (theta_pert, phi_pert, lam_pert)
+        self.noise_parameters["Original parameters"] = (np.pi, 0, np.pi)
 
 
 """ Noise models to be implemented in the future"""

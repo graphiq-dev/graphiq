@@ -64,4 +64,17 @@ def test_fidelity():
     sigma = np.eye(2) / 2
     assert np.allclose(fidelity(rho, sigma), 1.0)
     assert np.allclose(fidelity(rho, ket2dm(state_ketx0())), 0.5)
+    assert np.allclose(fidelity(ket2dm(state_ketz0()), ket2dm(state_ketx0())), 0.5)
     assert np.allclose(fidelity(ket2dm(state_ketx0()), ket2dm(state_ketx1())), 0)
+
+
+@pytest.mark.parametrize("n_qubits", [2, 4, 6])
+def test_fidelity_multiqubit(n_qubits):
+
+    rho = create_n_product_state(n_qubits, state_ketx0())
+    sigma = (
+        create_n_product_state(n_qubits, state_kety0()) / 2
+        + create_n_product_state(n_qubits, state_kety1()) / 2
+    )
+    # works only for even number of qubits
+    assert np.allclose(fidelity(rho, sigma), 0.5**n_qubits)

@@ -7,7 +7,7 @@ Includes functions to generate commonly used matrices, apply certain gates, etc.
 from functools import reduce
 
 import numpy as np
-from scipy.linalg import sqrtm
+from scipy.linalg import eigh
 
 
 def sigmax():
@@ -331,7 +331,7 @@ def is_hermitian(input_matrix):
     :return: True or False
     :rtype: bool
     """
-    return np.array_equal(input_matrix, np.conjugate(input_matrix.T))
+    return np.allclose(input_matrix, np.conjugate(input_matrix.T))
 
 
 def is_psd(input_matrix, perturbation=1e-15):
@@ -359,6 +359,20 @@ def is_psd(input_matrix, perturbation=1e-15):
         return False
 
 
+def is_density_matrix(input_matrix, perturbation=1e-15):
+    """
+    Check if the input_matrix is a valid density matrix, that is, positive semidefinite and unit trace.
+
+    :param input_matrix: an input matrix to check
+    :type input_matrix: numpy.ndarray
+    :param perturbation: a small perturbation for checking positive semidefiniteness
+    :type perturbation: float
+    :return: True of input_matrix is a valid density matrix; False otherwise
+    :rtype: bool
+    """
+    return is_psd(input_matrix, perturbation) and np.allclose(input_matrix.trace(), 1.0)
+
+
 def is_pure(rho):
     """
     Determine if the input state rho is pure
@@ -371,20 +385,39 @@ def is_pure(rho):
     return np.allclose(np.real(np.trace(rho @ rho)), 1.0)
 
 
-def create_n_plus_state(n_qubits):
+def create_n_product_state(n_qubits, qubit_state):
     """
-    Create a product state that consists n tensor factors of the ket plus state.
+    Create a product state that consists :math:`n` tensor factors of the qubit_state.
 
     :param n_qubits: size (number of qubits) in the state to build
     :type n_qubits: int
-    :return: the product state of :math:`| + \\rangle`
+    :param qubit_state: the state of one qubit
+    :type qubit_state: numpy.ndarray
+    :raises ValueError: if the input qubit_state is neither a density matrix nor a ket vector
+    :return: the product state of math:`n` tensor factors of qubit_state
     :rtype: numpy.ndarray
     """
-    final_state = np.array([[1]])
-    rho_init = np.matmul(state_ketx0(), np.transpose(np.conjugate(state_ketx0())))
-    for i in range(n_qubits):
-        final_state = np.kron(final_state, rho_init)
-    return final_state
+    if qubit_state.shape[0] == qubit_state.shape[1]:
+        return reduce(np.kron, n_qubits * [qubit_state])
+    elif qubit_state.shape[1] == 1:
+        return reduce(np.kron, n_qubits * [ket2dm(qubit_state)])
+    else:
+        raise ValueError(
+            "The qubit_state should be either a density matrix of a ket vector"
+        )
+
+
+def create_n_plus_state(n_qubits):
+    """
+    Create a product state that consists :math:`n` tensor factors of :math:`|+\\rangle` state.
+
+    :param n_qubits: size (number of qubits) in the state to build
+    :type n_qubits: int
+    :return: the product state of :math:`|+\\rangle`
+    :rtype: numpy.ndarray
+    """
+
+    return create_n_product_state(n_qubits, state_ketx0())
 
 
 def tensor(arr):
@@ -416,17 +449,18 @@ def partial_trace(rho, keep, dims, optimize=False):
     Calculates the partial trace
     :math:`\\rho_a = Tr_b(\\rho)`
 
-    :param rho: the (2D) matrix to trace
+    :param rho: the (2D) matrix to take the partial trace
     :type rho: numpy.ndarray
-    :param keep:  An array of indices of the spaces to keep after being traced. For instance, if the space is
-                  A x B x C x D and we want to trace out B and D, keep = [0,2]
+    :param keep:  An array of indices of the spaces to keep. For instance, if the space is
+                :math:`A \\times B \\times C \\times D` and we want to trace out B and D, keep = [0,2]
     :type keep: list OR numpy.ndarray
-    :param dims: An array of the dimensions of each space. For instance, if the space is A x B x C x D,
-                 dims = [dim_A, dim_B, dim_C, dim_D]
+    :param dims: An array of the dimensions of each space. For instance,
+                if the space is :math:`A \\times B \\times C \\times D`,
+                dims = [dim_A, dim_B, dim_C, dim_D]
     :type dims: list OR numpy.ndarray
     :param optimize: parameter about how to treat Einstein Summation convention on the operands
     :type optimize: bool OR str
-    :return: the traced (2D) matrix
+    :return: the (2D) matrix after partial trace
     :rtype: numpy.ndarray
     """
     keep = np.asarray(keep)
@@ -434,7 +468,7 @@ def partial_trace(rho, keep, dims, optimize=False):
     ndim = dims.size
     nkeep = np.prod(dims[keep])
 
-    idx1 = [i for i in range(ndim)]
+    idx1 = [*range(ndim)]
     idx2 = [ndim + i if i in keep else i for i in range(ndim)]
     rho_a = rho.reshape(np.tile(dims, 2))
     rho_a = np.einsum(rho_a, idx1 + idx2, optimize=optimize)
@@ -454,8 +488,8 @@ def apply_cz(state_matrix, control_qubit, target_qubit):
     :return: the density matrix output after applying controlled-Z gate
     :rtype: numpy.ndarray
     """
-    number_qubits = int(np.log2(np.sqrt(state_matrix.size)))
-    cz = get_controlled_gate(number_qubits, control_qubit, target_qubit, sigmaz())
+    n_qubits = int(np.log2(np.sqrt(state_matrix.size)))
+    cz = get_controlled_gate(n_qubits, control_qubit, target_qubit, sigmaz())
 
     return cz @ state_matrix @ np.transpose(np.conjugate(cz))
 
@@ -477,14 +511,14 @@ def projectors_zbasis(n_qubits, measure_register):
         raise ValueError(
             "Register index must be at least 0 and less than the number of qubit registers"
         )
-    m0 = reduce(
+    projector0 = reduce(
         np.kron,
         [
             projector_ketz0() if i == measure_register else np.identity(2)
             for i in range(n_qubits)
         ],
     )
-    m1 = reduce(
+    projector1 = reduce(
         np.kron,
         [
             projector_ketz1() if i == measure_register else np.identity(2)
@@ -492,41 +526,70 @@ def projectors_zbasis(n_qubits, measure_register):
         ],
     )
 
-    return [m0, m1]
+    return [projector0, projector1]
+
+
+def sqrtm_psd(input_matrix):
+    """
+    Return the matrix square root of a positive semidefinite matrix input_matrix
+
+    :param input_matrix: a positive semidefinite matrix
+    :type input_matrix: numpy.ndarray
+    :raise AssertionError: if the input_matrix is not positive semidefinite
+    :return: the matrix square root of a positive semidefinite matrix input_matrix
+    :rtype: numpy.ndarray
+    """
+    assert is_psd(input_matrix)
+    eig_vals, eig_vecs = eigh(input_matrix)
+    eig_vals = np.maximum(eig_vals, 0)
+    return (eig_vecs * np.sqrt(eig_vals)) @ eig_vecs.T
+
+
+def hermitianize(input_matrix):
+    """
+    Return a Hermitian matrix based on the input_matrix
+
+    :param input_matrix: a matrix
+    :type input_matrix: numpy.ndarray
+    :return: a Hermitian matrix
+    :rtype: numpy.ndarray
+    """
+    return (input_matrix + np.conjugate(input_matrix.T)) / 2
 
 
 def fidelity(rho, sigma):
     """
-    Return the fidelity between states rho, sigma
+    Return the fidelity between states rho, sigma assuming both are valid density matrices
 
     :math:`F(\\rho, \\sigma):=Tr[\\sqrt{\\sqrt{\\rho} \\sigma \\sqrt{\\rho}}]^2`
 
-    If both rho and sigma are pure, then it simplifies as
+    If either rho or sigma is pure, then it simplifies as
     :math:`F(\\rho, \\sigma):=Tr[\\rho \\sigma]`
 
     :param rho: the first state
     :type rho: numpy.ndarray
     :param sigma: the second state
     :type sigma: numpy.ndarray
+    :raises AssertionError: if not both rho and sigma are density matrices
     :return: the fidelity between 0 and 1
     :rtype: float
     """
-    if is_pure(rho) and is_pure(sigma):
-        # if both states are pure
-        return np.real(np.trace(rho @ sigma))
+
+    assert is_density_matrix(rho)
+    assert is_density_matrix(sigma)
+
+    if is_pure(rho) or is_pure(sigma):
+        # if either one is pure, use the simplified expression
+        return np.maximum(np.minimum(np.real(np.trace(rho @ sigma)), 1.0), 0.0)
     else:
-        # if either one is mixed
-        # check if either rho or sigma is full rank
-        if np.linalg.matrix_rank(rho) == rho.shape[0]:
-            return np.real(np.trace(sqrtm(sqrtm(rho) @ sigma @ sqrtm(rho))) ** 2)
-        elif np.linalg.matrix_rank(sigma) == sigma.shape[0]:
-            return np.real(np.trace(sqrtm(sqrtm(sigma) @ rho @ sqrtm(sigma))) ** 2)
-        else:
-            # singular matrices may cause issues for the sqrtm function
-            # add a small perturbation to make rho full rank
-            perturbation = 1e-15
-            rho = rho + perturbation * np.eye(rho.shape[0])
-            return np.real(np.trace(sqrtm(sqrtm(rho) @ sigma @ sqrtm(rho))) ** 2)
+        # if both are mixed, use the definition
+        sqrt_rho = sqrtm_psd(rho)
+        rho_sigma = sqrt_rho @ sigma @ sqrt_rho
+        #  enforce it to be Hermitian to avoid numerical error
+        rho_sigma = hermitianize(rho_sigma)
+
+        rho_final = sqrtm_psd(rho_sigma)
+        return np.maximum(np.minimum(np.real(np.trace(rho_final)) ** 2, 1.0), 0.0)
 
 
 def trace_distance(rho, sigma):

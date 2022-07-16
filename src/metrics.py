@@ -59,10 +59,12 @@ class Infidelity(MetricBase):
         :type target: QuantumState
         :param log_steps: the metric values are computed at every log_steps optimization step
         :type log_steps: int
+        :raises AssertionError: if targe is not a valid density matrix
         :return: the function returns nothing
         :rtype: None
         """
         super().__init__(log_steps=log_steps, *args, **kwargs)
+        assert dmf.is_density_matrix(target)
         self.target = target
         self.differentiable = False
 
@@ -75,10 +77,12 @@ class Infidelity(MetricBase):
         :param circuit: circuit which generated state
                         Not used for the fidelity evaluation, but argument is provided for API consistency
         :type circuit: CircuitBase (or subclass of it)
+        :raises AssertionError: if the state is not a valid density matrix
         :return: the fidelity
         :rtype: float
         """
 
+        assert dmf.is_density_matrix(state)
         fid = dmf.fidelity(self.target, state)
         self.increment()
 

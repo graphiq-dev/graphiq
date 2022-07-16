@@ -1,13 +1,13 @@
 import numpy as np
 from src import ops
-from functools import reduce
+
 import src.backends.density_matrix.functions as dmf
 import src.noise.noise_models as nm
 from src.backends.density_matrix.state import DensityMatrix
 
 
 def _state_initialization(n_quantum, state=dmf.state_ketz0()):
-    return DensityMatrix(data=reduce(np.kron, n_quantum * [dmf.ket2dm(state)]))
+    return DensityMatrix(data=dmf.create_n_product_state(n_quantum, state))
 
 
 def test_depolarizing_noise():

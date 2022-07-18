@@ -142,6 +142,7 @@ class ExactGED(MetricBase):
     """
     TODO: docstring
     """
+
     def __init__(self, target, log_steps=1, *args, **kwargs):
         self.target = target
         super().__init__(log_steps=log_steps, *args, **kwargs)

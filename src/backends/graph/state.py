@@ -10,6 +10,7 @@ import itertools
 from src.backends.state_base import StateRepresentationBase
 import src.backends.graph.functions as gf
 from src.backends.graph.functions import QuNode
+from src.backends.lc_equivalence_check import is_lc_equivalent
 from src.visualizers.graph import draw_graph
 
 
@@ -178,6 +179,25 @@ class Graph(StateRepresentationBase):
         """
         node1, node2 = self._node_as_qunode(node1), self._node_as_qunode(node2)
         return self.data.has_edge(node1, node2)
+
+    def lc_equivalent(self, other_graph, mode="deterministic"):
+        """
+        Determines whether two graph states are local-Clifford equivalent or not, given the adjacency matrices of the two.
+        It takes two adjacency matrices as input and returns a numpy.array containing :math:`n` (:math:`2 \\times 2` array)s
+        = clifford operations on each qubit.
+
+        :param other_graph: the other graph against which to check LC equivalence
+        :type other_graph: Graph
+        :raises AssertionError: if the number of rows in the row reduced matrix is less than the rank of coefficient matrix
+        or if the number of linearly dependent columns is not equal to :math:`4n - rank`
+        (for :math:`n` being the number of nodes in the graph)
+        :return: If a solution is found, returns True and an array of single-qubit Clifford :math:`2 \\times 2` matrices
+        in the symplectic formalism. If not, graphs are not LC equivalent and returns False, None.
+        :rtype: bool, numpy.ndarray or None
+        """
+        g1 = nx.to_numpy_array(self.data).astype(int)
+        g2 = nx.to_numpy_array(other_graph.data).astype(int)
+        return is_lc_equivalent(g1, g2, mode=mode)
 
     @property
     def n_node(self):
@@ -373,7 +393,9 @@ class Graph(StateRepresentationBase):
         :rtype: None
         """
         self.local_complementation(node_id)
-        self.remove_node(node_id)  # TODO: double check, does redundant encoding matter here?
+        self.remove_node(
+            node_id
+        )  # TODO: double check, does redundant encoding matter here?
 
     def measure_z(self, node_id):
         self.remove_node(node_id)

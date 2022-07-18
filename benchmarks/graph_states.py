@@ -7,8 +7,10 @@ this point (not necessary for our current algorithms)
 import networkx as nx
 import copy
 import numpy as np
+import matplotlib.pyplot as plt
 
 from src.backends.graph.state import Graph
+from src.backends.lc_equivalence_check import is_lc_equivalent
 
 
 def linear_cluster_state(n_qubits):
@@ -46,8 +48,7 @@ def star_state(points):
     :return: star-shaped graph state
     :rtype: Graph
     """
-    edge_tuples = [(1, i) for i in range(2, 2 + points)]
-    return Graph(nx.Graph(edge_tuples), 1)
+    return Graph(nx.star_graph(points), 1)
 
 
 def random_lc_equivalent(start_graph, n_graphs, max_seq_length, rng=None):
@@ -61,10 +62,12 @@ def random_lc_equivalent(start_graph, n_graphs, max_seq_length, rng=None):
     :type n_graphs: int
     :param max_seq_length: the maximum number of local complementations applied to generate the new graph
     :type max_seq_length: int
-    :return: a list of graphs LC equivalent to start graph
-    :rtype: list[Graphs]
+    :return: a list of graphs LC equivalent to start graph, then a list of numpy arrays detailing the list of
+             complementations used for each graph
+    :rtype: list[Graphs], list[numpy.ndarray]
     """
     lc_graphs = []
+    lc_sequences = []
     if rng is None:
         rng = np.random.default_rng()
 
@@ -72,17 +75,38 @@ def random_lc_equivalent(start_graph, n_graphs, max_seq_length, rng=None):
 
     for seq_length in seq_lengths:
         new_graph = copy.deepcopy(start_graph)
-        for _ in range(seq_length):
-            node = rng.choice(new_graph.get_nodes_id_form())
+        nodes = rng.choice(new_graph.get_nodes_id_form(), size=seq_length)
+        for node in nodes:
             new_graph.local_complementation(node)
         lc_graphs.append(new_graph)
+        lc_sequences.append(nodes)
 
-    return lc_graphs
+    return lc_graphs, lc_sequences
 
 
 if __name__ == "__main__":
-    rng = np.random.default_rng(seed=0)
-    start_graph_test = lattice_cluster_state((3, 3))
-    lc_graphs_test = random_lc_equivalent(start_graph_test, 2, 3)
-    for lc_graph in lc_graphs_test:
-        lc_graph.draw()
+    np.random.seed(1)  # for consistent graph visualization
+    g1 = lattice_cluster_state((2, 3))
+    fig, ax = plt.subplots(figsize=(10, 10))
+    ax.set_title("g1")
+    g1.draw(ax=ax)
+
+    g2 = copy.deepcopy(g1)
+    g2.local_complementation(2)
+    fig, ax = plt.subplots(figsize=(10, 10))
+    ax.set_title("g2")
+    g2.draw(ax=ax)
+
+    g3 = copy.deepcopy(g2)
+    g3.local_complementation(1)
+    fig, ax = plt.subplots(figsize=(10, 10))
+    ax.set_title("g3")
+    g3.draw(ax=ax)
+
+    equiv12, _ = g1.lc_equivalent(g2, mode="deterministic")
+    equiv13, _ = g1.lc_equivalent(g3, mode="deterministic")
+    equiv23, _ = g2.lc_equivalent(g3, mode="deterministic")
+
+    print(f"g1, g2 LC equivalent: {equiv12}")
+    print(f"g1, g3 LC equivalent: {equiv13}")
+    print(f"g2, g3 LC equivalent: {equiv23}")

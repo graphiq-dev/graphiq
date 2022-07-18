@@ -188,6 +188,8 @@ class Graph(StateRepresentationBase):
 
         :param other_graph: the other graph against which to check LC equivalence
         :type other_graph: Graph
+        :param mode: the chosen mode for finding solutions. It can be either 'deterministic' (default) or 'random'.
+        :type mode: str
         :raises AssertionError: if the number of rows in the row reduced matrix is less than the rank of coefficient matrix
         or if the number of linearly dependent columns is not equal to :math:`4n - rank`
         (for :math:`n` being the number of nodes in the graph)

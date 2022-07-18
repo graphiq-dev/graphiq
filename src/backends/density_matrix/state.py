@@ -13,7 +13,6 @@ from src.backends.state_base import StateRepresentationBase
 from src.backends.graph.state import Graph
 from src.visualizers.density_matrix import density_matrix_heatmap, density_matrix_bars
 from src.backends.state_representation_conversion import graph_to_density
-from functools import reduce
 
 
 class DensityMatrix(StateRepresentationBase):
@@ -41,8 +40,7 @@ class DensityMatrix(StateRepresentationBase):
                 data = data / np.trace(data)
         elif isinstance(data, int):
             # initialize as a tensor product of |0> state
-            init = np.outer(np.array([1, 0]), np.array([1, 0])).astype("complex64")
-            data = reduce(np.kron, data * [init])
+            data = dmf.create_n_product_state(data, dmf.state_ketz0())
         else:
             raise TypeError("Input must be a numpy.ndarray or an integer")
 
@@ -157,7 +155,7 @@ class DensityMatrix(StateRepresentationBase):
         return outcome
 
     def apply_measurement_controlled_gate(
-        self, projectors, target_gate, measurement_determinism
+        self, projectors, target_gate, measurement_determinism=1
     ):
         """
         Apply a measurement, either deterministically (with a certain outcome) or probabilistically

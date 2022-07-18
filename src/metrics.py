@@ -5,7 +5,6 @@ Classes to compute metrics on a circuit and/or system states
 from abc import ABC, abstractmethod
 import numpy as np
 
-from benchmarks.circuits import bell_state_circuit
 import src.backends.density_matrix.functions as dmf
 
 
@@ -242,19 +241,3 @@ class Metrics(object):
             # TODO: switch the key to the strings provided in __init__ (abstracts things better from the user)
             m[metric.__class__.__name__] = metric.log
         return m
-
-
-if __name__ == "__main__":
-    """Metric usage example"""
-    # set how often to log the metric evaluations
-    MetricBase.log_steps = 3
-    Infidelity.log_steps = 1
-
-    _, ideal_state = bell_state_circuit()
-
-    metrics = Metrics([MetricCircuitDepth(), Infidelity(ideal_state)])
-
-    for _ in range(10):
-        metrics.evaluate(state=None, circuit=None)
-
-    print(metrics.log)

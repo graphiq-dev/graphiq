@@ -2,6 +2,7 @@
 This file contains helper functions for graph representation
 """
 import networkx as nx
+import itertools
 
 
 def convert_data_to_graph(graph_data, root_id):

@@ -5,10 +5,12 @@ Graph representation of quantum state
 """
 import networkx as nx
 import warnings
+import itertools
 
 from src.backends.state_base import StateRepresentationBase
 import src.backends.graph.functions as gf
 from src.backends.graph.functions import QuNode
+from src.backends.lc_equivalence_check import is_lc_equivalent
 from src.visualizers.graph import draw_graph
 
 
@@ -164,6 +166,41 @@ class Graph(StateRepresentationBase):
         """
         return [node.get_id() for node in self.data.nodes]
 
+    def edge_exists(self, node1, node2):
+        """
+        Checks whether an edge (parameterized by 2 nodes) exists
+
+        :param node1: First node of potential edge
+        :type node1: int, frozenset, or QuNode
+        :param node2: Second node of potential edge
+        :type node2: int, frozenset, or QuNode
+        :return: True if the edge exists, False otherwise
+        :rtype: bool
+        """
+        node1, node2 = self._node_as_qunode(node1), self._node_as_qunode(node2)
+        return self.data.has_edge(node1, node2)
+
+    def lc_equivalent(self, other_graph, mode="deterministic"):
+        """
+        Determines whether two graph states are local-Clifford equivalent or not, given the adjacency matrices of the two.
+        It takes two adjacency matrices as input and returns a numpy.array containing :math:`n` (:math:`2 \\times 2` array)s
+        = clifford operations on each qubit.
+
+        :param other_graph: the other graph against which to check LC equivalence
+        :type other_graph: Graph
+        :param mode: the chosen mode for finding solutions. It can be either 'deterministic' (default) or 'random'.
+        :type mode: str
+        :raises AssertionError: if the number of rows in the row reduced matrix is less than the rank of coefficient matrix
+        or if the number of linearly dependent columns is not equal to :math:`4n - rank`
+        (for :math:`n` being the number of nodes in the graph)
+        :return: If a solution is found, returns True and an array of single-qubit Clifford :math:`2 \\times 2` matrices
+        in the symplectic formalism. If not, graphs are not LC equivalent and returns False, None.
+        :rtype: bool, numpy.ndarray or None
+        """
+        g1 = nx.to_numpy_array(self.data).astype(int)
+        g2 = nx.to_numpy_array(other_graph.data).astype(int)
+        return is_lc_equivalent(g1, g2, mode=mode)
+
     @property
     def n_node(self):
         """
@@ -230,18 +267,7 @@ class Graph(StateRepresentationBase):
         # TODO: refactor to use https://networkx.org/documentation/stable/reference/classes/generated/networkx.Graph.neighbors.html
         if isinstance(node_id, int):
             node_id = frozenset([node_id])
-        neighbor_list = list()
-        if node_id in self.node_dict.keys():
-            cnode = self.node_dict[node_id]
-            all_nodes = self.node_dict.values()
-
-            for node in all_nodes:
-                if (node, cnode) in self.data.edges() or (
-                    cnode,
-                    node,
-                ) in self.data.edges():
-                    neighbor_list.append(node)
-        return neighbor_list
+        return list(self.data.neighbors(self.node_dict[node_id]))
 
     def remove_node(self, node_id):
         """
@@ -261,6 +287,24 @@ class Graph(StateRepresentationBase):
             return True
         else:
             warnings.warn("No node is removed since node id does not exist.")
+            return False
+
+    def remove_edge(self, id1, id2):
+        """
+        Removes an edge from the graph if it exists
+
+        :param id1: ID of the first node of the edge
+        :type id1:  int or frozenset
+        :param id2: ID of the second node of the edge
+        :type id2: int or frozenset
+        :return: True if edge successfully removed, False otherwise
+        """
+        node1, node2 = self._node_as_qunode(id1), self._node_as_qunode(id2)
+        try:
+            self.data.remove_edge(node1, node2)
+            return True
+        except nx.NetworkxError:
+            warnings.warn("No edge is removed since edge does not exist.")
             return False
 
     def node_is_redundant(self, node_id):
@@ -341,12 +385,22 @@ class Graph(StateRepresentationBase):
             warnings.warn("No action is applied since node id does not exist.")
 
     def measure_y(self, node_id):
-        # TODO
-        raise NotImplementedError("To do")
+        """
+        Apply a y measurement to the graph at the qubit corresponding
+        to node_id
+
+        :param node_id: the node id of the qubit which we are measuring
+        :type node_id: int or frozenset
+        :return: nothing
+        :rtype: None
+        """
+        self.local_complementation(node_id)
+        self.remove_node(
+            node_id
+        )  # TODO: double check, does redundant encoding matter here?
 
     def measure_z(self, node_id):
-        # TODO
-        raise NotImplementedError("To do")
+        self.remove_node(node_id)
 
     def draw(self, show=True, ax=None, with_labels=True):
         """
@@ -360,3 +414,81 @@ class Graph(StateRepresentationBase):
         :rtype: None
         """
         draw_graph(self, show=show, ax=ax, with_labels=with_labels)
+
+    def _node_as_qunode(self, node):
+        """
+        Converts a node_id (either int or frozenset) to its equivalent QuNode object in the graph OR
+        returns the QuNode object unchanged
+
+        :param node: either the node we want, or the node_id of the node
+        :type node: int, frozenset, QuNode
+        :return: the corresponding node in the graph
+        :rtype: QuNode
+        """
+        if isinstance(node, int):
+            node = frozenset([node])
+
+        if isinstance(node, frozenset):
+            node = self.node_dict[node]
+
+        return node
+
+    def local_complementation(self, node_id):
+        """
+        Takes the local complementation of the graph around node.
+
+        Local complementation: let n(node) be the set of neighbours of node. If a, b \in n(node) and (a, b) is in
+        the set of edges E of graph, then remove (a, b) from E. If a, b in n(node) and (a, b) is NOT in E, then
+        add (a, b) into E.
+
+        :param graph: the graph to edit
+        :type graph: Graph
+        :param node: the ID of the node around which local complementation should take place
+        :type node: int or frozenset
+        :return: nothing
+        :rtype: None
+        """
+        neighbors = self.get_neighbors(node_id)
+        neighbor_pairs = itertools.combinations(neighbors, 2)
+        for a, b in neighbor_pairs:
+            if self.edge_exists(a, b):
+                self.remove_edge(a, b)
+            else:
+                self.add_edge(a, b)
+
+    def merge(self, id1, id2):
+        """
+        Merges two nodes in the graph by:
+        1. Creating a new node, new_node, where the node_id is union(node1_id, node2_id) --> union of the frozen sets
+        2. For any edges of the form (a, node1) or (a, node2) with a in V (the set of nodes of the graph),
+           add the edge (a, new_node) to the graph
+        3. Remove node1, node2 and all their associated edges
+
+        Note that this is NOT the fusion gate function, as it doesn't take into account possibility of
+        failure. We also DO NOT check whether there is an existing edge between node1, node2 prior to merging.
+         It is merely a function that deterministically merges nodes.
+
+        :param id1: the ID of the first node in the graph to merge
+        :type id1: int or frozenset
+        :param id2: the ID of the second node in the graph to merge
+        :type id2: int or frozenset
+        :return: nothing
+        :rtype: None
+        """
+        if isinstance(id1, int):
+            id1 = frozenset([id1])
+        if isinstance(id2, int):
+            id2 = frozenset([id2])
+
+        new_id = frozenset(set(id1).union(set(id2)))
+
+        node1 = self.node_dict[id1]
+        node2 = self.node_dict[id2]
+
+        self.add_node(new_id)
+        for edge in list(self.data.edges(node1)) + list(self.data.edges(node2)):
+            other_node = edge[0] if edge[1] is node1 else edge[1]
+            self.add_edge(other_node, new_id)
+
+        self.remove_node(id1)
+        self.remove_node(id2)

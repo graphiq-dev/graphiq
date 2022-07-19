@@ -181,7 +181,7 @@ class IO:
             print(f"{current_time()} | Loaded from {full_path} successfully.")
         return file
 
-    def save_dataframe(self, df, filename):
+    def save_dataframe(self, df, filename, index=False):
         """
         Save a panda dataframe object to csv
 
@@ -193,7 +193,7 @@ class IO:
         """
         full_path = self.path.joinpath(filename)
         os.makedirs(full_path.parent, exist_ok=True)
-        df.to_csv(str(full_path), sep=",", index=False, header=True)
+        df.to_csv(str(full_path), sep=",", index=index, header=True)
         if self.verbose:
             print(f"{current_time()} | Saved to {full_path} successfully.")
 

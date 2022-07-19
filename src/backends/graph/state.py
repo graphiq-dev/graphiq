@@ -10,7 +10,7 @@ import itertools
 from src.backends.state_base import StateRepresentationBase
 import src.backends.graph.functions as gf
 from src.backends.graph.functions import QuNode
-from src.backends.lc_equivalence_check import is_lc_equivalent
+from src.backends.lc_equivalence_check import is_lc_equivalent, local_comp_graph
 from src.visualizers.graph import draw_graph
 
 
@@ -448,6 +448,12 @@ class Graph(StateRepresentationBase):
         :return: nothing
         :rtype: None
         """
+        # TODO: refactor to use local_comp_graph if determined to be more efficient
+        # currently, we're not doing so because local_comp_graph handles ints rather than QuNode objects
+        # Implementation 1
+        # self.data = local_comp_graph(self.data, node_id)
+
+        # Implementation 2
         neighbors = self.get_neighbors(node_id)
         neighbor_pairs = itertools.combinations(neighbors, 2)
         for a, b in neighbor_pairs:

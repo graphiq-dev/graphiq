@@ -19,6 +19,9 @@ We will gather the following statistics
    (should define an encoding for each type of operation)
 3. Mean/std dev
 4. min, 25th percentile, median, 75th percentile, max
+
+# TODO: consider how best to use "ray" for supporting multiple processes. Currently, the methods we're running are
+# quick enough that it feels like a lot of unnecessary overhead...
 """
 from abc import ABC, abstractmethod
 import math
@@ -26,12 +29,12 @@ import itertools
 import random
 import copy
 import pandas as pd
-import networkx as nx
 import time
+import numpy as np
 
 import src.metrics as met
-from src.backends.graph.state import Graph
 from src.io import IO
+import benchmarks.graph_states as gs
 
 
 class MetricSmoothnessTestBase(ABC):
@@ -45,6 +48,7 @@ class MetricSmoothnessTestBase(ABC):
         allowed_ops,
         test_representations,
         save_dir="",
+        folder_name="metric-benchmark",
         max_per_op_sample=100,
     ):
         self.metric_iter = metric_iter
@@ -59,7 +63,6 @@ class MetricSmoothnessTestBase(ABC):
 
         # set up saving
         self.save_dir = save_dir
-        folder_name = f"metric-benchmark"
         self.io = IO.new_directory(
             path=IO.default_path.joinpath(self.save_dir),
             folder=folder_name,
@@ -90,20 +93,20 @@ class GraphOpMetricSmoothnessTest(MetricSmoothnessTestBase):
     valid on graph states rather than operations on circuits.
     """
 
-    def __init__(self, metric_iter, test_iter, save_dir=""):
+    def __init__(self, metric_iter, test_iter, save_dir="", folder_name="metric-benchmarking-graph-smoothness"):
         # allowed ops are described by tuples (a, b)
         allowed_ops = [
             ("measure_x", 1),
             ("measure_y", 1),
             ("measure_z", 1),
             ("local_complementation", 1),
-            ("merge", 2),
+            # ("merge", 2),
             ("add_edge", 2),
         ]
         self.metric_sensitivity_op_df = None
-        super().__init__(metric_iter, allowed_ops, test_iter, save_dir=save_dir)
+        super().__init__(metric_iter, allowed_ops, test_iter, save_dir=save_dir, folder_name=folder_name)
 
-    def metric_sensitivity_to_op(self, save=True):
+    def metric_sensitivity_to_op(self, save=True, verbose=True):
         tuples = []
         for metric_class in self.metric_iter:
             for graph_name, graph in zip(self.test_rep_name, self.test_rep):
@@ -134,6 +137,8 @@ class GraphOpMetricSmoothnessTest(MetricSmoothnessTestBase):
                 ] = metric.evaluate(graph, None)
 
                 for (op_name, n_op) in self.allowed_ops:
+                    if verbose:
+                        print(f'Testing metric: {metric_class.__name__}, graph: {graph_name}, operation: {op_name}')
                     option_num = math.comb(graph.n_node, n_op)
                     location_iter = itertools.combinations(
                         graph.get_nodes_id_form(), n_op
@@ -144,13 +149,15 @@ class GraphOpMetricSmoothnessTest(MetricSmoothnessTestBase):
                         )
                     for i, node_info in enumerate(location_iter):
                         tmp_graph = copy.deepcopy(graph)
-                        tmp_graph.draw()
+                        if verbose:
+                            print(f'Applying op...')
                         self.apply_operation(tmp_graph, op_name, node_info)
-                        tmp_graph.draw()
                         df.loc[
                             (metric_class.__name__, graph_name, op_name, i),
                             "op location",
                         ] = node_info
+                        if verbose:
+                            print(f'Evaluating metric...')
                         start_time = time.time()
                         new_score = metric.evaluate(
                             tmp_graph, None
@@ -210,24 +217,29 @@ class GraphOpMetricSmoothnessTest(MetricSmoothnessTestBase):
 
 
 if __name__ == "__main__":
-    # linear cluster state 3 qubits (TODO: make a helper function)
-    graph = nx.Graph([(1, 2), (2, 3)])
-    linear3 = Graph(graph, 1)
+    # linear cluster state 3 qubits
+    linear3 = gs.linear_cluster_state(3)
+    linear9 = gs.linear_cluster_state(9)
+    linear24 = gs.linear_cluster_state(27)
 
-    # linear cluster state 4 qubits
-    graph = nx.Graph([(1, 2), (2, 3), (3, 4)])
-    linear4 = Graph(graph, 1)
+    # TODO: save the graphs and seed as well
+    rng = np.random.default_rng(seed=0)
+    random3 = gs.random_graph_state(3, p_edge=0.05)
+    random9 = gs.random_graph_state(9, p_edge=0.05)
+    random24 = gs.random_graph_state(24, p_edge=0.05)
 
     graph_smoothness_test = GraphOpMetricSmoothnessTest(
-        [met.ExactGED], [("linear3", linear3), ("linear4", linear4)]
+        [met.ExactGED], [("linear3", linear3), ("linear9", linear9), ("linear24", linear24),
+                         ("random3", random3), ("random9", random9), ("random24", random24)],
+        folder_name='metric-benchmarking-graph-smoothness-exact-GED'
     )
 
     df_test = graph_smoothness_test.metric_sensitivity_to_op()
     print(df_test)
-
-    filter = {"graph": "linear3", "op": ["local_complementation", "merge", "add_edge"]}
-    print(graph_smoothness_test.filter_op_sensitivity(filter))
-    info_summary = graph_smoothness_test.get_stats_op_sensitivity2(filter)
-    for key, val in info_summary.items():
-        print(f"For category {key}")
-        print(val)
+    #
+    # filter_test = {"graph": "linear3", "op": ["local_complementation", "merge", "add_edge"]}
+    # print(graph_smoothness_test.filter_op_sensitivity(filter_test))
+    # info_summary = graph_smoothness_test.get_stats_op_sensitivity2(filter_test)
+    # for key, val in info_summary.items():
+    #     print(f"For category {key}")
+    #     print(val)

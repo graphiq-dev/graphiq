@@ -112,45 +112,6 @@ def hadamard_transform(x_matrix, z_matrix, positions):
     return x_matrix, z_matrix
 
 
-def _row_reduction_old(x_matrix, z_matrix, pivot):
-    """
-    Returns the row reduced matrix X, the transformed matrix Z and the (rank-1) of the X matrix
-
-    :param x_matrix: The X part of the symplectic representation
-    :type x_matrix: numpy.ndarray
-    :param z_matrix: The Z part of the symplectic representation
-    :type z_matrix: numpy.ndarray
-    :param pivot: the row, column position for pivoting
-    :type pivot: list[int]
-    :return: x_matrix, z_matrix, and rank
-    """
-    n_row, n_column = np.shape(x_matrix)
-    rank = 0
-
-    if pivot[1] == (n_column - 1):
-        return x_matrix, z_matrix, pivot[0]
-    else:
-        # list of rows with value 1 under the pivot element
-        the_ones = []
-        for i in range(pivot[0], n_row):
-            if x_matrix[i, pivot[1]] == 1:
-                the_ones.append(i)
-        # check if the column below is empty to skip it
-        if not the_ones:
-            pivot = [pivot[0], pivot[1] + 1]
-            x_matrix, z_matrix, rank = _row_reduction_old(x_matrix, z_matrix, pivot)
-        else:
-            x_matrix = row_swap(x_matrix, the_ones[0], pivot[0])
-            z_matrix = row_swap(z_matrix, the_ones[0], pivot[0])
-            the_ones.remove(the_ones[0])
-            for j in the_ones:
-                x_matrix = add_rows(x_matrix, pivot[0], j)
-                z_matrix = add_rows(z_matrix, pivot[0], j)
-            pivot = [pivot[0] + 1, pivot[1] + 1]
-            x_matrix, z_matrix, rank = _row_reduction_old(x_matrix, z_matrix, pivot)
-    return x_matrix, z_matrix, rank
-
-
 def row_reduction(x_matrix, z_matrix):
     """
     Turns the x_matrix into a row reduced echelon form. Applies same row operations on z_matrix.
@@ -176,11 +137,10 @@ def row_reduction(x_matrix, z_matrix):
     return x_matrix, z_matrix, pivot[0]
 
 
-def _row_red_one_step(
-    x_matrix, z_matrix, pivot
-):  # one step of the algorithm, only on the pivot provided here
+def _row_red_one_step(x_matrix, z_matrix, pivot):
     """
-    A helper function to apply one step of the row reduction algorithm. It is used in the main row reduction function.
+    A helper function to apply one step of the row reduction algorithm, only on the pivot provided here.
+    It is used in the main row reduction function.
 
     :param x_matrix: binary matrix for representing Pauli X part of the symplectic binary
         representation of the stabilizer generators
@@ -199,7 +159,8 @@ def _row_red_one_step(
         for i in range(pivot[0], n_row):
             if x_matrix[i, pivot[1]] == 1:
                 the_ones.append(i)
-        if not the_ones:  # empty under (and including) pivot element on last column
+        if not the_ones:
+            # empty under (and including) pivot element on last column
             pivot[0] = pivot[0] - 1
         else:
             x_matrix = row_swap(x_matrix, the_ones[0], pivot[0])

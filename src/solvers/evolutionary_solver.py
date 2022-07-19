@@ -86,7 +86,17 @@ class EvolutionarySolver(RandomSearchSolver):
         if self.n_emitter > 1:
             trans_probs[self.add_emitter_cnot] = 1 / 4
 
-        # normalize the probabilities
+        return self._normalize_trans_prob(trans_probs)
+
+    @staticmethod
+    def _normalize_trans_prob(trans_probs):
+        """
+        Helper function to normalize the transformation probabilities
+
+        :param trans_probs: transformation probabilities
+        :type trans_probs: dict
+        :return: transformation probabilities after normalization
+        """
         total = np.sum(list(trans_probs.values()))
         for key in trans_probs.keys():
             trans_probs[key] *= 1 / total
@@ -96,13 +106,13 @@ class EvolutionarySolver(RandomSearchSolver):
         """
         Set allowed transformation and corresponding probabilities
 
-        :param allowed_transformations:
-        :type allowed_transformations:
+        :param allowed_transformations: a dictionary of all allowed transformation and its probabilities
+        :type allowed_transformations: dict
         :return: nothing
         :rtype: None
         """
-        # TODO: implement this function
-        pass
+
+        self.trans_probs = self._normalize_trans_prob(allowed_transformations)
 
     def update_emitter_one_qubit_gate_probs(self, e_prob_list):
         """

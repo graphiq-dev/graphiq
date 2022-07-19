@@ -32,7 +32,7 @@ class NoiseBase(ABC):
     Base class from which noise model will inherit
     """
 
-    def __init__(self, noise_parameters={}):
+    def __init__(self, noise_parameters=None):
         """
         Initialize a base class for noise model
 
@@ -41,6 +41,8 @@ class NoiseBase(ABC):
         :return: nothing
         :rtype: None
         """
+        if noise_parameters is None:
+            noise_parameters = {}
 
         self.noise_parameters = noise_parameters
 
@@ -51,12 +53,32 @@ class NoiseBase(ABC):
         """
         raise NotImplementedError("Base class is abstract.")
 
-    def apply(self, *args):
+    def apply(self, state_rep: StateRepresentationBase, n_quantum, reg_list):
         """
-        An abstract method for applying the noise model
+        Apply the noisy gate to the state representation state_rep
 
+        :param state_rep: the state representation
+        :type state_rep: subclass of StateRepresentationBase
+        :param n_quantum: number of qubits
+        :type n_quantum: int
+        :param reg_list: a list of registers where the noise is applied
+        :type reg_list: list[int]
+        :return: nothing
+        :rtype: None
         """
-        raise NotImplementedError("Base class is abstract.")
+        if isinstance(state_rep, DensityMatrix):
+            noisy_gate = self.get_backend_dependent_noise(
+                state_rep, n_quantum, reg_list
+            )
+            state_rep.apply_unitary(noisy_gate)
+        elif isinstance(state_rep, Stabilizer):
+            # TODO: Find the correct representation for Stabilizer backend
+            pass
+        elif isinstance(state_rep, Graph):
+            # TODO: Implement this for Graph backend
+            pass
+        else:
+            raise TypeError("Backend type is not supported.")
 
 
 class AdditionNoiseBase(NoiseBase):
@@ -64,22 +86,18 @@ class AdditionNoiseBase(NoiseBase):
     Base class for noise added before the operation
     """
 
-    def __init__(self, noise_parameters={}):
-        if "After gate" not in noise_parameters.keys():
-            noise_parameters["After gate"] = True
+    def __init__(self, noise_parameters=None):
+        if noise_parameters is None or type(noise_parameters) is not dict:
+            noise_parameters = {"After gate": True}
+        else:
+            if "After gate" not in noise_parameters.keys():
+                noise_parameters["After gate"] = True
 
         super().__init__(noise_parameters)
 
     def get_backend_dependent_noise(self, *args):
         """
         An abstract method to obtain a backend-dependent noise representation
-
-        """
-        raise NotImplementedError("Base class is abstract.")
-
-    def apply(self, *args):
-        """
-        An abstract method for applying the noise model
 
         """
         raise NotImplementedError("Base class is abstract.")
@@ -90,19 +108,12 @@ class ReplacementNoiseBase(NoiseBase):
     Base class for noisy gate that replaces the original gate
     """
 
-    def __init__(self, noise_parameters={}):
+    def __init__(self, noise_parameters=None):
         super().__init__(noise_parameters)
 
     def get_backend_dependent_noise(self, *args):
         """
         An abstract method to obtain a backend-dependent noise representation
-
-        """
-        raise NotImplementedError("Base class is abstract.")
-
-    def apply(self, *args):
-        """
-        An abstract method for applying the noise model
 
         """
         raise NotImplementedError("Base class is abstract.")
@@ -214,33 +225,6 @@ class OneQubitGateReplacement(ReplacementNoiseBase):
         elif isinstance(state_rep, Graph):
             # TODO: Implement this for Graph backend
             return
-        else:
-            raise TypeError("Backend type is not supported.")
-
-    def apply(self, state_rep: StateRepresentationBase, n_quantum, reg_list):
-        """
-        Apply the noisy gate to the state representation state_rep
-
-        :param state_rep: the state representation
-        :type state_rep: subclass of StateRepresentationBase
-        :param n_quantum: number of qubits
-        :type n_quantum: int
-        :param reg_list: a list of registers where the noise is applied
-        :type reg_list: list[int]
-        :return: nothing
-        :rtype: None
-        """
-        if isinstance(state_rep, DensityMatrix):
-            noisy_gate = self.get_backend_dependent_noise(
-                state_rep, n_quantum, reg_list
-            )
-            state_rep.apply_unitary(noisy_gate)
-        elif isinstance(state_rep, Stabilizer):
-            # TODO: Find the correct representation for Stabilizer backend
-            pass
-        elif isinstance(state_rep, Graph):
-            # TODO: Implement this for Graph backend
-            pass
         else:
             raise TypeError("Backend type is not supported.")
 
@@ -394,33 +378,6 @@ class PauliError(AdditionNoiseBase):
         else:
             raise TypeError("Backend type is not supported.")
 
-    def apply(self, state_rep: StateRepresentationBase, n_quantum, reg_list):
-        """
-        Apply the noise to the state representation state_rep
-
-        :param state_rep: the state representation
-        :type state_rep: subclass of StateRepresentationBase
-        :param n_quantum: number of qubits
-        :type n_quantum: int
-        :param reg_list: a list of registers where the noise is applied
-        :type reg_list: list[int]
-        :return: nothing
-        :rtype: None
-        """
-        if isinstance(state_rep, DensityMatrix):
-            noisy_gate = self.get_backend_dependent_noise(
-                state_rep, n_quantum, reg_list
-            )
-            state_rep.apply_unitary(noisy_gate)
-        elif isinstance(state_rep, Stabilizer):
-            # TODO: Find the correct representation for Stabilizer backend
-            pass
-        elif isinstance(state_rep, Graph):
-            # TODO: Implement this for Graph backend
-            pass
-        else:
-            raise TypeError("Backend type is not supported.")
-
 
 class LocalCliffordError(AdditionNoiseBase):
     """
@@ -432,8 +389,8 @@ class LocalCliffordError(AdditionNoiseBase):
         """
         Construct a one-qubit Clifford gate error
 
-        :param local_clifford:
-        :type local_clifford:
+        :param local_clifford: a list of elementary gates that compose the local Clifford gate
+        :type local_clifford: list[str]
         :return: nothing
         :rtype: None
         """
@@ -453,52 +410,43 @@ class LocalCliffordError(AdditionNoiseBase):
         :return: the backend-dependent noise representation
         :rtype: list[numpy.ndarray] for DensityMatrix backend
         """
-        pauli_error = self.noise_parameters["Pauli error"]
+        clifford_error = self.noise_parameters["Local Clifford error"]
+        assert type(clifford_error) is list
         assert len(reg_list) == 1
         if isinstance(state_rep, DensityMatrix):
-            if pauli_error == "X":
-                return dmf.get_single_qubit_gate(n_quantum, reg_list[0], dmf.sigmax())
-            elif pauli_error == "Y":
-                return dmf.get_single_qubit_gate(n_quantum, reg_list[0], dmf.sigmay())
-            elif pauli_error == "Z":
-                return dmf.get_single_qubit_gate(n_quantum, reg_list[0], dmf.sigmaz())
-            elif pauli_error == "I":
-                return np.eye(2**n_quantum)
-            else:
-                raise ValueError("Wrong description of a Pauli matrix.")
+            unitary = np.eye(2**n_quantum)
+            for gate in clifford_error:
+                if gate.lower() == "sigmax":
+                    unitary = unitary @ dmf.get_single_qubit_gate(
+                        n_quantum, reg_list[0], dmf.sigmax()
+                    )
+                elif gate.lower() == "sigmay":
+                    unitary = unitary @ dmf.get_single_qubit_gate(
+                        n_quantum, reg_list[0], dmf.sigmay()
+                    )
+                elif gate.lower() == "sigmaz":
+                    unitary = unitary @ dmf.get_single_qubit_gate(
+                        n_quantum, reg_list[0], dmf.sigmaz()
+                    )
+                if gate.lower() == "hadamard":
+                    unitary = unitary @ dmf.get_single_qubit_gate(
+                        n_quantum, reg_list[0], dmf.hadamard()
+                    )
+                if gate.lower() == "phase":
+                    unitary = unitary @ dmf.get_single_qubit_gate(
+                        n_quantum, reg_list[0], dmf.phase()
+                    )
+                elif gate.lower() == "identity":
+                    pass
+                else:
+                    raise ValueError("Wrong description of a local Clifford gate.")
+            return unitary
         elif isinstance(state_rep, Stabilizer):
-            # TODO: Find the correct representation
+            # TODO: Find the correct representation for the Stabilizer backend
             return
         elif isinstance(state_rep, Graph):
-            # TODO: Implement
+            # TODO: Implement this for the Graph backend
             return
-        else:
-            raise TypeError("Backend type is not supported.")
-
-    def apply(self, state_rep: StateRepresentationBase, n_quantum, reg_list):
-        """
-        Apply the noise to the state representation state_rep
-
-        :param state_rep: the state representation
-        :type state_rep: subclass of StateRepresentationBase
-        :param n_quantum: number of qubits
-        :type n_quantum: int
-        :param reg_list: a list of registers where the noise is applied
-        :type reg_list: list[int]
-        :return: nothing
-        :rtype: None
-        """
-        if isinstance(state_rep, DensityMatrix):
-            noisy_gate = self.get_backend_dependent_noise(
-                state_rep, n_quantum, reg_list
-            )
-            state_rep.apply_unitary(noisy_gate)
-        elif isinstance(state_rep, Stabilizer):
-            # TODO: Find the correct representation for Stabilizer backend
-            pass
-        elif isinstance(state_rep, Graph):
-            # TODO: Implement this for Graph backend
-            pass
         else:
             raise TypeError("Backend type is not supported.")
 
@@ -774,31 +722,6 @@ class CoherentUnitaryError(AdditionNoiseBase):
         elif isinstance(state_rep, Graph):
             # TODO: Implement this for Graph backend
             return
-        else:
-            raise TypeError("Backend type is not supported.")
-
-    def apply(self, state_rep: StateRepresentationBase, n_quantum, reg_list):
-        """
-        Apply the noise to the state representation state_rep
-
-        :param state_rep: the state representation
-        :type state_rep: subclass of StateRepresentationBase
-        :param n_quantum: number of qubits
-        :type n_quantum: int
-        :param reg_list: a list of registers where the noise is applied
-        :type reg_list: list[int]
-        :return: nothing
-        :rtype: None
-        """
-        if isinstance(state_rep, DensityMatrix):
-            # TODO: Implement this for DensityMatrix backend
-            pass
-        elif isinstance(state_rep, Stabilizer):
-            # TODO: Find the correct representation for Stabilizer backend
-            pass
-        elif isinstance(state_rep, Graph):
-            # TODO: Implement this for Graph backend
-            pass
         else:
             raise TypeError("Backend type is not supported.")
 

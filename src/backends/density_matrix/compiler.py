@@ -346,6 +346,7 @@ class DensityMatrixCompiler(CompilerBase):
     ):
         """
         Compile one noisy gate
+        TODO: consolidate _compile_one_gate and _compile_one_noisy_gate to one function
 
         :param state: the density matrix representation of the state to be evolved
         :type state: DensityMatrix
@@ -407,7 +408,7 @@ class DensityMatrixCompiler(CompilerBase):
                     n_quantum, q_index(op.control, op.control_type)
                 )
                 if isinstance(op.noise, nm.OneQubitGateReplacement):
-                    # Apply whatever unitary given by the noise model to the target qubit
+                    # apply whatever unitary given by the noise model to the target qubit
                     unitary = op.noise.get_backend_dependent_noise(
                         state, n_quantum, [q_index(op.target, op.target_type)]
                     )
@@ -428,7 +429,7 @@ class DensityMatrixCompiler(CompilerBase):
                 )
 
                 if isinstance(op.noise, nm.OneQubitGateReplacement):
-                    # Apply whatever unitary given by the noise model to the target qubit
+                    # apply whatever unitary given by the noise model to the target qubit
                     unitary = op.noise.get_backend_dependent_noise(
                         state, n_quantum, [q_index(op.target, op.target_type)]
                     )

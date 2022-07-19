@@ -1,3 +1,7 @@
+"""
+Evolutionary solver.
+"""
+
 import copy
 import matplotlib.pyplot as plt
 import numpy as np
@@ -94,6 +98,7 @@ class EvolutionarySolver(RandomSearchSolver):
         :param iteration: i-th iteration of the search method, which ranges from 0 to n_stop
         :type iteration: int
         :return: nothing
+        :rtype: None
         """
         self.trans_probs[self.add_emitter_one_qubit_op] = max(
             self.trans_probs[self.add_emitter_one_qubit_op] - 1 / self.n_stop / 3, 0.01
@@ -125,6 +130,7 @@ class EvolutionarySolver(RandomSearchSolver):
         :param measurement_assignment: which photonic qubit is targeted after measuring each emitter
         :type measurement_assignment: list[int]
         :return: nothing
+        :rtype: None
         """
         n_photon = len(emission_assignment)
         n_emitter = len(measurement_assignment)
@@ -184,9 +190,8 @@ class EvolutionarySolver(RandomSearchSolver):
                 circuit = self.initialization(
                     emission_assignment, measurement_assignment
                 )
-                population.append(
-                    (np.inf, circuit)
-                )  # initialize all population members
+                # initialize all population members
+                population.append((np.inf, circuit))
         else:
             for j in range(self.n_pop):
                 population.append((np.inf, copy.deepcopy(self.circuit)))
@@ -202,9 +207,8 @@ class EvolutionarySolver(RandomSearchSolver):
 
                 circuit.validate()
 
-                compiled_state = self.compiler.compile(
-                    circuit
-                )  # this will pass out a density matrix object
+                compiled_state = self.compiler.compile(circuit)
+                # this will pass out a density matrix object
 
                 state_data = dmf.partial_trace(
                     compiled_state.data,
@@ -231,6 +235,7 @@ class EvolutionarySolver(RandomSearchSolver):
         :param circuit: a quantum circuit
         :type circuit: CircuitDAG
         :return: nothing
+        :rtype: None
         """
         nodes = circuit.get_node_by_labels(["SingleQubitGateWrapper", "Photonic"])
 
@@ -258,6 +263,7 @@ class EvolutionarySolver(RandomSearchSolver):
         :param circuit: a quantum circuit
         :type circuit: CircuitDAG
         :return: nothing
+        :rtype: None
         """
         # make sure only selecting emitter qubits and avoiding adding a gate after final measurement or
         # adding two single-qubit Clifford gates in a row
@@ -292,6 +298,7 @@ class EvolutionarySolver(RandomSearchSolver):
         :param circuit: a quantum circuit
         :type circuit: CircuitDAG
         :return: nothing
+        :rtype: None
         """
         possible_edge_pairs = self._select_possible_cnot_position(circuit)
         if len(possible_edge_pairs) == 0:

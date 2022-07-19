@@ -73,7 +73,7 @@ def _lc_equiv_test(graph, seed, n_graphs=5, max_transform_path=17):
     reports the fact that the original and final graphs are the same
     """
     new_graphs, new_graph_seqs = gs.random_lc_equivalent(
-        graph, n_graphs, max_transform_path, rng=np.random.default_rng(seed=seed)
+        graph, n_graphs, max_transform_path, np_rng=np.random.default_rng(seed=seed)
     )
     for new_graph, new_graph_seq in zip(new_graphs, new_graph_seqs):
         equivalent, solution = graph.lc_equivalent(new_graph, mode="deterministic")
@@ -91,7 +91,7 @@ def test_equivalence_random_lc_linear(seed):
 
 @pytest.mark.parametrize("seed", [0, 335, 930])
 def test_equivalence_random_lc_star(seed):
-    graph = gs.star_state(25)
+    graph = gs.star_graph_state(25)
     _lc_equiv_test(graph, seed)
 
 

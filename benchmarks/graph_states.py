@@ -8,9 +8,9 @@ import networkx as nx
 import copy
 import numpy as np
 import matplotlib.pyplot as plt
+import itertools
 
 from src.backends.graph.state import Graph
-from src.backends.lc_equivalence_check import is_lc_equivalent
 
 
 def linear_cluster_state(n_qubits):
@@ -39,7 +39,7 @@ def lattice_cluster_state(dimension):
     return Graph(g, 1)
 
 
-def star_state(points):
+def star_graph_state(points):
     """
     Creates a start state with points qubits attached to the central qubit
 
@@ -51,7 +51,62 @@ def star_state(points):
     return Graph(nx.star_graph(points), 1)
 
 
-def random_lc_equivalent(start_graph, n_graphs, max_seq_length, rng=None):
+def random_graph_state(n_qubits, p_edge, np_rng=None):
+    """
+    Creates a random graph where each edge is added with probability
+    :param n_qubits: number of qubits in the graph state
+    :type n_qubits: int
+    :param p_edge: the probability of an edge existing between any two nodes a, b
+                   this governs the sparsity of the graph
+    :type p_edge: float
+    :param np_rng: random number generator to use (useful to guaranteeing replicable results, when seeded)
+    :type np_rng: numpy.random.Generator
+    :return: a random Graph state
+    :rtype: Graph
+    """
+    if np_rng is None:
+        np_rng = np.random.default_rng()
+
+    return Graph(_gnp_random_connected_graph(n_qubits, p_edge, np_rng), 1)
+
+
+def _gnp_random_connected_graph(n, p, np_rng):
+    """
+    Code modified from stackoverflow. Citation:
+
+    yatu (2020, May 23). How to create random graph where each node has at least 1 edge using Networkx. Stack Overflow.
+    Retrieved July 18, 2022, from
+    https://stackoverflow.com/questions/61958360/how-to-create-random-graph-where-each-node-has-at-least-1-edge-using-networkx/61961881#61961881
+
+    Networkx's random graph generation functions do NOT guarantee connectedness, which is something we require of our
+    graph states, so, we used the suggestion above.
+
+    :param n: the number of nodes
+    :type n: int
+    :param p: the probability of an edge being added
+    :type p: float
+    :return:
+    :rtype: networkx.Graph
+    """
+    edges = itertools.combinations(range(n), 2)
+    graph = nx.Graph()
+    graph.add_nodes_from(range(n))
+    if p <= 0:
+        return graph
+    if p >= 1:
+        return nx.complete_graph(n, create_using=graph)
+
+    for _, node_edges in itertools.groupby(edges, key=lambda x: x[0]):
+        node_edges = list(node_edges)
+        random_edge_index = np_rng.choice(len(node_edges))
+        graph.add_edge(*node_edges[random_edge_index])
+        for e in node_edges:
+            if np_rng.random() < p:
+                graph.add_edge(*e)
+    return graph
+
+
+def random_lc_equivalent(start_graph, n_graphs, max_seq_length, np_rng=None):
     """
     Random generates n_graphs new graphs from start_graphs, via local complementation.
     The maximum number of local complementations used to generate the new graph is max_seq_length
@@ -62,20 +117,22 @@ def random_lc_equivalent(start_graph, n_graphs, max_seq_length, rng=None):
     :type n_graphs: int
     :param max_seq_length: the maximum number of local complementations applied to generate the new graph
     :type max_seq_length: int
+    :param np_rng: random number generator to use (useful to guaranteeing replicable results, when seeded)
+    :type np_rng: numpy.random.Generator
     :return: a list of graphs LC equivalent to start graph, then a list of numpy arrays detailing the list of
              complementations used for each graph
     :rtype: list[Graphs], list[numpy.ndarray]
     """
     lc_graphs = []
     lc_sequences = []
-    if rng is None:
-        rng = np.random.default_rng()
+    if np_rng is None:
+        np_rng = np.random.default_rng()
 
-    seq_lengths = rng.integers(low=1, high=max_seq_length + 1, size=n_graphs)
+    seq_lengths = np_rng.integers(low=1, high=max_seq_length + 1, size=n_graphs)
 
     for seq_length in seq_lengths:
         new_graph = copy.deepcopy(start_graph)
-        nodes = rng.choice(new_graph.get_nodes_id_form(), size=seq_length)
+        nodes = np_rng.choice(new_graph.get_nodes_id_form(), size=seq_length)
         for node in nodes:
             new_graph.local_complementation(node)
         lc_graphs.append(new_graph)
@@ -84,7 +141,14 @@ def random_lc_equivalent(start_graph, n_graphs, max_seq_length, rng=None):
     return lc_graphs, lc_sequences
 
 
-if __name__ == "__main__":
+def lc_equivalence_demo():
+    """
+    Function originally used for debugging LC equivalence. Kept as a demonstration of how graphs evolve
+    under LC complementation
+
+    :return: nothing
+    :rtype: None
+    """
     np.random.seed(1)  # for consistent graph visualization
     g1 = lattice_cluster_state((2, 3))
     fig, ax = plt.subplots(figsize=(10, 10))
@@ -110,3 +174,11 @@ if __name__ == "__main__":
     print(f"g1, g2 LC equivalent: {equiv12}")
     print(f"g1, g3 LC equivalent: {equiv13}")
     print(f"g2, g3 LC equivalent: {equiv23}")
+
+
+if __name__ == "__main__":
+    np.random.seed(0)  # seed for consistent visualization
+    rng = np.random.default_rng(0)  # seed for consistent random graph
+    for _ in range(5):
+        g_test = random_graph_state(20, p_edge=0.02, np_rng=rng)
+        g_test.draw()

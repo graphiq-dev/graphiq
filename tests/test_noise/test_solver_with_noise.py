@@ -155,7 +155,7 @@ def linear3_expected_trace_distance():
 def linear4_noise_model():
     noise_model_mapping = {
         "Hadamard": nm.HadamardPerturbedError(np.pi / 360, 0, 0),
-        "CNOT": nm.DepolarizingNoise(0.01),
+        "Phase": nm.LocalCliffordError(["hadamard", "sigmax"]),
         "MeasurementCNOTandReset": nm.SimgaXPerturbedError(0, np.pi / 180, 0),
     }
     return noise_model_mapping

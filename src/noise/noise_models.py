@@ -417,24 +417,31 @@ class LocalCliffordError(AdditionNoiseBase):
             unitary = np.eye(2**n_quantum)
             for gate in clifford_error:
                 if gate.lower() == "sigmax":
-                    unitary = unitary @ dmf.get_single_qubit_gate(
-                        n_quantum, reg_list[0], dmf.sigmax()
+                    unitary = (
+                        dmf.get_single_qubit_gate(n_quantum, reg_list[0], dmf.sigmax())
+                        @ unitary
                     )
                 elif gate.lower() == "sigmay":
-                    unitary = unitary @ dmf.get_single_qubit_gate(
-                        n_quantum, reg_list[0], dmf.sigmay()
+                    unitary = (
+                        dmf.get_single_qubit_gate(n_quantum, reg_list[0], dmf.sigmay())
+                        @ unitary
                     )
                 elif gate.lower() == "sigmaz":
-                    unitary = unitary @ dmf.get_single_qubit_gate(
-                        n_quantum, reg_list[0], dmf.sigmaz()
+                    unitary = (
+                        dmf.get_single_qubit_gate(n_quantum, reg_list[0], dmf.sigmaz())
+                        @ unitary
                     )
-                if gate.lower() == "hadamard":
-                    unitary = unitary @ dmf.get_single_qubit_gate(
-                        n_quantum, reg_list[0], dmf.hadamard()
+                elif gate.lower() == "hadamard":
+                    unitary = (
+                        dmf.get_single_qubit_gate(
+                            n_quantum, reg_list[0], dmf.hadamard()
+                        )
+                        @ unitary
                     )
-                if gate.lower() == "phase":
-                    unitary = unitary @ dmf.get_single_qubit_gate(
-                        n_quantum, reg_list[0], dmf.phase()
+                elif gate.lower() == "phase":
+                    unitary = (
+                        dmf.get_single_qubit_gate(n_quantum, reg_list[0], dmf.phase())
+                        @ unitary
                     )
                 elif gate.lower() == "identity":
                     pass

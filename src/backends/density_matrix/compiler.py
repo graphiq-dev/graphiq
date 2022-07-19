@@ -282,11 +282,13 @@ class DensityMatrixCompiler(CompilerBase):
                 n_quantum, q_index(op.target, op.target_type), dm.sigmax()
             )
 
-            state.apply_measurement_controlled_gate(
+            outcome = state.apply_measurement_controlled_gate(
                 projectors,
                 unitary,
                 measurement_determinism=self.measurement_determinism,
             )
+
+            classical_registers[op.c_register] = outcome
 
         elif type(op) is ops.ClassicalCPhase:
             projectors = dm.projectors_zbasis(
@@ -298,11 +300,13 @@ class DensityMatrixCompiler(CompilerBase):
                 n_quantum, q_index(op.target, op.target_type), dm.sigmaz()
             )
 
-            state.apply_measurement_controlled_gate(
+            outcome = state.apply_measurement_controlled_gate(
                 projectors,
                 unitary,
                 measurement_determinism=self.measurement_determinism,
             )
+
+            classical_registers[op.c_register] = outcome
 
         elif type(op) is ops.MeasurementCNOTandReset:
             projectors = dm.projectors_zbasis(
@@ -314,7 +318,7 @@ class DensityMatrixCompiler(CompilerBase):
                 n_quantum, q_index(op.target, op.target_type), dm.sigmax()
             )
 
-            state.apply_measurement_controlled_gate(
+            outcome = state.apply_measurement_controlled_gate(
                 projectors,
                 unitary,
                 measurement_determinism=self.measurement_determinism,
@@ -325,6 +329,7 @@ class DensityMatrixCompiler(CompilerBase):
                 n_quantum, q_index(op.control, op.control_type)
             )
 
+            classical_registers[op.c_register] = outcome
             state.apply_channel(reset_kraus_ops)
 
         elif type(op) is ops.MeasurementZ:
@@ -397,11 +402,12 @@ class DensityMatrixCompiler(CompilerBase):
                         n_quantum, q_index(op.target, op.target_type), dm.sigmax()
                     )
 
-                state.apply_measurement_controlled_gate(
+                outcome = state.apply_measurement_controlled_gate(
                     projectors,
                     unitary,
                     measurement_determinism=self.measurement_determinism,
                 )
+                classical_registers[op.c_register] = outcome
 
             elif type(op) is ops.ClassicalCPhase:
                 projectors = dm.projectors_zbasis(
@@ -417,11 +423,13 @@ class DensityMatrixCompiler(CompilerBase):
                     unitary = dm.get_single_qubit_gate(
                         n_quantum, q_index(op.target, op.target_type), dm.sigmaz()
                     )
-                state.apply_measurement_controlled_gate(
+                outcome = state.apply_measurement_controlled_gate(
                     projectors,
                     unitary,
                     measurement_determinism=self.measurement_determinism,
                 )
+
+                classical_registers[op.c_register] = outcome
 
             elif type(op) is ops.MeasurementCNOTandReset:
                 projectors = dm.projectors_zbasis(
@@ -439,7 +447,7 @@ class DensityMatrixCompiler(CompilerBase):
                         n_quantum, q_index(op.target, op.target_type), dm.sigmax()
                     )
 
-                state.apply_measurement_controlled_gate(
+                outcome = state.apply_measurement_controlled_gate(
                     projectors,
                     unitary,
                     measurement_determinism=self.measurement_determinism,
@@ -450,6 +458,7 @@ class DensityMatrixCompiler(CompilerBase):
                     n_quantum, q_index(op.control, op.control_type)
                 )
 
+                classical_registers[op.c_register] = outcome
                 state.apply_channel(reset_kraus_ops)
 
             elif type(op) is ops.MeasurementZ:

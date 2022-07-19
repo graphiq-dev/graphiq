@@ -75,6 +75,8 @@ class DensityMatrix(StateRepresentationBase):
         """
         if self._data.shape == unitary.shape:
             self._data = unitary @ self._data @ np.transpose(np.conjugate(unitary))
+            # to avoid small numerical error that causes the state non-Hermitian
+            self._data = dmf.hermitianize(self._data)
         else:
             raise ValueError(
                 "The density matrix of the state has a different size from the unitary gate to be applied."
@@ -99,7 +101,8 @@ class DensityMatrix(StateRepresentationBase):
                 tmp_state = tmp_state + kraus_ops[i] @ self._data @ np.conjugate(
                     kraus_ops[i].T
                 )
-            self._data = tmp_state
+            # to avoid small numerical error that causes the state non-Hermitian
+            self._data = dmf.hermitianize(tmp_state)
         else:
             raise ValueError("Kraus operators have wrong dimensions.")
 
@@ -170,13 +173,14 @@ class DensityMatrix(StateRepresentationBase):
                                     if 0, measurement results default to 0 unless the probability of measuring p(0) = 0
         :type measurement_determinism: str/int
         :raises AssertionError: if target_gate has different dimensions from the density matrix of the state
-        :return: nothing
-        :rtype: None
+        :return: the measurement outcome
+        :rtype: int
         """
         assert self._data.shape == target_gate.shape
         outcome = self.apply_measurement(projectors, measurement_determinism)
         if outcome == 1:
             self.apply_unitary(target_gate)
+        return outcome
 
     def draw(self, style="bar", show=True):
         """

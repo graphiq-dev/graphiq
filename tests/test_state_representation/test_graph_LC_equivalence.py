@@ -21,7 +21,7 @@ def _tester(n):
         z_1 = nx.to_numpy_array(g1).astype(int)
         z_2 = nx.to_numpy_array(g2).astype(int)
 
-        success, solution = is_lc_equivalent(z_1, z_2, mode='deterministic')
+        success, solution = is_lc_equivalent(z_1, z_2, mode="deterministic")
 
         if isinstance(solution, np.ndarray):
             plt.figure(1)
@@ -46,8 +46,8 @@ def test_equivalence(n_nodes):
 
     z_new = nx.to_numpy_array(g_new)
     z_2 = nx.to_numpy_array(graph2).astype(int)
-    assert (nx.is_isomorphic(g_new, graph2)), "found graphs are not LC equivalent"
-    assert (np.array_equal(z_new, z_2)), "found graphs are not LC equivalent"
+    assert nx.is_isomorphic(g_new, graph2), "found graphs are not LC equivalent"
+    assert np.array_equal(z_new, z_2), "found graphs are not LC equivalent"
 
 
 @pytest.mark.parametrize("n_nodes", [2, 3, 4, 5, 6])
@@ -56,7 +56,7 @@ def test_star_graph(n_nodes):
     g2 = nx.star_graph(n_nodes - 1)
     z_1 = nx.to_numpy_array(g1).astype(int)
     z_2 = nx.to_numpy_array(g2).astype(int)
-    success, solution = is_lc_equivalent(z_1, z_2, mode='deterministic')
+    success, solution = is_lc_equivalent(z_1, z_2, mode="deterministic")
     if isinstance(solution, np.ndarray):
         print(local_clifford_ops(solution), "\n")
     assert isinstance(solution, np.ndarray) or solution is None

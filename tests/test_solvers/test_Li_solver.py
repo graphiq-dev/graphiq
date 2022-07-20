@@ -85,12 +85,12 @@ def test_echelon_form(n_nodes):
         pivot[0] = max(np.nonzero(x_1[:, i])[0][-1], np.nonzero(z_1[:, i])[0][-1], old_pivot)
         assert pivot[0] - old_pivot <= 2
         for j in range(1 + int(pivot[0]), n_nodes):
-
             assert x_1[j, i] == 0 and z_1[j, i] == 0
+    pivot = [0, 0]
     for i in range(n_nodes):
         pivot[1] = i
         old_pivot = pivot[0]
         pivot[0] = max(np.nonzero(x_2[:, i])[0][-1], np.nonzero(z_2[:, i])[0][-1], old_pivot)
         assert pivot[0] - old_pivot <= 2
         for j in range(pivot[0] + 1, n_nodes):
-            assert not (x_2[j, i] or z_2[j, i])
+            assert x_1[j, i] == 0 and z_1[j, i] == 0

@@ -39,7 +39,7 @@ class EvolutionarySolver(RandomSearchSolver):
     n_hof = 5
     tournament_k = 2  # tournament size for selection of the next population
 
-    single_qubit_ops = list(ops.single_qubit_cliffords())
+    one_qubit_ops = list(ops.one_qubit_cliffords())
 
     use_adapt_probability = False
 
@@ -52,7 +52,7 @@ class EvolutionarySolver(RandomSearchSolver):
         n_emitter=1,
         n_photon=1,
         selection_active=False,
-        noise_model_mapping={},
+        noise_model_mapping=None,
         *args,
         **kwargs,
     ):
@@ -65,6 +65,8 @@ class EvolutionarySolver(RandomSearchSolver):
         # transformation functions and their relative probabilities
         self.trans_probs = self.initialize_transformation_probabilities()
         self.selection_active = selection_active
+        if noise_model_mapping is None or type(noise_model_mapping) is not dict:
+            noise_model_mapping = {}
         self.noise_model_mapping = noise_model_mapping
         self.p_dist = [0.5] + 11 * [0.1 / 22] + [0.4] + 11 * [0.1 / 22]
         self.e_dist = [0.5] + 11 * [0.02 / 22] + [0.48] + 11 * [0.02 / 22]
@@ -123,7 +125,7 @@ class EvolutionarySolver(RandomSearchSolver):
         :return: nothing
         :rtype: None
         """
-        assert len(e_prob_list) == len(self.single_qubit_ops)
+        assert len(e_prob_list) == len(self.one_qubit_ops)
         e_prob_list = np.array(e_prob_list)
         assert (e_prob_list >= 0).all()
         total_prob = sum(e_prob_list)
@@ -139,7 +141,7 @@ class EvolutionarySolver(RandomSearchSolver):
         :return: nothing
         :rtype: None
         """
-        assert len(p_prob_list) == len(self.single_qubit_ops)
+        assert len(p_prob_list) == len(self.one_qubit_ops)
         p_prob_list = np.array(p_prob_list)
         assert (p_prob_list >= 0).all()
         total_prob = sum(p_prob_list)
@@ -213,7 +215,7 @@ class EvolutionarySolver(RandomSearchSolver):
             )
             op.add_labels("Fixed")
             circuit.add(op)
-            # initialize all single-qubit Clifford gate for photonic qubits
+            # initialize all one-qubit Clifford gate for photonic qubits
             noise = []
             if "Identity" in noise_model_mapping.keys():
                 noise.append(noise_model_mapping["Identity"])
@@ -224,7 +226,7 @@ class EvolutionarySolver(RandomSearchSolver):
             else:
                 noise.append(nm.NoNoise())
             op_list = [ops.Identity, ops.Hadamard]
-            op = ops.SingleQubitGateWrapper(
+            op = ops.OneQubitGateWrapper(
                 op_list,
                 register=i,
                 reg_type="p",
@@ -234,7 +236,7 @@ class EvolutionarySolver(RandomSearchSolver):
 
             circuit.add(op)
 
-        # initialize all emitter meausurement and reset operations
+        # initialize all emitter measurement and reset operations
 
         for j in range(n_emitter):
             op = ops.MeasurementCNOTandReset(
@@ -317,7 +319,7 @@ class EvolutionarySolver(RandomSearchSolver):
     @staticmethod
     def _wrap_noise(op, noise_model_mapping):
         """
-        A helper function to consolidate noise models for SingleQubitWrapper operation
+        A helper function to consolidate noise models for OneQubitWrapper operation
 
         :param op: a list of operations
         :type op: list[ops.OperationBase]
@@ -360,14 +362,14 @@ class EvolutionarySolver(RandomSearchSolver):
 
     def replace_photon_one_qubit_op(self, circuit):
         """
-        Replace one single-qubit Clifford gate applied on a photonic qubit to another one.
+        Replace one one-qubit Clifford gate applied on a photonic qubit to another one.
 
         :param circuit: a quantum circuit
         :type circuit: CircuitDAG
         :return: nothing
         :rtype: None
         """
-        nodes = circuit.get_node_by_labels(["SingleQubitGateWrapper", "Photonic"])
+        nodes = circuit.get_node_by_labels(["OneQubitGateWrapper", "Photonic"])
 
         if len(nodes) == 0:
             return
@@ -377,10 +379,10 @@ class EvolutionarySolver(RandomSearchSolver):
         old_op = circuit.dag.nodes[node]["op"]
 
         reg = old_op.register
-        ind = np.random.choice(len(self.single_qubit_ops), p=self.p_dist)
-        op = self.single_qubit_ops[ind]
+        ind = np.random.choice(len(self.one_qubit_ops), p=self.p_dist)
+        op = self.one_qubit_ops[ind]
         noise = self._wrap_noise(op, self.noise_model_mapping)
-        gate = ops.SingleQubitGateWrapper(op, reg_type="p", register=reg, noise=noise)
+        gate = ops.OneQubitGateWrapper(op, reg_type="p", register=reg, noise=noise)
         gate.add_labels("Fixed")
         # circuit.replace_op(node, gate)
         circuit._open_qasm_update(gate)
@@ -388,7 +390,7 @@ class EvolutionarySolver(RandomSearchSolver):
 
     def add_emitter_one_qubit_op(self, circuit):
         """
-        Randomly selects one valid edge on which to add a new single-qubit gate
+        Randomly selects one valid edge on which to add a new one-qubit gate
 
         :param circuit: a quantum circuit
         :type circuit: CircuitDAG
@@ -396,13 +398,13 @@ class EvolutionarySolver(RandomSearchSolver):
         :rtype: None
         """
         # make sure only selecting emitter qubits and avoiding adding a gate after final measurement or
-        # adding two single-qubit Clifford gates in a row
+        # adding two one-qubit Clifford gates in a row
         edges = [
             edge
             for edge in circuit.edge_dict["e"]
             if type(circuit.dag.nodes[edge[1]]["op"]) is not ops.Output
-            and type(circuit.dag.nodes[edge[0]]["op"]) is not ops.SingleQubitGateWrapper
-            and type(circuit.dag.nodes[edge[1]]["op"]) is not ops.SingleQubitGateWrapper
+            and type(circuit.dag.nodes[edge[0]]["op"]) is not ops.OneQubitGateWrapper
+            and type(circuit.dag.nodes[edge[1]]["op"]) is not ops.OneQubitGateWrapper
         ]
 
         if len(edges) == 0:
@@ -414,10 +416,10 @@ class EvolutionarySolver(RandomSearchSolver):
         reg = circuit.dag.edges[edge]["reg"]
         label = edge[2]
 
-        ind = np.random.choice(len(self.single_qubit_ops), p=self.e_dist)
-        op = self.single_qubit_ops[ind]
+        ind = np.random.choice(len(self.one_qubit_ops), p=self.e_dist)
+        op = self.one_qubit_ops[ind]
         noise = self._wrap_noise(op, self.noise_model_mapping)
-        gate = ops.SingleQubitGateWrapper(op, reg_type="e", register=reg, noise=noise)
+        gate = ops.OneQubitGateWrapper(op, reg_type="e", register=reg, noise=noise)
 
         circuit.insert_at(gate, [edge])
 
@@ -646,6 +648,6 @@ class EvolutionarySolver(RandomSearchSolver):
             "Max iteration #": self.n_stop,
             "Population size": self.n_pop,
             "seed": self.last_seed,
-            "Single qubit ops": op_names(self.single_qubit_ops),
+            "One-qubit ops": op_names(self.one_qubit_ops),
             "Transition probabilities": transition_names(self.trans_probs),
         }

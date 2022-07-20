@@ -1079,7 +1079,7 @@ class CircuitDAG(CircuitBase):
                         f"{name} parsed to {circuit_list}"
                     )
                     circuit.add(
-                        ops.SingleQubitGateWrapper(
+                        ops.OneQubitGateWrapper(
                             circuit_list, register=reg, reg_type=reg_type
                         )
                     )

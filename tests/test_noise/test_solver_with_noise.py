@@ -126,7 +126,9 @@ def linear3_run_trace_distance(
 @pytest.fixture(scope="module")
 def linear3_noise_model():
     noise_model_mapping = {
-        "Identity": nm.OneQubitGateReplacement(np.pi / 180, 0, 0),
+        "Identity": nm.OneQubitGateReplacement(
+            dmf.parameterized_one_qubit_unitary(np.pi / 180, 0, 0)
+        ),
         "SigmaX": nm.DepolarizingNoise(0.01),
         "CNOT": nm.DepolarizingNoise(0.01),
     }

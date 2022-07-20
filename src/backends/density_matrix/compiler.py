@@ -225,37 +225,37 @@ class DensityMatrixCompiler(CompilerBase):
             pass
 
         elif type(op) is ops.Hadamard:
-            unitary = dm.get_single_qubit_gate(
+            unitary = dm.get_one_qubit_gate(
                 n_quantum, q_index(op.register, op.reg_type), dm.hadamard()
             )
             state.apply_unitary(unitary)
 
         elif type(op) is ops.Phase:
-            unitary = dm.get_single_qubit_gate(
+            unitary = dm.get_one_qubit_gate(
                 n_quantum, q_index(op.register, op.reg_type), dm.phase()
             )
             state.apply_unitary(unitary)
 
         elif type(op) is ops.SigmaX:
-            unitary = dm.get_single_qubit_gate(
+            unitary = dm.get_one_qubit_gate(
                 n_quantum, q_index(op.register, op.reg_type), dm.sigmax()
             )
             state.apply_unitary(unitary)
 
         elif type(op) is ops.SigmaY:
-            unitary = dm.get_single_qubit_gate(
+            unitary = dm.get_one_qubit_gate(
                 n_quantum, q_index(op.register, op.reg_type), dm.sigmay()
             )
             state.apply_unitary(unitary)
 
         elif type(op) is ops.SigmaZ:
-            unitary = dm.get_single_qubit_gate(
+            unitary = dm.get_one_qubit_gate(
                 n_quantum, q_index(op.register, op.reg_type), dm.sigmaz()
             )
             state.apply_unitary(unitary)
 
         elif type(op) is ops.CNOT:
-            unitary = dm.get_controlled_gate(
+            unitary = dm.get_two_qubit_controlled_gate(
                 n_quantum,
                 q_index(op.control, op.control_type),
                 q_index(op.target, op.target_type),
@@ -264,7 +264,7 @@ class DensityMatrixCompiler(CompilerBase):
             state.apply_unitary(unitary)
 
         elif type(op) is ops.CPhase:
-            unitary = dm.get_controlled_gate(
+            unitary = dm.get_two_qubit_controlled_gate(
                 n_quantum,
                 q_index(op.control, op.control_type),
                 q_index(op.target, op.target_type),
@@ -278,7 +278,7 @@ class DensityMatrixCompiler(CompilerBase):
             )
 
             # apply an X gate on the target qubit conditioned on the measurement outcome = 1
-            unitary = dm.get_single_qubit_gate(
+            unitary = dm.get_one_qubit_gate(
                 n_quantum, q_index(op.target, op.target_type), dm.sigmax()
             )
 
@@ -296,7 +296,7 @@ class DensityMatrixCompiler(CompilerBase):
             )
 
             # apply a Z gate on the target qubit conditioned on the measurement outcome = 1
-            unitary = dm.get_single_qubit_gate(
+            unitary = dm.get_one_qubit_gate(
                 n_quantum, q_index(op.target, op.target_type), dm.sigmaz()
             )
 
@@ -314,7 +314,7 @@ class DensityMatrixCompiler(CompilerBase):
             )
 
             # apply an X gate on the target qubit conditioned on the measurement outcome = 1
-            unitary = dm.get_single_qubit_gate(
+            unitary = dm.get_one_qubit_gate(
                 n_quantum, q_index(op.target, op.target_type), dm.sigmax()
             )
 
@@ -369,7 +369,7 @@ class DensityMatrixCompiler(CompilerBase):
         if isinstance(op, ops.InputOutputOperationBase):
             pass
 
-        elif isinstance(op, ops.SingleQubitOperationBase):
+        elif isinstance(op, ops.OneQubitOperationBase):
             op.noise.apply(state, n_quantum, [q_index(op.register, op.reg_type)])
 
         elif isinstance(op, ops.ControlledPairOperationBase):
@@ -398,7 +398,7 @@ class DensityMatrixCompiler(CompilerBase):
                     )
                 else:
                     # apply an X gate on the target qubit conditioned on the measurement outcome = 1
-                    unitary = dm.get_single_qubit_gate(
+                    unitary = dm.get_one_qubit_gate(
                         n_quantum, q_index(op.target, op.target_type), dm.sigmax()
                     )
 
@@ -420,7 +420,7 @@ class DensityMatrixCompiler(CompilerBase):
                     )
                 else:
                     # apply a Z gate on the target qubit conditioned on the measurement outcome = 1
-                    unitary = dm.get_single_qubit_gate(
+                    unitary = dm.get_one_qubit_gate(
                         n_quantum, q_index(op.target, op.target_type), dm.sigmaz()
                     )
                 outcome = state.apply_measurement_controlled_gate(
@@ -443,7 +443,7 @@ class DensityMatrixCompiler(CompilerBase):
                     )
                 else:
                     # apply an X gate on the target qubit conditioned on the measurement outcome = 1
-                    unitary = dm.get_single_qubit_gate(
+                    unitary = dm.get_one_qubit_gate(
                         n_quantum, q_index(op.target, op.target_type), dm.sigmax()
                     )
 
@@ -492,7 +492,7 @@ class DensityMatrixCompiler(CompilerBase):
         :return: nothing
         :rtype: None
         """
-        if isinstance(op, ops.SingleQubitOperationBase):
+        if isinstance(op, ops.OneQubitOperationBase):
             op.noise.apply(state, n_quantum, [q_index(op.register, op.reg_type)])
         elif isinstance(op, ops.ControlledPairOperationBase):
             op.noise.apply(

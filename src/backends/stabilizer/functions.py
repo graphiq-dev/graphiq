@@ -65,7 +65,7 @@ def row_swap(input_matrix, first_row, second_row):
     :type first_row: int
     :param second_row: the second row
     :type second_row: int
-    :return: the matrix after swaping those two row
+    :return: the matrix after swapping those two row
     :rtype: numpy.ndarray
     """
     input_matrix[[first_row, second_row]] = input_matrix[[second_row, first_row]]
@@ -93,8 +93,8 @@ def add_rows(input_matrix, row_to_add, resulting_row):
 
 def hadamard_transform(x_matrix, z_matrix, positions):
     """
-    Apply Hadamard gate on each qubit specified by
-    Column swap between X and Z
+    Apply a Hadamard gate on each qubit specified by positions. This action is equivalent to a
+    column swap between X matrix and Z matrix for the corresponding qubits
 
     :param x_matrix: X part of the symplectic representation
     :type x_matrix: numpy.ndarray

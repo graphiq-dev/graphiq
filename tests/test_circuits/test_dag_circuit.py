@@ -374,9 +374,9 @@ def test_register_setting():
 
 
 def test_sequence_unwinding():
-    """Test that the sequence unwrapping with the Wrapper opration works"""
+    """Test that the sequence unwrapping with the Wrapper operation works"""
     gates = [ops.Hadamard, ops.Phase, ops.Hadamard, ops.Phase, ops.Identity]
-    operation = ops.SingleQubitGateWrapper(gates, register=0, reg_type="e")
+    operation = ops.OneQubitGateWrapper(gates, register=0, reg_type="e")
     dag = CircuitDAG(n_emitter=1, n_photon=1, n_classical=0)
     dag.add(operation)
     dag.add(ops.CNOT(control=0, control_type="e", target=0, target_type="p"))
@@ -406,11 +406,11 @@ def test_sequence_unwinding():
         if not isinstance(op, ops.InputOutputOperationBase)
     ]
     assert op_class_order == [
-        ops.Hadamard,
-        ops.Phase,
-        ops.Hadamard,
-        ops.Phase,
         ops.Identity,
+        ops.Phase,
+        ops.Hadamard,
+        ops.Phase,
+        ops.Hadamard,
         ops.CNOT,
     ]
 
@@ -475,7 +475,7 @@ def test_visualization_5():
 def test_visualization_unwrapped_1():
     """Test that visualization works with the Wrapper operation"""
     gates = [ops.Hadamard, ops.Phase, ops.Hadamard, ops.Phase, ops.Identity]
-    operation = ops.SingleQubitGateWrapper(gates, register=0, reg_type="e")
+    operation = ops.OneQubitGateWrapper(gates, register=0, reg_type="e")
     dag = CircuitDAG(n_emitter=1, n_photon=1, n_classical=0)
     dag.add(operation)
     dag.add(ops.CNOT(control=0, control_type="e", target=0, target_type="p"))
@@ -491,12 +491,12 @@ def test_visualization_unwrapped_1():
 def test_visualization_unwrapped_2():
     """Test that visualization works with the Wrapper operation"""
     gates = [ops.Hadamard, ops.Phase, ops.Hadamard, ops.Phase, ops.Identity]
-    operation = ops.SingleQubitGateWrapper(gates, register=0, reg_type="e")
+    operation = ops.OneQubitGateWrapper(gates, register=0, reg_type="e")
     dag = CircuitDAG(n_emitter=1, n_photon=1, n_classical=0)
     dag.add(operation)
     dag.add(ops.CNOT(control=0, control_type="e", target=0, target_type="p"))
     dag.add(
-        ops.SingleQubitGateWrapper(
+        ops.OneQubitGateWrapper(
             [ops.SigmaX, ops.SigmaY, ops.SigmaZ, ops.Phase], register=0, reg_type="e"
         )
     )

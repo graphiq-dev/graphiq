@@ -18,16 +18,16 @@ def test_measurement_prob():
 
 
 def test_single_qubit_unitary():
-    assert np.allclose(one_qubit_unitary(2, 1, 0, 0, 0), np.eye(4))
-    assert np.allclose(one_qubit_unitary(1, 1, 0, 0, np.pi / 2), phase())
-    assert np.allclose(one_qubit_unitary(1, 1, np.pi / 2, 0, np.pi), hadamard())
+    assert np.allclose(full_one_qubit_unitary(2, 1, 0, 0, 0), np.eye(4))
+    assert np.allclose(full_one_qubit_unitary(1, 1, 0, 0, np.pi / 2), phase())
+    assert np.allclose(full_one_qubit_unitary(1, 1, np.pi / 2, 0, np.pi), hadamard())
     assert np.allclose(
-        one_qubit_unitary(2, 1, 0, 0, np.pi / 2),
-        get_single_qubit_gate(2, 1, phase()),
+        full_one_qubit_unitary(2, 1, 0, 0, np.pi / 2),
+        get_one_qubit_gate(2, 1, phase()),
     )
     assert np.allclose(
-        one_qubit_unitary(2, 1, np.pi / 2, 0, np.pi),
-        get_single_qubit_gate(2, 1, hadamard()),
+        full_one_qubit_unitary(2, 1, np.pi / 2, 0, np.pi),
+        get_one_qubit_gate(2, 1, hadamard()),
     )
 
 
@@ -36,26 +36,26 @@ def test_multi_qubit_gate():
     target_gates = [sigmax(), sigmaz()]
     assert np.allclose(
         get_multi_qubit_gate(4, qubit_positions, target_gates),
-        get_single_qubit_gate(4, 1, sigmax()) @ get_single_qubit_gate(4, 3, sigmaz()),
+        get_one_qubit_gate(4, 1, sigmax()) @ get_one_qubit_gate(4, 3, sigmaz()),
     )
 
     assert np.allclose(
         get_multi_qubit_gate(5, qubit_positions, target_gates),
-        get_single_qubit_gate(5, 1, sigmax()) @ get_single_qubit_gate(5, 3, sigmaz()),
+        get_one_qubit_gate(5, 1, sigmax()) @ get_one_qubit_gate(5, 3, sigmaz()),
     )
 
 
 def test_multi_qubit_gate2():
     assert np.allclose(
         get_multi_qubit_gate(5, [4, 3], [sigmax(), hadamard()]),
-        get_single_qubit_gate(5, 4, sigmax()) @ get_single_qubit_gate(5, 3, hadamard()),
+        get_one_qubit_gate(5, 4, sigmax()) @ get_one_qubit_gate(5, 3, hadamard()),
     )
 
 
 def test_multi_qubit_gate3():
     assert np.allclose(
         get_multi_qubit_gate(1, [0], [sigmax()]),
-        get_single_qubit_gate(1, 0, sigmax()),
+        get_one_qubit_gate(1, 0, sigmax()),
     )
 
 

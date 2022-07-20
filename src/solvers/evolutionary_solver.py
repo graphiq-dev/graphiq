@@ -383,7 +383,7 @@ class EvolutionarySolver(RandomSearchSolver):
         gate = ops.SingleQubitGateWrapper(op, reg_type="p", register=reg, noise=noise)
         gate.add_labels("Fixed")
         # circuit.replace_op(node, gate)
-        circuit._open_qasm_update(gate)
+        circuit._openqasm_update(gate)
         circuit.dag.nodes[node]["op"] = gate
 
     def add_emitter_one_qubit_op(self, circuit):

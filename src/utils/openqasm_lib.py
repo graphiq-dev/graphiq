@@ -19,12 +19,14 @@ class OpenQASMInfo:
     how to formulate a gate definitions in openqasm, and of how to apply a gate between specific qubits
     """
 
-    def __init__(self, gate_name, imports: list, definitions, usage, multi_comp):
+    def __init__(self, gate_name, imports: list, definitions, usage, multi_comp, gate_symbol=None):
         """
         Create a openQASMInfo object
 
         :param gate_name: name of the gate (must be the name used in definitions and usage)
         :type gate_name: str
+        :param gate_symbol: the symbol representing a gate in qiskit's visualization
+        :type gate_symbol: str
         :param imports: a list of strings defining the imports needed to use a function
         :type imports: list (of strs)
         :param definitions: definition of one or more gate in openQASM format
@@ -36,6 +38,7 @@ class OpenQASMInfo:
         :rtype: None
         """
         self.gate_name = gate_name
+        self.gate_symbol = gate_symbol
         self.imports = imports
         if isinstance(definitions, str):
             self.definitions = [definitions]
@@ -153,7 +156,7 @@ def sigma_x_info():
     def usage(q_reg, q_reg_type, c_reg):
         return f"x {q_reg_type[0]}{q_reg[0]}[0];"
 
-    return OpenQASMInfo("x", imports, definition, usage, False)
+    return OpenQASMInfo("x", imports, definition, usage, False, gate_symbol="X")
 
 
 def sigma_y_info():
@@ -163,7 +166,7 @@ def sigma_y_info():
     def usage(q_reg, q_reg_type, c_reg):
         return f"y {q_reg_type[0]}{q_reg[0]}[0];"
 
-    return OpenQASMInfo("y", imports, definition, usage, False)
+    return OpenQASMInfo("y", imports, definition, usage, False, gate_symbol="Y")
 
 
 def sigma_z_info():
@@ -173,7 +176,7 @@ def sigma_z_info():
     def usage(q_reg, q_reg_type, c_reg):
         return f"z {q_reg_type[0]}{q_reg[0]}[0];"
 
-    return OpenQASMInfo("z", imports, definition, usage, False)
+    return OpenQASMInfo("z", imports, definition, usage, False, gate_symbol="Z")
 
 
 def hadamard_info():
@@ -183,7 +186,7 @@ def hadamard_info():
     def usage(q_reg, q_reg_type, c_reg):
         return f"h {q_reg_type[0]}{q_reg[0]}[0];"
 
-    return OpenQASMInfo("h", imports, definition, usage, False)
+    return OpenQASMInfo("h", imports, definition, usage, False, gate_symbol="H")
 
 
 def phase_info():
@@ -194,7 +197,7 @@ def phase_info():
     def usage(q_reg, q_reg_type, c_reg):
         return f"s {q_reg_type[0]}{q_reg[0]}[0];"
 
-    return OpenQASMInfo("s", imports, definition, usage, False)
+    return OpenQASMInfo("s", imports, definition, usage, False, gate_symbol="P")
 
 
 def single_qubit_wrapper_info(op_list):
@@ -209,6 +212,7 @@ def single_qubit_wrapper_info(op_list):
     imports = []
     definitions = []
     gate_name = ""
+    gate_symbol = ""
     def_usage = ""
     gate_name_dict = {"": empty_info()}
 
@@ -223,6 +227,7 @@ def single_qubit_wrapper_info(op_list):
         imports = imports + oq_info.import_strings
         definitions = definitions + oq_info.define_gate
         gate_name += oq_info.gate_name
+        gate_symbol += oq_info.gate_symbol
         def_usage += f"{oq_info.gate_name} a;\n"
 
     if gate_name in gate_name_dict:  # i.e. gate is already somehow defined
@@ -233,7 +238,7 @@ def single_qubit_wrapper_info(op_list):
     def usage(q_reg, q_reg_type, c_reg):
         return f"{gate_name} {q_reg_type[0]}{q_reg[0]}[0];"
 
-    return OpenQASMInfo(gate_name, imports, definitions, usage, False)
+    return OpenQASMInfo(gate_name, imports, definitions, usage, False, gate_symbol=f"U={gate_symbol}")
 
 
 def cphase_info():
@@ -243,7 +248,7 @@ def cphase_info():
     def usage(q_reg, q_reg_type, c_reg):
         return f"cz {q_reg_type[0]}{q_reg[0]}[0], {q_reg_type[1]}{q_reg[1]}[0];"
 
-    return OpenQASMInfo("cz", imports, definition, usage, False)
+    return OpenQASMInfo("cz", imports, definition, usage, False, gate_symbol="CZ")
 
 
 def classical_cnot_info():

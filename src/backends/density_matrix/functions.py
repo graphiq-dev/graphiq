@@ -140,7 +140,7 @@ def projector_ketz1():
     return np.array([[0.0, 0.0], [0.0, 1.0]])
 
 
-def get_controlled_gate(n_qubits, control_qubit, target_qubit, target_gate):
+def get_two_qubit_controlled_gate(n_qubits, control_qubit, target_qubit, target_gate):
     """
     Define a two-qubit controlled unitary gate.
 
@@ -183,7 +183,7 @@ def get_controlled_gate(n_qubits, control_qubit, target_qubit, target_gate):
     return final_gate
 
 
-def get_single_qubit_gate(n_qubits, qubit_position, target_gate):
+def get_one_qubit_gate(n_qubits, qubit_position, target_gate):
     """
     Returns the matrix resulting from the "target_gate" matrix, after it has been tensored with the necessary identities
 
@@ -270,8 +270,12 @@ def swap_two_qubits(state_matrix, qubit1_position, qubit2_position):
     """
     n_qubits = int(np.log2(np.sqrt(state_matrix.size)))
     assert n_qubits > 1
-    cnot12 = get_controlled_gate(n_qubits, qubit1_position, qubit2_position, sigmax())
-    cnot21 = get_controlled_gate(n_qubits, qubit2_position, qubit1_position, sigmax())
+    cnot12 = get_two_qubit_controlled_gate(
+        n_qubits, qubit1_position, qubit2_position, sigmax()
+    )
+    cnot21 = get_two_qubit_controlled_gate(
+        n_qubits, qubit2_position, qubit1_position, sigmax()
+    )
 
     # SWAP gate can be decomposed as three CNOT gates
     swap = cnot12 @ cnot21 @ cnot12
@@ -292,9 +296,9 @@ def get_reset_qubit_kraus(n_qubits, qubit_position):
     """
     kraus0 = np.array([[1, 0], [0, 0]])
     kraus1 = np.array([[0, 1], [0, 0]])
-    full_kraus0 = get_single_qubit_gate(n_qubits, qubit_position, kraus0)
+    full_kraus0 = get_one_qubit_gate(n_qubits, qubit_position, kraus0)
     # full_kraus1 is technically not a gate, but this function works
-    full_kraus1 = get_single_qubit_gate(n_qubits, qubit_position, kraus1)
+    full_kraus1 = get_one_qubit_gate(n_qubits, qubit_position, kraus1)
     return [full_kraus0, full_kraus1]
 
 
@@ -314,8 +318,8 @@ def trace_out_qubit(state_matrix, qubit_position):
         return np.array(np.trace(state_matrix))
     target_op1 = np.transpose(np.conjugate(state_ketz0()))
     target_op2 = np.transpose(np.conjugate(state_ketz1()))
-    kraus0 = get_single_qubit_gate(n_qubits, qubit_position, target_op1)
-    kraus1 = get_single_qubit_gate(n_qubits, qubit_position, target_op2)
+    kraus0 = get_one_qubit_gate(n_qubits, qubit_position, target_op1)
+    kraus1 = get_one_qubit_gate(n_qubits, qubit_position, target_op2)
     final_state = kraus0 @ state_matrix @ np.transpose(
         np.conjugate(kraus0)
     ) + kraus1 @ state_matrix @ np.transpose(np.conjugate(kraus1))
@@ -489,7 +493,7 @@ def apply_cz(state_matrix, control_qubit, target_qubit):
     :rtype: numpy.ndarray
     """
     n_qubits = int(np.log2(np.sqrt(state_matrix.size)))
-    cz = get_controlled_gate(n_qubits, control_qubit, target_qubit, sigmaz())
+    cz = get_two_qubit_controlled_gate(n_qubits, control_qubit, target_qubit, sigmaz())
 
     return cz @ state_matrix @ np.transpose(np.conjugate(cz))
 
@@ -702,9 +706,38 @@ def project_to_z0_and_remove(rho, locations):
     return final_rho
 
 
-def one_qubit_unitary(n_qubits, qubit_position, theta, phi, lam):
+def parameterized_one_qubit_unitary(theta, phi, lam):
     """
     Define a generic 3-parameter one-qubit unitary gate.
+
+    :math:`U(\\theta, \\phi, \\lambda) = \\begin{bmatrix} \\cos(\\frac{\\theta}{2}) & -e^{i \\lambda}
+    \\sin(\\frac{\\theta}{2})\\\ e^{i \\phi}\\sin(\\frac{\\theta}{2}) &
+    e^{i (\\phi+\\lambda)}\\cos(\\frac{\\theta}{2})\\end{bmatrix}`
+
+    :param theta: an angle
+    :type theta: float or double
+    :param phi: an angle
+    :type phi: float or double
+    :param lam: an angle
+    :type lam: float or double
+    :return: a one-qubit unitary matrix
+    :rtype: numpy.ndarray
+    """
+    gate = np.array(
+        [
+            [np.cos(theta / 2), -np.exp(1j * lam) * np.sin(theta / 2)],
+            [
+                np.exp(1j * phi) * np.sin(theta / 2),
+                np.exp(1j * (phi + lam)) * np.cos(theta / 2),
+            ],
+        ]
+    )
+    return gate
+
+
+def full_one_qubit_unitary(n_qubits, qubit_position, theta, phi, lam):
+    """
+    Define a generic 3-parameter one-qubit unitary gate that acts on the whole space.
 
     :math:`U(\\theta, \\phi, \\lambda) = \\begin{bmatrix} \\cos(\\frac{\\theta}{2}) & -e^{i \\lambda}
     \\sin(\\frac{\\theta}{2})\\\ e^{i \\phi}\\sin(\\frac{\\theta}{2}) &
@@ -720,22 +753,14 @@ def one_qubit_unitary(n_qubits, qubit_position, theta, phi, lam):
     :type phi: float or double
     :param lam: an angle
     :type lam: float or double
-    :return: a one-qubit unitary matrix that can be directly applied to an n-qubit state
+    :return: a one-qubit unitary matrix that can be directly applied to an :math:`n`-qubit state
     :rtype: numpy.ndarray
     """
-    gate = np.array(
-        [
-            [np.cos(theta / 2), -np.exp(1j * lam) * np.sin(theta / 2)],
-            [
-                np.exp(1j * phi) * np.sin(theta / 2),
-                np.exp(1j * (phi + lam)) * np.cos(theta / 2),
-            ],
-        ]
-    )
-    return get_single_qubit_gate(n_qubits, qubit_position, gate)
+    gate = parameterized_one_qubit_unitary(theta, phi, lam)
+    return get_one_qubit_gate(n_qubits, qubit_position, gate)
 
 
-def two_qubit_controlled_unitary(
+def full_two_qubit_controlled_unitary(
     n_qubits, ctr_qubit, target_qubit, theta, phi, lam, gamma
 ):
     """
@@ -763,13 +788,5 @@ def two_qubit_controlled_unitary(
     :return: a two-qubit controlled unitary matrix that can be directly applied to an n-qubit state
     :rtype: numpy.ndarray
     """
-    gate = np.exp(1j * gamma) * np.array(
-        [
-            [np.cos(theta / 2), -np.exp(1j * lam) * np.sin(theta / 2)],
-            [
-                np.exp(1j * phi) * np.sin(theta / 2),
-                np.exp(1j * (phi + lam)) * np.cos(theta / 2),
-            ],
-        ]
-    )
-    return get_controlled_gate(n_qubits, ctr_qubit, target_qubit, gate)
+    gate = np.exp(1j * gamma) * parameterized_one_qubit_unitary(theta, phi, lam)
+    return get_two_qubit_controlled_gate(n_qubits, ctr_qubit, target_qubit, gate)

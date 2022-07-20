@@ -1,7 +1,7 @@
 from src.backends.density_matrix.functions import (
     is_psd,
-    get_single_qubit_gate,
-    get_controlled_gate,
+    get_one_qubit_gate,
+    get_two_qubit_controlled_gate,
     sigmax,
     sigmaz,
 )
@@ -27,5 +27,5 @@ def test_density_matrix_creation_graph():
 
 def test_density_matrix_get_single_qubit_gate():
     # TODO: replace these prints by assert np.allclose( <>, expected)
-    print(get_single_qubit_gate(3, 0, sigmaz()))
-    print(get_controlled_gate(3, 0, 1, sigmax()))
+    print(get_one_qubit_gate(3, 0, sigmaz()))
+    print(get_two_qubit_controlled_gate(3, 0, 1, sigmax()))

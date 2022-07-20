@@ -205,12 +205,12 @@ class OperationBase(ABC):
     def unwrap(self):
         """
         Unwraps the Operation into a list of sub-operations (this can be useful for any operations which are composed
-        of multiple other operations)
+        of multiple other operations) in the reverse order, which corresponds to the order of applying operations.
 
         :return: a sequence of base operations (i.e. operations which are not compositions of other operations)
         :rtype: list
         """
-        return [self]
+        return [self][::-1]
 
     def _update_q_reg(self, q_reg):
         """
@@ -270,15 +270,15 @@ class OperationBase(ABC):
         return type_description[:-1]
 
 
-class SingleQubitOperationBase(OperationBase):
+class OneQubitOperationBase(OperationBase):
     """
-    This is used as a base class for any single-qubit operation (single-qubit operations should
+    This is used as a base class for any one-qubit operation (one-qubit operations should
     all depend on a single parameter, "register"
     """
 
     def __init__(self, register, reg_type, noise=nm.NoNoise()):
         """
-        Creates a single-qubit operation base class object
+        Creates a one-qubit operation base class object
 
         :param register: the (quantum) register on which the single-qubit operation acts
         :type register: int OR tuple (of ints, length 2)
@@ -504,7 +504,7 @@ class ClassicalControlledPairOperationBase(OperationBase):
 """ Quantum gates """
 
 
-class SingleQubitGateWrapper(SingleQubitOperationBase):
+class OneQubitGateWrapper(OneQubitOperationBase):
     """
     This wrapper class allows us to compose a list of single-qubit operation and treat them as a single component
     within the circuit (this allows us, for example, to create every local Clifford gate with other gates, without
@@ -520,9 +520,9 @@ class SingleQubitGateWrapper(SingleQubitOperationBase):
                 "Operation list for the single qubit gate wrapper must be of length 1 or more"
             )
         for op_class in operations:
-            assert issubclass(op_class, SingleQubitOperationBase)
+            assert issubclass(op_class, OneQubitOperationBase)
             assert not isinstance(
-                op_class, SingleQubitGateWrapper
+                op_class, OneQubitGateWrapper
             )  # can only contain base classes
         self.operations = operations
         self._openqasm_info = oq_lib.single_qubit_wrapper_info(operations)
@@ -530,23 +530,25 @@ class SingleQubitGateWrapper(SingleQubitOperationBase):
     def unwrap(self):
         """
         Unwraps the Operation into a list of sub-operations (this can be useful for any operations which are composed
-        of multiple other operations)
+        of multiple other operations) in the reverse order, which corresponds to the order of applying gates
 
         :return: a sequence of base operations (i.e. operations which are not compositions of other operations)
         :rtype: list
         """
-        return [
+
+        gates = [
             self.operations[i](
                 register=self.register, reg_type=self.reg_type, noise=self.noise[i]
             )
             for i in range(len(self.operations))
         ]
+        return gates[::-1]
 
     def openqasm_info(self):
         return self._openqasm_info
 
 
-class Hadamard(SingleQubitOperationBase):
+class Hadamard(OneQubitOperationBase):
     """
     Hadamard gate Operation
     """
@@ -557,7 +559,7 @@ class Hadamard(SingleQubitOperationBase):
         super().__init__(register, reg_type, noise)
 
 
-class SigmaX(SingleQubitOperationBase):
+class SigmaX(OneQubitOperationBase):
     """
     Pauli X gate Operation
     """
@@ -568,7 +570,7 @@ class SigmaX(SingleQubitOperationBase):
         super().__init__(register, reg_type, noise)
 
 
-class SigmaY(SingleQubitOperationBase):
+class SigmaY(OneQubitOperationBase):
     """
     Pauli Y gate Operation
     """
@@ -579,7 +581,7 @@ class SigmaY(SingleQubitOperationBase):
         super().__init__(register, reg_type, noise)
 
 
-class SigmaZ(SingleQubitOperationBase):
+class SigmaZ(OneQubitOperationBase):
     """
     Pauli Z gate Operation
     """
@@ -590,7 +592,7 @@ class SigmaZ(SingleQubitOperationBase):
         super().__init__(register, reg_type, noise)
 
 
-class Phase(SingleQubitOperationBase):
+class Phase(OneQubitOperationBase):
     """
     Phase gate operation, P = diag(1, i)
     """
@@ -601,7 +603,7 @@ class Phase(SingleQubitOperationBase):
         super().__init__(register, reg_type, noise)
 
 
-class Identity(SingleQubitOperationBase):
+class Identity(OneQubitOperationBase):
     """
     Identity Operation
     """
@@ -759,7 +761,7 @@ class Output(InputOutputOperationBase):
 """ Helper function to get useful sets of gates """
 
 
-def single_qubit_cliffords():
+def one_qubit_cliffords():
     """
     Returns an iterator of single-qubit clifford gates
 

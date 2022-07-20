@@ -405,7 +405,9 @@ class CircuitBase(ABC):
         :return: fig, ax on which the circuit was drawn
         :rtype: matplotlib.pyplot.figure, matplotlib.pyplot.axes
         """
-        return draw_openqasm(self.to_openqasm(), show=show, ax=ax, display_text=self.openqasm_symbols)
+        return draw_openqasm(
+            self.to_openqasm(), show=show, ax=ax, display_text=self.openqasm_symbols
+        )
 
     def _openqasm_update(self, op):
         """

@@ -19,7 +19,9 @@ class OpenQASMInfo:
     how to formulate a gate definitions in openqasm, and of how to apply a gate between specific qubits
     """
 
-    def __init__(self, gate_name, imports: list, definitions, usage, multi_comp, gate_symbol=None):
+    def __init__(
+        self, gate_name, imports: list, definitions, usage, multi_comp, gate_symbol=None
+    ):
         """
         Create a openQASMInfo object
 
@@ -238,7 +240,9 @@ def single_qubit_wrapper_info(op_list):
     def usage(q_reg, q_reg_type, c_reg):
         return f"{gate_name} {q_reg_type[0]}{q_reg[0]}[0];"
 
-    return OpenQASMInfo(gate_name, imports, definitions, usage, False, gate_symbol=f"U={gate_symbol}")
+    return OpenQASMInfo(
+        gate_name, imports, definitions, usage, False, gate_symbol=f"U={gate_symbol}"
+    )
 
 
 def cphase_info():

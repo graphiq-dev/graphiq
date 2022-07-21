@@ -109,9 +109,9 @@ def test_echelon_form(n_nodes):
             if len(nonzero_z1) == 0 and len(nonzero_z1) == 0:
                 pivot[0] = old_pivot
             elif len(nonzero_z1) == 0:
-                pivot[0] = max(nonzero_z1[-1], old_pivot)
-            else:
                 pivot[0] = max(nonzero_x1[-1], old_pivot)
+            else:
+                pivot[0] = max(nonzero_z1[-1], old_pivot)
         else:
             pivot[0] = max(nonzero_x1[-1], nonzero_z1[-1], old_pivot)
 
@@ -128,9 +128,9 @@ def test_echelon_form(n_nodes):
             if len(nonzero_z2) == 0 and len(nonzero_z2) == 0:
                 pivot[0] = old_pivot
             elif len(nonzero_z2) == 0:
-                pivot[0] = max(nonzero_z2[-1], old_pivot)
-            else:
                 pivot[0] = max(nonzero_x2[-1], old_pivot)
+            else:
+                pivot[0] = max(nonzero_z2[-1], old_pivot)
         else:
             pivot[0] = max(nonzero_x2[-1], nonzero_z2[-1], old_pivot)
         assert pivot[0] - old_pivot <= 2

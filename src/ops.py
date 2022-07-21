@@ -58,9 +58,11 @@ class OperationBase(ABC):
         :type q_registers: tuple (of str)
         :param c_registers: same as photon/emitter_registers, but for the classical registers
         :type c_registers: tuple (tuple of: integers OR tuples of length 2)
+        :param noise: Noise model
+        :type noise: src.noise.noise_models.NoiseBase
         :raises AssertionError: if photon_register, emitter_register, c_registers are not tuples,
                                OR if the elements of the tuple do not correspond to the notation described above
-        :return: the function returns nothing
+        :return: nothing
         :rtype: None
         """
         assert isinstance(q_registers, tuple)
@@ -284,7 +286,9 @@ class OneQubitOperationBase(OperationBase):
         :type register: int OR tuple (of ints, length 2)
         :param reg_type: 'e' if emitter qubit, 'p' if a photonic qubit
         :type reg_type: str
-        :return: function returns nothing
+        :param noise: Noise model
+        :type noise: src.noise.noise_models.NoiseBase
+        :return: nothing
         :rtype: None
         """
         super().__init__(
@@ -302,7 +306,7 @@ class OneQubitOperationBase(OperationBase):
 
         :param q_reg: the new q_register value to set
         :raises ValueError: if the new q_reg object does not have a length of 1
-        :return: function returns nothing
+        :return: nothing
         :rtype: None
         """
         self._update_q_reg(q_reg)
@@ -329,6 +333,10 @@ class InputOutputOperationBase(OperationBase):
                          for a quantum emitter register if 'e',
                          and for a classical register if 'c'
         :type reg_type: str
+        :param noise: Noise model
+        :type noise: src.noise.noise_models.NoiseBase
+        :return: nothing
+        :rtype: None
         """
         if reg_type == "p" or reg_type == "e":
             super().__init__(
@@ -454,7 +462,9 @@ class ClassicalControlledPairOperationBase(OperationBase):
         :param target_type: 'p' if photonic qubit, 'e' if emitter qubit
         :param c_register: the classical register/cbit
         :type c_register: int OR tuple (of ints, length 2)
-        :return: the function returns nothing
+        :param noise: Noise model
+        :type noise: src.noise.noise_models.NoiseBase
+        :return: nothing
         :rtype: None
         """
         super().__init__(
@@ -506,7 +516,7 @@ class ClassicalControlledPairOperationBase(OperationBase):
 
 class OneQubitGateWrapper(OneQubitOperationBase):
     """
-    This wrapper class allows us to compose a list of single-qubit operation and treat them as a single component
+    This wrapper class allows us to compose a list of one-qubit operation and treat them as a single component
     within the circuit (this allows us, for example, to create every local Clifford gate with other gates, without
     having to separately implement every combination within the compiler)
     """
@@ -521,9 +531,8 @@ class OneQubitGateWrapper(OneQubitOperationBase):
             )
         for op_class in operations:
             assert issubclass(op_class, OneQubitOperationBase)
-            assert not isinstance(
-                op_class, OneQubitGateWrapper
-            )  # can only contain base classes
+            # can only contain base classes
+            assert not isinstance(op_class, OneQubitGateWrapper)
         self.operations = operations
         self._openqasm_info = oq_lib.single_qubit_wrapper_info(operations)
 
@@ -694,6 +703,8 @@ class MeasurementZ(OperationBase):
         :type reg_type: str
         :param c_register: the classical register to which the measurement result is saved
         :type c_register: int OR tuple (of ints, length 2)
+        :param noise: Noise model
+        :type noise: src.noise.noise_models.NoiseBase
         :return: this function returns nothing
         :rtype: None
         """
@@ -766,6 +777,7 @@ def one_qubit_cliffords():
     Returns an iterator of single-qubit clifford gates
 
     :return: iterator covering each single-qubit clifford gate
+    :rtype: map
     """
     a = [
         [Identity],
@@ -790,7 +802,8 @@ def name_to_class_map(name):
 
     :param name: gate name in openqasm
     :type name: str
-    :return:
+    :return: the operation class corresponding to the openqasm name if the name is a valid name
+    :rtype: OperationBase class
     """
     map = {
         "CX": CNOT,

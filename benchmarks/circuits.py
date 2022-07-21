@@ -9,8 +9,8 @@ from src.circuit import CircuitDAG
 from src.ops import *
 
 from src.backends.density_matrix.functions import (
-    ketz0_state,
-    ketz1_state,
+    state_ketz0,
+    state_ketz1,
     tensor,
     ket2dm,
     partial_trace,
@@ -24,7 +24,7 @@ def bell_state_circuit():
     """
     ideal_state = dict(
         dm=ket2dm(
-            (tensor(2 * [ketz0_state()]) + tensor(2 * [ketz1_state()])) / np.sqrt(2)
+            (tensor(2 * [state_ketz0()]) + tensor(2 * [state_ketz1()])) / np.sqrt(2)
         ),
         n_emitters=2,
         n_photons=0,
@@ -42,7 +42,7 @@ def ghz3_state_circuit():
     """
     ideal_state = dict(
         dm=ket2dm(
-            (tensor(3 * [ketz0_state()]) + tensor(3 * [ketz1_state()])) / np.sqrt(2)
+            (tensor(3 * [state_ketz0()]) + tensor(3 * [state_ketz1()])) / np.sqrt(2)
         ),
         n_emitters=1,
         n_photons=3,
@@ -76,7 +76,7 @@ def ghz4_state_circuit():
     """
     ideal_state = dict(
         dm=ket2dm(
-            (tensor(4 * [ketz0_state()]) + tensor(4 * [ketz1_state()])) / np.sqrt(2)
+            (tensor(4 * [state_ketz0()]) + tensor(4 * [state_ketz1()])) / np.sqrt(2)
         ),
         n_emitters=1,
         n_photons=4,

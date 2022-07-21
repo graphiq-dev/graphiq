@@ -608,6 +608,7 @@ def local_comp_graph(input_graph, node_id):
     :return: a new transformed graph
     :rtype: networkx.Graph
     """
+    # TODO: integrate this with the state representation functions
     n_nodes = input_graph.number_of_nodes()
     assert n_nodes > node_id >= 0, "node index is not in the graph"
     adj_matrix = nx.to_numpy_array(input_graph).astype(int)

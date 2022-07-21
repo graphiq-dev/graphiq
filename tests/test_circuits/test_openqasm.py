@@ -141,7 +141,7 @@ def test_gates_2(initialization_circuit):
 )
 def test_gates_wrapper_1(gate_list):
     dag = CircuitDAG(n_emitter=1, n_photon=1, n_classical=1)
-    op = ops.OneQubitGateWrapper(gate_list, register=0, reg_type="e")
+    op = ops.SingleQubitGateWrapper(gate_list, register=0, reg_type="e")
     dag.add(op)
     try:
         qasm_str = dag.to_openqasm()
@@ -171,7 +171,7 @@ def test_load_circuit_2():
     """
     circuit1 = CircuitDAG(n_emitter=1, n_photon=2, n_classical=2)
     circuit1.add(
-        ops.OneQubitGateWrapper(
+        ops.SingleQubitGateWrapper(
             [ops.Hadamard, ops.Phase, ops.SigmaY], register=0, reg_type="e"
         )
     )
@@ -301,7 +301,7 @@ def test_visualization_gates_2(initialization_circuit):
 @visualization
 def test_gates_wrapper_visualization_1(gate_list):
     dag = CircuitDAG(n_emitter=1, n_photon=1, n_classical=1)
-    op = ops.OneQubitGateWrapper(gate_list, register=0, reg_type="e")
+    op = ops.SingleQubitGateWrapper(gate_list, register=0, reg_type="e")
     dag.add(op)
     dag.draw_circuit()
 
@@ -318,7 +318,7 @@ def test_gates_wrapper_visualization_1(gate_list):
 )
 @visualization
 def test_gates_wrapper_visualization_2(gate_list, initialization_circuit):
-    op = ops.OneQubitGateWrapper(gate_list, register=0, reg_type="e")
+    op = ops.SingleQubitGateWrapper(gate_list, register=0, reg_type="e")
     initialization_circuit.add(op)
     initialization_circuit.draw_circuit()
 
@@ -335,6 +335,6 @@ def test_gates_wrapper_visualization_2(gate_list, initialization_circuit):
 )
 @visualization
 def test_gates_wrapper_visualization_3(gate_list, all_gate_circuit):
-    op = ops.OneQubitGateWrapper(gate_list, register=0, reg_type="p")
+    op = ops.SingleQubitGateWrapper(gate_list, register=0, reg_type="p")
     all_gate_circuit.add(op)
     all_gate_circuit.draw_circuit()

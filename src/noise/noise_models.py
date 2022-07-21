@@ -377,10 +377,10 @@ class PauliError(AdditionNoiseBase):
             else:
                 raise ValueError("Wrong description of a Pauli matrix.")
         elif isinstance(state_rep, Stabilizer):
-            # TODO: Find the correct representation
+            # TODO: Find the correct representation for Stabilizer backend
             return
         elif isinstance(state_rep, Graph):
-            # TODO: Implement
+            # TODO: Implement this for Graph backend
             return
         else:
             raise TypeError("Backend type is not supported.")
@@ -604,7 +604,7 @@ class PhasePerturbedError(OneQubitGateReplacement):
         self.noise_parameters["Original parameters"] = (0, 0, np.pi / 2)
 
 
-class SimgaXPerturbedError(OneQubitGateReplacement):
+class SigmaXPerturbedError(OneQubitGateReplacement):
     """
     A noisy version of :math:`\\sigma_X` gate is used to replace the original gate.
     The noise is specified by the perturbation angles that deviate from
@@ -633,7 +633,14 @@ class SimgaXPerturbedError(OneQubitGateReplacement):
         self.noise_parameters["Original parameters"] = (np.pi, 0, np.pi)
 
 
-""" Noise models to be implemented in the future"""
+""" 
+Noise models to be implemented in the future. 
+The following classes are not implemented yet. 
+
+TODO: scattering/ collapse noise. A non-unitary noise model to have the state of a single qubit collapsed 
+(measured and reset in some basis) with some probability after some particular gates 
+(depending on the physics of the quantum emitters).
+"""
 
 
 class MixedUnitaryError(AdditionNoiseBase):
@@ -759,7 +766,7 @@ class MeasurementError(NoiseBase):
     """
 
     def __init__(self, prob_dist):
-        """ß
+        """
         Construct a MeasurementError object
 
         :param prob_dist: a :math:`2 \\times 2` matrix to describe the conditional probability of

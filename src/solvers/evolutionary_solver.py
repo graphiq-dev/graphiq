@@ -65,9 +65,12 @@ class EvolutionarySolver(RandomSearchSolver):
         # transformation functions and their relative probabilities
         self.trans_probs = self.initialize_transformation_probabilities()
         self.selection_active = selection_active
+        self.noise_simulation = True
         if noise_model_mapping is None or type(noise_model_mapping) is not dict:
             noise_model_mapping = {}
+            self.noise_simulation = False
         self.noise_model_mapping = noise_model_mapping
+
         self.p_dist = [0.5] + 11 * [0.1 / 22] + [0.4] + 11 * [0.1 / 22]
         self.e_dist = [0.5] + 11 * [0.02 / 22] + [0.48] + 11 * [0.02 / 22]
 
@@ -260,6 +263,7 @@ class EvolutionarySolver(RandomSearchSolver):
         :rtype: None
         """
 
+        self.compiler.noise_simulation = self.noise_simulation
         # TODO: add some logging to see how well it performed at each epoch (and pick n_stop accordingly)
 
         # Initialize population

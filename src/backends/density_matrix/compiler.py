@@ -93,11 +93,12 @@ class DensityMatrixCompiler(CompilerBase):
         """
         Create a compiler which acts on a DensityMatrix state representation
 
-        :return: function returns nothing
+        :return: nothing
         :rtype: None
         """
         super().__init__(*args, **kwargs)
         self._measurement_determinism = "probabilistic"
+        self._noise_simulation = True
 
     @property
     def measurement_determinism(self):
@@ -118,7 +119,7 @@ class DensityMatrixCompiler(CompilerBase):
         :param measurement_setting: if "probabilistic", measurement results are probabilistically selected
                                     if 1, measurement results default to 1 unless the probability of measuring p(1) = 0
                                     if 0, measurement results default to 0 unless the probability of measuring p(0) = 0
-        :rtype measurement_setting: str/int
+        :type measurement_setting: str or int
         :return: nothing
         :rtype: None
         """
@@ -128,6 +129,31 @@ class DensityMatrixCompiler(CompilerBase):
             raise ValueError(
                 'Measurement determinism can only be set to "probabilistic", 0, or 1'
             )
+
+    @property
+    def noise_simulation(self):
+        """
+        Returns the setting for noise simulation
+
+        :return: the setting for noise simulation
+        :rtype: bool
+        """
+        return self._noise_simulation
+
+    @noise_simulation.setter
+    def noise_simulation(self, choice):
+        """
+        Set the setting for noise simulation
+
+        :param choice: True to enable noise simulation; False to disable noise simulation
+        :type choice: bool
+        :return: nothing
+        :rtype: None
+        """
+        if type(choice) is bool:
+            self._noise_simulation = choice
+        else:
+            raise ValueError("Noise simulation choice can only be set to True or False")
 
     def compile(self, circuit: CircuitBase):
         """
@@ -169,7 +195,7 @@ class DensityMatrixCompiler(CompilerBase):
                     f"the {self.__class__.__name__} compiler"
                 )
 
-            if isinstance(op.noise, nm.NoNoise):
+            if not self._noise_simulation or isinstance(op.noise, nm.NoNoise):
                 self._compile_one_gate(
                     state, op, circuit.n_quantum, q_index, classical_registers
                 )

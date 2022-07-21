@@ -1,5 +1,7 @@
 """
-Evolutionary solver.
+Evolutionary solver which includes a random search solver as a special case.
+This solver is based on certain physical rules imposed by a platform.
+One can set these rules by the set of allowed transformations.
 """
 
 import copy
@@ -7,9 +9,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 import networkx as nx
 import warnings
-import time
 
 import src.backends.density_matrix.functions as dmf
+import src.noise.noise_models as nm
 
 from src.metrics import MetricBase
 
@@ -37,7 +39,7 @@ class EvolutionarySolver(RandomSearchSolver):
     n_hof = 5
     tournament_k = 2  # tournament size for selection of the next population
 
-    single_qubit_ops = list(ops.single_qubit_cliffords())
+    one_qubit_ops = list(ops.one_qubit_cliffords())
 
     use_adapt_probability = False
 
@@ -50,6 +52,7 @@ class EvolutionarySolver(RandomSearchSolver):
         n_emitter=1,
         n_photon=1,
         selection_active=False,
+        noise_model_mapping=None,
         *args,
         **kwargs,
     ):
@@ -62,6 +65,11 @@ class EvolutionarySolver(RandomSearchSolver):
         # transformation functions and their relative probabilities
         self.trans_probs = self.initialize_transformation_probabilities()
         self.selection_active = selection_active
+        self.noise_simulation = True
+        if noise_model_mapping is None or type(noise_model_mapping) is not dict:
+            noise_model_mapping = {}
+            self.noise_simulation = False
+        self.noise_model_mapping = noise_model_mapping
 
         self.p_dist = [0.5] + 11 * [0.1 / 22] + [0.4] + 11 * [0.1 / 22]
         self.e_dist = [0.5] + 11 * [0.02 / 22] + [0.48] + 11 * [0.02 / 22]
@@ -83,17 +91,73 @@ class EvolutionarySolver(RandomSearchSolver):
         if self.n_emitter > 1:
             trans_probs[self.add_emitter_cnot] = 1 / 4
 
-        # normalize the probabilities
+        return self._normalize_trans_prob(trans_probs)
+
+    @staticmethod
+    def _normalize_trans_prob(trans_probs):
+        """
+        Helper function to normalize the transformation probabilities
+
+        :param trans_probs: transformation probabilities
+        :type trans_probs: dict
+        :return: transformation probabilities after normalization
+        """
         total = np.sum(list(trans_probs.values()))
         for key in trans_probs.keys():
             trans_probs[key] *= 1 / total
         return trans_probs
+
+    def set_allowed_transformations(self, allowed_transformations):
+        """
+        Set allowed transformation and corresponding probabilities
+
+        :param allowed_transformations: a dictionary of all allowed transformation and its probabilities
+        :type allowed_transformations: dict
+        :return: nothing
+        :rtype: None
+        """
+
+        self.trans_probs = self._normalize_trans_prob(allowed_transformations)
+
+    def update_emitter_one_qubit_gate_probs(self, e_prob_list):
+        """
+        Update the probability distribution of one-qubit Clifford gates for emitter qubits
+
+        :param e_prob_list: a list of probabilities
+        :type e_prob_list: list[float]
+        :return: nothing
+        :rtype: None
+        """
+        assert len(e_prob_list) == len(self.one_qubit_ops)
+        e_prob_list = np.array(e_prob_list)
+        assert (e_prob_list >= 0).all()
+        total_prob = sum(e_prob_list)
+        assert total_prob > 0
+        self.e_dist = list(e_prob_list / total_prob)
+
+    def update_photonic_one_qubit_gate_probs(self, p_prob_list):
+        """
+        Update the probability distribution of one-qubit Clifford gates for photonic qubits
+
+        :param p_prob_list: a list of probabilities
+        :type p_prob_list: list[float]
+        :return: nothing
+        :rtype: None
+        """
+        assert len(p_prob_list) == len(self.one_qubit_ops)
+        p_prob_list = np.array(p_prob_list)
+        assert (p_prob_list >= 0).all()
+        total_prob = sum(p_prob_list)
+        assert total_prob > 0
+        self.p_dist = list(p_prob_list / total_prob)
 
     def adapt_probabilities(self, iteration: int):
         """
         Changes the probability of selecting circuit transformations at each iteration.
         Generally, transformations that add gates are selected with higher probability at the beginning.
         As the search progresses, transformations that remove gates are selected with higher probability.
+
+        TODO: check whether the input iteration is needed.
 
         :param iteration: i-th iteration of the search method, which ranges from 0 to n_stop
         :type iteration: int
@@ -121,7 +185,9 @@ class EvolutionarySolver(RandomSearchSolver):
             self.trans_probs[key] *= 1 / total
 
     @staticmethod
-    def initialization(emission_assignment, measurement_assignment):
+    def initialization(
+        emission_assignment, measurement_assignment, noise_model_mapping={}
+    ):
         """
         Initialize a quantum circuit with photon emission, emitter measurements
 
@@ -129,6 +195,9 @@ class EvolutionarySolver(RandomSearchSolver):
         :type emission_assignment: list[int]
         :param measurement_assignment: which photonic qubit is targeted after measuring each emitter
         :type measurement_assignment: list[int]
+        :param noise_model_mapping: a dictionary that stores the mapping between an operation
+            and its associated noise model
+        :type noise_model_mapping: dict
         :return: nothing
         :rtype: None
         """
@@ -143,17 +212,34 @@ class EvolutionarySolver(RandomSearchSolver):
                 control_type="e",
                 target=i,
                 target_type="p",
+                noise=EvolutionarySolver._identify_noise(
+                    ops.CNOT.__name__, noise_model_mapping
+                ),
             )
             op.add_labels("Fixed")
             circuit.add(op)
-            # initialize all single-qubit Clifford gate for photonic qubits
-            op = ops.SingleQubitGateWrapper(
-                [ops.Identity, ops.Hadamard], register=i, reg_type="p"
+            # initialize all one-qubit Clifford gate for photonic qubits
+            noise = []
+            if "Identity" in noise_model_mapping.keys():
+                noise.append(noise_model_mapping["Identity"])
+            else:
+                noise.append(nm.NoNoise())
+            if "Hadamard" in noise_model_mapping.keys():
+                noise.append(noise_model_mapping["Hadamard"])
+            else:
+                noise.append(nm.NoNoise())
+            op_list = [ops.Identity, ops.Hadamard]
+            op = ops.OneQubitGateWrapper(
+                op_list,
+                register=i,
+                reg_type="p",
+                noise=EvolutionarySolver._wrap_noise(op_list, noise_model_mapping),
             )
             op.add_labels("Fixed")
+
             circuit.add(op)
 
-        # initialize all emitter meausurement and reset operations
+        # initialize all emitter measurement and reset operations
 
         for j in range(n_emitter):
             op = ops.MeasurementCNOTandReset(
@@ -161,6 +247,9 @@ class EvolutionarySolver(RandomSearchSolver):
                 control_type="e",
                 target=measurement_assignment[j],
                 target_type="p",
+                noise=EvolutionarySolver._identify_noise(
+                    ops.MeasurementCNOTandReset.__name__, noise_model_mapping
+                ),
             )
             op.add_labels("Fixed")
             circuit.add(op)
@@ -174,6 +263,7 @@ class EvolutionarySolver(RandomSearchSolver):
         :rtype: None
         """
 
+        self.compiler.noise_simulation = self.noise_simulation
         # TODO: add some logging to see how well it performed at each epoch (and pick n_stop accordingly)
 
         # Initialize population
@@ -188,7 +278,9 @@ class EvolutionarySolver(RandomSearchSolver):
                 )
 
                 circuit = self.initialization(
-                    emission_assignment, measurement_assignment
+                    emission_assignment,
+                    measurement_assignment,
+                    self.noise_model_mapping,
                 )
                 # initialize all population members
                 population.append((np.inf, circuit))
@@ -228,16 +320,60 @@ class EvolutionarySolver(RandomSearchSolver):
 
             print(f"Iteration {i} | Best score: {self.hof[0][0]:.4f}")
 
+    @staticmethod
+    def _wrap_noise(op, noise_model_mapping):
+        """
+        A helper function to consolidate noise models for OneQubitWrapper operation
+
+        :param op: a list of operations
+        :type op: list[ops.OperationBase]
+        :param noise_model_mapping: a dictionary that stores the mapping between an operation
+            and its associated noise model
+        :type noise_model_mapping: dict
+        :return: a list of noise models
+        :rtype: list[nm.NoiseBase]
+        """
+        noise = []
+        for each_op in op:
+            noise.append(
+                EvolutionarySolver._identify_noise(
+                    each_op.__name__, noise_model_mapping
+                )
+            )
+        return noise
+
+    @staticmethod
+    def _identify_noise(op, noise_model_mapping):
+        """
+        A helper function to identify the noise model for an operation
+
+        :param op: an operation or its name
+        :type op: ops.OperationBase or str
+        :param noise_model_mapping: a dictionary that stores the mapping between an operation
+            and its associated noise model
+        :type noise_model_mapping: dict
+        :return: a noise model
+        :rtype: nm.NoiseBase
+        """
+        if type(op) != str:
+            op_name = type(op).__name__
+        else:
+            op_name = op
+        if op_name in noise_model_mapping.keys():
+            return noise_model_mapping[op_name]
+        else:
+            return nm.NoNoise()
+
     def replace_photon_one_qubit_op(self, circuit):
         """
-        Replace one single-qubit Clifford gate applied on a photonic qubit to another one.
+        Replace one one-qubit Clifford gate applied on a photonic qubit to another one.
 
         :param circuit: a quantum circuit
         :type circuit: CircuitDAG
         :return: nothing
         :rtype: None
         """
-        nodes = circuit.get_node_by_labels(["SingleQubitGateWrapper", "Photonic"])
+        nodes = circuit.get_node_by_labels(["OneQubitGateWrapper", "Photonic"])
 
         if len(nodes) == 0:
             return
@@ -247,18 +383,18 @@ class EvolutionarySolver(RandomSearchSolver):
         old_op = circuit.dag.nodes[node]["op"]
 
         reg = old_op.register
-        ind = np.random.choice(len(self.single_qubit_ops), p=self.p_dist)
-        op = self.single_qubit_ops[ind]
-        gate = ops.SingleQubitGateWrapper(op, reg_type="p", register=reg)
+        ind = np.random.choice(len(self.one_qubit_ops), p=self.p_dist)
+        op = self.one_qubit_ops[ind]
+        noise = self._wrap_noise(op, self.noise_model_mapping)
+        gate = ops.OneQubitGateWrapper(op, reg_type="p", register=reg, noise=noise)
         gate.add_labels("Fixed")
-
         # circuit.replace_op(node, gate)
-        circuit._open_qasm_update(gate)
+        circuit._openqasm_update(gate)
         circuit.dag.nodes[node]["op"] = gate
 
     def add_emitter_one_qubit_op(self, circuit):
         """
-        Randomly selects one valid edge on which to add a new single-qubit gate
+        Randomly selects one valid edge on which to add a new one-qubit gate
 
         :param circuit: a quantum circuit
         :type circuit: CircuitDAG
@@ -266,13 +402,13 @@ class EvolutionarySolver(RandomSearchSolver):
         :rtype: None
         """
         # make sure only selecting emitter qubits and avoiding adding a gate after final measurement or
-        # adding two single-qubit Clifford gates in a row
+        # adding two one-qubit Clifford gates in a row
         edges = [
             edge
             for edge in circuit.edge_dict["e"]
             if type(circuit.dag.nodes[edge[1]]["op"]) is not ops.Output
-            and type(circuit.dag.nodes[edge[0]]["op"]) is not ops.SingleQubitGateWrapper
-            and type(circuit.dag.nodes[edge[1]]["op"]) is not ops.SingleQubitGateWrapper
+            and type(circuit.dag.nodes[edge[0]]["op"]) is not ops.OneQubitGateWrapper
+            and type(circuit.dag.nodes[edge[1]]["op"]) is not ops.OneQubitGateWrapper
         ]
 
         if len(edges) == 0:
@@ -284,9 +420,11 @@ class EvolutionarySolver(RandomSearchSolver):
         reg = circuit.dag.edges[edge]["reg"]
         label = edge[2]
 
-        ind = np.random.choice(len(self.single_qubit_ops), p=self.e_dist)
-        op = self.single_qubit_ops[ind]
-        gate = ops.SingleQubitGateWrapper(op, reg_type="e", register=reg)
+        ind = np.random.choice(len(self.one_qubit_ops), p=self.e_dist)
+        op = self.one_qubit_ops[ind]
+        noise = self._wrap_noise(op, self.noise_model_mapping)
+        gate = ops.OneQubitGateWrapper(op, reg_type="e", register=reg, noise=noise)
+
         circuit.insert_at(gate, [edge])
 
     def add_emitter_cnot(self, circuit):
@@ -313,7 +451,9 @@ class EvolutionarySolver(RandomSearchSolver):
             control_type="e",
             target=circuit.dag.edges[edge1]["reg"],
             target_type="e",
+            noise=self._identify_noise(ops.CNOT.__name__, self.noise_model_mapping),
         )
+
         circuit.insert_at(gate, [edge0, edge1])
 
     def remove_op(self, circuit, node=None):
@@ -339,8 +479,8 @@ class EvolutionarySolver(RandomSearchSolver):
 
     def add_measurement_cnot_and_reset(self, circuit):
         """
-        Add a MeausurementCNOTandReset operation from an emitter qubit to a photonic qubit such that no consecutive MeasurementCNOTReset is allowed.
-        This operation cannot be added before the photonic qubit is initialized.
+        Add a MeausurementCNOTandReset operation from an emitter qubit to a photonic qubit such that no consecutive
+        MeasurementCNOTReset is allowed. This operation cannot be added before the photonic qubit is initialized.
 
         :param circuit: a quantum circuit
         :type circuit: CircuitDAG
@@ -362,7 +502,11 @@ class EvolutionarySolver(RandomSearchSolver):
             control_type="e",
             target=circuit.dag.edges[edge1]["reg"],
             target_type="p",
+            noise=self._identify_noise(
+                ops.MeasurementCNOTandReset.__name__, self.noise_model_mapping
+            ),
         )
+
         circuit.insert_at(gate, [edge0, edge1])
 
     # helper functions
@@ -508,52 +652,6 @@ class EvolutionarySolver(RandomSearchSolver):
             "Max iteration #": self.n_stop,
             "Population size": self.n_pop,
             "seed": self.last_seed,
-            "Single qubit ops": op_names(self.single_qubit_ops),
+            "One-qubit ops": op_names(self.one_qubit_ops),
             "Transition probabilities": transition_names(self.trans_probs),
         }
-
-
-if __name__ == "__main__":
-    # %% here we have access
-    EvolutionarySolver.n_stop = 40
-    EvolutionarySolver.n_pop = 150
-    EvolutionarySolver.n_hof = 10
-    EvolutionarySolver.tournament_k = 10
-
-    # %% comment/uncomment for reproducibility
-    # RuleBasedRandomSearchSolver.seed(1)
-
-    # %% select which state we want to target
-    from benchmarks.circuits import *
-
-    circuit_ideal, state_ideal = linear_cluster_3qubit_circuit()
-
-    # %% construct all of our important objects
-    target = state_ideal["dm"]
-    compiler = DensityMatrixCompiler()
-    metric = Infidelity(target=target)
-
-    solver = EvolutionarySolver(target=target, metric=metric, compiler=compiler)
-
-    # %% call the solver.solve() function to implement the random search algorithm
-    t0 = time.time()
-    solver.solve()
-    t1 = time.time()
-
-    # %% print/plot the results
-    print(solver.hof)
-    print(f"Total time {t1 - t0}")
-
-    circuit = solver.hof[0][1]
-
-    # extract the best performing circuit
-    fig, axs = density_matrix_bars(target)
-    fig.suptitle("Target density matrix")
-    plt.show()
-
-    state = compiler.compile(circuit)
-    fig, axs = density_matrix_bars(state.data)
-    fig.suptitle("Simulated density matrix")
-    plt.show()
-
-    circuit.draw_circuit()

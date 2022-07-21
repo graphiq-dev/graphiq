@@ -209,6 +209,24 @@ def phase_gate(stabilizer_state, qubit_position):
     return stabilizer_state
 
 
+def cnot_gate(stabilizer_state, ctrl_qubit, target_qubit):
+    """
+    CNOT on control and target qubits given their position, in a stabilizer state.
+
+    :param stabilizer_state: a StabilizerState object.
+    :type stabilizer_state: StabilizerState
+    :param ctrl_qubit: index of the control qubit
+    :type ctrl_qubit: int
+    :param target_qubit: index of the target qubit that the gate acts on
+    :type target_qubit: int
+    :rtype: StabilizerState
+    :return: the resulting state after gate action
+    """
+
+
+    return
+
+
 def hadamard_transform(x_matrix, z_matrix, positions):
     """
     Apply a Hadamard gate on each qubit specified by

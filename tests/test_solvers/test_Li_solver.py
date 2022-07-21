@@ -85,7 +85,7 @@ def test_height_comparison(case_number):
     assert h_x == globals()[f"h_{case_number}"]
 
 
-@pytest.mark.parametrize("n_nodes", [6, 7, 8, 9, 10])
+@pytest.mark.parametrize("n_nodes", [*range(5,15)])
 def test_echelon_form(n_nodes):
     g1 = nx.complete_graph(n_nodes)
     g2 = nx.gnp_random_graph(n_nodes, 0.5)
@@ -114,10 +114,9 @@ def test_echelon_form(n_nodes):
                 pivot[0] = max(nonzero_z1[-1], old_pivot)
         else:
             pivot[0] = max(nonzero_x1[-1], nonzero_z1[-1], old_pivot)
-
+        print(f"pivot ={pivot}")
         assert pivot[0] - old_pivot <= 2
         for j in range(1 + int(pivot[0]), n_nodes):
-            print(f"{j, i} and pivot ={pivot}")
             assert int(x_1[j, i]) == 0 and int(z_1[j, i]) == 0
     pivot = [0, 0]
     print("2", "\n", x_2.astype(int), "\n", z_2)
@@ -135,7 +134,7 @@ def test_echelon_form(n_nodes):
                 pivot[0] = max(nonzero_z2[-1], old_pivot)
         else:
             pivot[0] = max(nonzero_x2[-1], nonzero_z2[-1], old_pivot)
+        print(f"pivot ={pivot}")
         assert pivot[0] - old_pivot <= 2
         for j in range(int(pivot[0]) + 1, n_nodes):
-            print(f"{j,i} and pivot ={pivot}")
             assert int(x_2[j, i]) == 0 and int(z_2[j, i]) == 0

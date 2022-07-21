@@ -30,7 +30,7 @@ def test_bell_circuit():
 def test_bell_circuit_with_wrapper_op_1():
     _, ideal_state = bell_state_circuit()
     circuit = CircuitDAG(n_emitter=2, n_classical=0)
-    composite_op = ops.SingleQubitGateWrapper(
+    composite_op = ops.OneQubitGateWrapper(
         [ops.Identity, ops.Hadamard], register=0, reg_type="e"
     )
     circuit.add(composite_op)
@@ -47,7 +47,7 @@ def test_bell_circuit_with_wrapper_op_1():
 def test_bell_circuit_with_wrapper_op_2():
     _, ideal_state = bell_state_circuit()
     circuit = CircuitDAG(n_emitter=2, n_classical=0)
-    composite_op = ops.SingleQubitGateWrapper(
+    composite_op = ops.OneQubitGateWrapper(
         [ops.Phase, ops.Phase, ops.Phase, ops.Phase, ops.Hadamard],
         register=0,
         reg_type="e",

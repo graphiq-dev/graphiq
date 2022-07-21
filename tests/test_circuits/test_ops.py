@@ -4,7 +4,7 @@ import src.ops as ops
 
 
 def test_single_qubit_clifford_combo():
-    clifford_iter = ops.single_qubit_cliffords()
+    clifford_iter = ops.one_qubit_cliffords()
     assert next(clifford_iter) == [ops.Identity, ops.Identity]
     assert next(clifford_iter) == [ops.Identity, ops.SigmaX]
     assert next(clifford_iter) == [ops.Identity, ops.SigmaY]
@@ -88,23 +88,23 @@ def test_unwrapping_base_gate_2():
 def test_wrapper_gate_1():
     """Checks that an error is thrown in the wrapper is empty"""
     with pytest.raises(ValueError):
-        ops.SingleQubitGateWrapper([], register=0)
+        ops.OneQubitGateWrapper([], register=0)
 
 
 def test_wrapper_gate_2():
     """Checks that an error is thrown in the wrapper contains multi-qubit gates"""
     with pytest.raises(AssertionError):
         gates = [ops.CNOT, ops.Hadamard, ops.Phase]
-        ops.SingleQubitGateWrapper(gates)
+        ops.OneQubitGateWrapper(gates)
 
 
 def test_wrapper_gate_unwrap_1():
     """Test unwrap a single operation"""
     gates = [ops.Hadamard]
-    operation = ops.SingleQubitGateWrapper(gates)
+    operation = ops.OneQubitGateWrapper(gates)
     unwrapped = operation.unwrap()
     for i, op in enumerate(unwrapped):
-        assert isinstance(op, gates[i])
+        assert isinstance(op, gates[::-1][i])
         assert op.register == operation.register
         assert op.q_registers == operation.q_registers
         assert op.q_registers_type == operation.q_registers_type
@@ -113,10 +113,10 @@ def test_wrapper_gate_unwrap_1():
 def test_wrapper_gate_unwrap_2():
     """Test unwrap multiple operations"""
     gates = [ops.Hadamard, ops.Phase, ops.Hadamard, ops.Phase, ops.Identity]
-    operation = ops.SingleQubitGateWrapper(gates)
+    operation = ops.OneQubitGateWrapper(gates)
     unwrapped = operation.unwrap()
     for i, op in enumerate(unwrapped):
-        assert isinstance(op, gates[i])
+        assert isinstance(op, gates[::-1][i])
         assert op.register == operation.register
         assert op.q_registers == operation.q_registers
         assert op.q_registers_type == operation.q_registers_type

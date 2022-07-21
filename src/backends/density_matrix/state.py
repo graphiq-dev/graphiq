@@ -1,46 +1,50 @@
 """
-Density Matrix representation for states
+Density matrix representation for states.
+
+It supports applications of unitary operations, quantum channels and measurements on the state.
+
 """
 import networkx as nx
 import numpy as np
 import matplotlib.pyplot as plt
+import src.backends.density_matrix.functions as dmf
 
-from src.backends.density_matrix.functions import is_psd, create_n_plus_state, apply_cz
 from src.backends.state_base import StateRepresentationBase
 from src.backends.graph.state import Graph
 from src.visualizers.density_matrix import density_matrix_heatmap, density_matrix_bars
-
-
-# TODO: accept single input (# of qubits) as input and initialize as unentangled qubits
+from src.backends.state_representation_conversion import graph_to_density
 
 
 class DensityMatrix(StateRepresentationBase):
     """
-    Density matrix of a graph state
+    Density matrix of a state
     """
 
     def __init__(self, data, *args, **kwargs):
         """
-        Construct a DensityMatrix object and calculate the density matrix from state_data
+        Construct a DensityMatrix object from a numpy.ndarray or from the number of qubits. If an integer is specified,
+        then the state is initialized as a product state of :math:`|0\\rangle` with the given number of qubits.
 
-        :param data: density matrix or a networkx graph
-        :type data: numpy.ndarray
+        :param data: density matrix or the number of qubits
+        :type data: numpy.ndarray or int
         :return: nothing
         :rtype: None
         """
-        super().__init__(data, *args, **kwargs)
 
-        if not isinstance(data, np.ndarray):
-            raise TypeError("Input must be a np ndarray")
-        else:
-            # check if state_data is positive semi-definite
-            if not is_psd(data):
+        if isinstance(data, np.ndarray):
+            if not dmf.is_psd(data):
+                # check if state_data is positive semi-definite
                 raise ValueError("The input matrix is not a valid density matrix")
 
             if not np.equal(np.trace(data), 1):
                 data = data / np.trace(data)
+        elif isinstance(data, int):
+            # initialize as a tensor product of |0> state
+            data = dmf.create_n_product_state(data, dmf.state_ketz0())
+        else:
+            raise TypeError("Input must be a numpy.ndarray or an integer")
 
-            self.data = data
+        super().__init__(data, *args, **kwargs)
 
     @classmethod
     def from_graph(cls, graph):
@@ -53,38 +57,26 @@ class DensityMatrix(StateRepresentationBase):
         :return: a DensityMatrix representation with the data contained by graph
         :rtype: DensityMatrix
         """
-        # TODO: port this implementation into a conversion-specific python document
-        if isinstance(graph, nx.Graph):
-            graph_data = graph
-        elif isinstance(graph, Graph):
-            graph_data = graph.data
+        if isinstance(graph, Graph):
+            return cls(graph_to_density(graph.data))
         else:
-            raise TypeError("Input state must be GraphState object or NetworkX graph.")
-
-        number_qubits = graph_data.number_of_nodes()
-        mapping = dict(zip(graph_data.nodes(), range(0, number_qubits)))
-        edge_list = list(graph_data.edges)
-        final_state = create_n_plus_state(number_qubits)
-
-        for edge in edge_list:
-            final_state = apply_cz(final_state, mapping[edge[0]], mapping[edge[1]])
-        data = final_state
-
-        return cls(data)
+            return cls(graph_to_density(graph))
 
     def apply_unitary(self, unitary):
         """
-        Apply a unitary on the state.
+        Apply a unitary to the state.
         Assumes the dimensions match; Otherwise, raise ValueError
 
         :param unitary: unitary matrix to apply
         :type unitary: numpy.ndarray
         :raises ValueError: if the density matrix of the state has a different size from the unitary gate to be applied
-        :return: function returns nothing
+        :return: nothing
         :rtype: None
         """
         if self._data.shape == unitary.shape:
             self._data = unitary @ self._data @ np.transpose(np.conjugate(unitary))
+            # to avoid small numerical error that causes the state non-Hermitian
+            self._data = dmf.hermitianize(self._data)
         else:
             raise ValueError(
                 "The density matrix of the state has a different size from the unitary gate to be applied."
@@ -98,7 +90,7 @@ class DensityMatrix(StateRepresentationBase):
         :param kraus_ops: a list of Kraus operators of the channel
         :type kraus_ops: list[numpy.ndarray]
         :raises ValueError: if Kraus operators have wrong dimensions.
-        :return: function returns nothing
+        :return: nothing
         :rtype: None
         """
         tmp_state = 0
@@ -109,23 +101,21 @@ class DensityMatrix(StateRepresentationBase):
                 tmp_state = tmp_state + kraus_ops[i] @ self._data @ np.conjugate(
                     kraus_ops[i].T
                 )
-            self._data = tmp_state
+            # to avoid small numerical error that causes the state non-Hermitian
+            self._data = dmf.hermitianize(tmp_state)
         else:
             raise ValueError("Kraus operators have wrong dimensions.")
 
-    def apply_measurement_TO_DEBUG(
-        self, projectors, measurement_determinism="probabilistic"
-    ):
+    def apply_measurement(self, projectors, measurement_determinism="probabilistic"):
         """
-        # TODO: replace the other apply_measurement function by this one, and also debug to find out why it
-        # gives different tests results in test_benchmark_fidelity.py
         Apply a measurement, either deterministically (with a certain outcome) or probabilistically
-        :param projectors: the project which is the measurement to apply
-        :type projectors: numpy.ndarray
+
+        :param projectors: a list of projective measurements in the computational basis
+        :type projectors: list[numpy.ndarray]
         :param measurement_determinism: if "probabilistic", measurement results are probabilistically selected
                                     if 1, measurement results default to 1 unless the probability of measuring p(1) = 0
                                     if 0, measurement results default to 0 unless the probability of measuring p(0) = 0
-        :rtype _measurement_determinism: str/int
+        :type measurement_determinism: str/int
         :return: the measurement outcome
         :rtype: int
         """
@@ -158,109 +148,38 @@ class DensityMatrix(StateRepresentationBase):
 
             m, norm = projectors[outcome], probs[outcome]
 
-            # TODO: this is the dm CONDITIONED on the measurement outcome
             # this assumes that the projector, m, has the properties: m = sqrt(m) and m = m.dag()
             self._data = (m @ self._data @ np.transpose(np.conjugate(m))) / norm
 
-            # TODO: this is the dm *unconditioned* on the outcome
-            # self._data = sum([m @ self._data @ m for m in projectors])
         else:
             raise ValueError(
                 "The density matrix of the state has a different size from the POVM elements."
             )
+        return outcome
 
-    def apply_measurement(self, projectors, measurement_determinism):
+    def apply_measurement_controlled_gate(
+        self, projectors, target_gate, measurement_determinism=1
+    ):
         """
         Apply a measurement, either deterministically (with a certain outcome) or probabilistically
-        TODO: refactor apply_probabilistic_measurement, apply_deterministic_measurement functions to share code
-        :param projectors: the project which is the measurement to apply
-        :type projectors: numpy.ndarray
+        and conditioned on the measurement outcome, apply the target_gate
+
+        :param projectors: a list of projective measurements in the computational basis
+        :type projectors: list[numpy.ndarray]
+        :param target_gate: the gate to be applied if the measurement outcome is 1
+        :type target_gate: numpy.ndarray
         :param measurement_determinism: if "probabilistic", measurement results are probabilistically selected
                                     if 1, measurement results default to 1 unless the probability of measuring p(1) = 0
                                     if 0, measurement results default to 0 unless the probability of measuring p(0) = 0
-        :rtype _measurement_determinism: str/int
+        :type measurement_determinism: str/int
+        :raises AssertionError: if target_gate has different dimensions from the density matrix of the state
         :return: the measurement outcome
         :rtype: int
         """
-        if measurement_determinism == "probabilistic":
-            return self.apply_probabilistic_measurement(projectors)
-        elif measurement_determinism == 1:
-            return self.apply_deterministic_measurement(projectors, set_measurement=1)
-        elif measurement_determinism == 0:
-            return self.apply_deterministic_measurement(projectors, set_measurement=0)
-
-    def apply_probabilistic_measurement(self, projectors):
-        """
-        Apply the projectors measurement onto the density matrix representation of the state
-
-        :param projectors: the projector which is the measurement to apply
-        :type projectors: numpy.ndarray
-        :raises ValueError: if the density matrix of the state has a different size from the POVM elements.
-        :return: the measurement outcome
-        :rtype: int
-        """
-        if self._data.shape == projectors[0].shape:
-            probs = []
-            for m in projectors:
-                prob = np.real(np.trace(self._data @ m))
-                if prob < 0:
-                    prob = 0
-                probs.append(prob)
-
-            outcome = np.random.choice([0, 1], p=probs / np.sum(probs))
-            m, norm = projectors[outcome], probs[outcome]
-            # TODO: this is the dm CONDITIONED on the measurement outcome
-            # this assumes that the projector, m, has the properties: m = sqrt(m) and m = m.dag()
-            self._data = (m @ self._data @ np.transpose(np.conjugate(m))) / norm
-            # TODO: this is the dm *unconditioned* on the outcome
-            # self._data = sum([m @ self._data @ m for m in projectors])
-        else:
-            raise ValueError(
-                "The density matrix of the state has a different size from the POVM elements."
-            )
-
-        return outcome
-
-    def apply_deterministic_measurement(self, projectors, set_measurement=None):
-        """
-        Apply the projectors measurement onto the density matrix representation of the state
-
-        :param projectors: the projector which is the measurement to apply
-        :type projectors: numpy.ndarray
-        :raises ValueError: if the density matrix of the state has a different size from the POVM elements.
-        :return: the measurement outcome
-        :rtype: int
-        """
-        if self._data.shape == projectors[0].shape:
-            probs = []
-            for m in projectors:
-                prob = np.real(np.trace(self._data @ m))
-                if prob < 0:
-                    prob = 0
-                probs.append(prob)
-            if set_measurement is None or set_measurement == 1:  # default
-                # TODO: might be worth it making this "np.isclose"
-                if probs[1] > 0:
-                    outcome = 1
-                else:
-                    outcome = 0
-            else:
-                if probs[1] < 1:
-                    outcome = 0
-                else:
-                    outcome = 1
-
-            m, norm = projectors[outcome], probs[outcome]
-            # TODO: this is the dm CONDITIONED on the measurement outcome
-            # this assumes that the projector, m, has the properties: m = sqrt(m) and m = m.dag()
-            self._data = (m @ self._data @ np.transpose(np.conjugate(m))) / norm
-            # TODO: this is the dm *unconditioned* on the outcome
-            # self._data = sum([m @ self._data @ m for m in projectors])
-        else:
-            raise ValueError(
-                "The density matrix of the state has a different size from the POVM elements."
-            )
-
+        assert self._data.shape == target_gate.shape
+        outcome = self.apply_measurement(projectors, measurement_determinism)
+        if outcome == 1:
+            self.apply_unitary(target_gate)
         return outcome
 
     def draw(self, style="bar", show=True):

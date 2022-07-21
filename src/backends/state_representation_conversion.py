@@ -1,13 +1,15 @@
+"""
+State representation conversion module. This conversion module uses the internal representations instead of classes from
+src.backends.*.states
+
+"""
+
 import numpy as np
 import networkx as nx
 
 import src.backends.density_matrix.functions as dmf
 import src.backends.graph.functions as gf
 import src.backends.stabilizer.functions as sf
-
-from src.backends.density_matrix.state import DensityMatrix
-from src.backends.graph.state import Graph
-from src.backends.stabilizer.state import Stabilizer
 
 
 # TODO: Currently the conversion functions assume no redundant encoding. Next step is to include redundant encoding.
@@ -70,20 +72,17 @@ def density_to_graph(input_matrix, threshold=0.1):
     It assumes qubit systems.
 
     :param input_matrix: a density matrix to be converted to a graph
-    :type input_matrix: numpy.ndarray or DensityMatrix
+    :type input_matrix: numpy.ndarray
     :param threshold: a minimum threshold value of negativity for the state to assume entangled
     :type threshold: double or float
     :return: an adjacency matrix representation
     :rtype: numpy.ndarray
     """
-    if isinstance(input_matrix, DensityMatrix):
-        rho = DensityMatrix.data
-    elif isinstance(input_matrix, np.ndarray):
+
+    if isinstance(input_matrix, np.ndarray):
         rho = input_matrix
     else:
-        raise TypeError(
-            "Input density matrix must be either a DensityMatrix object or a numpy.ndarray"
-        )
+        raise TypeError("Input density matrix must be a numpy.ndarray")
     n_qubits = int(np.log2(np.sqrt(rho.size)))
     graph_adj = np.zeros((n_qubits, n_qubits))
     for i in range(n_qubits):
@@ -107,7 +106,7 @@ def graph_to_density(input_graph):
     Builds a density matrix representation from a graph (either networkx.graph or a Graph representation)
 
     :param input_graph: the graph from which we will build a density matrix
-    :type input_graph: networkx.Graph OR Graph
+    :type input_graph: networkx.Graph
     :raise TypeError: if input_graph is not of the type of networkx.Graph or a src.backends.graph.state.Graph
         or an adjacency matrix given by a numpy array
     :return: a DensityMatrix representation with the data contained by graph
@@ -116,13 +115,11 @@ def graph_to_density(input_graph):
 
     if isinstance(input_graph, nx.Graph):
         graph_data = input_graph
-    elif isinstance(input_graph, Graph):
-        graph_data = input_graph.data
     elif isinstance(input_graph, np.ndarray):
         graph_data = nx.from_numpy_matrix(input_graph)
     else:
         raise TypeError(
-            "Input graph must be Graph object or NetworkX graph or adjacency matrix using numpy.array."
+            "Input graph must be NetworkX graph or adjacency matrix using numpy.array."
         )
 
     number_qubits = graph_data.number_of_nodes()
@@ -140,7 +137,7 @@ def graph_to_stabilizer(input_graph):
     """
     Convert a graph to stabilizer
     :param input_graph: the input graph to be converted to the stabilizer
-    :type input_graph: networkX.Graph or Graph or numpy.array
+    :type input_graph: networkX.Graph or numpy.ndarray
     :raise TypeError: if input_graph is not of the type of networkx.Graph or a src.backends.graph.state.Graph
         or an adjacency matrix given by a numpy array
     :return: two binary matrices representing the stabilizer generators
@@ -148,13 +145,11 @@ def graph_to_stabilizer(input_graph):
     """
     if isinstance(input_graph, nx.Graph):
         adj_matrix = nx.to_numpy_array(input_graph)
-    elif isinstance(input_graph, Graph):
-        adj_matrix = nx.to_numpy_array(input_graph.data)
     elif isinstance(input_graph, np.ndarray):
         adj_matrix = input_graph
     else:
         raise TypeError(
-            "Input graph must be Graph object or NetworkX graph or adjacency matrix using numpy.array."
+            "Input graph must be NetworkX graph or adjacency matrix using numpy.array."
         )
     n_nodes = int(np.sqrt(adj_matrix.size))
 

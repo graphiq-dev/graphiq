@@ -83,7 +83,7 @@ class RandomSearchSolver(SolverBase):
 
     fixed_ops = [ops.Input, ops.Output]  # ops that should never be removed/swapped
 
-    single_qubit_ops = [
+    one_qubit_ops = [
         ops.Hadamard,
     ]
 

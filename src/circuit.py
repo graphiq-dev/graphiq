@@ -77,6 +77,8 @@ class CircuitBase(ABC):
         else:
             self.openqasm_defs = openqasm_defs
 
+        self.openqasm_symbols = {}
+
     @property
     def emitter_registers(self):
         return self._emitter_registers
@@ -403,9 +405,11 @@ class CircuitBase(ABC):
         :return: fig, ax on which the circuit was drawn
         :rtype: matplotlib.pyplot.figure, matplotlib.pyplot.axes
         """
-        return draw_openqasm(self.to_openqasm(), show=show, ax=ax)
+        return draw_openqasm(
+            self.to_openqasm(), show=show, ax=ax, display_text=self.openqasm_symbols
+        )
 
-    def _open_qasm_update(self, op):
+    def _openqasm_update(self, op):
         """
         Helper function to update any information a circuit might need to generate openqasm scripts
 
@@ -422,6 +426,10 @@ class CircuitBase(ABC):
             for definition in oq_info.define_gate:
                 if definition not in self.openqasm_defs:
                     self.openqasm_defs[definition] = 1
+
+            if oq_info.gate_symbol is not None:
+                self.openqasm_symbols[oq_info.gate_name] = oq_info.gate_symbol
+
         except ValueError:
             warnings.warn(
                 UserWarning(f"No openqasm definitions for operation {type(op)}")
@@ -478,7 +486,7 @@ class CircuitDAG(CircuitBase):
         :return: nothing
         :rtype: None
         """
-        self._open_qasm_update(operation)
+        self._openqasm_update(operation)
 
         # update registers (if the new operation is adding registers to the circuit)
         e_reg = tuple(
@@ -511,7 +519,7 @@ class CircuitDAG(CircuitBase):
         :return: nothing
         :rtype: None
         """
-        self._open_qasm_update(operation)
+        self._openqasm_update(operation)
 
         # update registers (if the new operation is adding registers to the circuit)
         e_reg = tuple(
@@ -566,7 +574,7 @@ class CircuitDAG(CircuitBase):
         self._node_dict_append(new_operation.parse_q_reg_types(), node)
 
         # replace the operation in the node
-        self._open_qasm_update(new_operation)
+        self._openqasm_update(new_operation)
         self.dag.nodes[node]["op"] = new_operation
 
     def find_incompatible_edges(self, first_edge):
@@ -1079,7 +1087,7 @@ class CircuitDAG(CircuitBase):
                         f"{name} parsed to {circuit_list}"
                     )
                     circuit.add(
-                        ops.SingleQubitGateWrapper(
+                        ops.OneQubitGateWrapper(
                             circuit_list, register=reg, reg_type=reg_type
                         )
                     )
@@ -1291,7 +1299,7 @@ class CircuitDAG(CircuitBase):
         :rtype: None
         """
 
-        self._open_qasm_update(operation)
+        self._openqasm_update(operation)
         new_id = self._unique_node_id()
 
         self._add_node(new_id, operation)

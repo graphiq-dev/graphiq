@@ -5,8 +5,7 @@ Classes to compute metrics on a circuit and/or system states
 from abc import ABC, abstractmethod
 import numpy as np
 
-from benchmarks.circuits import bell_state_circuit
-from src.backends.density_matrix.functions import fidelity, fidelity_pure
+import src.backends.density_matrix.functions as dmf
 
 
 class MetricBase(ABC):
@@ -53,13 +52,59 @@ class MetricBase(ABC):
 class Infidelity(MetricBase):
     def __init__(self, target, log_steps=1, *args, **kwargs):
         """
-        Creates a Fidelity Metric object (which computes fidelity with respect to the ideal_state
+        Creates an Infidelity Metric object, which computes 1-fidelity with respect to the ideal_state
+        TODO: take the targe state as a QuantumState object instead of a numpy.ndarray
 
         :param target: the ideal state against which we compute fidelity
-        :type target: QuantumState
+        :type target: QuantumState (currently numpy.ndarray)
         :param log_steps: the metric values are computed at every log_steps optimization step
         :type log_steps: int
-        :return: the function returns nothing
+        :raises AssertionError: if targe is not a valid density matrix
+        :return: nothing
+        :rtype: None
+        """
+        super().__init__(log_steps=log_steps, *args, **kwargs)
+        assert dmf.is_density_matrix(target)
+        self.target = target
+        self.differentiable = False
+
+    def evaluate(self, state, circuit):
+        """
+        Evaluates the infidelity from a given state and circuit
+        TODO: take the state as a QuantumState object instead of a numpy.ndarray
+
+        :param state: the state to evaluate
+        :type state: QuantumState (currently numpy.ndarray)
+        :param circuit: circuit which generated state
+                        Not used for the fidelity evaluation, but argument is provided for API consistency
+        :type circuit: CircuitBase (or subclass of it)
+        :raises AssertionError: if the state is not a valid density matrix
+        :return: infidelity = 1 - fidelity
+        :rtype: float
+        """
+
+        assert dmf.is_density_matrix(state)
+        fid = dmf.fidelity(self.target, state)
+        self.increment()
+
+        if self._inc % self.log_steps == 0:
+            self.log.append(fid)
+
+        return 1 - fid
+
+
+class TraceDistance(MetricBase):
+    def __init__(self, target, log_steps=1, *args, **kwargs):
+        """
+        Creates a TraceDistance Metric object, which computes the trace distance between the current state and the
+        target state.
+        TODO: take the targe state as a QuantumState object instead of a numpy.ndarray
+
+        :param target: the ideal state against which we compute fidelity
+        :type target: QuantumState (currently a numpy.ndarray)
+        :param log_steps: the metric values are computed at every log_steps optimization step
+        :type log_steps: int
+        :return: nothing
         :rtype: None
         """
         super().__init__(log_steps=log_steps, *args, **kwargs)
@@ -68,25 +113,25 @@ class Infidelity(MetricBase):
 
     def evaluate(self, state, circuit):
         """
-        Evaluates the fidelity from a given state and circuit
+        Evaluates the trace distance from a given state and circuit
+        TODO: take the state as a QuantumState object instead of a numpy.ndarray
 
         :param state: the state to evaluate
-        :type state: QuantumState
+        :type state: QuantumState (currently numpy.ndarray)
         :param circuit: circuit which generated state
-                        Not used for the fidelity evaluation, but argument is provided for API consistency
+                        Not used for the trace distance evaluation, but argument is provided for API consistency
         :type circuit: CircuitBase (or subclass of it)
-        :return: the fidelity
+        :return: the trace distance
         :rtype: float
         """
-        # TODO: replace by actual fidelity check
-        # fid = fidelity(self.target, state)
-        fid = fidelity_pure(self.target, state)
+
+        trace_distance = dmf.trace_distance(self.target, state)
         self.increment()
 
         if self._inc % self.log_steps == 0:
-            self.log.append(fid)
+            self.log.append(trace_distance)
 
-        return 1 - fid
+        return trace_distance
 
 
 class MetricCircuitDepth(MetricBase):
@@ -126,8 +171,8 @@ class MetricCircuitDepth(MetricBase):
         :return: the scalar penalty resulting from circuit depth. By default, this is the circuit depth itself
         :rtype: float or int
         """
-        # TODO: replace this by an actual circuit depth evaluation
-        depth = np.random.random()
+
+        depth = circuit.depth
         val = self.depth_penalty(depth)
         self.increment()
 
@@ -196,19 +241,3 @@ class Metrics(object):
             # TODO: switch the key to the strings provided in __init__ (abstracts things better from the user)
             m[metric.__class__.__name__] = metric.log
         return m
-
-
-if __name__ == "__main__":
-    """Metric usage example"""
-    # set how often to log the metric evaluations
-    MetricBase.log_steps = 3
-    Infidelity.log_steps = 1
-
-    _, ideal_state = bell_state_circuit()
-
-    metrics = Metrics([MetricCircuitDepth(), Infidelity(ideal_state)])
-
-    for _ in range(10):
-        metrics.evaluate(state=None, circuit=None)
-
-    print(metrics.log)

@@ -40,8 +40,8 @@ def ghz3_1():
     dag.add(ops.CNOT(control=0, control_type="e", target=2, target_type="p"))
     dag.add(ops.Hadamard(register=2, reg_type="p"))
     dag.add(
-        ops.SingleQubitGateWrapper(
-            [ops.Hadamard, ops.Phase, ops.SigmaZ], register=0, reg_type="e"
+        ops.OneQubitGateWrapper(
+            [ops.SigmaZ, ops.Phase, ops.Hadamard], register=0, reg_type="e"
         )
     )
     dag.add(
@@ -189,8 +189,8 @@ def test_ghz3(ghz3):
     assert independent
 
     infidelity = Infidelity(ideal_state["dm"])
-    print(f"state1: {state1}")
-    print(f"state2: {state2}")
+    # print(f"state1: {state1}")
+    # print(f"state2: {state2}")
     assert np.isclose(infidelity.evaluate(state1, ghz3), 0.0), f"state 1: {state1}"
     assert np.isclose(infidelity.evaluate(state2, ghz3), 0.0), f"state 2: {state1}"
 

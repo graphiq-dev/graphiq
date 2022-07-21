@@ -203,6 +203,7 @@ def test_add_remove_measurements(seed):
     solver.trans_probs = original_trans_prob
 
 
+@pytest.mark.parametrize("seed", [0, 3])
 def test_solver_logging(seed):
     n_emitter = 1
     n_photon = 2

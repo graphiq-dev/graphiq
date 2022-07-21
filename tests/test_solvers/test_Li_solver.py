@@ -99,7 +99,7 @@ def test_echelon_form(n_nodes):
     x_1, z_1, r_vector_1 = rref(x_1, z_1, r_vector_1)
     x_2, z_2, r_vector_2 = rref(x_2, z_2, r_vector_2)
     pivot = [0, 0]
-    print('1', "\n", x_1.astype(int), "\n", z_1)
+    print("1", "\n", x_1.astype(int), "\n", z_1)
     for i in range(n_nodes):
         pivot[1] = i
         old_pivot = pivot[0]
@@ -117,10 +117,10 @@ def test_echelon_form(n_nodes):
 
         assert pivot[0] - old_pivot <= 2
         for j in range(1 + int(pivot[0]), n_nodes):
-            print(f'{j, i} and pivot ={pivot}')
+            print(f"{j, i} and pivot ={pivot}")
             assert int(x_1[j, i]) == 0 and int(z_1[j, i]) == 0
     pivot = [0, 0]
-    print('2', "\n", x_2.astype(int), "\n", z_2)
+    print("2", "\n", x_2.astype(int), "\n", z_2)
     for i in range(n_nodes):
         pivot[1] = i
         old_pivot = pivot[0]
@@ -137,5 +137,5 @@ def test_echelon_form(n_nodes):
             pivot[0] = max(nonzero_x2[-1], nonzero_z2[-1], old_pivot)
         assert pivot[0] - old_pivot <= 2
         for j in range(int(pivot[0]) + 1, n_nodes):
-            print(f'{j,i} and pivot ={pivot}')
+            print(f"{j,i} and pivot ={pivot}")
             assert int(x_2[j, i]) == 0 and int(z_2[j, i]) == 0

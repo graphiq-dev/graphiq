@@ -125,8 +125,8 @@ def add_columns(input_matrix, col_to_add, resulting_col):
     :rtype: numpy.ndarray
     """
     input_matrix[:, resulting_col] = (
-                                             input_matrix[:, col_to_add] + input_matrix[:, resulting_col]
-                                     ) % 2
+        input_matrix[:, col_to_add] + input_matrix[:, resulting_col]
+    ) % 2
     return input_matrix
 
 
@@ -148,9 +148,13 @@ def multiply_columns(matrix_one, matrix_two, first_col, second_col):
     n_rows, _ = np.shape(matrix_one)
     assert np.shape(matrix_one)[0] == np.shape(matrix_two)[0]
     try:
-        assert first_col < np.shape(matrix_one)[1] and second_col < np.shape(matrix_two)[1]
+        assert (
+            first_col < np.shape(matrix_one)[1] and second_col < np.shape(matrix_two)[1]
+        )
     except:
-        raise ValueError('the specified column index is out of range in one of the matrices')
+        raise ValueError(
+            "the specified column index is out of range in one of the matrices"
+        )
     resulting_col = np.multiply(matrix_one[:, first_col], matrix_two[:, second_col])
     # reshape into column form:
     # resulting_col = resulting_col.reshape(n_rows, 1)
@@ -172,7 +176,9 @@ def hadamard_gate(stabilizer_state, qubit_position):
     assert qubit_position < n_qubits
     tableau = stabilizer_state.tableau  # full tableau as a np matrix n*(2n+1)
     # updating phase vector
-    tableau[:, -1] = tableau[:, -1] ^ multiply_columns(tableau, tableau, qubit_position, n_qubits + qubit_position)
+    tableau[:, -1] = tableau[:, -1] ^ multiply_columns(
+        tableau, tableau, qubit_position, n_qubits + qubit_position
+    )
     # updating the rest of the tableau
     tableau = column_swap(tableau, qubit_position, n_qubits + qubit_position)
     stabilizer_state.tableau = tableau
@@ -194,7 +200,9 @@ def phase_gate(stabilizer_state, qubit_position):
     assert qubit_position < n_qubits
     tableau = stabilizer_state.tableau  # full tableau as a np matrix n*(2n+1)
     # updating phase vector
-    tableau[:, -1] = tableau[:, -1] ^ multiply_columns(tableau, tableau, qubit_position, n_qubits + qubit_position)
+    tableau[:, -1] = tableau[:, -1] ^ multiply_columns(
+        tableau, tableau, qubit_position, n_qubits + qubit_position
+    )
     # updating the rest of the tableau
     tableau = add_columns(tableau, qubit_position, n_qubits + qubit_position)
     stabilizer_state.tableau = tableau
@@ -498,6 +506,107 @@ def pauli_type_finder(x_matrix, z_matrix, pivot):
     return pauli_x_list, pauli_y_list, pauli_z_list
 
 
+def _process_one_pauli(x_matrix, z_matrix, r_vector, pivot, pauli_list):
+    """
+    Helper function to process one Pauli list
+
+    :param x_matrix:
+    :param z_matrix:
+    :param r_vector:
+    :param pivot:
+    :param pauli_list:
+    :return:
+    """
+    x_matrix, z_matrix, r_vector = row_swap_full(
+        x_matrix, z_matrix, r_vector, pivot[0], pauli_list[0]
+    )
+
+    # remove the first element of the list
+    pauli_list = pauli_list[1:]
+
+    for row_i in pauli_list:
+        # multiplying rows with similar pauli to eliminate them
+        x_matrix, z_matrix, r_vector = row_sum(
+            x_matrix, z_matrix, r_vector, pivot[0], row_i
+        )
+
+    pivot = [pivot[0] + 1, pivot[1] + 1]
+    return x_matrix, z_matrix, r_vector, pivot
+
+
+def _process_two_pauli(
+    x_matrix,
+    z_matrix,
+    r_vector,
+    pivot,
+    pauli_list_dict,
+    first_list_symbol,
+    second_list_symbol,
+):
+    """
+    Helper function to process two Pauli lists
+
+    :param x_matrix:
+    :param z_matrix:
+    :param r_vector:
+    :param pivot:
+    :param pauli_list_dict:
+    :param first_list_symbol:
+    :param second_list_symbol:
+    :return:
+    """
+    # swap the pivot and its next row with them
+
+    x_matrix, z_matrix, r_vector = row_swap_full(
+        x_matrix, z_matrix, r_vector, pivot[0], pauli_list_dict[first_list_symbol][0]
+    )
+    # update pauli lists
+    pauli_x_list, pauli_y_list, pauli_z_list = pauli_type_finder(
+        x_matrix, z_matrix, pivot
+    )
+
+    pauli_list_dict["x"] = pauli_x_list
+    pauli_list_dict["y"] = pauli_y_list
+    pauli_list_dict["z"] = pauli_z_list
+    x_matrix, z_matrix, r_vector = row_swap_full(
+        x_matrix,
+        z_matrix,
+        r_vector,
+        pivot[0] + 1,
+        pauli_list_dict[second_list_symbol][0],
+    )
+    # update pauli lists
+    pauli_x_list, pauli_y_list, pauli_z_list = pauli_type_finder(
+        x_matrix, z_matrix, pivot
+    )
+    pauli_list_dict["x"] = pauli_x_list
+    pauli_list_dict["y"] = pauli_y_list
+    pauli_list_dict["z"] = pauli_z_list
+    assert (
+        pauli_list_dict[first_list_symbol][0] == pivot[0]
+        and pauli_list_dict[second_list_symbol][0] == pivot[0] + 1
+    ), "row operations failed"
+
+    # remove the first element of the list
+    pauli_list_dict[first_list_symbol] = pauli_list_dict[first_list_symbol][1:]
+    pauli_list_dict[second_list_symbol] = pauli_list_dict[second_list_symbol][1:]
+
+    for row_i in pauli_list_dict[first_list_symbol]:
+        # multiplying rows with similar pauli to eliminate them
+        x_matrix, z_matrix, r_vector = row_sum(
+            x_matrix, z_matrix, r_vector, pivot[0], row_i
+        )
+
+    for row_j in pauli_list_dict[second_list_symbol]:
+        # multiplying rows with similar pauli to eliminate them
+        x_matrix, z_matrix, r_vector = row_sum(
+            x_matrix, z_matrix, r_vector, pivot[0] + 1, row_j
+        )
+
+    pivot = [pivot[0] + 2, pivot[1] + 1]
+    return x_matrix, z_matrix, r_vector, pivot
+
+
 def one_step_rref(x_matrix, z_matrix, r_vector, pivot):
     """
     ROW-REDUCED ECHELON FORM algorithm that takes the pivot element location and stabilizer tableau,
@@ -515,8 +624,6 @@ def one_step_rref(x_matrix, z_matrix, r_vector, pivot):
     :return: updated stabilizer tableau and updated pivot
     :rtype: numpy.ndarray, numpy.ndarray, numpy.ndarray, list
     """
-    # TODO: Offload repetitive code to helper functions
-    # pivot = [0, 0] #remove later! it is in the arguments
 
     # pauli_x_list  = list of the rows (generators) with a pauli X operator in the pivot column
     # pauli_y_list  = list of the rows (generators) with a pauli Y operator in the pivot column
@@ -524,220 +631,50 @@ def one_step_rref(x_matrix, z_matrix, r_vector, pivot):
     pauli_x_list, pauli_y_list, pauli_z_list = pauli_type_finder(
         x_matrix, z_matrix, pivot
     )
-
+    pauli_list_dict = {"x": pauli_x_list, "y": pauli_y_list, "z": pauli_z_list}
     # case of no pauli operator!
     if not (pauli_x_list or pauli_y_list or pauli_z_list):
         pivot = [pivot[0], pivot[1] + 1]
         return x_matrix, z_matrix, r_vector, pivot
-    # case of only 1 kind of puali
+
+    # case of only 1 kind of pauli
     elif pauli_x_list and (not pauli_y_list) and (not pauli_z_list):  # only X
-        x_matrix, z_matrix, r_vector = row_swap_full(
-            x_matrix, z_matrix, r_vector, pivot[0], pauli_x_list[0]
-        )  # swap the pivot row with it
-
-        pauli_x_list = pauli_x_list[1:]  # remove the first element of the list
-
-        for row_i in pauli_x_list:
-            x_matrix, z_matrix, r_vector = row_sum(
-                x_matrix, z_matrix, r_vector, pivot[0], row_i
-            )  # multiplying rows with similar pauli to eliminate them
-
-        pivot = [pivot[0] + 1, pivot[1] + 1]
-        return x_matrix, z_matrix, r_vector, pivot
+        return _process_one_pauli(x_matrix, z_matrix, r_vector, pivot, pauli_x_list)
 
     elif pauli_y_list and (not pauli_x_list) and (not pauli_z_list):  # only Y
-        # swap the pivot row with it
-        x_matrix, z_matrix, r_vector = row_swap_full(
-            x_matrix, z_matrix, r_vector, pivot[0], pauli_y_list[0]
-        )
-
-        # remove the first element of the list
-        pauli_y_list = pauli_y_list[1:]
-
-        for row_i in pauli_y_list:
-            # multiplying rows with similar pauli to eliminate them
-            x_matrix, z_matrix, r_vector = row_sum(
-                x_matrix, z_matrix, r_vector, pivot[0], row_i
-            )
-
-        pivot = [pivot[0] + 1, pivot[1] + 1]
-        return x_matrix, z_matrix, r_vector, pivot
+        return _process_one_pauli(x_matrix, z_matrix, r_vector, pivot, pauli_y_list)
 
     elif pauli_z_list and (not pauli_x_list) and (not pauli_y_list):  # only Z
-        # swap the pivot row with it
-        x_matrix, z_matrix, r_vector = row_swap_full(
-            x_matrix, z_matrix, r_vector, pivot[0], pauli_z_list[0]
-        )
+        return _process_one_pauli(x_matrix, z_matrix, r_vector, pivot, pauli_z_list)
 
-        # remove the first element of the list
-        pauli_z_list = pauli_z_list[1:]
-
-        for row_i in pauli_z_list:
-            # multiplying rows with similar pauli to eliminate them
-            x_matrix, z_matrix, r_vector = row_sum(
-                x_matrix, z_matrix, r_vector, pivot[0], row_i
-            )
-
-        pivot = [pivot[0] + 1, pivot[1] + 1]
-        return x_matrix, z_matrix, r_vector, pivot
     # case of two kinds of pauli
     elif not pauli_x_list:  # pauli y and z exist in the column below pivot
-        # swap the pivot and its next row with them
-        x_matrix, z_matrix, r_vector = row_swap_full(
-            x_matrix, z_matrix, r_vector, pivot[0], pauli_y_list[0]
+        return _process_two_pauli(
+            x_matrix, z_matrix, r_vector, pivot, pauli_list_dict, "y", "z"
         )
-        # update pauli lists
-        pauli_x_list, pauli_y_list, pauli_z_list = pauli_type_finder(
-            x_matrix, z_matrix, pivot
-        )
-        x_matrix, z_matrix, r_vector = row_swap_full(
-            x_matrix, z_matrix, r_vector, pivot[0] + 1, pauli_z_list[0]
-        )
-        # update pauli lists
-        pauli_x_list, pauli_y_list, pauli_z_list = pauli_type_finder(
-            x_matrix, z_matrix, pivot
-        )
-
-        assert (
-            pauli_y_list[0] == pivot[0] and pauli_z_list[0] == pivot[0] + 1
-        ), "row operations failed"
-
-        pauli_y_list = pauli_y_list[1:]  # remove the first element of the list
-        pauli_z_list = pauli_z_list[1:]  # remove the first element of the list
-
-        for row_i in pauli_y_list:
-            # multiplying rows with similar pauli to eliminate them
-            x_matrix, z_matrix, r_vector = row_sum(
-                x_matrix, z_matrix, r_vector, pivot[0], row_i
-            )
-
-        for row_j in pauli_z_list:
-            # multiplying rows with similar pauli to eliminate them
-            x_matrix, z_matrix, r_vector = row_sum(
-                x_matrix, z_matrix, r_vector, pivot[0] + 1, row_j
-            )
-
-        pivot = [pivot[0] + 2, pivot[1] + 1]
-        return x_matrix, z_matrix, r_vector, pivot
 
     elif not pauli_y_list:  # pauli x and z exist in the column below pivot
-        # swap the pivot and its next row with them
-        x_matrix, z_matrix, r_vector = row_swap_full(
-            x_matrix, z_matrix, r_vector, pivot[0], pauli_x_list[0]
+        return _process_two_pauli(
+            x_matrix, z_matrix, r_vector, pivot, pauli_list_dict, "x", "z"
         )
-        # update pauli lists
-        pauli_x_list, pauli_y_list, pauli_z_list = pauli_type_finder(
-            x_matrix, z_matrix, pivot
-        )
-        x_matrix, z_matrix, r_vector = row_swap_full(
-            x_matrix, z_matrix, r_vector, pivot[0] + 1, pauli_z_list[0]
-        )
-        # update pauli lists
-        pauli_x_list, pauli_y_list, pauli_z_list = pauli_type_finder(
-            x_matrix, z_matrix, pivot
-        )
-
-        assert (
-            pauli_x_list[0] == pivot[0] and pauli_z_list[0] == pivot[0] + 1
-        ), "row operations failed"
-
-        pauli_x_list = pauli_x_list[1:]  # remove the first element of the list
-        pauli_z_list = pauli_z_list[1:]  # remove the first element of the list
-
-        for row_i in pauli_x_list:
-            # multiplying rows with similar pauli to eliminate them
-            x_matrix, z_matrix, r_vector = row_sum(
-                x_matrix, z_matrix, r_vector, pivot[0], row_i
-            )
-
-        for row_j in pauli_z_list:
-            # print(row_j)
-            # multiplying rows with similar pauli to eliminate them
-            x_matrix, z_matrix, r_vector = row_sum(
-                x_matrix, z_matrix, r_vector, pivot[0] + 1, row_j
-            )
-
-        pivot = [pivot[0] + 2, pivot[1] + 1]
-        return x_matrix, z_matrix, r_vector, pivot
 
     elif not pauli_z_list:  # pauli x and y exist in the column below pivot
-        # swap the pivot and its next row with them
-        x_matrix, z_matrix, r_vector = row_swap_full(
-            x_matrix, z_matrix, r_vector, pivot[0], pauli_x_list[0]
+        return _process_two_pauli(
+            x_matrix, z_matrix, r_vector, pivot, pauli_list_dict, "x", "y"
         )
-        # update pauli lists
-        pauli_x_list, pauli_y_list, pauli_z_list = pauli_type_finder(
-            x_matrix, z_matrix, pivot
-        )
-        x_matrix, z_matrix, r_vector = row_swap_full(
-            x_matrix, z_matrix, r_vector, pivot[0] + 1, pauli_y_list[0]
-        )
-        # update pauli lists
-        pauli_x_list, pauli_y_list, pauli_z_list = pauli_type_finder(
-            x_matrix, z_matrix, pivot
-        )
-
-        assert (
-            pauli_x_list[0] == pivot[0] and pauli_y_list[0] == pivot[0] + 1
-        ), "row operations failed"
-
-        pauli_x_list = pauli_x_list[1:]  # remove the first element of the list
-        pauli_y_list = pauli_y_list[1:]  # remove the first element of the list
-
-        for row_i in pauli_x_list:
-            # multiplying rows with similar pauli to eliminate them
-            x_matrix, z_matrix, r_vector = row_sum(
-                x_matrix, z_matrix, r_vector, pivot[0], row_i
-            )
-
-        for row_j in pauli_y_list:
-            # multiplying rows with similar pauli to eliminate them
-            x_matrix, z_matrix, r_vector = row_sum(
-                x_matrix, z_matrix, r_vector, pivot[0] + 1, row_j
-            )
-
-        pivot = [pivot[0] + 2, pivot[1] + 1]
-        return x_matrix, z_matrix, r_vector, pivot
 
     # case of all three kinds of paulis available in the column
     else:
-        # swap the pivot and its next row with the first X and Z rows
-        x_matrix, z_matrix, r_vector = row_swap_full(
-            x_matrix, z_matrix, r_vector, pivot[0], pauli_x_list[0]
+        old_pivot = [0, 0]
+        old_pivot[0] = pivot[0]
+        old_pivot[1] = pivot[1]
+        x_matrix, z_matrix, r_vector, _ = _process_two_pauli(
+            x_matrix, z_matrix, r_vector, old_pivot, pauli_list_dict, "x", "z"
         )
         # update pauli lists
         pauli_x_list, pauli_y_list, pauli_z_list = pauli_type_finder(
             x_matrix, z_matrix, pivot
         )
-        x_matrix, z_matrix, r_vector = row_swap_full(
-            x_matrix, z_matrix, r_vector, pivot[0] + 1, pauli_z_list[0]
-        )
-        # update pauli lists
-        pauli_x_list, pauli_y_list, pauli_z_list = pauli_type_finder(
-            x_matrix, z_matrix, pivot
-        )
-
-        assert (
-            pauli_x_list[0] == pivot[0] and pauli_z_list[0] == pivot[0] + 1
-        ), "row operations failed"
-
-        # remove the first element of the list
-        pauli_x_list = pauli_x_list[1:]
-        # remove the first element of the list
-        pauli_z_list = pauli_z_list[1:]
-
-        for row_i in pauli_x_list:
-            # multiplying rows with similar pauli to eliminate them
-            x_matrix, z_matrix, r_vector = row_sum(
-                x_matrix, z_matrix, r_vector, pivot[0], row_i
-            )
-
-        for row_j in pauli_z_list:
-            # multiplying rows with similar pauli to eliminate them
-            x_matrix, z_matrix, r_vector = row_sum(
-                x_matrix, z_matrix, r_vector, pivot[0] + 1, row_j
-            )
-
         for row_k in pauli_y_list:
             # multiplying the pauli Y with pauli X to make it Z
             x_matrix, z_matrix, r_vector = row_sum(
@@ -766,13 +703,13 @@ def rref(x_matrix, z_matrix, r_vector):
     """
     # TODO: check the validity of input x and z matrices. Partially done by checking the rank by assertion below.
     pivot = [0, 0]
-    number_of_qubits = np.shape(x_matrix)[0]
-    while pivot[0] <= number_of_qubits - 1 and pivot[1] <= number_of_qubits - 1:
+    n_qubits = np.shape(x_matrix)[0]
+    while pivot[0] <= n_qubits - 1 and pivot[1] <= n_qubits - 1:
         x_matrix, z_matrix, r_vector, pivot = one_step_rref(
             x_matrix, z_matrix, r_vector, pivot
         )
     assert (
-        pivot[0] >= number_of_qubits - 1
+        pivot[0] >= n_qubits - 1
     ), "Invalid input. One of the stabilizers is identity on all qubits!"  # rank check
     return x_matrix, z_matrix, r_vector
 

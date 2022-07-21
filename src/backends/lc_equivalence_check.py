@@ -164,7 +164,7 @@ import src.backends.stabilizer.functions as sf
 def is_lc_equivalent(adj_matrix1, adj_matrix2, mode="deterministic", seed=0):
     """
     Determines whether two graph states are local-Clifford equivalent or not, given the adjacency matrices of the two.
-    It takes two adjacency matrices as input and returns a numpy.array containing :math:`n` (:math:`2 \\times 2` array)s
+    It takes two adjacency matrices as input and returns a numpy.ndarray containing :math:`n` (:math:`2 \\times 2` arrays
     = clifford operations on each qubit.
 
     :param adj_matrix1: the adjacency matrix of the first graph. This is equal to the binary matrix for representing
@@ -188,7 +188,6 @@ def is_lc_equivalent(adj_matrix1, adj_matrix2, mode="deterministic", seed=0):
     # get the coefficient matrix for the system of linear equations
     coeff_matrix = _coeff_maker(adj_matrix1, adj_matrix2)
 
-
     # row reduction applied
     reduced_coeff_matrix, _, last_nonzero_row_index = sf.row_reduction(
         coeff_matrix, coeff_matrix * 0
@@ -202,7 +201,7 @@ def is_lc_equivalent(adj_matrix1, adj_matrix2, mode="deterministic", seed=0):
     # update the matrix to remove zero rows
     reduced_coeff_matrix = np.array([row for row in reduced_coeff_matrix if row.any()])
     assert (
-            np.shape(reduced_coeff_matrix)[0] == rank
+        np.shape(reduced_coeff_matrix)[0] == rank
     ), "The number of remaining rows is less than the rank!"
     # rank = np.shape(reduced_coeff_matrix)[0]
 
@@ -216,11 +215,13 @@ def is_lc_equivalent(adj_matrix1, adj_matrix2, mode="deterministic", seed=0):
     solution_basis = _solution_basis_finder(reduced_coeff_matrix, col_list)
     if len(solution_basis) < 5:
         basis_dimension = len(solution_basis)
-        all_solutions = [*range(2 ** basis_dimension)]
-        all_solutions = [list(format(i, f'0{basis_dimension}b')) for i in all_solutions]
+        all_solutions = [*range(2**basis_dimension)]
+        all_solutions = [list(format(i, f"0{basis_dimension}b")) for i in all_solutions]
         all_solutions = np.array(all_solutions).astype(int)
         all_solutions = all_solutions.T
-        solution_basis = np.transpose(solution_basis, axes=(1, 2, 0)).reshape(4 * n_nodes, basis_dimension)
+        solution_basis = np.transpose(solution_basis, axes=(1, 2, 0)).reshape(
+            4 * n_nodes, basis_dimension
+        )
         all_solutions = (solution_basis @ all_solutions) % 2
         for solution in all_solutions.T:
             if _is_valid_clifford(solution.reshape(4 * n_nodes, 1)):

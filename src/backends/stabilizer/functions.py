@@ -1,6 +1,7 @@
 import networkx as nx
 import numpy as np
 from matplotlib import pyplot as plt
+import random
 
 import src.backends.density_matrix.functions as dmf
 
@@ -89,8 +90,8 @@ def add_rows(input_matrix, row_to_add, resulting_row):
     :rtype: numpy.ndarray
     """
     input_matrix[resulting_row] = (
-        input_matrix[row_to_add] + input_matrix[resulting_row]
-    ) % 2
+                                          input_matrix[row_to_add] + input_matrix[resulting_row]
+                                  ) % 2
     return input_matrix
 
 
@@ -125,8 +126,8 @@ def add_columns(input_matrix, col_to_add, resulting_col):
     :rtype: numpy.ndarray
     """
     input_matrix[:, resulting_col] = (
-        input_matrix[:, col_to_add] + input_matrix[:, resulting_col]
-    ) % 2
+                                             input_matrix[:, col_to_add] + input_matrix[:, resulting_col]
+                                     ) % 2
     return input_matrix
 
 
@@ -142,14 +143,14 @@ def multiply_columns(matrix_one, matrix_two, first_col, second_col):
     :type first_col: int
     :param second_col: index of the column to be used from the second matrix
     :type second_col: int
-    :rtype: numpy.ndarray
     :return: the resulting 1-d array of length n (= number of the rows of the matrices)
+    :rtype: numpy.ndarray
     """
     n_rows, _ = np.shape(matrix_one)
     assert np.shape(matrix_one)[0] == np.shape(matrix_two)[0]
     try:
         assert (
-            first_col < np.shape(matrix_one)[1] and second_col < np.shape(matrix_two)[1]
+                first_col < np.shape(matrix_one)[1] and second_col < np.shape(matrix_two)[1]
         )
     except:
         raise ValueError(
@@ -169,8 +170,8 @@ def hadamard_gate(stabilizer_state, qubit_position):
     :type stabilizer_state: StabilizerState
     :param qubit_position: index of the qubit that the gate acts on
     :type qubit_position: int
-    :rtype: StabilizerState
     :return: the resulting state after gate action
+    :rtype: StabilizerState
     """
     n_qubits = stabilizer_state.n_qubits  # number of qubits
     assert qubit_position < n_qubits
@@ -193,8 +194,8 @@ def phase_gate(stabilizer_state, qubit_position):
     :type stabilizer_state: StabilizerState
     :param qubit_position: index of the qubit that the gate acts on
     :type qubit_position: int
-    :rtype: StabilizerState
     :return: the resulting state after gate action
+    :rtype: StabilizerState
     """
     n_qubits = stabilizer_state.n_qubits  # number of qubits
     assert qubit_position < n_qubits
@@ -219,12 +220,79 @@ def cnot_gate(stabilizer_state, ctrl_qubit, target_qubit):
     :type ctrl_qubit: int
     :param target_qubit: index of the target qubit that the gate acts on
     :type target_qubit: int
-    :rtype: StabilizerState
     :return: the resulting state after gate action
+    :rtype: StabilizerState
     """
+    n_qubits = stabilizer_state.n_qubits  # number of qubits
+    assert ctrl_qubit < n_qubits and target_qubit < n_qubits
+    tableau = stabilizer_state.tableau  # full tableau as a np matrix n*(2n+1)
+    # updating phase vector
+    x_ctrl_times_z_target = multiply_columns(tableau, tableau, ctrl_qubit, n_qubits + target_qubit)
+    x_target = tableau[:, target_qubit]
+    z_ctrl = tableau[:, n_qubits + ctrl_qubit]
+    tableau[:, -1] = tableau[:, -1] ^ (x_ctrl_times_z_target * (x_target ^ z_ctrl ^ 1))
+    # updating the rest of the tableau
+    tableau[:, target_qubit] = tableau[:, target_qubit] ^ tableau[:, ctrl_qubit]
+    tableau[:, n_qubits + ctrl_qubit] = tableau[:, n_qubits + ctrl_qubit] ^ tableau[:, n_qubits + target_qubit]
+    stabilizer_state.tableau = tableau
+    return stabilizer_state
 
 
-    return
+def measurement_gate(stabilizer_state, qubit_position, seed = 0):
+    """
+    Measurement applied on a single qubit given its position, in a stabilizer state.
+
+    :param stabilizer_state: a StabilizerState object.
+    :type stabilizer_state: StabilizerState
+    :param qubit_position: index of the qubit that the gate acts on
+    :type qubit_position: int
+    :return: the resulting state after gate action and measurement outcome
+    :rtype: StabilizerState, int
+    """
+    n_qubits = stabilizer_state.n_qubits  # number of qubits
+    assert qubit_position < n_qubits
+    tableau = stabilizer_state.tableau  # full tableau as a np matrix n*(2n+1)
+    x_column = tableau[:, qubit_position]
+    non_zero_x = np.nonzero(x_column)[0]
+    x_p = 0
+    for non_zero in non_zero_x:
+        if non_zero >= n_qubits:
+            x_p = non_zero
+            non_zero_x = np.delete(non_zero_x, x_p)
+            break
+    if x_p != 0:
+        x_matrix = tableau[:, 0:n_qubits]
+        z_matrix = tableau[:, n_qubits:2*n_qubits]
+        r_vector = tableau[:, -1]
+        # rowsum for all other x elements equal to 1 other than x_p
+        for target_row in non_zero_x:
+            x_matrix, z_matrix, r_vector = row_sum(x_matrix, z_matrix, r_vector, x_p, target_row)
+        tableau[:, 0:n_qubits] = x_matrix
+        tableau[:, n_qubits:2 * n_qubits] = z_matrix
+        tableau[:, -1] = r_vector
+        # set x_p - n row equal to x_p row
+        tableau[x_p - n_qubits] = tableau[x_p]
+        # set x_p row equal to 0 except for z element of measured qubit which is 1.
+        tableau[x_p] = np.zeros(2*n_qubits+1)
+        tableau[x_p, qubit_position + n_qubits] = 1
+        # set r_vector of that row to random measurement outcome 0 or 1. (equal probability)
+        random.seed(seed)
+        tableau[x_p, 1+2*n_qubits] = random.randint(0, 1)
+
+        stabilizer_state.tableau = tableau
+        return stabilizer_state, tableau[x_p, 1+2*n_qubits]
+    else:
+        # add an extra 2n+1 th row to the tableau
+        new_tableau = np.vstack([tableau, np.zeros(1+2*n_qubits)])
+        x_matrix = new_tableau[:, 0:n_qubits]
+        z_matrix = new_tableau[:, n_qubits:2 * n_qubits]
+        r_vector = new_tableau[:, -1]
+
+        non_zero_x = [i for i in non_zero_x if i<n_qubits] #list of nonzero elements in the x destabilizers
+        for non_zero in non_zero_x:
+            x_matrix, z_matrix, r_vector = row_sum(x_matrix, z_matrix, r_vector, non_zero + n_qubits, 2*n_qubits)
+        return stabilizer_state, r_vector[2*n_qubits]
+
 
 
 def hadamard_transform(x_matrix, z_matrix, positions):
@@ -515,13 +583,13 @@ def _process_one_pauli(x_matrix, z_matrix, r_vector, pivot, pauli_list):
 
 
 def _process_two_pauli(
-    x_matrix,
-    z_matrix,
-    r_vector,
-    pivot,
-    pauli_list_dict,
-    first_list_symbol,
-    second_list_symbol,
+        x_matrix,
+        z_matrix,
+        r_vector,
+        pivot,
+        pauli_list_dict,
+        first_list_symbol,
+        second_list_symbol,
 ):
     """
     Helper function to process two Pauli lists
@@ -563,8 +631,8 @@ def _process_two_pauli(
     pauli_list_dict["y"] = pauli_y_list
     pauli_list_dict["z"] = pauli_z_list
     assert (
-        pauli_list_dict[first_list_symbol][0] == pivot[0]
-        and pauli_list_dict[second_list_symbol][0] == pivot[0] + 1
+            pauli_list_dict[first_list_symbol][0] == pivot[0]
+            and pauli_list_dict[second_list_symbol][0] == pivot[0] + 1
     ), "row operations failed"
 
     # remove the first element of the list
@@ -689,7 +757,7 @@ def rref(x_matrix, z_matrix, r_vector):
             x_matrix, z_matrix, r_vector, pivot
         )
     assert (
-        pivot[0] >= n_qubits - 1
+            pivot[0] >= n_qubits - 1
     ), "Invalid input. One of the stabilizers is identity on all qubits!"  # rank check
     return x_matrix, z_matrix, r_vector
 
@@ -718,7 +786,7 @@ def height_func_list(x_matrix, z_matrix):
         for row_i in range(n_qubits):
             for column_j in range(n_qubits):
                 if not (
-                    x_matrix[row_i, column_j] == 0 and z_matrix[row_i, column_j] == 0
+                        x_matrix[row_i, column_j] == 0 and z_matrix[row_i, column_j] == 0
                 ):
                     left_most_nontrivial.append(column_j)
                     break

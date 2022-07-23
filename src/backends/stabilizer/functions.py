@@ -249,8 +249,9 @@ def z_measurement_gate(stabilizer_state, qubit_position, seed=0):
     :type qubit_position: int
     :param seed: a seed for random outcome of the measurement
     :type seed: int
-    :return: the resulting state after gate action and measurement outcome
-    :rtype: StabilizerState, int
+    :return: the resulting state after gate action, the measurement outcome, whether the measurement outcome is
+    probabilistic (zero means deterministic)
+    :rtype: StabilizerState, int, int
     """
     n_qubits = stabilizer_state.n_qubits  # number of qubits
     assert qubit_position < n_qubits
@@ -258,12 +259,14 @@ def z_measurement_gate(stabilizer_state, qubit_position, seed=0):
     x_column = tableau[:, qubit_position]
     non_zero_x = np.nonzero(x_column)[0]
     x_p = 0
+    # x_p is needed and important in other functions, so it will be returned as a function output
     for non_zero in non_zero_x:
         if non_zero >= n_qubits:
             x_p = non_zero
             non_zero_x = np.delete(non_zero_x, x_p)
             break
     if x_p != 0:
+        # probabilistic outcome
         x_matrix = tableau[:, 0:n_qubits]
         z_matrix = tableau[:, n_qubits:2 * n_qubits]
         r_vector = tableau[:, -1]
@@ -280,11 +283,12 @@ def z_measurement_gate(stabilizer_state, qubit_position, seed=0):
         tableau[x_p, qubit_position + n_qubits] = 1
         # set r_vector of that row to random measurement outcome 0 or 1. (equal probability)
         random.seed(seed)
-        tableau[x_p, 1 + 2 * n_qubits] = random.randint(0, 1)
+        tableau[x_p, -1] = random.randint(0, 1)
 
         stabilizer_state.tableau = tableau
-        return stabilizer_state, tableau[x_p, 1 + 2 * n_qubits]
+        return stabilizer_state, tableau[x_p, 1 + 2 * n_qubits], x_p
     else:
+        # deterministic outcome
         # add an extra 2n+1 th row to the tableau
         new_tableau = np.vstack([tableau, np.zeros(1 + 2 * n_qubits)])
         x_matrix = new_tableau[:, 0:n_qubits]
@@ -294,10 +298,29 @@ def z_measurement_gate(stabilizer_state, qubit_position, seed=0):
         non_zero_x = [i for i in non_zero_x if i < n_qubits]  # list of nonzero elements in the x destabilizers
         for non_zero in non_zero_x:
             x_matrix, z_matrix, r_vector = row_sum(x_matrix, z_matrix, r_vector, non_zero + n_qubits, 2 * n_qubits)
-        return stabilizer_state, r_vector[2 * n_qubits]
+        return stabilizer_state, r_vector[2 * n_qubits], x_p
 
 
 ### SECONDARY GATES
+def phase_dagger_gate(stabilizer_state, qubit_position):
+    """
+    Phase dagger gate (inverse of phase) applied on a single qubit given its position, in a stabilizer state.
+
+    :param stabilizer_state: a StabilizerState object.
+    :type stabilizer_state: StabilizerState
+    :param qubit_position: index of the qubit that the gate acts on
+    :type qubit_position: int
+    :return: the resulting state after gate action
+    :rtype: StabilizerState
+    """
+    n_qubits = stabilizer_state.n_qubits  # number of qubits
+    assert qubit_position < n_qubits
+    for i in range(3):
+        stabilizer_state = phase_gate(stabilizer_state, qubit_position)
+
+    return stabilizer_state
+
+
 def z_gate(stabilizer_state, qubit_position):
     """
     Pauli Z applied on a single qubit given its position, in a stabilizer state.
@@ -413,31 +436,41 @@ def control_y_gate(stabilizer_state, ctrl_qubit, target_qubit):
     return stabilizer_state
 
 
-def phase_dagger_gate(stabilizer_state, qubit_position):
-    """
-    Phase dagger gate (inverse of phase) applied on a single qubit given its position, in a stabilizer state.
-
-    :param stabilizer_state: a StabilizerState object.
-    :type stabilizer_state: StabilizerState
-    :param qubit_position: index of the qubit that the gate acts on
-    :type qubit_position: int
-    :return: the resulting state after gate action
-    :rtype: StabilizerState
-    """
-    n_qubits = stabilizer_state.n_qubits  # number of qubits
-    assert qubit_position < n_qubits
-    for i in range(3):
-        stabilizer_state = phase_gate(stabilizer_state, qubit_position)
-
-    return stabilizer_state
-
-
-def projector_z0():
-    pass
+def projector_z0(stabilizer_state, qubit_position):
+    success = True
+    stabilizer_state, outcome, probabilistic = z_measurement_gate(stabilizer_state, qubit_position, seed=0)
+    if probabilistic:
+        if outcome == 0:
+            pass
+        else:
+            stabilizer_state.tableau[probabilistic, -1] = 0
+        pass
+    else:
+        if outcome == 0:
+            pass
+        else:
+            stabilizer_state = 0
+            success = False
+            # TODO: see how impossible projection is handled in the density matrix formalism
+    return stabilizer_state, success
 
 
-def projector_z1():
-    pass
+def projector_z1(stabilizer_state, qubit_position):
+    success = True
+    stabilizer_state, outcome, probabilistic = z_measurement_gate(stabilizer_state, qubit_position, seed=0)
+    if probabilistic:
+        if outcome == 1:
+            pass
+        else:
+            stabilizer_state.tableau[probabilistic, -1] = 1
+        pass
+    else:
+        if outcome == 1:
+            pass
+        else:
+            stabilizer_state = 0
+            # TODO: see how impossible projection is handled in the density matrix formalism
+    return stabilizer_state, success
 
 
 def reset_qubit(qubit, intended_state):
@@ -531,7 +564,7 @@ def measure_x(stabilizer_state, qubit_position, seed=0):
     :rtype: int
     """
     stabilizer_state_new = hadamard_gate(stabilizer_state, qubit_position)
-    _, outcome = z_measurement_gate(stabilizer_state_new, qubit_position, seed=seed)
+    _, outcome, _ = z_measurement_gate(stabilizer_state_new, qubit_position, seed=seed)
     return outcome
 
 
@@ -555,7 +588,7 @@ def measure_y(stabilizer_state, qubit_position, seed=0):
     # apply H
     stabilizer_state_new = hadamard_gate(stabilizer_state_new, qubit_position)
 
-    _, outcome = z_measurement_gate(stabilizer_state_new, qubit_position, seed=seed)
+    _, outcome, _ = z_measurement_gate(stabilizer_state_new, qubit_position, seed=seed)
     return outcome
 
 
@@ -574,7 +607,7 @@ def measure_z(stabilizer_state, qubit_position, seed=0):
     :rtype: int
     """
     stabilizer_state_new = stabilizer_state
-    _, outcome = z_measurement_gate(stabilizer_state_new, qubit_position, seed=seed)
+    _, outcome, _ = z_measurement_gate(stabilizer_state_new, qubit_position, seed=seed)
     return outcome
 
 

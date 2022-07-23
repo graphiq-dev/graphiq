@@ -162,6 +162,7 @@ def multiply_columns(matrix_one, matrix_two, first_col, second_col):
     return resulting_col
 
 
+### MAIN GATES:
 def hadamard_gate(stabilizer_state, qubit_position):
     """
     hadamard gate applied on a single qubit given its position, in a stabilizer state.
@@ -238,7 +239,7 @@ def cnot_gate(stabilizer_state, ctrl_qubit, target_qubit):
     return stabilizer_state
 
 
-def measurement_gate(stabilizer_state, qubit_position, seed = 0):
+def z_measurement_gate(stabilizer_state, qubit_position, seed=0):
     """
     Measurement applied on a single qubit given its position, in a stabilizer state.
 
@@ -246,6 +247,8 @@ def measurement_gate(stabilizer_state, qubit_position, seed = 0):
     :type stabilizer_state: StabilizerState
     :param qubit_position: index of the qubit that the gate acts on
     :type qubit_position: int
+    :param seed: a seed for random outcome of the measurement
+    :type seed: int
     :return: the resulting state after gate action and measurement outcome
     :rtype: StabilizerState, int
     """
@@ -262,7 +265,7 @@ def measurement_gate(stabilizer_state, qubit_position, seed = 0):
             break
     if x_p != 0:
         x_matrix = tableau[:, 0:n_qubits]
-        z_matrix = tableau[:, n_qubits:2*n_qubits]
+        z_matrix = tableau[:, n_qubits:2 * n_qubits]
         r_vector = tableau[:, -1]
         # rowsum for all other x elements equal to 1 other than x_p
         for target_row in non_zero_x:
@@ -273,26 +276,306 @@ def measurement_gate(stabilizer_state, qubit_position, seed = 0):
         # set x_p - n row equal to x_p row
         tableau[x_p - n_qubits] = tableau[x_p]
         # set x_p row equal to 0 except for z element of measured qubit which is 1.
-        tableau[x_p] = np.zeros(2*n_qubits+1)
+        tableau[x_p] = np.zeros(2 * n_qubits + 1)
         tableau[x_p, qubit_position + n_qubits] = 1
         # set r_vector of that row to random measurement outcome 0 or 1. (equal probability)
         random.seed(seed)
-        tableau[x_p, 1+2*n_qubits] = random.randint(0, 1)
+        tableau[x_p, 1 + 2 * n_qubits] = random.randint(0, 1)
 
         stabilizer_state.tableau = tableau
-        return stabilizer_state, tableau[x_p, 1+2*n_qubits]
+        return stabilizer_state, tableau[x_p, 1 + 2 * n_qubits]
     else:
         # add an extra 2n+1 th row to the tableau
-        new_tableau = np.vstack([tableau, np.zeros(1+2*n_qubits)])
+        new_tableau = np.vstack([tableau, np.zeros(1 + 2 * n_qubits)])
         x_matrix = new_tableau[:, 0:n_qubits]
         z_matrix = new_tableau[:, n_qubits:2 * n_qubits]
         r_vector = new_tableau[:, -1]
 
-        non_zero_x = [i for i in non_zero_x if i<n_qubits] #list of nonzero elements in the x destabilizers
+        non_zero_x = [i for i in non_zero_x if i < n_qubits]  # list of nonzero elements in the x destabilizers
         for non_zero in non_zero_x:
-            x_matrix, z_matrix, r_vector = row_sum(x_matrix, z_matrix, r_vector, non_zero + n_qubits, 2*n_qubits)
-        return stabilizer_state, r_vector[2*n_qubits]
+            x_matrix, z_matrix, r_vector = row_sum(x_matrix, z_matrix, r_vector, non_zero + n_qubits, 2 * n_qubits)
+        return stabilizer_state, r_vector[2 * n_qubits]
 
+
+### SECONDARY GATES
+def z_gate(stabilizer_state, qubit_position):
+    """
+    Pauli Z applied on a single qubit given its position, in a stabilizer state.
+
+    :param stabilizer_state: a StabilizerState object.
+    :type stabilizer_state: StabilizerState
+    :param qubit_position: index of the qubit that the gate acts on
+    :type qubit_position: int
+    :return: the resulting state after gate action
+    :rtype: StabilizerState
+    """
+    n_qubits = stabilizer_state.n_qubits  # number of qubits
+    assert qubit_position < n_qubits
+    for i in range(2):
+        stabilizer_state = phase_gate(stabilizer_state, qubit_position)
+
+    return stabilizer_state
+
+
+def x_gate(stabilizer_state, qubit_position):
+    """
+    Pauli X (= HZH) applied on a single qubit given its position, in a stabilizer state.
+
+    :param stabilizer_state: a StabilizerState object.
+    :type stabilizer_state: StabilizerState
+    :param qubit_position: index of the qubit that the gate acts on
+    :type qubit_position: int
+    :return: the resulting state after gate action
+    :rtype: StabilizerState
+    """
+    n_qubits = stabilizer_state.n_qubits  # number of qubits
+    assert qubit_position < n_qubits
+    stabilizer_state = hadamard_gate(stabilizer_state, qubit_position)
+    stabilizer_state = z_gate(stabilizer_state, qubit_position)
+    stabilizer_state = hadamard_gate(stabilizer_state, qubit_position)
+
+    return stabilizer_state
+
+
+def y_gate(stabilizer_state, qubit_position):
+    """
+    Pauli Y (=PXZP) applied on a single qubit given its position, in a stabilizer state.
+
+    :param stabilizer_state: a StabilizerState object.
+    :type stabilizer_state: StabilizerState
+    :param qubit_position: index of the qubit that the gate acts on
+    :type qubit_position: int
+    :return: the resulting state after gate action
+    :rtype: StabilizerState
+    """
+    n_qubits = stabilizer_state.n_qubits  # number of qubits
+    assert qubit_position < n_qubits
+    stabilizer_state = phase_gate(stabilizer_state, qubit_position)
+    stabilizer_state = z_gate(stabilizer_state, qubit_position)
+    stabilizer_state = x_gate(stabilizer_state, qubit_position)
+    stabilizer_state = phase_gate(stabilizer_state, qubit_position)
+
+    return stabilizer_state
+
+
+def control_x_gate(stabilizer_state, ctrl_qubit, target_qubit):
+    """
+    Controlled X gate on control and target qubits given their position, in a stabilizer state.
+
+    :param stabilizer_state: a StabilizerState object.
+    :type stabilizer_state: StabilizerState
+    :param ctrl_qubit: index of the control qubit
+    :type ctrl_qubit: int
+    :param target_qubit: index of the target qubit that the gate acts on
+    :type target_qubit: int
+    :return: the resulting state after gate action
+    :rtype: StabilizerState
+    """
+    return cnot_gate(stabilizer_state, ctrl_qubit, target_qubit)
+
+
+def control_z_gate(stabilizer_state, ctrl_qubit, target_qubit):
+    """
+    Controlled Z gate on control and target qubits given their position, in a stabilizer state.
+
+    :param stabilizer_state: a StabilizerState object.
+    :type stabilizer_state: StabilizerState
+    :param ctrl_qubit: index of the control qubit
+    :type ctrl_qubit: int
+    :param target_qubit: index of the target qubit that the gate acts on
+    :type target_qubit: int
+    :return: the resulting state after gate action
+    :rtype: StabilizerState
+    """
+    stabilizer_state = hadamard_gate(stabilizer_state, target_qubit)
+    stabilizer_state = cnot_gate(stabilizer_state, ctrl_qubit, target_qubit)
+    stabilizer_state = hadamard_gate(stabilizer_state, target_qubit)
+    return stabilizer_state
+
+
+def control_y_gate(stabilizer_state, ctrl_qubit, target_qubit):
+    """
+    Controlled Y gate on control and target qubits given their position, in a stabilizer state.
+
+    :param stabilizer_state: a StabilizerState object.
+    :type stabilizer_state: StabilizerState
+    :param ctrl_qubit: index of the control qubit
+    :type ctrl_qubit: int
+    :param target_qubit: index of the target qubit that the gate acts on
+    :type target_qubit: int
+    :return: the resulting state after gate action
+    :rtype: StabilizerState
+    """
+    stabilizer_state = phase_gate(stabilizer_state, target_qubit)
+    stabilizer_state = z_gate(stabilizer_state, target_qubit)
+    stabilizer_state = cnot_gate(stabilizer_state, ctrl_qubit, target_qubit)
+    stabilizer_state = phase_gate(stabilizer_state, target_qubit)
+    return stabilizer_state
+
+
+def phase_dagger_gate(stabilizer_state, qubit_position):
+    """
+    Phase dagger gate (inverse of phase) applied on a single qubit given its position, in a stabilizer state.
+
+    :param stabilizer_state: a StabilizerState object.
+    :type stabilizer_state: StabilizerState
+    :param qubit_position: index of the qubit that the gate acts on
+    :type qubit_position: int
+    :return: the resulting state after gate action
+    :rtype: StabilizerState
+    """
+    n_qubits = stabilizer_state.n_qubits  # number of qubits
+    assert qubit_position < n_qubits
+    for i in range(3):
+        stabilizer_state = phase_gate(stabilizer_state, qubit_position)
+
+    return stabilizer_state
+
+
+def projector_z0():
+    pass
+
+
+def projector_z1():
+    pass
+
+
+def reset_qubit(qubit, intended_state):
+    pass
+
+
+def set_qubit(qubit, intended_state):
+    pass
+
+
+def add_qubit():
+    pass
+
+
+def remove_qubit():
+    pass
+
+
+def trace_out():
+    pass
+
+
+def from_graph():
+    pass
+
+
+def from_stabilizer():
+    pass
+
+
+def swap_gate(stabilizer_state, qubit1, qubit2):
+    pass
+
+
+def is_symplectic():
+    pass
+
+
+def is_pure():
+    pass
+
+
+def is_graph():
+    pass
+
+
+def is_stabilizer():
+    pass
+
+
+def create_n_product_state(n_qubits, qubit_state):
+    """
+    Create a product state that consists :math:`n` tensor factors of the qubit_state.
+    """
+    pass
+
+
+def create_n_plus_state(n_qubits):
+    pass
+
+
+def tensor(list_of_states):
+    pass
+
+
+def partial_trace():
+    pass
+
+
+def fidelity(a, b):
+    pass
+
+
+def project_to_z0_and_remove(stabilizer_state, locations):  # what if it cannot be projected to z0 ?! how is it
+    # handled in density matrix formalism? ask
+    pass
+
+
+def measure_x(stabilizer_state, qubit_position, seed=0):
+    """
+    Returns the outcome 0 or 1 if one measures the given qubit in the X basis.
+    NOTE: cannot update the stabilizer state after measurement. Stabilizer formalism can only handle Z-measurements.
+
+    :param stabilizer_state: a StabilizerState object.
+    :type stabilizer_state: StabilizerState
+    :param qubit_position: index of the qubit that the gate acts on
+    :type qubit_position: int
+    :param seed: a seed for random outcome of the measurement
+    :type seed: int
+    :return: the classical outcome of measuring given qubit in the X basis.
+    :rtype: int
+    """
+    stabilizer_state_new = hadamard_gate(stabilizer_state, qubit_position)
+    _, outcome = z_measurement_gate(stabilizer_state_new, qubit_position, seed=seed)
+    return outcome
+
+
+def measure_y(stabilizer_state, qubit_position, seed=0):
+    """
+    Returns the outcome 0 or 1 if one measures the given qubit in the Y basis.
+    NOTE: cannot update the stabilizer state after measurement. Stabilizer formalism can only handle Z-measurements.
+
+    :param stabilizer_state: a StabilizerState object.
+    :type stabilizer_state: StabilizerState
+    :param qubit_position: index of the qubit that the gate acts on
+    :type qubit_position: int
+    :param seed: a seed for random outcome of the measurement
+    :type seed: int
+    :return: the classical outcome of measuring given qubit in the X basis.
+    :rtype: int
+    """
+    stabilizer_state_new = stabilizer_state
+    # apply P dagger gate
+    stabilizer_state_new = phase_dagger_gate(stabilizer_state_new, qubit_position)
+    # apply H
+    stabilizer_state_new = hadamard_gate(stabilizer_state_new, qubit_position)
+
+    _, outcome = z_measurement_gate(stabilizer_state_new, qubit_position, seed=seed)
+    return outcome
+
+
+def measure_z(stabilizer_state, qubit_position, seed=0):
+    """
+    Returns the outcome 0 or 1 if one measures the given qubit in the X basis.
+    NOTE: Does not update the stabilizer state after measurement.
+
+    :param stabilizer_state: a StabilizerState object.
+    :type stabilizer_state: StabilizerState
+    :param qubit_position: index of the qubit that the gate acts on
+    :type qubit_position: int
+    :param seed: a seed for random outcome of the measurement
+    :type seed: int
+    :return: the classical outcome of measuring given qubit in the X basis.
+    :rtype: int
+    """
+    stabilizer_state_new = stabilizer_state
+    _, outcome = z_measurement_gate(stabilizer_state_new, qubit_position, seed=seed)
+    return outcome
 
 
 def hadamard_transform(x_matrix, z_matrix, positions):

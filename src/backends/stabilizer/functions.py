@@ -2,7 +2,7 @@ import networkx as nx
 import numpy as np
 from matplotlib import pyplot as plt
 import random
-
+import src.backends.stabilizer.state as ss
 import src.backends.density_matrix.functions as dmf
 
 
@@ -438,13 +438,14 @@ def control_y_gate(stabilizer_state, ctrl_qubit, target_qubit):
 
 def projector_z0(stabilizer_state, qubit_position):
     success = True
+    n_qubits = stabilizer_state.n_qubits  # number of qubits
+    assert qubit_position < n_qubits
     stabilizer_state, outcome, probabilistic = z_measurement_gate(stabilizer_state, qubit_position, seed=0)
     if probabilistic:
         if outcome == 0:
             pass
         else:
             stabilizer_state.tableau[probabilistic, -1] = 0
-        pass
     else:
         if outcome == 0:
             pass
@@ -457,37 +458,124 @@ def projector_z0(stabilizer_state, qubit_position):
 
 def projector_z1(stabilizer_state, qubit_position):
     success = True
+    n_qubits = stabilizer_state.n_qubits  # number of qubits
+    assert qubit_position < n_qubits
     stabilizer_state, outcome, probabilistic = z_measurement_gate(stabilizer_state, qubit_position, seed=0)
     if probabilistic:
         if outcome == 1:
             pass
         else:
             stabilizer_state.tableau[probabilistic, -1] = 1
-        pass
     else:
         if outcome == 1:
             pass
         else:
             stabilizer_state = 0
+            success = False
             # TODO: see how impossible projection is handled in the density matrix formalism
     return stabilizer_state, success
 
 
-def reset_qubit(qubit, intended_state):
-    pass
+def reset_qubit(stabilizer_state, qubit_position, intended_state):
+    # reset qubit to computational basis states
+    # NOTE: Only works after a measurement gate on the same qubit or for isolated qubits.
+    n_qubits = stabilizer_state.n_qubits  # number of qubits
+    assert qubit_position < n_qubits
+    assert intended_state == 0 or intended_state == 1
+    stabilizer_state, outcome, probabilistic = z_measurement_gate(stabilizer_state, qubit_position, seed=0)
+    if probabilistic:
+        if outcome == intended_state:
+            pass
+        else:
+            stabilizer_state.tableau[probabilistic, -1] = intended_state
+    else:
+        if outcome == intended_state:
+            pass
+        else:
+            the_generator = np.zeros(2*n_qubits)
+            the_generator[n_qubits + qubit_position] = 1
+
+            generators = stabilizer_state.tableau[n_qubits:2*n_qubits, 0:2*n_qubits]
+            for i in range(n_qubits):
+                if generators[i] == the_generator:
+                    assert stabilizer_state.tableau[i, qubit_position] == 1, "unexpected destabilizer element. The " \
+                                                                             "reset gate in probably not used after a" \
+                                                                             " valid measurement on the same qubit "
+                    stabilizer_state.tableau[i, -1] = 1 ^ stabilizer_state.tableau[i, -1]
+    return stabilizer_state
 
 
 def set_qubit(qubit, intended_state):
+    """probably no possible to implement"""
     pass
 
 
-def add_qubit():
-    pass
+def add_qubit(stabilizer_state):
+    """
+    add one isolated qubit in 0 state of the computational basis to the current state.
+    :return: the updated stabilizer state
+    """
+    n_qubits = stabilizer_state.n_qubits  # number of qubits
+    n_new = 1 + n_qubits
+    if n_qubits == 0:
+        return create_n_product_state(1)
+    tableau = stabilizer_state.tableau
+    new_tableau = create_n_product_state(1 + n_qubits).tableau
+    # x destabilizer part
+    new_tableau[0:n_qubits, 0:n_qubits] = tableau[0:n_qubits, 0:n_qubits]
+    # z destabilizer part
+    new_tableau[0:n_qubits, n_new:2*n_qubits+1] = tableau[0:n_qubits, n_qubits:2*n_qubits]
+    # r destabilizer part
+    new_tableau[0:n_qubits, -1] = tableau[0:n_qubits, -1]
+    # x stabilizer part
+    new_tableau[n_new:2*n_qubits+1, 0:n_qubits] = tableau[n_qubits:2*n_qubits, 0:n_qubits]
+    # z stabilizer part
+    new_tableau[n_new:2*n_qubits+1, n_new:2*n_qubits+1] = tableau[n_qubits:2*n_qubits, n_qubits:2*n_qubits]
+    # r stabilizer part
+    new_tableau[n_new:2*n_qubits+1, -1] = tableau[n_qubits:2*n_qubits, -1]
+
+    stabilizer_state.n_qubits = n_new
+    stabilizer_state.tableau = new_tableau
+    return stabilizer_state
 
 
-def remove_qubit():
-    pass
+def insert_qubit(stabilizer_state, insert_after):
+    """
+    To be implemented. Similar to `add qubit` function.
+    :param stabilizer_state:
+    :param insert_after: the position index after which a new qubit is added.
+    :return: updated state
+    """
 
+
+def remove_qubit(stabilizer_state, qubit_position):
+    """
+    Needs further investigation. Code below only works for isolated qubits.
+    #TODO: Check if a qubit is isolated in general? Only isolated qubits in the Z basis states can be confirmed for now.
+    The action of the function is measure and remove. If isolated, state should not change.
+    only works correctly for isolated qubits! e.g. after measurement
+    entangled qubits cannot be removed without affecting other parts of the state
+    """
+
+    new_stabilizer_state, _, probabilistic = z_measurement_gate(stabilizer_state, qubit_position, seed=0)
+    if probabilistic:
+        row_position = probabilistic
+    else:
+
+    n_qubits = stabilizer_state.n_qubits  # number of qubits
+    assert qubit_position < n_qubits
+    tableau = stabilizer_state.tableau
+    tableau = np.delete(tableau, qubit_position, axis=1)
+    tableau = np.delete(tableau, n_qubits + qubit_position, axis=1)
+    row_positions = [i for i in range(len(tableau)) if not np.any(tableau[i])]
+    assert len(row_positions) == 1
+    row_position = row_positions[0]
+    # order of removing rows matters here
+    tableau = np.delete(tableau, n_qubits + row_position)
+    tableau = np.delete(tableau, row_position)
+    stabilizer_state.tableau = tableau
+
+    return stabilizer_state
 
 def trace_out():
     pass
@@ -521,15 +609,26 @@ def is_stabilizer():
     pass
 
 
-def create_n_product_state(n_qubits, qubit_state):
+def create_n_product_state(n_qubits):
     """
-    Create a product state that consists :math:`n` tensor factors of the qubit_state.
+    Creates a product state that consists :math:`n` tensor factors of the computational (Pauli Z) 0 state.
     """
-    pass
+    stabilizer_state = ss.Stabilizer()
+    tableau = np.eye(2*n_qubits)
+    r_vector = np.zeros(2*n_qubits).reshape(2*n_qubits, 1)
+    stabilizer_state.tableau = np.append(tableau, r_vector, axis=1)
+    return stabilizer_state
 
 
 def create_n_plus_state(n_qubits):
-    pass
+    """
+    Creates a product state that consists :math:`n` tensor factors of the "plus state" (Pauli X's +1 eigenstate)
+    """
+    stabilizer_state = create_n_product_state(n_qubits)
+    tableau = stabilizer_state.tableau
+    tableau[:, [*range(2*n_qubits)]] = tableau[:, [*range(n_qubits, 2*n_qubits)]+[*range(0, n_qubits)]]
+    stabilizer_state.tableau = tableau
+    return stabilizer_state
 
 
 def tensor(list_of_states):
@@ -609,6 +708,7 @@ def measure_z(stabilizer_state, qubit_position, seed=0):
     stabilizer_state_new = stabilizer_state
     _, outcome, _ = z_measurement_gate(stabilizer_state_new, qubit_position, seed=seed)
     return outcome
+#######################################################################################
 
 
 def hadamard_transform(x_matrix, z_matrix, positions):

@@ -555,6 +555,9 @@ def remove_qubit(stabilizer_state, qubit_position):
     The action of the function is measure and remove. If isolated, state should not change.
     only works correctly for isolated qubits! e.g. after measurement
     entangled qubits cannot be removed without affecting other parts of the state
+
+
+    NEW method: discard any of the eligible rows from the stabilizer and destabilizer sets instead of finding THE one.
     """
 
     new_stabilizer_state, _, probabilistic = z_measurement_gate(stabilizer_state, qubit_position, seed=0)

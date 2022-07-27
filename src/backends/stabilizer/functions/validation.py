@@ -15,7 +15,9 @@ def is_symplectic(input_matrix):
         [[np.zeros((dim, dim)), np.eye(dim)], [np.eye(dim), np.zeros((dim, dim))]]
     ).astype(int)
 
-    return np.array_equal(binary_symplectic_product(input_matrix, input_matrix), symplectic_p)
+    return np.array_equal(
+        binary_symplectic_product(input_matrix, input_matrix), symplectic_p
+    )
 
 
 def is_symplectic_self_orthogonal(input_matrix):

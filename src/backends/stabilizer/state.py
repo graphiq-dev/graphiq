@@ -44,7 +44,9 @@ class Stabilizer(StateRepresentationBase):
     def apply_unitary(self, qubit_position, unitary):
         pass
 
-    def apply_measurement(self, qubit_position, measurement_determinism="probabilistic"):
+    def apply_measurement(
+        self, qubit_position, measurement_determinism="probabilistic"
+    ):
         """
 
         :param qubit_position:
@@ -56,7 +58,9 @@ class Stabilizer(StateRepresentationBase):
         :return:
         :rtype:
         """
-        self._tableau = sft.z_measurement_gate(self._tableau, qubit_position, measurement_determinism)
+        self._tableau = sft.z_measurement_gate(
+            self._tableau, qubit_position, measurement_determinism
+        )
 
     def apply_hadamard(self, qubit_position):
         self._tableau = sft.hadamard_gate(self._tableau, qubit_position)

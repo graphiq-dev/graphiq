@@ -86,7 +86,7 @@ def test_height_comparison(case_number):
     assert h_x == globals()[f"h_{case_number}"]
 
 
-@pytest.mark.parametrize("n_nodes", [*range(5,15)])
+@pytest.mark.parametrize("n_nodes", [*range(5, 15)])
 def test_echelon_form(n_nodes):
     g1 = nx.complete_graph(n_nodes)
     g2 = nx.gnp_random_graph(n_nodes, 0.5)

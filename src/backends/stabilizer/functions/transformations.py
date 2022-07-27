@@ -89,13 +89,15 @@ def cnot_gate(tableau, ctrl_qubit, target_qubit):
     # updating the rest of the tableau
     table[:, target_qubit] = table[:, target_qubit] ^ table[:, ctrl_qubit]
     table[:, n_qubits + ctrl_qubit] = (
-            table[:, n_qubits + ctrl_qubit] ^ table[:, n_qubits + target_qubit]
+        table[:, n_qubits + ctrl_qubit] ^ table[:, n_qubits + target_qubit]
     )
     tableau.table = table
     return tableau
 
 
-def z_measurement_gate(tableau, qubit_position, measurement_determinism="probabilistic"):
+def z_measurement_gate(
+    tableau, qubit_position, measurement_determinism="probabilistic"
+):
     """
     Measurement applied on a single qubit given its position, in a stabilizer state.
 
@@ -157,7 +159,7 @@ def z_measurement_gate(tableau, qubit_position, measurement_determinism="probabi
         # add an extra 2n+1 th row to the tableau
         new_table = np.vstack([tableau.table, np.zeros(2 * n_qubits)])
         x_matrix = new_table[:, 0:n_qubits]
-        z_matrix = new_table[:, n_qubits: 2 * n_qubits]
+        z_matrix = new_table[:, n_qubits : 2 * n_qubits]
         r_vector = np.vstack([tableau.phase, np.zeros(1)])
 
         # list of nonzero elements in the x destabilizers
@@ -354,14 +356,16 @@ def projector_z1(tableau, qubit_position, measurement_determinism="probabilistic
 
 
 def reset_qubit(
-        tableau, qubit_position, intended_state, measurement_determinism="probabilistic"
+    tableau, qubit_position, intended_state, measurement_determinism="probabilistic"
 ):
     # reset qubit to computational basis states
     # NOTE: Only works after a measurement gate on the same qubit or for isolated qubits.
     n_qubits = tableau.n_qubits  # number of qubits
     assert qubit_position < n_qubits
     assert intended_state == 0 or intended_state == 1
-    tableau, outcome, probabilistic = z_measurement_gate(tableau, qubit_position, measurement_determinism)
+    tableau, outcome, probabilistic = z_measurement_gate(
+        tableau, qubit_position, measurement_determinism
+    )
     if probabilistic:
         if outcome == intended_state:
             pass
@@ -404,9 +408,9 @@ def add_qubit(tableau):
 
     new_tableau = create_n_product_state(n_new)
     # x destabilizer part
-    new_tableau.destabilizer_x[0:n_qubits,0:n_qubits] = tableau.destabilizer_x
+    new_tableau.destabilizer_x[0:n_qubits, 0:n_qubits] = tableau.destabilizer_x
     # z destabilizer part
-    new_tableau.destabilizer_z[0:n_qubits,0:n_qubits] = tableau.destabilizer_z
+    new_tableau.destabilizer_z[0:n_qubits, 0:n_qubits] = tableau.destabilizer_z
     # r destabilizer part
     new_tableau.phase[0:n_qubits] = tableau.phase[0, n_qubits]
     # x stabilizer part
@@ -414,7 +418,7 @@ def add_qubit(tableau):
     # z stabilizer part
     new_tableau.stabilizer_z[0:n_qubits, 0:n_qubits] = tableau.stabilizer_z
     # r stabilizer part
-    new_tableau.phase[n_new: 2 * n_new - 1] = tableau.phase[n_qubits: 2 * n_qubits]
+    new_tableau.phase[n_new : 2 * n_new - 1] = tableau.phase[n_qubits : 2 * n_qubits]
 
     tableau.table = new_tableau.table
     tableau.phase = tableau.phase
@@ -553,8 +557,8 @@ def create_n_plus_state(n_qubits):
     tableau = create_n_product_state(n_qubits)
 
     tableau.table[:, [*range(2 * n_qubits)]] = tableau.table[
-                                               :, [*range(n_qubits, 2 * n_qubits)] + [*range(0, n_qubits)]
-                                               ]
+        :, [*range(n_qubits, 2 * n_qubits)] + [*range(0, n_qubits)]
+    ]
 
     return tableau
 

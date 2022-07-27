@@ -6,7 +6,7 @@ from src.backends.density_matrix.state import DensityMatrix
 from src.backends.graph.state import Graph
 import src.backends.density_matrix.functions as dmf
 import src.backends.graph.functions as gf
-import src.backends.stabilizer.functions as sf
+import src.backends.stabilizer.functions.conversion as sfc
 
 import src.backends.state_representation_conversion as rep_converter
 
@@ -56,7 +56,7 @@ def test_stabilizer_to_graph():
     x_matrix = np.eye(4)
     graph1 = nx.Graph([(1, 2), (2, 3), (3, 4)])
     z_matrix = nx.to_numpy_matrix(graph1)
-    generator_list = sf.symplectic_to_string(x_matrix, z_matrix)
+    generator_list = sfc.symplectic_to_string(x_matrix, z_matrix)
     graph2 = rep_converter.stabilizer_to_graph(generator_list)
     assert nx.is_isomorphic(graph1, graph2)
 
@@ -65,7 +65,7 @@ def test_stabilizer_and_density_conversion():
     x_matrix = np.eye(4)
     graph1 = nx.Graph([(1, 2), (2, 3), (3, 4)])
     z_matrix = nx.to_numpy_matrix(graph1)
-    generator_list = sf.symplectic_to_string(x_matrix, z_matrix)
+    generator_list = sfc.symplectic_to_string(x_matrix, z_matrix)
     rho1 = rep_converter.stabilizer_to_density(generator_list)
     rho2 = rep_converter.graph_to_density(graph1)
 
@@ -83,7 +83,7 @@ def test_stabilizer_and_density_conversion2():
     x_matrix = np.eye(5)
     graph1 = nx.Graph([(1, 2), (2, 3), (3, 4), (3, 5)])
     z_matrix = nx.to_numpy_matrix(graph1)
-    generator_list = sf.symplectic_to_string(x_matrix, z_matrix)
+    generator_list = sfc.symplectic_to_string(x_matrix, z_matrix)
     rho1 = rep_converter.stabilizer_to_density(generator_list)
     rho2 = rep_converter.graph_to_density(graph1)
 

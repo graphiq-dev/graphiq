@@ -37,9 +37,24 @@ Stabilizer Representation Backend
    :members:
 .. automodule:: src.backends.stabilizer.functions
    :members:
+.. automodule:: src.backends.stabilizer.functions.conversion
+   :members:
+.. automodule:: src.backends.stabilizer.functions.height_function
+   :members:
+.. automodule:: src.backends.stabilizer.functions.matrix_functions
+   :members:
+.. automodule:: src.backends.stabilizer.functions.transformations
+   :members:
+.. automodule:: src.backends.stabilizer.functions.validation
+   :members:
 
 Local-Clifford Equivalence Check Module
 -----------------------------------------
 .. automodule:: src.backends.lc_equivalence_check
+   :members:
+
+State Representation Conversion Module
+-----------------------------------------
+.. automodule:: src.backends.state_representation_conversion
    :members:
 

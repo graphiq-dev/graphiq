@@ -9,8 +9,8 @@ import networkx as nx
 
 import src.backends.density_matrix.functions as dmf
 import src.backends.graph.functions as gf
-import src.backends.stabilizer.functions as sf
-
+import src.backends.stabilizer.functions.conversion as sfc
+import src.backends.stabilizer.functions.matrix_functions as sfmf
 
 # TODO: Currently the conversion functions assume no redundant encoding. Next step is to include redundant encoding.
 # TODO: We currently assume exact state conversion, that is, no need to check local-Clifford equivalency. Need to be
@@ -34,13 +34,13 @@ def _graph_finder(x_matrix, z_matrix):
     :rtype: networkX.Graph
     """
     n_row, n_column = x_matrix.shape
-    x_matrix, z_matrix, rank = sf.row_reduction(x_matrix, z_matrix)
+    x_matrix, z_matrix, rank = sfmf.row_reduction(x_matrix, z_matrix)
 
     if x_matrix[rank][n_column - 1] == 0:
         rank = rank - 1
     positions = [*range(rank + 1, n_row)]
 
-    x_matrix, z_matrix = sf.hadamard_transform(x_matrix, z_matrix, positions)
+    x_matrix, z_matrix = sfmf.hadamard_transform(x_matrix, z_matrix, positions)
 
     assert (
         np.linalg.det(x_matrix)
@@ -153,7 +153,7 @@ def graph_to_stabilizer(input_graph):
         )
     n_nodes = int(np.sqrt(adj_matrix.size))
 
-    return sf.symplectic_to_string(np.eye(n_nodes), adj_matrix)
+    return sfc.symplectic_to_string(np.eye(n_nodes), adj_matrix)
 
 
 def stabilizer_to_graph(input_stabilizer):
@@ -166,7 +166,7 @@ def stabilizer_to_graph(input_stabilizer):
     :rtype: networkX.Graph
     """
 
-    x_matrix, z_matrix = sf.string_to_symplectic(input_stabilizer)
+    x_matrix, z_matrix = sfc.string_to_symplectic(input_stabilizer)
     graph = _graph_finder(x_matrix, z_matrix)
     return graph
 
@@ -185,7 +185,7 @@ def stabilizer_to_density(input_stabilizer):
     assert n_generators == n_qubits
     rho = np.eye(2**n_qubits)
     for generator in input_stabilizer:
-        stabilizer_elem = sf.get_stabilizer_element_by_string(generator)
+        stabilizer_elem = sfc.get_stabilizer_element_by_string(generator)
         rho = np.matmul(rho, (stabilizer_elem + np.eye(2**n_qubits)) / 2)
 
     return rho

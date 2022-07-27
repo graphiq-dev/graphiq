@@ -229,22 +229,22 @@ class StabilizerCompiler(CompilerBase):
             state.apply_phase(q_index(op.register, op.reg_type))
 
         elif type(op) is ops.SigmaX:
-            state.apply_SigmaX(q_index(op.register, op.reg_type))
+            state.apply_sigmax(q_index(op.register, op.reg_type))
 
         elif type(op) is ops.SigmaY:
-            state.apply_SigmaY(q_index(op.register, op.reg_type))
+            state.apply_sigmay(q_index(op.register, op.reg_type))
 
         elif type(op) is ops.SigmaZ:
-            state.apply_SigmaZ(q_index(op.register, op.reg_type))
+            state.apply_sigmaz(q_index(op.register, op.reg_type))
 
         elif type(op) is ops.CNOT:
-            state.apply_CNOT(
+            state.apply_cnot(
                 control=q_index(op.control, op.control_type),
                 target=q_index(op.target, op.target_type),
             )
 
         elif type(op) is ops.CPhase:
-            state.apply_CPhase(
+            state.apply_cphase(
                 control=q_index(op.control, op.control_type),
                 target=q_index(op.target, op.target_type),
             )
@@ -258,7 +258,7 @@ class StabilizerCompiler(CompilerBase):
             )
 
             if outcome == 1:
-                state.apply_SigmaX(q_index(op.target, op.target_type))
+                state.apply_sigmax(q_index(op.target, op.target_type))
 
             classical_registers[op.c_register] = outcome
 
@@ -270,7 +270,7 @@ class StabilizerCompiler(CompilerBase):
             )
 
             if outcome == 1:
-                state.apply_SigmaX(q_index(op.target, op.target_type))
+                state.apply_sigmax(q_index(op.target, op.target_type))
 
             classical_registers[op.c_register] = outcome
 
@@ -281,7 +281,7 @@ class StabilizerCompiler(CompilerBase):
             )
 
             if outcome == 1:
-                state.apply_SigmaX(q_index(op.target, op.target_type))
+                state.apply_sigmax(q_index(op.target, op.target_type))
 
             # reset the control qubit
             state.reset_qubit(q_index(op.target, op.target_type))

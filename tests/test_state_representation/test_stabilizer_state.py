@@ -1,7 +1,6 @@
 import pytest
 import numpy as np
 from src.backends.stabilizer.state import *
-import src.backends.stabilizer.functions as sf
 
 
 def test_state1():

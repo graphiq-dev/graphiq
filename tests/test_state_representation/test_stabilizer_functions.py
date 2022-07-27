@@ -1,5 +1,6 @@
 import numpy as np
-import src.backends.stabilizer.functions as sf
+import src.backends.stabilizer.functions.conversion as sfc
+import src.backends.stabilizer.functions.validation as sfv
 from functools import reduce
 
 
@@ -11,7 +12,7 @@ def test_symplectic_to_string():
         lambda x, y: x and y,
         map(
             lambda a, b: a == b,
-            sf.symplectic_to_string(x_matrix1, z_matrix1),
+            sfc.symplectic_to_string(x_matrix1, z_matrix1),
             expected1,
         ),
         True,
@@ -24,7 +25,7 @@ def test_symplectic_to_string():
         lambda x, y: x and y,
         map(
             lambda a, b: a == b,
-            sf.symplectic_to_string(x_matrix2, z_matrix2),
+            sfc.symplectic_to_string(x_matrix2, z_matrix2),
             expected2,
         ),
         True,
@@ -33,7 +34,7 @@ def test_symplectic_to_string():
 
 def test_string_to_symplectic():
     generator_list = ["ZIII", "IZII", "IIZI", "IIIZ"]
-    x_matrix, z_matrix = sf.string_to_symplectic(generator_list)
+    x_matrix, z_matrix = sfc.string_to_symplectic(generator_list)
     assert np.array_equal(x_matrix, np.zeros((4, 4)))
     assert np.array_equal(z_matrix, np.eye(4))
 
@@ -46,6 +47,6 @@ def test_symplectic_product():
     dim = 2
 
     assert np.array_equal(
-        sf.binary_symplectic_product(tableau, tableau), np.zeros((4, 4))
+        sfv.binary_symplectic_product(tableau, tableau), np.zeros((4, 4))
     )
-    assert sf.is_symplectic_self_orthogonal(tableau)
+    assert sfv.is_symplectic_self_orthogonal(tableau)

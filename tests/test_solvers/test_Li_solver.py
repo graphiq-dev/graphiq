@@ -1,5 +1,6 @@
 import pytest
-from src.backends.stabilizer.functions import rref, height_func_list
+from src.backends.stabilizer.functions.matrix_functions import rref
+from src.backends.stabilizer.functions.height_function import height_func_list
 import numpy as np
 import networkx as nx
 

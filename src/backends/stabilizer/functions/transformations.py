@@ -198,14 +198,14 @@ def phase_dagger_gate(tableau, qubit_position):
 
 def z_gate(tableau, qubit_position):
     """
-    Pauli Z applied on a single qubit given its position, in a stabilizer state.
+    Pauli Z applied on a single qubit given its position, in a stabilizer state tableau.
 
     :param tableau:
     :type tableau: CliffordTableau
     :param qubit_position: index of the qubit that the gate acts on
     :type qubit_position: int
     :return: the resulting state after gate action
-    :rtype: StabilizerState
+    :rtype: CliffordTableau
     """
     n_qubits = tableau.n_qubits  # number of qubits
     assert qubit_position < n_qubits
@@ -217,14 +217,14 @@ def z_gate(tableau, qubit_position):
 
 def x_gate(tableau, qubit_position):
     """
-    Pauli X (= HZH) applied on a single qubit given its position, in a stabilizer state.
+    Pauli X (= HZH) applied on a single qubit given its position, in a stabilizer state tableau.
 
     :param tableau:
     :type tableau: CliffordTableau
     :param qubit_position: index of the qubit that the gate acts on
     :type qubit_position: int
     :return: the resulting state after gate action
-    :rtype: StabilizerState
+    :rtype: CliffordTableau
     """
     n_qubits = tableau.n_qubits  # number of qubits
     assert qubit_position < n_qubits
@@ -237,14 +237,14 @@ def x_gate(tableau, qubit_position):
 
 def y_gate(tableau, qubit_position):
     """
-    Pauli Y (=PXZP) applied on a single qubit given its position, in a stabilizer state.
+    Pauli Y (=PXZP) applied on a single qubit given its position, in a stabilizer state tableau.
 
     :param tableau:
     :type tableau: CliffordTableau
     :param qubit_position: index of the qubit that the gate acts on
     :type qubit_position: int
     :return: the resulting state after gate action
-    :rtype: StabilizerState
+    :rtype: CliffordTableau
     """
     n_qubits = tableau.n_qubits  # number of qubits
     assert qubit_position < n_qubits
@@ -267,7 +267,7 @@ def control_x_gate(tableau, ctrl_qubit, target_qubit):
     :param target_qubit: index of the target qubit that the gate acts on
     :type target_qubit: int
     :return: the resulting state after gate action
-    :rtype: StabilizerState
+    :rtype: CliffordTableau
     """
     return cnot_gate(tableau, ctrl_qubit, target_qubit)
 
@@ -283,7 +283,7 @@ def control_z_gate(tableau, ctrl_qubit, target_qubit):
     :param target_qubit: index of the target qubit that the gate acts on
     :type target_qubit: int
     :return: the resulting state after gate action
-    :rtype: StabilizerState
+    :rtype: CliffordTableau
     """
     tableau = hadamard_gate(tableau, target_qubit)
     tableau = cnot_gate(tableau, ctrl_qubit, target_qubit)
@@ -302,7 +302,7 @@ def control_y_gate(tableau, ctrl_qubit, target_qubit):
     :param target_qubit: index of the target qubit that the gate acts on
     :type target_qubit: int
     :return: the resulting state after gate action
-    :rtype: StabilizerState
+    :rtype: CliffordTableau
     """
     tableau = phase_gate(tableau, target_qubit)
     tableau = z_gate(tableau, target_qubit)
@@ -312,6 +312,17 @@ def control_y_gate(tableau, ctrl_qubit, target_qubit):
 
 
 def projector_z0(tableau, qubit_position, measurement_determinism="probabilistic"):
+    """
+
+    :param tableau:
+    :type tableau:
+    :param qubit_position:
+    :type qubit_position:
+    :param measurement_determinism:
+    :type measurement_determinism:
+    :return:
+    :rtype:
+    """
     success = True
     n_qubits = tableau.n_qubits  # number of qubits
     assert qubit_position < n_qubits
@@ -334,6 +345,17 @@ def projector_z0(tableau, qubit_position, measurement_determinism="probabilistic
 
 
 def projector_z1(tableau, qubit_position, measurement_determinism="probabilistic"):
+    """
+
+    :param tableau:
+    :type tableau:
+    :param qubit_position:
+    :type qubit_position:
+    :param measurement_determinism:
+    :type measurement_determinism:
+    :return:
+    :rtype:
+    """
     success = True
     n_qubits = tableau.n_qubits  # number of qubits
     assert qubit_position < n_qubits
@@ -358,6 +380,19 @@ def projector_z1(tableau, qubit_position, measurement_determinism="probabilistic
 def reset_qubit(
     tableau, qubit_position, intended_state, measurement_determinism="probabilistic"
 ):
+    """
+
+    :param tableau:
+    :type tableau:
+    :param qubit_position:
+    :type qubit_position:
+    :param intended_state:
+    :type intended_state:
+    :param measurement_determinism:
+    :type measurement_determinism:
+    :return:
+    :rtype:
+    """
     # reset qubit to computational basis states
     # NOTE: Only works after a measurement gate on the same qubit or for isolated qubits.
     n_qubits = tableau.n_qubits  # number of qubits
@@ -398,6 +433,8 @@ def set_qubit(qubit, intended_state):
 def add_qubit(tableau):
     """
     add one isolated qubit in 0 state of the computational basis to the current state.
+    TODO: double check the refactoring
+
 
     :return: the updated stabilizer state
     """
@@ -475,12 +512,10 @@ def measure_x(tableau, qubit_position, measurement_determinism="probabilistic"):
     Returns the outcome 0 or 1 if one measures the given qubit in the X basis.
     NOTE: cannot update the stabilizer state after measurement. Stabilizer formalism can only handle Z-measurements.
 
-    :param tableau: a StabilizerState object.
-    :type tableau: StabilizerState
+    :param tableau:
+    :type tableau: CliffordTableau
     :param qubit_position: index of the qubit that the gate acts on
     :type qubit_position: int
-    :param seed: a seed for random outcome of the measurement
-    :type seed: int
     :return: the classical outcome of measuring given qubit in the X basis.
     :rtype: int
     """
@@ -521,8 +556,8 @@ def measure_z(tableau, qubit_position, measurement_determinism="probabilistic"):
     Returns the outcome 0 or 1 if one measures the given qubit in the X basis.
     NOTE: Does not update the stabilizer state after measurement.
 
-    :param tableau: a StabilizerState object.
-    :type tableau: StabilizerState
+    :param tableau:
+    :type tableau: CliffordTableau
     :param qubit_position: index of the qubit that the gate acts on
     :type qubit_position: int
     :param measurement_determinism:
@@ -568,14 +603,29 @@ def tensor(list_of_states):
 
 
 def partial_trace():
+    """
+    TODO: Need to use this to remove emitter qubits.
+
+    :return:
+    :rtype:
+    """
     pass
 
 
-def fidelity(a, b):
+def fidelity(tableau1, tableau2):
+    """
+    Compute the fidelity of two stabilizer states given their tableaux.
+
+    :param tableau1:
+    :type tableau1:
+    :param tableau2:
+    :type tableau2:
+    :return:
+    :rtype:
+    """
     pass
 
 
 def project_to_z0_and_remove(tableau, locations):
-    # what if it cannot be projected to z0 ?! how is it
-    # handled in density matrix formalism? ask
+    # probably not implementing this
     pass

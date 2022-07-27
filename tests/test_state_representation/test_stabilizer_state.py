@@ -1,0 +1,19 @@
+import pytest
+import numpy as np
+from src.backends.stabilizer.state import *
+import src.backends.stabilizer.functions as sf
+
+
+def test_state1():
+    state = Stabilizer(4)
+    print(state.tableau.destabilizer_to_labels())
+    print(state.tableau.stabilizer_to_labels())
+    state.tableau.stabilizer_z = np.array(
+        [[0, 1, 0, 0], [1, 0, 1, 0], [0, 1, 0, 1], [0, 0, 1, 0]]
+    )
+    state.tableau.destabilizer_z = np.array(
+        [[0, 1, 0, 0], [1, 0, 1, 0], [0, 1, 0, 1], [0, 0, 1, 0]]
+    )
+    state.apply_Hadamard(1)
+    state.tableau.destabilizer_from_labels(["XYXI", "ZYZI", "YIII", "ZZZZ"])
+    print(state.tableau.destabilizer)

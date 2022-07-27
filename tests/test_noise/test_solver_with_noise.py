@@ -318,11 +318,12 @@ def test_solver_linear3_trace_distance(
 
 @pytest.fixture(scope="module")
 def linear3_noise_model_2():
+    dp = 0.03
     noise_model_mapping = {
-        "Hadamard": nm.DepolarizingNoise(0.1),
-        "MeasurementCNOTandRest": nm.DepolarizingNoise(0.1),
-        "CNOT": nm.DepolarizingNoise(0.1),
-        "Identity": nm.DepolarizingNoise(0.1),
+        "Hadamard": nm.DepolarizingNoise(dp),
+        "MeasurementCNOTandRest": nm.DepolarizingNoise(dp),
+        "CNOT": nm.DepolarizingNoise(dp),
+        "Identity": nm.DepolarizingNoise(dp),
     }
     return noise_model_mapping
 

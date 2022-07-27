@@ -35,7 +35,7 @@ def symplectic_to_string(x_matrix, z_matrix):
 
 def string_to_symplectic(generator_list):
     """
-    Convert a string list representation of stabilizer generators to a symplectic representaation
+    Convert a string list representation of stabilizer generators to a symplectic representation
 
     :param generator_list: a list of strings
     :type generator_list: list[str]
@@ -90,8 +90,8 @@ def add_rows(input_matrix, row_to_add, resulting_row):
     :rtype: numpy.ndarray
     """
     input_matrix[resulting_row] = (
-                                          input_matrix[row_to_add] + input_matrix[resulting_row]
-                                  ) % 2
+        input_matrix[row_to_add] + input_matrix[resulting_row]
+    ) % 2
     return input_matrix
 
 
@@ -126,8 +126,8 @@ def add_columns(input_matrix, col_to_add, resulting_col):
     :rtype: numpy.ndarray
     """
     input_matrix[:, resulting_col] = (
-                                             input_matrix[:, col_to_add] + input_matrix[:, resulting_col]
-                                     ) % 2
+        input_matrix[:, col_to_add] + input_matrix[:, resulting_col]
+    ) % 2
     return input_matrix
 
 
@@ -150,7 +150,7 @@ def multiply_columns(matrix_one, matrix_two, first_col, second_col):
     assert np.shape(matrix_one)[0] == np.shape(matrix_two)[0]
     try:
         assert (
-                first_col < np.shape(matrix_one)[1] and second_col < np.shape(matrix_two)[1]
+            first_col < np.shape(matrix_one)[1] and second_col < np.shape(matrix_two)[1]
         )
     except:
         raise ValueError(
@@ -228,13 +228,17 @@ def cnot_gate(stabilizer_state, ctrl_qubit, target_qubit):
     assert ctrl_qubit < n_qubits and target_qubit < n_qubits
     tableau = stabilizer_state.tableau  # full tableau as a np matrix n*(2n+1)
     # updating phase vector
-    x_ctrl_times_z_target = multiply_columns(tableau, tableau, ctrl_qubit, n_qubits + target_qubit)
+    x_ctrl_times_z_target = multiply_columns(
+        tableau, tableau, ctrl_qubit, n_qubits + target_qubit
+    )
     x_target = tableau[:, target_qubit]
     z_ctrl = tableau[:, n_qubits + ctrl_qubit]
     tableau[:, -1] = tableau[:, -1] ^ (x_ctrl_times_z_target * (x_target ^ z_ctrl ^ 1))
     # updating the rest of the tableau
     tableau[:, target_qubit] = tableau[:, target_qubit] ^ tableau[:, ctrl_qubit]
-    tableau[:, n_qubits + ctrl_qubit] = tableau[:, n_qubits + ctrl_qubit] ^ tableau[:, n_qubits + target_qubit]
+    tableau[:, n_qubits + ctrl_qubit] = (
+        tableau[:, n_qubits + ctrl_qubit] ^ tableau[:, n_qubits + target_qubit]
+    )
     stabilizer_state.tableau = tableau
     return stabilizer_state
 
@@ -268,13 +272,15 @@ def z_measurement_gate(stabilizer_state, qubit_position, seed=0):
     if x_p != 0:
         # probabilistic outcome
         x_matrix = tableau[:, 0:n_qubits]
-        z_matrix = tableau[:, n_qubits:2 * n_qubits]
+        z_matrix = tableau[:, n_qubits : 2 * n_qubits]
         r_vector = tableau[:, -1]
         # rowsum for all other x elements equal to 1 other than x_p
         for target_row in non_zero_x:
-            x_matrix, z_matrix, r_vector = row_sum(x_matrix, z_matrix, r_vector, x_p, target_row)
+            x_matrix, z_matrix, r_vector = row_sum(
+                x_matrix, z_matrix, r_vector, x_p, target_row
+            )
         tableau[:, 0:n_qubits] = x_matrix
-        tableau[:, n_qubits:2 * n_qubits] = z_matrix
+        tableau[:, n_qubits : 2 * n_qubits] = z_matrix
         tableau[:, -1] = r_vector
         # set x_p - n row equal to x_p row
         tableau[x_p - n_qubits] = tableau[x_p]
@@ -292,12 +298,16 @@ def z_measurement_gate(stabilizer_state, qubit_position, seed=0):
         # add an extra 2n+1 th row to the tableau
         new_tableau = np.vstack([tableau, np.zeros(1 + 2 * n_qubits)])
         x_matrix = new_tableau[:, 0:n_qubits]
-        z_matrix = new_tableau[:, n_qubits:2 * n_qubits]
+        z_matrix = new_tableau[:, n_qubits : 2 * n_qubits]
         r_vector = new_tableau[:, -1]
 
-        non_zero_x = [i for i in non_zero_x if i < n_qubits]  # list of nonzero elements in the x destabilizers
+        non_zero_x = [
+            i for i in non_zero_x if i < n_qubits
+        ]  # list of nonzero elements in the x destabilizers
         for non_zero in non_zero_x:
-            x_matrix, z_matrix, r_vector = row_sum(x_matrix, z_matrix, r_vector, non_zero + n_qubits, 2 * n_qubits)
+            x_matrix, z_matrix, r_vector = row_sum(
+                x_matrix, z_matrix, r_vector, non_zero + n_qubits, 2 * n_qubits
+            )
         return stabilizer_state, r_vector[2 * n_qubits], x_p
 
 
@@ -440,7 +450,9 @@ def projector_z0(stabilizer_state, qubit_position):
     success = True
     n_qubits = stabilizer_state.n_qubits  # number of qubits
     assert qubit_position < n_qubits
-    stabilizer_state, outcome, probabilistic = z_measurement_gate(stabilizer_state, qubit_position, seed=0)
+    stabilizer_state, outcome, probabilistic = z_measurement_gate(
+        stabilizer_state, qubit_position, seed=0
+    )
     if probabilistic:
         if outcome == 0:
             pass
@@ -460,7 +472,9 @@ def projector_z1(stabilizer_state, qubit_position):
     success = True
     n_qubits = stabilizer_state.n_qubits  # number of qubits
     assert qubit_position < n_qubits
-    stabilizer_state, outcome, probabilistic = z_measurement_gate(stabilizer_state, qubit_position, seed=0)
+    stabilizer_state, outcome, probabilistic = z_measurement_gate(
+        stabilizer_state, qubit_position, seed=0
+    )
     if probabilistic:
         if outcome == 1:
             pass
@@ -482,7 +496,9 @@ def reset_qubit(stabilizer_state, qubit_position, intended_state):
     n_qubits = stabilizer_state.n_qubits  # number of qubits
     assert qubit_position < n_qubits
     assert intended_state == 0 or intended_state == 1
-    stabilizer_state, outcome, probabilistic = z_measurement_gate(stabilizer_state, qubit_position, seed=0)
+    stabilizer_state, outcome, probabilistic = z_measurement_gate(
+        stabilizer_state, qubit_position, seed=0
+    )
     if probabilistic:
         if outcome == intended_state:
             pass
@@ -492,16 +508,22 @@ def reset_qubit(stabilizer_state, qubit_position, intended_state):
         if outcome == intended_state:
             pass
         else:
-            the_generator = np.zeros(2*n_qubits)
+            the_generator = np.zeros(2 * n_qubits)
             the_generator[n_qubits + qubit_position] = 1
 
-            generators = stabilizer_state.tableau[n_qubits:2*n_qubits, 0:2*n_qubits]
+            generators = stabilizer_state.tableau[
+                n_qubits : 2 * n_qubits, 0 : 2 * n_qubits
+            ]
             for i in range(n_qubits):
                 if generators[i] == the_generator:
-                    assert stabilizer_state.tableau[i, qubit_position] == 1, "unexpected destabilizer element. The " \
-                                                                             "reset gate in probably not used after a" \
-                                                                             " valid measurement on the same qubit "
-                    stabilizer_state.tableau[i, -1] = 1 ^ stabilizer_state.tableau[i, -1]
+                    assert stabilizer_state.tableau[i, qubit_position] == 1, (
+                        "unexpected destabilizer element. The "
+                        "reset gate in probably not used after a"
+                        " valid measurement on the same qubit "
+                    )
+                    stabilizer_state.tableau[i, -1] = (
+                        1 ^ stabilizer_state.tableau[i, -1]
+                    )
     return stabilizer_state
 
 
@@ -513,6 +535,7 @@ def set_qubit(qubit, intended_state):
 def add_qubit(stabilizer_state):
     """
     add one isolated qubit in 0 state of the computational basis to the current state.
+
     :return: the updated stabilizer state
     """
     n_qubits = stabilizer_state.n_qubits  # number of qubits
@@ -524,15 +547,21 @@ def add_qubit(stabilizer_state):
     # x destabilizer part
     new_tableau[0:n_qubits, 0:n_qubits] = tableau[0:n_qubits, 0:n_qubits]
     # z destabilizer part
-    new_tableau[0:n_qubits, n_new:2*n_qubits+1] = tableau[0:n_qubits, n_qubits:2*n_qubits]
+    new_tableau[0:n_qubits, n_new : 2 * n_qubits + 1] = tableau[
+        0:n_qubits, n_qubits : 2 * n_qubits
+    ]
     # r destabilizer part
     new_tableau[0:n_qubits, -1] = tableau[0:n_qubits, -1]
     # x stabilizer part
-    new_tableau[n_new:2*n_qubits+1, 0:n_qubits] = tableau[n_qubits:2*n_qubits, 0:n_qubits]
+    new_tableau[n_new : 2 * n_qubits + 1, 0:n_qubits] = tableau[
+        n_qubits : 2 * n_qubits, 0:n_qubits
+    ]
     # z stabilizer part
-    new_tableau[n_new:2*n_qubits+1, n_new:2*n_qubits+1] = tableau[n_qubits:2*n_qubits, n_qubits:2*n_qubits]
+    new_tableau[n_new : 2 * n_qubits + 1, n_new : 2 * n_qubits + 1] = tableau[
+        n_qubits : 2 * n_qubits, n_qubits : 2 * n_qubits
+    ]
     # r stabilizer part
-    new_tableau[n_new:2*n_qubits+1, -1] = tableau[n_qubits:2*n_qubits, -1]
+    new_tableau[n_new : 2 * n_qubits + 1, -1] = tableau[n_qubits : 2 * n_qubits, -1]
 
     stabilizer_state.n_qubits = n_new
     stabilizer_state.tableau = new_tableau
@@ -560,12 +589,15 @@ def remove_qubit(stabilizer_state, qubit_position):
     NEW method: discard any of the eligible rows from the stabilizer and destabilizer sets instead of finding THE one.
     """
 
-    new_stabilizer_state, _, probabilistic = z_measurement_gate(stabilizer_state, qubit_position, seed=0)
+    new_stabilizer_state, _, probabilistic = z_measurement_gate(
+        stabilizer_state, qubit_position, seed=0
+    )
     if probabilistic:
         row_position = probabilistic
     else:
-
-    n_qubits = stabilizer_state.n_qubits  # number of qubits
+        pass
+    # number of qubits
+    n_qubits = stabilizer_state.n_qubits
     assert qubit_position < n_qubits
     tableau = stabilizer_state.tableau
     tableau = np.delete(tableau, qubit_position, axis=1)
@@ -580,6 +612,7 @@ def remove_qubit(stabilizer_state, qubit_position):
 
     return stabilizer_state
 
+
 def trace_out():
     pass
 
@@ -593,10 +626,6 @@ def from_stabilizer():
 
 
 def swap_gate(stabilizer_state, qubit1, qubit2):
-    pass
-
-
-def is_symplectic():
     pass
 
 
@@ -617,8 +646,8 @@ def create_n_product_state(n_qubits):
     Creates a product state that consists :math:`n` tensor factors of the computational (Pauli Z) 0 state.
     """
     stabilizer_state = ss.Stabilizer()
-    tableau = np.eye(2*n_qubits)
-    r_vector = np.zeros(2*n_qubits).reshape(2*n_qubits, 1)
+    tableau = np.eye(2 * n_qubits)
+    r_vector = np.zeros(2 * n_qubits).reshape(2 * n_qubits, 1)
     stabilizer_state.tableau = np.append(tableau, r_vector, axis=1)
     return stabilizer_state
 
@@ -629,7 +658,9 @@ def create_n_plus_state(n_qubits):
     """
     stabilizer_state = create_n_product_state(n_qubits)
     tableau = stabilizer_state.tableau
-    tableau[:, [*range(2*n_qubits)]] = tableau[:, [*range(n_qubits, 2*n_qubits)]+[*range(0, n_qubits)]]
+    tableau[:, [*range(2 * n_qubits)]] = tableau[
+        :, [*range(n_qubits, 2 * n_qubits)] + [*range(0, n_qubits)]
+    ]
     stabilizer_state.tableau = tableau
     return stabilizer_state
 
@@ -646,7 +677,9 @@ def fidelity(a, b):
     pass
 
 
-def project_to_z0_and_remove(stabilizer_state, locations):  # what if it cannot be projected to z0 ?! how is it
+def project_to_z0_and_remove(
+    stabilizer_state, locations
+):  # what if it cannot be projected to z0 ?! how is it
     # handled in density matrix formalism? ask
     pass
 
@@ -711,6 +744,8 @@ def measure_z(stabilizer_state, qubit_position, seed=0):
     stabilizer_state_new = stabilizer_state
     _, outcome, _ = z_measurement_gate(stabilizer_state_new, qubit_position, seed=seed)
     return outcome
+
+
 #######################################################################################
 
 
@@ -1002,13 +1037,13 @@ def _process_one_pauli(x_matrix, z_matrix, r_vector, pivot, pauli_list):
 
 
 def _process_two_pauli(
-        x_matrix,
-        z_matrix,
-        r_vector,
-        pivot,
-        pauli_list_dict,
-        first_list_symbol,
-        second_list_symbol,
+    x_matrix,
+    z_matrix,
+    r_vector,
+    pivot,
+    pauli_list_dict,
+    first_list_symbol,
+    second_list_symbol,
 ):
     """
     Helper function to process two Pauli lists
@@ -1050,8 +1085,8 @@ def _process_two_pauli(
     pauli_list_dict["y"] = pauli_y_list
     pauli_list_dict["z"] = pauli_z_list
     assert (
-            pauli_list_dict[first_list_symbol][0] == pivot[0]
-            and pauli_list_dict[second_list_symbol][0] == pivot[0] + 1
+        pauli_list_dict[first_list_symbol][0] == pivot[0]
+        and pauli_list_dict[second_list_symbol][0] == pivot[0] + 1
     ), "row operations failed"
 
     # remove the first element of the list
@@ -1176,7 +1211,7 @@ def rref(x_matrix, z_matrix, r_vector):
             x_matrix, z_matrix, r_vector, pivot
         )
     assert (
-            pivot[0] >= n_qubits - 1
+        pivot[0] >= n_qubits - 1
     ), "Invalid input. One of the stabilizers is identity on all qubits!"  # rank check
     return x_matrix, z_matrix, r_vector
 
@@ -1205,7 +1240,7 @@ def height_func_list(x_matrix, z_matrix):
         for row_i in range(n_qubits):
             for column_j in range(n_qubits):
                 if not (
-                        x_matrix[row_i, column_j] == 0 and z_matrix[row_i, column_j] == 0
+                    x_matrix[row_i, column_j] == 0 and z_matrix[row_i, column_j] == 0
                 ):
                     left_most_nontrivial.append(column_j)
                     break
@@ -1318,3 +1353,64 @@ def height_plotter(h_dict):
     ax1.set_yticks(range(0, h_max + 1))
     ax1.set_xticks(positions)
     plt.show()
+
+
+"""
+Functions related to stabilizer table verification
+"""
+
+
+def is_symplectic(tableau):
+    """
+    Check if a given tableau is symplectic self-orthogonal.
+
+    :param tableau:
+    :type tableau:
+    :return:
+    :rtype: bool
+    """
+    dim = int(tableau.shape[1] / 2)
+    symplectic_p = np.block(
+        [[np.zeros((dim, dim)), np.eye(dim)], [np.eye(dim), np.zeros((dim, dim))]]
+    ).astype(int)
+
+    return np.array_equal(binary_symplectic_product(tableau, tableau), symplectic_p)
+
+
+def is_symplectic_self_orthogonal(tableau):
+    """
+    Check if a given tableau is symplectic self-orthogonal.
+
+    :param tableau:
+    :type tableau:
+    :return:
+    :rtype: bool
+    """
+    dim = int(tableau.shape[1] / 2)
+
+    return np.array_equal(
+        binary_symplectic_product(tableau, tableau), np.zeros((dim, dim))
+    )
+
+
+def binary_symplectic_product(matrix1, matrix2):
+    """
+    Compute the binary symplectic product of two matrices matrix1 (:math:`M_1`) and matrix2 (:math:`M_2`)
+
+    The symplectic inner product between :math:`M_1` and :math:`M_2` is :math:`M_1 P M_2^T`,
+    where :math:`P = \\begin{bmatrix} 0 & I \\\ I & 0 \\end{bmatrix}`.
+
+
+    :param matrix1:
+    :type matrix1:
+    :param matrix2:
+    :type matrix2:
+    :return:
+    :rtype:
+    """
+    assert matrix1.shape[0] == matrix2.shape[0]
+    dim = matrix1.shape[0]
+    symplectic_p = np.block(
+        [[np.zeros((dim, dim)), np.eye(dim)], [np.eye(dim), np.zeros((dim, dim))]]
+    ).astype(int)
+    return ((matrix1 @ symplectic_p @ matrix2.T) % 2).astype(int)

@@ -58,9 +58,10 @@ class Stabilizer(StateRepresentationBase):
         :return:
         :rtype:
         """
-        self._tableau = sft.z_measurement_gate(
+        self._tableau, outcome, _ = sft.z_measurement_gate(
             self._tableau, qubit_position, measurement_determinism
         )
+        return outcome
 
     def apply_hadamard(self, qubit_position):
         self._tableau = sft.hadamard_gate(self._tableau, qubit_position)
@@ -83,5 +84,7 @@ class Stabilizer(StateRepresentationBase):
     def apply_sigmaz(self, qubit_position):
         self._tableau = sft.z_gate(self._tableau, qubit_position)
 
-    def reset_qubit(self, qubit_position):
-        self._tableau = sft.reset_qubit(self._tableau, qubit_position)
+    def reset_qubit(self, qubit_position, measurement_determinism="probabilistic"):
+        self._tableau = sft.reset_qubit(
+            self._tableau, qubit_position, 0, measurement_determinism
+        )

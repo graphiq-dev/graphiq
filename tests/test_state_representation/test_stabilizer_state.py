@@ -13,6 +13,6 @@ def test_state1():
     state.tableau.destabilizer_z = np.array(
         [[0, 1, 0, 0], [1, 0, 1, 0], [0, 1, 0, 1], [0, 0, 1, 0]]
     )
-    state.apply_Hadamard(1)
+    state.apply_hadamard(1)
     state.tableau.destabilizer_from_labels(["XYXI", "ZYZI", "YIII", "ZZZZ"])
     print(state.tableau.destabilizer)

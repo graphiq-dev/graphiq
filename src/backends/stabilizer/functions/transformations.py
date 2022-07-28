@@ -25,7 +25,7 @@ def hadamard_gate(tableau, qubit_position):
 
     # updating phase vector
     tableau.phase = tableau.phase ^ multiply_columns(
-        tableau, tableau, qubit_position, n_qubits + qubit_position
+        tableau.table, tableau.table, qubit_position, n_qubits + qubit_position
     )
     # updating the rest of the tableau
     tableau.table = column_swap(
@@ -116,10 +116,10 @@ def z_measurement_gate(
     non_zero_x = np.nonzero(x_column)[0]
     x_p = 0
     # x_p is needed and important in other functions, so it will be returned as a function output
-    for non_zero in non_zero_x:
-        if non_zero >= n_qubits:
-            x_p = non_zero
-            non_zero_x = np.delete(non_zero_x, x_p)
+    for i in range(len(non_zero_x)):
+        if non_zero_x[i] >= n_qubits:
+            x_p = non_zero_x[i]
+            non_zero_x = np.delete(non_zero_x, i)
             break
     if x_p != 0:
         # probabilistic outcome
@@ -140,7 +140,7 @@ def z_measurement_gate(
         table[x_p - n_qubits] = table[x_p]
         # set x_p row equal to 0 except for z element of measured qubit which is 1.
 
-        table[x_p] = np.zeros(2 * n_qubits + 1)
+        table[x_p] = np.zeros(2 * n_qubits)
         table[x_p, qubit_position + n_qubits] = 1
         # set r_vector of that row to random measurement outcome 0 or 1. (equal probability)
         if measurement_determinism == "probabilistic":
@@ -383,7 +383,7 @@ def reset_qubit(
     """
 
     :param tableau:
-    :type tableau:
+    :type tableau: CliffordTableau
     :param qubit_position:
     :type qubit_position:
     :param intended_state:
@@ -405,7 +405,7 @@ def reset_qubit(
         if outcome == intended_state:
             pass
         else:
-            tableau.table[probabilistic, -1] = intended_state
+            tableau.phase[probabilistic] = intended_state
     else:
         if outcome == intended_state:
             pass

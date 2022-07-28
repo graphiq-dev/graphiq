@@ -259,20 +259,20 @@ def row_sum(x_matrix, z_matrix, r_vector, row_to_add, target_row):
     :return: updated stabilizer tableau
     :rtype: numpy.ndarray, numpy.ndarray, numpy.ndarray
     """
-    number_of_qubits = np.shape(x_matrix)[0]
+    n_qubits = int(np.shape(x_matrix)[1] / 2)
     # determining the phase factor
     g_sum = 0
-    for j in range(number_of_qubits):
+    for j in range(n_qubits):
         g_sum = g_sum + g_function(
             x_matrix[row_to_add, j],
             z_matrix[row_to_add, j],
             x_matrix[target_row, j],
             z_matrix[target_row, j],
         )
-    if (2 * r_vector[target_row, 0] + 2 * r_vector[row_to_add, 0] + g_sum) % 4 == 0:
-        r_vector[target_row, 0] = 0
-    elif (2 * r_vector[target_row, 0] + 2 * r_vector[row_to_add, 0] + g_sum) % 4 == 2:
-        r_vector[target_row, 0] = 1
+    if (2 * r_vector[target_row] + 2 * r_vector[row_to_add] + g_sum) % 4 == 0:
+        r_vector[target_row] = 0
+    elif (2 * r_vector[target_row] + 2 * r_vector[row_to_add] + g_sum) % 4 == 2:
+        r_vector[target_row] = 1
     else:
         raise Exception("input cannot be valid, due to unexpected outcome")
 

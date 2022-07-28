@@ -4,25 +4,30 @@ import src.backends.stabilizer.functions.conversion as sfc
 
 
 class CliffordTableau(ABC):
-    def __init__(self, data, *args, **kwargs):
+    def __init__(self, data, phase=None, *args, **kwargs):
         """
         TODO: support more ways to initialize the tableau
 
         :param data:
         :type data:
+        :param phase:
+        :type phase:
         """
         if isinstance(data, int):
 
             self._table = np.eye(2 * data).astype(int)
-            self._phase = np.zeros((2 * data, 1)).astype(int)
+            self.n_qubits = data
         elif isinstance(data, np.ndarray):
             assert data.shape[0] == data.shape[1]
             self._table = data.astype(int)
-            self._phase = np.zeros((data.shape[0], 1)).astype(int)
+            self.n_qubits = int(data.shape[1] / 2)
         else:
             raise TypeError("Cannot support the input type")
 
-        self.n_qubits = int(self._table.shape[0] / 2)
+        if isinstance(phase, np.ndarray) and phase.shape[0] == 2 * self.n_qubits:
+            self._phase = phase.astype(int)
+        else:
+            self._phase = np.zeros(2 * self.n_qubits).astype(int)
 
     @property
     def table(self):
@@ -229,7 +234,7 @@ class CliffordTableau(ABC):
         :return:
         :rtype:
         """
-        assert value.shape == (2 * self.n_qubits, 1)
+        assert value.shape[0] == 2 * self.n_qubits
         self._phase = value
 
     def __str__(self):
@@ -270,3 +275,12 @@ class CliffordTableau(ABC):
         :rtype: None
         """
         self.destabilizer_x, self.destabilizer_z = sfc.string_to_symplectic(labels)
+
+    def __eq__(self, other):
+        # TODO: check if it is necessary to reduce to the echelon gauge before comparison
+        if isinstance(other, CliffordTableau):
+            return np.all(self.phase == other.phase) and np.array_equal(
+                self.table.astype(int), other.table.astype(int)
+            )
+
+        return False

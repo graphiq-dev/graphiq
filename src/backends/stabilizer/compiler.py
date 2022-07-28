@@ -284,7 +284,10 @@ class StabilizerCompiler(CompilerBase):
                 state.apply_sigmax(q_index(op.target, op.target_type))
 
             # reset the control qubit
-            state.reset_qubit(q_index(op.target, op.target_type))
+            state.reset_qubit(
+                q_index(op.target, op.target_type),
+                measurement_determinism=self.measurement_determinism,
+            )
 
         elif type(op) is ops.MeasurementZ:
             outcome = state.apply_measurement(

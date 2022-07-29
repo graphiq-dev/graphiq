@@ -139,3 +139,53 @@ def test_echelon_form(n_nodes):
         assert pivot[0] - old_pivot <= 2
         for j in range(int(pivot[0]) + 1, n_nodes):
             assert int(x_2[j, i]) == 0 and int(z_2[j, i]) == 0
+
+
+def test_Li_et_al_example():
+    #This corresponds to the echelon gauge transformation from Fig.1(b) to Fig.1(c)(i)
+    #of Li et al.'s supplementary material.
+    
+    #check matrices of Fig.1(b)
+    z_matrix_in = np.array(
+        [
+            [0, 1, 1, 0],
+            [1, 0, 1, 1],
+            [1, 1, 0, 1],
+            [0, 1, 1, 0],
+        ]
+    )
+    x_matrix_in = np.eye(4,4)
+    r_vector_in=np.zeros([4,1])
+    
+    #Get echelon gauge matrices
+    x_matrix, z_matrix, _ = rref(x_matrix_in, z_matrix_in, r_vector_in)
+    
+    #Height function of before and after gauge transformation. Should be the same as 
+    #height function also does the transformation.
+    height_list_1=height_func_list(x_matrix_in, z_matrix_in); height_list_1=np.array(height_list_1)
+    height_list_2=height_func_list(x_matrix, z_matrix); height_list_2=np.array(height_list_2)
+    
+    #Check matrices of Fig.1(c)(i) which corresponds to after echelon gauge transformation
+    z_matrix_Li = np.array(
+        [
+            [0, 1, 1, 0],
+            [1, 0, 1, 1],
+            [0, 1, 1, 0],
+            [0, 1, 1, 0],
+        ]
+    )
+    x_matrix_Li = np.array(
+        [
+            [1, 0, 0, 0],
+            [0, 1, 0, 0],
+            [0, 1, 1, 0],
+            [0, 0, 0, 1],
+        ]
+    )    
+    #Corresponding height function, ignoring site 0
+    height_list_Li=np.array([1,2,1,0])
+    
+    assert((height_list_1==height_list_Li).all())
+    assert((height_list_2==height_list_Li).all())
+    assert((x_matrix==x_matrix_Li).all())
+    assert((z_matrix==z_matrix_Li).all())

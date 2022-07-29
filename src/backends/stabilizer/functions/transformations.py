@@ -94,6 +94,11 @@ def cnot_gate(tableau, ctrl_qubit, target_qubit):
     tableau.table = table
     return tableau
 
+#TODO: why is there a measurement_determinism parameter here? How is it determined before the gate itself
+# I guess this is for the checking the outcome purposes, but it does not makes sense in stabilizer formalism as
+# we can actually find out whether the outcome is deterministic or probabilistic.
+# And it doesn't work for truly deterministic cases
+
 
 def z_measurement_gate(
     tableau, qubit_position, measurement_determinism="probabilistic"
@@ -145,7 +150,6 @@ def z_measurement_gate(
         # set r_vector of that row to random measurement outcome 0 or 1. (equal probability)
         if measurement_determinism == "probabilistic":
             outcome = np.random.randint(0, 1)
-
         elif measurement_determinism == 1:
             outcome = 1
         else:

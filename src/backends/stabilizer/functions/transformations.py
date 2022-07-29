@@ -94,11 +94,6 @@ def cnot_gate(tableau, ctrl_qubit, target_qubit):
     tableau.table = table
     return tableau
 
-#TODO: why is there a measurement_determinism parameter here? How is it determined before the gate itself
-# I guess this is for the checking the outcome purposes, but it does not makes sense in stabilizer formalism as
-# we can actually find out whether the outcome is deterministic or probabilistic.
-# And it doesn't work for truly deterministic cases
-
 
 def z_measurement_gate(
     tableau, qubit_position, measurement_determinism="probabilistic"
@@ -106,10 +101,14 @@ def z_measurement_gate(
     """
     Measurement applied on a single qubit given its position, in a stabilizer state.
 
+
     :param tableau:
     :type tableau: CliffordTableau
     :param qubit_position: index of the qubit that the gate acts on
     :type qubit_position: int
+    :param measurement_determinism: If the outcome is probabilistic from the simulation, we have the option to
+        select a specific outcome.
+    :type measurement_determinism: str or int
     :return: the resulting state after gate action, the measurement outcome, whether the measurement outcome is
     probabilistic (zero means deterministic)
     :rtype: CliffordTableau, int, int
@@ -148,6 +147,8 @@ def z_measurement_gate(
         table[x_p] = np.zeros(2 * n_qubits)
         table[x_p, qubit_position + n_qubits] = 1
         # set r_vector of that row to random measurement outcome 0 or 1. (equal probability)
+        # We have the option to remove randomness and pick a specific outcome
+        # measurement_determinism is only used when we know random measurement outcome is possible
         if measurement_determinism == "probabilistic":
             outcome = np.random.randint(0, 1)
         elif measurement_determinism == 1:
@@ -160,6 +161,7 @@ def z_measurement_gate(
         return tableau, outcome, x_p
     else:
         # deterministic outcome
+        # We ignore measurement_determinism here since the outcome is deterministic and fixed
         # add an extra 2n+1 th row to the tableau
         new_table = np.vstack([tableau.table, np.zeros(2 * n_qubits)])
         x_matrix = new_table[:, 0:n_qubits]

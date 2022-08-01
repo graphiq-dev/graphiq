@@ -174,10 +174,7 @@ def z_measurement_gate(
             x_matrix, z_matrix, r_vector = row_sum(
                 x_matrix, z_matrix, r_vector, non_zero + n_qubits, 2 * n_qubits
             )
-        # update the tableau?
-        tableau.table_x = x_matrix[:-1, :]
-        tableau.table_z = z_matrix[:-1, :]
-        tableau.phase = r_vector[:-1]
+        # no need to update the tableau
         outcome = r_vector[2 * n_qubits]
         return tableau, outcome, x_p
 
@@ -409,26 +406,26 @@ def reset_qubit(
     )
     if probabilistic:
         if outcome == intended_state:
-            pass
+            return tableau
         else:
             tableau.phase[probabilistic] = intended_state
+            return tableau
     else:
         if outcome == intended_state:
-            pass
+            return tableau
         else:
-            the_generator = np.zeros(2 * n_qubits)
-            the_generator[n_qubits + qubit_position] = 1
-
-            generators = tableau.stabilizer
-            for i in range(n_qubits):
-                if generators[i] == the_generator:
-                    assert tableau.table[i, qubit_position] == 1, (
-                        "unexpected destabilizer element. The "
-                        "reset gate in probably not used after a"
-                        " valid measurement on the same qubit "
-                    )
-                    tableau.phase[i] = 1 ^ tableau.phase[i]
-    return tableau
+            non_zero = [i for i in tableau.destabilizer_x[i, qubit_position] if tableau.destabilizer_x[i, qubit_position] != 0]
+            if len(non_zero) <= 1:
+                tableau.phase[non_zero[0]] = 1 ^ tableau.phase[non_zero[0]]
+                return tableau
+            else:
+                removed_qubit_table = np.delete(tableau.table, [qubit_position, n_qubits + qubit_position], axis=1)
+                for i in non_zero:
+                    if np.array_equal(removed_qubit_table[i], np.zeros(2 * n_qubits - 2):
+                        tableau.phase[i] = 1 ^ tableau.phase[i]
+                        return tableau
+                tableau.phase[non_zero[-1]] = 1 ^ tableau.phase[non_zero[-1]]
+                return tableau
 
 
 def set_qubit(qubit, intended_state):
@@ -439,8 +436,6 @@ def set_qubit(qubit, intended_state):
 def add_qubit(tableau):
     """
     add one isolated qubit in 0 state of the computational basis to the current state.
-    TODO: double check the refactoring
-
 
     :return: the updated stabilizer state
     """

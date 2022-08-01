@@ -464,6 +464,7 @@ def add_qubit(tableau):
     tableau.table = new_tableau.table
     tableau.phase = tableau.phase
     tableau.n_qubits = n_new
+    #todo: shouldn't the number of qubits of a tableau be updated automatically by its dimensions? why can it be set?
     return new_tableau
 
 

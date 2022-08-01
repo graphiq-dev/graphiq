@@ -414,14 +414,14 @@ def reset_qubit(
         if outcome == intended_state:
             return tableau
         else:
-            non_zero = [i for i in tableau.destabilizer_x[i, qubit_position] if tableau.destabilizer_x[i, qubit_position] != 0]
+            non_zero = [i for i in range(n_qubits) if tableau.destabilizer_x[i, qubit_position] != 0]
             if len(non_zero) <= 1:
                 tableau.phase[non_zero[0]] = 1 ^ tableau.phase[non_zero[0]]
                 return tableau
             else:
                 removed_qubit_table = np.delete(tableau.table, [qubit_position, n_qubits + qubit_position], axis=1)
                 for i in non_zero:
-                    if np.array_equal(removed_qubit_table[i], np.zeros(2 * n_qubits - 2):
+                    if np.array_equal(removed_qubit_table[i], np.zeros(2 * n_qubits - 2)):
                         tableau.phase[i] = 1 ^ tableau.phase[i]
                         return tableau
                 tableau.phase[non_zero[-1]] = 1 ^ tableau.phase[non_zero[-1]]
@@ -484,29 +484,57 @@ def remove_qubit(tableau, qubit_position, measurement_determinism="probabilistic
 
     NEW method: discard any of the eligible rows from the stabilizer and destabilizer sets instead of finding THE one.
     """
-
-    new_tableau, _, probabilistic = z_measurement_gate(
+    n_qubits = tableau.n_qubits  # number of qubits
+    assert qubit_position < n_qubits
+    tableau, outcome, probabilistic = z_measurement_gate(
         tableau, qubit_position, measurement_determinism
     )
+    new_table = np.delete(tableau.table, [qubit_position, qubit_position + n_qubits], axis=1)
     if probabilistic:
-        row_position = probabilistic
+        new_table = np.delete(new_table, [probabilistic, probabilistic - n_qubits], axis=1)
+        tableau.table = new_table
+        tableau.n_qubits = n_qubits - 1
+        return tableau
     else:
-        pass
-    # number of qubits
-    n_qubits = tableau.n_qubits
-    assert qubit_position < n_qubits
-    table = tableau.table
-    table = np.delete(table, qubit_position, axis=1)
-    table = np.delete(table, n_qubits + qubit_position, axis=1)
-    row_positions = [i for i in range(len(tableau)) if not np.any(table[i])]
-    assert len(row_positions) == 1
-    row_position = row_positions[0]
-    # order of removing rows matters here
-    table = np.delete(table, n_qubits + row_position)
-    table = np.delete(table, row_position)
-    tableau.table = table
+        non_zero = [i for i in range(n_qubits) if tableau.destabilizer_x[i, qubit_position] != 0]
+        if len(non_zero) <= 1:
+            new_table = np.delete(new_table, [non_zero[0], non_zero[0] + n_qubits], axis=1)
+            tableau.table = new_table
+            tableau.n_qubits = n_qubits-1
+            return tableau
+        else:
+            removed_qubit_table = np.delete(tableau.table, [qubit_position, n_qubits + qubit_position], axis=1)
+            for i in non_zero:
+                if np.array_equal(removed_qubit_table[i], np.zeros(2 * n_qubits - 2)):
+                    new_table = np.delete(new_table, [i, i + n_qubits], axis=1)
+                    tableau.table = new_table
+                    tableau.n_qubits = n_qubits - 1
+                return tableau
+            new_table = np.delete(new_table, [non_zero[-1], non_zero[-1] + n_qubits], axis=1)
+            tableau.table = new_table
+            tableau.n_qubits = n_qubits - 1
+            return tableau
 
-    return tableau
+    # new_tableau, _, probabilistic = z_measurement_gate(
+    #     tableau, qubit_position, measurement_determinism
+    # )
+    # if probabilistic:
+    #     row_position = probabilistic
+    # else:
+    #     pass
+    # # number of qubits
+    # n_qubits = tableau.n_qubits
+    # assert qubit_position < n_qubits
+    # table = tableau.table
+    # table = np.delete(table, qubit_position, axis=1)
+    # table = np.delete(table, n_qubits + qubit_position, axis=1)
+    # row_positions = [i for i in range(len(tableau)) if not np.any(table[i])]
+    # assert len(row_positions) == 1
+    # row_position = row_positions[0]
+    # # order of removing rows matters here
+    # table = np.delete(table, n_qubits + row_position)
+    # table = np.delete(table, row_position)
+    # tableau.table = table
 
 
 def measure_x(tableau, qubit_position, measurement_determinism="probabilistic"):

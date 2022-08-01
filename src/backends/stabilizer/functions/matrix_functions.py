@@ -259,7 +259,7 @@ def row_sum(x_matrix, z_matrix, r_vector, row_to_add, target_row):
     :return: updated stabilizer tableau
     :rtype: numpy.ndarray, numpy.ndarray, numpy.ndarray
     """
-    n_qubits = np.shape(x_matrix)[0]
+    n_qubits = np.shape(x_matrix)[1]
     # determining the phase factor
     g_sum = 0
     for j in range(n_qubits):

@@ -75,7 +75,7 @@ def add_columns(input_matrix, col_to_add, resulting_col):
 
 def multiply_columns(matrix_one, matrix_two, first_col, second_col):
     """
-    Multiplies two columns of possibly two matrices (element-wise), and returns a column containing the result.
+    Multiplies two columns of possibly two matrices (element-wise), and returns an array containing the result.
 
     :param matrix_one: a matrix
     :type matrix_one: numpy.ndarray

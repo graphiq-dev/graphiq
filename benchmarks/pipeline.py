@@ -14,17 +14,20 @@ from src.visualizers.solver_logs import plot_solver_logs
 
 def run_combinations(solvers, targets, compilers, metrics):
     """
-    Makes all run combinations from lists of solvers, targets, compilers and metrics.
-    Outputs a list of dictionaries (as required by src.benchmarks.pipeline)
+    Produces a benchmarking run for all possible combinations from lists of solvers, targets, compilers, and metrics.
 
-    :param solvers:
-    :param targets:
+    :param solvers: a list of Solver classes (not instanced)
+    :type solvers: list
+    :param targets: a list of the targets to
+    :type targets: list
     :param compilers:
+    :type compilers: list
     :param metrics:
-    :return:
+    :type metrics: list
+    :return: a list of dictionaries, each defining a sinle benchmarking run
     """
 
-    c = list(itertools.product(solvers, targets, compilers, metrics))
+    c = itertools.product(solvers, targets, compilers, metrics)
     runs = {}
     for (i, c) in enumerate(c):
         ((Solver, solver_attr), (target, target_attr), Compiler, Metric) = c
@@ -52,12 +55,15 @@ def run_combinations(solvers, targets, compilers, metrics):
 
 def benchmark_run(run: dict, name: str, io: IO):
     """
-    A specific run, consisting of a unique combination of solvers, targets, compilers, and metrics.
+    Benchmarks one run, consisting of a unique combination of solver, target, compiler, and metric.
 
     :param run: dictionary containing the main class instances (solver, etc.)
+    :type run: dict
     :param name: name of the run
-    :param io: IO instance used to save data for the *current* run (not overall benchmarking IO)
-    :return:
+    :type name: str
+    :param io: IO object used to save data for the *current* run (not overall benchmarking IO)
+    :type io: IO instance
+    :return: dictionary storing all the results/metadata for the current run (can be added to a DataFrame)
     """
     solver = run["solver"]
 
@@ -93,9 +99,12 @@ def benchmark(runs: dict, io: IO, remote=True):
     Runs a sequence of benchmark runs, either using parallel or serial processing.
 
     :param runs: a list of runs, each being a dictionary containing the important class instances (solvers, etc.)
+    :type: list
     :param io: a top-level IO object for saving benchmark data
+    :type io: IO instance
     :param remote: True/False flag. If True, will run solvers in parallel using `ray`
-    :return:
+    :type remote: bool
+    :return: DataFrame summarizing the results of all benchmarking runs
     """
     if remote:
         import ray

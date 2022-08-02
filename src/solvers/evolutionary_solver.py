@@ -415,12 +415,12 @@ class EvolutionarySolver(RandomSearchSolver):
 
     def _save_pop(self, pop, iteration):
         for i, (score, circuit) in enumerate(pop):
-            name = f"pop/pop{i}_iteration{iteration}.txt"
+            name = f"pop/iteration{iteration}_pop{i}.txt"
             self.io.save_json(circuit.to_openqasm(), name)
 
     def _save_hof(self, hof, iteration):
         for i, (score, circuit) in enumerate(hof):
-            name = f"hof/hof{i}_iteration{iteration}.txt"
+            name = f"hof/iteration{iteration}_hof{i}.txt"
             self.io.save_json(circuit.to_openqasm(), name)
 
     def logs_to_df(self):

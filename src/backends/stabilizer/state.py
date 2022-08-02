@@ -85,6 +85,6 @@ class Stabilizer(StateRepresentationBase):
         self._tableau = sft.z_gate(self._tableau, qubit_position)
 
     def reset_qubit(self, qubit_position, measurement_determinism="probabilistic"):
-        self._tableau = sft.reset_qubit(
+        self._tableau = sft.reset_z(
             self._tableau, qubit_position, 0, measurement_determinism
         )

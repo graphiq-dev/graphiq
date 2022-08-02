@@ -479,7 +479,7 @@ class EvolutionarySolver(RandomSearchSolver):
 
     def add_measurement_cnot_and_reset(self, circuit):
         """
-        Add a MeausurementCNOTandReset operation from an emitter qubit to a photonic qubit such that no consecutive
+        Add a MeasurementCNOTandReset operation from an emitter qubit to a photonic qubit such that no consecutive
         MeasurementCNOTReset is allowed. This operation cannot be added before the photonic qubit is initialized.
 
         :param circuit: a quantum circuit

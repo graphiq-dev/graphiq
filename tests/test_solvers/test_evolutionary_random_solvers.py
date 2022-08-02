@@ -198,34 +198,38 @@ def test_add_remove_measurements(seed):
     solver.trans_probs = original_trans_prob
 
 
-# @visualization
-# def test_square_4qubit():
-#    graph = nx.Graph([(1, 2), (1, 3), (3, 4), (2, 4), (2, 3)])
-#    state = DensityMatrix.from_graph(graph)
-#    n_emitter = 2
-#    n_photon = 4
-#    ideal_state = dict(
-#        dm=state.data,
-#        n_emitters=n_emitter,
-#        n_photons=n_photon,
-#        name='square4'
-#    )
-#    target_state = state.data
-#    compiler = DensityMatrixCompiler()
-#    metric = Infidelity(target=target_state)
-#    solver = RuleBasedRandomSearchSolver(target=target_state, metric=metric, compiler=compiler,
-#                                         n_emitter=n_emitter, n_photon=n_photon)
-#    solver.seed(1000)
-#    RuleBasedRandomSearchSolver.n_stop = 300
-#    solver.trans_probs = {
-#        solver.remove_op: 1 / 4 + 1 / 20,
-#        solver.add_measurement_cnot_and_reset: 1 / 20,
-#        solver.replace_photon_one_qubit_op: 1 / 4,
-#        solver.add_emitter_one_qubit_op: 1 / 4 + 1 / 20,
-#        solver.add_emitter_cnot: 1 / 10
-#    }
-#    solver.p_dist = [0.4] + 11 * [0.2 / 22] + [0.4] + 11 * [0.2 / 22]
-#    solver.e_dist = [0.2] + 11 * [0.4 / 22] + [0.4] + 11 * [0.4 / 22]
-#    solver.solve()
-#    circuit = solver.hof[0][1]
-#    circuit.draw_circuit()
+"""
+# Next target
+
+@visualization
+def test_square_4qubit():
+    graph = nx.Graph([(1, 2), (1, 3), (3, 4), (2, 4), (2, 3)])
+    state = DensityMatrix.from_graph(graph)
+    n_emitter = 2
+    n_photon = 4
+    ideal_state = dict(
+        dm=state.data,
+        n_emitters=n_emitter,
+        n_photons=n_photon,
+        name='square4'
+    )
+    target_state = state.data
+    compiler = DensityMatrixCompiler()
+    metric = Infidelity(target=target_state)
+    solver = EvolutionarySolver(target=target_state, metric=metric, compiler=compiler,
+                                         n_emitter=n_emitter, n_photon=n_photon)
+    solver.seed(2)
+#   EvolutionarySolver.n_stop = 300
+    solver.trans_probs = {
+        solver.remove_op: 1 / 4 + 1 / 20,
+        solver.add_measurement_cnot_and_reset: 1 / 20,
+        solver.replace_photon_one_qubit_op: 1 / 4,
+        solver.add_emitter_one_qubit_op: 1 / 4 + 1 / 20,
+        solver.add_emitter_cnot: 1 / 10
+    }
+    solver.p_dist = [0.4] + 11 * [0.2 / 22] + [0.4] + 11 * [0.2 / 22]
+    solver.e_dist = [0.2] + 11 * [0.4 / 22] + [0.4] + 11 * [0.4 / 22]
+    solver.solve()
+    circuit = solver.hof[0][1]
+    circuit.draw_circuit()
+"""

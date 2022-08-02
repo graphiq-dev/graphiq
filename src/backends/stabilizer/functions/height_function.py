@@ -16,7 +16,7 @@ def height_func_list(x_matrix, z_matrix):
     :type z_matrix: np.ndarray
     :return: the height as a function of qubit positions in graph. This is related to the entanglement entropy with
     respect to the bi-partition of the state at the given position.
-    :rtype: int
+    :rtype: list[int]
     """
     n_qubits = np.shape(x_matrix)[0]
     r_vector = np.zeros([n_qubits, 1])

@@ -214,7 +214,7 @@ class DeterministicSolver(SolverBase):
 
     def add_measurement_cnot_and_reset(self, circuit, edge0, edge1):
         """
-        Add a MeausurementCNOTandReset operation from an emitter qubit to a photonic qubit such that no consecutive
+        Add a MeasurementCNOTandReset operation from an emitter qubit to a photonic qubit such that no consecutive
         MeasurementCNOTReset is allowed. This operation cannot be added before the photonic qubit is initialized.
         # TODO: check if this function is needed after some modification
 

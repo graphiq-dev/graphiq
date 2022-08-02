@@ -4,7 +4,7 @@ import networkx as nx
 import src.backends.stabilizer.functions.conversion as sfc
 import src.backends.stabilizer.functions.validation as sfv
 
-# import src.backends.stabilizer.functions.transformations as sft
+import src.backends.stabilizer.functions.transformations as sft
 from src.backends.stabilizer.functions.matrix_functions import rref
 from src.backends.stabilizer.functions.height_function import height_func_list
 from functools import reduce
@@ -111,3 +111,19 @@ def test_echelon_form(n_nodes):
         assert pivot[0] - old_pivot <= 2
         for j in range(int(pivot[0]) + 1, n_nodes):
             assert int(x_2[j, i]) == 0 and int(z_2[j, i]) == 0
+
+
+def test_qubit_insertion():
+    tableau = sft.create_n_plus_state(4)
+    tableau = sft.insert_qubit(tableau, 1)
+
+
+def test_qubit_removal():
+    tableau = sft.create_n_plus_state(4)
+    tableau = sft.remove_qubit(tableau, 1)
+
+
+def test_qubit_insertion_removal():
+    tableau = sft.create_n_plus_state(4)
+    tableau = sft.insert_qubit(tableau, 1)
+    sft.remove_qubit(tableau, 1)

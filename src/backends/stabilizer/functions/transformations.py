@@ -9,7 +9,9 @@ from src.backends.stabilizer.functions.matrix_functions import (
 from scipy.linalg import block_diag
 
 
-### Main gates
+"""Main gates """
+
+
 def hadamard_gate(tableau, qubit_position):
     """
     hadamard gate applied on a single qubit given its position, in a stabilizer state.
@@ -38,7 +40,7 @@ def hadamard_gate(tableau, qubit_position):
 
 def phase_gate(tableau, qubit_position):
     """
-    phase gate applied on a single qubit given its position, in a stabilizer state.
+    Phase gate applied on the qubit given its position in a stabilizer state.
 
     :param tableau:
     :type tableau: CliffordTableau
@@ -100,8 +102,7 @@ def z_measurement_gate(
     tableau, qubit_position, measurement_determinism="probabilistic"
 ):
     """
-    Measurement applied on a single qubit given its position, in a stabilizer state.
-
+    Measurement applied on a single qubit given its position in a stabilizer state.
 
     :param tableau:
     :type tableau: CliffordTableau
@@ -167,7 +168,7 @@ def z_measurement_gate(
         new_table = np.vstack([tableau.table, np.zeros(2 * n_qubits)])
         x_matrix = new_table[:, 0:n_qubits]
         z_matrix = new_table[:, n_qubits : 2 * n_qubits]
-        r_vector = np.vstack([tableau.phase, np.zeros(1)])
+        r_vector = np.append(tableau.phase, 0)
 
         # list of nonzero elements in the x destabilizers
         non_zero_x = [i for i in non_zero_x if i < n_qubits]
@@ -180,7 +181,9 @@ def z_measurement_gate(
         return tableau, outcome, x_p
 
 
-### SECONDARY GATES
+"""SECONDARY GATES """
+
+
 def phase_dagger_gate(tableau, qubit_position):
     """
     Phase dagger gate (inverse of phase) applied on a single qubit given its position, in a stabilizer state.
@@ -394,7 +397,7 @@ def reset_z(
     :param intended_state: either 0 for Z_0 state or 1 for Z_1 state
     :type intended_state: int
     :param measurement_determinism:
-    :type measurement_determinism:
+    :type measurement_determinism: int or str
     :return: updated tableau
     :rtype:CliffordTableau
     """
@@ -441,6 +444,20 @@ def reset_z(
 def reset_x(
     tableau, qubit_position, intended_state, measurement_determinism="probabilistic"
 ):
+    """
+
+
+    :param tableau:
+    :type tableau:
+    :param qubit_position:
+    :type qubit_position:
+    :param intended_state:
+    :type intended_state:
+    :param measurement_determinism:
+    :type measurement_determinism:
+    :return:
+    :rtype:
+    """
     new_tableau = reset_z(
         tableau,
         qubit_position,
@@ -451,9 +468,23 @@ def reset_x(
     return new_tableau
 
 
-def reset_x(
+def reset_y(
     tableau, qubit_position, intended_state, measurement_determinism="probabilistic"
 ):
+    """
+
+
+    :param tableau:
+    :type tableau:
+    :param qubit_position:
+    :type qubit_position:
+    :param intended_state:
+    :type intended_state:
+    :param measurement_determinism:
+    :type measurement_determinism:
+    :return:
+    :rtype:
+    """
     new_tableau = reset_z(
         tableau,
         qubit_position,
@@ -490,16 +521,17 @@ def add_qubit(tableau):
     # r stabilizer part
     new_tableau.phase[n_new : 2 * n_new - 1] = tableau.phase[n_qubits : 2 * n_qubits]
 
-    tableau.table = new_tableau.table
-    tableau.phase = tableau.phase
-    tableau.n_qubits = n_new
-    # todo: shouldn't the number of qubits of a tableau be updated automatically by its dimensions? why can it be set?
+    # TODO: decide whether we want to update the old tableau
+    tableau.expand(new_tableau.table, new_tableau.phase)
+
     return new_tableau
 
 
 def insert_qubit(tableau, new_qubit_position):
     """
-    To be implemented. Insert a qubit in a given position.
+    Insert a qubit in a given position.
+    TODO: initialize in ket 0 state
+
     :param tableau:
     :param new_qubit_position: The future location or position of the inserted qubit.
     :return: updated state
@@ -509,37 +541,31 @@ def insert_qubit(tableau, new_qubit_position):
     new_column = np.zeros(n_qubits)
     new_row = np.zeros(n_qubits + 1)
     # x destabilizer part
-    tableau.destabilizer_x = np.insert(
-        tableau.destabilizer_x, new_qubit_position, new_column, axis=1
-    )
-    tableau.destabilizer_x = np.insert(
-        tableau.destabilizer_x, new_qubit_position, new_row, axis=0
-    )
-    tableau.destabilizer_x[new_qubit_position, new_qubit_position] = 1
+
+    tmp_dex = np.insert(tableau.destabilizer_x, new_qubit_position, new_column, axis=1)
+    tmp_dex = np.insert(tmp_dex, new_qubit_position, new_row, axis=0)
+
     # z destabilizer part
-    tableau.destabilizer_z = np.insert(
-        tableau.destabilizer_z, new_qubit_position, new_column, axis=1
-    )
-    tableau.destabilizer_z = np.insert(
-        tableau.destabilizer_z, new_qubit_position, new_row, axis=0
-    )
+    tmp_dez = np.insert(tableau.destabilizer_z, new_qubit_position, new_column, axis=1)
+    tmp_dez = np.insert(tmp_dez, new_qubit_position, new_row, axis=0)
+
     # x stabilizer part
-    tableau.stabilizer_x = np.insert(
-        tableau.stabilizer_x, new_qubit_position, new_column, axis=1
-    )
-    tableau.stabilizer_x = np.insert(
-        tableau.stabilizer_x, new_qubit_position, new_row, axis=0
-    )
+    tmp_sx = np.insert(tableau.stabilizer_x, new_qubit_position, new_column, axis=1)
+    tmp_sx = np.insert(tmp_sx, new_qubit_position, new_row, axis=0)
     # z stabilizer part
-    tableau.stabilizer_z = np.insert(
-        tableau.stabilizer_z, new_qubit_position, new_column, axis=1
+    tmp_sz = np.insert(tableau.stabilizer_z, new_qubit_position, new_column, axis=1)
+    tmp_sz = np.insert(tmp_sz, new_qubit_position, new_row, axis=0)
+
+    new_phase = np.insert(
+        tableau.phase, [new_qubit_position, n_qubits + 1 + new_qubit_position], 0
     )
-    tableau.stabilizer_z = np.insert(
-        tableau.stabilizer_z, new_qubit_position, new_row, axis=0
-    )
+
+    new_table = np.block([[tmp_dex, tmp_dez], [tmp_sx, tmp_sz]])
+    tableau.expand(new_table, new_phase)
+
+    tableau.destabilizer_x[new_qubit_position, new_qubit_position] = 1
     tableau.stabilizer_z[new_qubit_position, new_qubit_position] = 1
 
-    tableau.n_qubits = n_qubits + 1
     return tableau
 
 
@@ -558,58 +584,32 @@ def remove_qubit(tableau, qubit_position, measurement_determinism="probabilistic
     new_table = np.delete(
         tableau.table, [qubit_position, qubit_position + n_qubits], axis=1
     )
+    new_phase = np.delete(tableau.phase, [qubit_position, qubit_position + n_qubits])
     if probabilistic:
         new_table = np.delete(
-            new_table, [probabilistic, probabilistic - n_qubits], axis=1
+            new_table, [probabilistic, probabilistic - n_qubits], axis=0
         )
-        tableau.table = new_table
-        tableau.n_qubits = n_qubits - 1
-        return tableau
+
     else:
         non_zero = [
             i for i in range(n_qubits) if tableau.destabilizer_x[i, qubit_position] != 0
         ]
         if len(non_zero) <= 1:
             new_table = np.delete(
-                new_table, [non_zero[0], non_zero[0] + n_qubits], axis=1
+                new_table, [non_zero[0], non_zero[0] + n_qubits], axis=0
             )
-            tableau.table = new_table
-            tableau.n_qubits = n_qubits - 1
-            return tableau
+
         else:
             for i in non_zero:
                 if np.array_equal(new_table[i], np.zeros(2 * n_qubits - 2)):
-                    new_table = np.delete(new_table, [i, i + n_qubits], axis=1)
-                    tableau.table = new_table
-                    tableau.n_qubits = n_qubits - 1
-                return tableau
-            new_table = np.delete(
-                new_table, [non_zero[-1], non_zero[-1] + n_qubits], axis=1
-            )
-            tableau.table = new_table
-            tableau.n_qubits = n_qubits - 1
-            return tableau
+                    new_table = np.delete(new_table, [i, i + n_qubits], axis=0)
 
-    # new_tableau, _, probabilistic = z_measurement_gate(
-    #     tableau, qubit_position, measurement_determinism
-    # )
-    # if probabilistic:
-    #     row_position = probabilistic
-    # else:
-    #     pass
-    # # number of qubits
-    # n_qubits = tableau.n_qubits
-    # assert qubit_position < n_qubits
-    # table = tableau.table
-    # table = np.delete(table, qubit_position, axis=1)
-    # table = np.delete(table, n_qubits + qubit_position, axis=1)
-    # row_positions = [i for i in range(len(tableau)) if not np.any(table[i])]
-    # assert len(row_positions) == 1
-    # row_position = row_positions[0]
-    # # order of removing rows matters here
-    # table = np.delete(table, n_qubits + row_position)
-    # table = np.delete(table, row_position)
-    # tableau.table = table
+            new_table = np.delete(
+                new_table, [non_zero[-1], non_zero[-1] + n_qubits], axis=0
+            )
+
+    tableau.shrink(new_table, new_phase)
+    return tableau
 
 
 def measure_x(tableau, qubit_position, measurement_determinism="probabilistic"):
@@ -677,6 +677,7 @@ def measure_z(tableau, qubit_position, measurement_determinism="probabilistic"):
 def swap_gate(tableau, qubit1, qubit2):
     """
     Swap gate between two qubits.
+
     :param tableau:
     :param qubit1: One of the qubits as input to the swap gate. (symmetrical)
     :param qubit2: The other qubit.

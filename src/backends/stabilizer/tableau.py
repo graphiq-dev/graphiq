@@ -284,3 +284,20 @@ class CliffordTableau(ABC):
             )
 
         return False
+
+    def _reset(self, new_table, new_phase):
+        new_n_qubits = int(new_table.shape[0] / 2)
+        assert len(new_phase) == 2 * new_n_qubits
+        self._table = new_table
+        self._phase = new_phase
+        self.n_qubits = new_n_qubits
+
+    def expand(self, new_table, new_phase):
+        new_n_qubits = int(new_table.shape[0] / 2)
+        assert new_n_qubits > self.n_qubits
+        self._reset(new_table, new_phase)
+
+    def shrink(self, new_table, new_phase):
+        new_n_qubits = int(new_table.shape[0] / 2)
+        assert new_n_qubits < self.n_qubits
+        self._reset(new_table, new_phase)

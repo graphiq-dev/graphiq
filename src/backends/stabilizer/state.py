@@ -88,3 +88,6 @@ class Stabilizer(StateRepresentationBase):
         self._tableau = sft.reset_z(
             self._tableau, qubit_position, 0, measurement_determinism
         )
+
+    def remove_qubit(self, qubit_position):
+        self._tableau = sft.remove_qubit(self._tableau, qubit_position)

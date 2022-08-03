@@ -118,6 +118,12 @@ def test_qubit_insertion():
     tableau = sft.insert_qubit(tableau, 1)
 
 
+def test_qubit_insertion2():
+    tableau = sft.create_n_ket0_state(4)
+    tableau = sft.insert_qubit(tableau, 1)
+    assert np.array_equal(tableau.table, sft.create_n_ket0_state(5).table)
+
+
 def test_qubit_removal():
     tableau = sft.create_n_plus_state(4)
     tableau = sft.remove_qubit(tableau, 1)

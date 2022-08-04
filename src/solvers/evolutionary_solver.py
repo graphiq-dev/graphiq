@@ -1,7 +1,7 @@
 """
 Evolutionary solver which includes a random search solver as a special case.
 This solver is based on certain physical rules imposed by a platform.
-One can set these rules by the set of allowed transformations.
+One can define these rules via the allowed DAG transformations.
 """
 import copy
 import numpy as np
@@ -355,9 +355,8 @@ class EvolutionarySolver(RandomSearchSolver):
         :param iteration: iteration integer, from 0 to n_stop-1
         :return:
         """
-        scores_pop = list(zip(*population))[
-            0
-        ]  # get the scores from the population/hof as a list
+        # get the scores from the population/hof as a list
+        scores_pop = list(zip(*population))[0]
         scores_hof = list(zip(*self.hof))[0]
 
         depth_pop = [circuit.depth for (_, circuit) in population]
@@ -394,6 +393,7 @@ class EvolutionarySolver(RandomSearchSolver):
     def save_circuits(self, population: list, hof: list, iteration: int = -1):
         """
         Saves the population and/or the HoF circuits over iterations as openQASM strings.
+
         :param population: list of (score, circuit) pairs
         :param hof: list of (score, circuit) pairs
         :param iteration: integer step in the solver algorithm

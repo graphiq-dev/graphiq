@@ -2,6 +2,7 @@ import pandas as pd
 import time
 import psutil
 import itertools
+import platform
 
 from src.backends.density_matrix.compiler import DensityMatrixCompiler
 from src.solvers.evolutionary_solver import EvolutionarySolver
@@ -12,24 +13,35 @@ from src.io import IO
 from src.visualizers.solver_logs import plot_solver_logs
 
 
+def metadata():
+    uname = platform.uname()
+    md = dict(
+        system=uname.system,
+        version=uname.version,
+        machine=uname.machine,
+        processor=uname.processor,
+        cpu_count=psutil.cpu_count(),
+    )
+    return md
+
+
 def run_combinations(solvers, targets, compilers, metrics):
     """
     Produces a benchmarking run for all possible combinations from lists of solvers, targets, compilers, and metrics.
 
     :param solvers: a list of Solver classes (not instanced)
     :type solvers: list
-    :param targets: a list of the targets to
+    :param targets: a list of the target states
     :type targets: list
-    :param compilers:
+    :param compilers: list of compilers to use
     :type compilers: list
-    :param metrics:
+    :param metrics: list of metrics to use
     :type metrics: list
-    :return: a list of dictionaries, each defining a sinle benchmarking run
+    :return: a list of dictionaries, each defining a single benchmarking run
     """
 
-    c = itertools.product(solvers, targets, compilers, metrics)
     runs = {}
-    for (i, c) in enumerate(c):
+    for (i, c) in enumerate(itertools.product(solvers, targets, compilers, metrics)):
         ((Solver, solver_attr), (target, target_attr), Compiler, Metric) = c
 
         metric = Metric(target=target)
@@ -135,6 +147,7 @@ def benchmark(runs: dict, io: IO, remote=True):
 
     df = pd.DataFrame(futures)
     io.save_dataframe(df, "benchmark_solver_run.csv")
+    io.save_json(metadata(), "metadata.json")
     print(f"Total time {time.time() - t0}")
     return df
 

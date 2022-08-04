@@ -10,3 +10,4 @@ qiskit
 qutip
 pylatexenc
 ray
+psutil

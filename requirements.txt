@@ -9,5 +9,5 @@ seaborn
 qiskit
 qutip
 pylatexenc
-ray
+ray[default]
 psutil

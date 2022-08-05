@@ -1,13 +1,13 @@
-import pandas as pd
-import time
-import psutil
-import itertools
+"""
+Example script for benchmarking multiple solvers
+"""
 
 from src.backends.density_matrix.compiler import DensityMatrixCompiler
 from src.solvers.evolutionary_solver import EvolutionarySolver
 from benchmarks.circuits import *
 from src.metrics import Infidelity
 from src.io import IO
+from src.visualizers.solver_logs import plot_solver_logs
 
 from benchmarks.pipeline import benchmark, run_combinations
 
@@ -37,3 +37,5 @@ if __name__ == "__main__":
     )
     df = benchmark(runs=runs, io=io, remote=True)
     print(df)
+
+    plot_solver_logs()

@@ -1,8 +1,3 @@
-import pandas as pd
-import time
-import psutil
-import itertools
-
 from src.backends.density_matrix.compiler import DensityMatrixCompiler
 from src.solvers.evolutionary_solver import EvolutionarySolver
 from benchmarks.circuits import *
@@ -46,4 +41,5 @@ def test_one_benchmarking_run():
     print(df)
 
 
-test_one_benchmarking_run()
+if __name__ == "__main__":
+    test_one_benchmarking_run()

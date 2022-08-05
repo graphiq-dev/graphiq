@@ -58,15 +58,24 @@ class EvolutionarySolver(RandomSearchSolver):
     ):
         """
 
-        :param target:
-        :param metric:
-        :param compiler:
-        :param circuit:
-        :param io:
-        :param n_emitter:
-        :param n_photon:
-        :param selection_active:
-        :param save_openqasm:
+        :param target: target quantum state
+        :type target: QuantumState  # TODO: consolidate everything to use QuantumState
+        :param metric: metric (cost) function to minimize
+        :type metric: MetricBase
+        :param compiler: compiler backend to use when simulating quantum circuits
+        :type compiler: CompilerBase
+        :param circuit: (optional) initial circuit
+        :type circuit: CircuitDAG
+        :param io: input/output object for saving logs, intermediate results, circuits, etc.
+        :type io: IO
+        :param n_emitter: number of emitter registers to maintain in the circuit
+        :type n_emitter: int
+        :param n_photon: number of photon registers to maintain in the circuit
+        :type n_photon: int
+        :param selection_active: use selection in the evolutionary algorithm
+        :type selection_active: bool
+        :param save_openqasm: save population, hof, or both to openQASM strings (options: None, "hof", "pop", "both")
+        :type save_openqasm: str, None
         :param args:
         :param kwargs:
         """
@@ -332,8 +341,6 @@ class EvolutionarySolver(RandomSearchSolver):
             if EvolutionarySolver.use_adapt_probability:
                 self.adapt_probabilities(i)
 
-            # self.adapt_probabilities(i)
-
             # this should be the last thing performed *prior* to selecting a new population (after updating HoF)
             self.update_logs(population=population, iteration=i)
             self.save_circuits(population=population, hof=self.hof, iteration=i)
@@ -352,7 +359,9 @@ class EvolutionarySolver(RandomSearchSolver):
         Updates the log table, which tracks cost function values through solver iterations.
 
         :param population: population list for the i-th iteration, as a list of tuples (score, circuit)
+        :type population: list
         :param iteration: iteration integer, from 0 to n_stop-1
+        :type iteration: int
         :return:
         """
         # get the scores from the population/hof as a list
@@ -402,13 +411,13 @@ class EvolutionarySolver(RandomSearchSolver):
         if self.io is None or self.save_openqasm == "none":
             return
 
-        elif self.io is not None and self.save_openqasm == "hof":
+        elif self.save_openqasm == "hof":
             self._save_hof(hof, iteration=iteration)
 
-        elif self.io is not None and self.save_openqasm == "pop":
+        elif self.save_openqasm == "pop":
             self._save_pop(population, iteration=iteration)
 
-        elif self.io is not None and self.save_openqasm == "both":
+        elif self.save_openqasm == "both":
             self._save_pop(population, iteration=iteration)
             self._save_hof(hof, iteration=iteration)
         return

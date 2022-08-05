@@ -14,7 +14,7 @@ def plot_solver_logs(logs: dict):
     for col, (log_name, log) in enumerate(logs.items()):
         c = colors[col]
         axs[0, col].plot(
-            log["iteration"], log["cost_mean"], color=c, label=f"{log_name}, mean"
+            log["iteration"], log["cost_mean"], color=c, label=f"mean"
         )
         axs[0, col].fill_between(
             log["iteration"],
@@ -22,7 +22,7 @@ def plot_solver_logs(logs: dict):
             log["cost_max"],
             color=c,
             alpha=0.3,
-            label=f"{log_name}, range",
+            label=f"range",
         )
 
         axs[1, col].plot(log["iteration"], log["depth_mean"], color=c)
@@ -31,6 +31,9 @@ def plot_solver_logs(logs: dict):
         )
 
         axs[0, col].set(title=f"{log_name}")
+
+    axs[0, 0].legend()
+    axs[0, 1].legend()
 
     axs[0, 0].set(ylabel="Cost value")
     axs[1, 0].set(ylabel="Circuit depth")

@@ -13,9 +13,7 @@ def plot_solver_logs(logs: dict):
     colors = ["teal", "orange"]
     for col, (log_name, log) in enumerate(logs.items()):
         c = colors[col]
-        axs[0, col].plot(
-            log["iteration"], log["cost_mean"], color=c, label=f"mean"
-        )
+        axs[0, col].plot(log["iteration"], log["cost_mean"], color=c, label=f"mean")
         axs[0, col].fill_between(
             log["iteration"],
             log["cost_min"],

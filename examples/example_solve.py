@@ -22,7 +22,7 @@ if __name__ == "__main__":
     EvolutionarySolver.tournament_k = 10
 
     # %% comment/uncomment for reproducibility
-    # RuleBasedRandomSearchSolver.seed(1)
+    EvolutionarySolver.seed(3)
 
     # %% select which state we want to target
     from benchmarks.circuits import *
@@ -70,3 +70,9 @@ if __name__ == "__main__":
     plt.show()
 
     circuit.draw_circuit()
+
+    #%%
+    from src.visualizers.solver_logs import plot_solver_logs
+
+    fig, axs = plot_solver_logs(solver.logs)
+    plt.show()

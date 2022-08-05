@@ -103,9 +103,9 @@ class IO:
         if include_date:
             _str = _str + date
         if include_time:
-            _str = _str + " " + time
+            _str = _str + "_" + time
 
-        _str = _str + " " + folder
+        _str = _str + "_" + folder
 
         if include_id:
             _str = (

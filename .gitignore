@@ -136,5 +136,8 @@ dmypy.json
 # default data directory
 data/
 
+# bash scripts for running on clusters
+jobs/
+
 # benchmark data directory
 benchmarks/save_benchmarks/*

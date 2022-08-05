@@ -42,4 +42,3 @@ Local-Clifford Equivalence Check Module
 -----------------------------------------
 .. automodule:: src.backends.lc_equivalence_check
    :members:
-

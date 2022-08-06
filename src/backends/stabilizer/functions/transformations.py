@@ -322,6 +322,7 @@ def control_y_gate(tableau, ctrl_qubit, target_qubit):
 
 def projector_z0(tableau, qubit_position, measurement_determinism="probabilistic"):
     """
+    This function is probably not needed.
 
     :param tableau:
     :type tableau:
@@ -342,7 +343,7 @@ def projector_z0(tableau, qubit_position, measurement_determinism="probabilistic
         if outcome == 0:
             pass
         else:
-            tableau.table[probabilistic, -1] = 0
+            tableau.phase[probabilistic] = 0
     else:
         if outcome == 0:
             pass
@@ -355,6 +356,7 @@ def projector_z0(tableau, qubit_position, measurement_determinism="probabilistic
 
 def projector_z1(tableau, qubit_position, measurement_determinism="probabilistic"):
     """
+     This function is probably not needed.
 
     :param tableau:
     :type tableau:
@@ -375,7 +377,7 @@ def projector_z1(tableau, qubit_position, measurement_determinism="probabilistic
         if outcome == 1:
             pass
         else:
-            tableau.table[probabilistic, -1] = 1
+            tableau.phase[probabilistic] = 1
     else:
         if outcome == 1:
             pass
@@ -392,6 +394,7 @@ def reset_z(
     """
     Resets a qubit to a Z basis state. Note that it only works after a measurement gate on the same qubit or for
     isolated qubits. Otherwise, the action of this gate would be like measure in Z basis and reset.
+
     :param tableau: Tableau of the state before gate action
     :type tableau: CliffordTableau
     :param qubit_position: index of the qubit to be reset
@@ -500,16 +503,18 @@ def reset_y(
 
 def add_qubit(tableau):
     """
-    add one isolated qubit in 0 state of the computational basis to the current state.
+    add one isolated qubit in :math:`|0 \\rangle` state to the current state at the end.
+    # TODO: rewrite this by calling insert_qubit
 
     :return: the updated stabilizer state
+    :rtype: CliffordTableau
     """
     n_qubits = tableau.n_qubits  # number of qubits
     n_new = 1 + n_qubits
     if n_qubits == 0:
-        return create_n_product_state(1)
+        return create_n_ket0_state(1)
 
-    new_tableau = create_n_product_state(n_new)
+    new_tableau = create_n_ket0_state(n_new)
     # x destabilizer part
     new_tableau.destabilizer_x[0:n_qubits, 0:n_qubits] = tableau.destabilizer_x
     # z destabilizer part
@@ -531,12 +536,14 @@ def add_qubit(tableau):
 
 def insert_qubit(tableau, new_qubit_position):
     """
-    Insert a qubit in a given position.
-    TODO: initialize in ket 0 state
+    Insert a qubit in :math:`| 0 \\rangle` state to a given position.
 
-    :param tableau:
-    :param new_qubit_position: The future location or position of the inserted qubit.
+    :param tableau: the state represented by a CliffordTableau before insertion
+    :type tableau: CliffordTableau
+    :param new_qubit_position: the future position of the inserted qubit
+    :type new_qubit_position: int
     :return: updated state
+    :rtype: CliffordTableau
     """
     n_qubits = tableau.n_qubits
     assert new_qubit_position < n_qubits
@@ -554,10 +561,12 @@ def insert_qubit(tableau, new_qubit_position):
     # x stabilizer part
     tmp_sx = np.insert(tableau.stabilizer_x, new_qubit_position, new_column, axis=1)
     tmp_sx = np.insert(tmp_sx, new_qubit_position, new_row, axis=0)
+
     # z stabilizer part
     tmp_sz = np.insert(tableau.stabilizer_z, new_qubit_position, new_column, axis=1)
     tmp_sz = np.insert(tmp_sz, new_qubit_position, new_row, axis=0)
 
+    # phase vector part
     new_phase = np.insert(
         tableau.phase, [new_qubit_position, n_qubits + 1 + new_qubit_position], 0
     )
@@ -565,6 +574,7 @@ def insert_qubit(tableau, new_qubit_position):
     new_table = np.block([[tmp_dex, tmp_dez], [tmp_sx, tmp_sz]])
     tableau.expand(new_table, new_phase)
 
+    # set the new qubit to ket 0 state
     tableau.destabilizer_x[new_qubit_position, new_qubit_position] = 1
     tableau.stabilizer_z[new_qubit_position, new_qubit_position] = 1
 
@@ -573,10 +583,19 @@ def insert_qubit(tableau, new_qubit_position):
 
 def remove_qubit(tableau, qubit_position, measurement_determinism="probabilistic"):
     """
-    #TODO: Check if a qubit is isolated in general? Only isolated qubits in the Z basis states can be confirmed for now.
-    The action of the function is measure and remove. If isolated, state should not change. entangled qubits cannot be
+    The action of the function is measure and remove. If isolated, state should not change. Entangled qubits cannot be
     removed without affecting other parts of the state.
     Only works correctly for isolated qubits! e.g. after measurement.
+    TODO: Check if a qubit is isolated in general? Only isolated qubits in the Z basis states can be confirmed for now.
+
+    :param tableau:
+    :type tableau: CliffordTableau
+    :param qubit_position:
+    :type qubit_position: int
+    :param measurement_determinism:
+    :type measurement_determinism: str or int
+    :return:
+    :rtype: CliffordTableau
     """
     n_qubits = tableau.n_qubits  # number of qubits
     assert qubit_position < n_qubits
@@ -692,7 +711,7 @@ def swap_gate(tableau, qubit1, qubit2):
     return tableau
 
 
-def create_n_product_state(n_qubits):
+def create_n_ket0_state(n_qubits):
     """
     Creates a product state that consists :math:`n` tensor factors of the computational (Pauli Z) 0 state.
     """
@@ -704,7 +723,7 @@ def create_n_plus_state(n_qubits):
     """
     Creates a product state that consists :math:`n` tensor factors of the "plus state" (Pauli X's +1 eigenstate)
     """
-    tableau = create_n_product_state(n_qubits)
+    tableau = create_n_ket0_state(n_qubits)
 
     tableau.table[:, [*range(2 * n_qubits)]] = tableau.table[
         :, [*range(n_qubits, 2 * n_qubits)] + [*range(0, n_qubits)]
@@ -756,9 +775,9 @@ def fidelity(tableau1, tableau2):
     :param tableau2:
     :type tableau2:
     :return:
-    :rtype:
+    :rtype: float
     """
-    pass
+    return np.abs(inner_product(tableau1, tableau2)) ** 2
 
 
 def cnot_row_red(tableau):
@@ -806,3 +825,87 @@ def set_qubit(qubit, intended_state):
 def project_to_z0_and_remove(tableau, locations):
     # probably not implementing this
     pass
+
+
+def inverse_circuit(tableau):
+    """
+    TODO: implement this function
+
+    :param tableau:
+    :type tableau:
+    :return:
+    :rtype:
+    """
+
+    # apply Hadamard gates to make the stabilizer_x full rank
+
+    # apply CNOT gates to perform Gaussian elimination on stabilizer_x
+
+    # apply phase gates to make stabilizer_z full rank
+
+    # find invertible matrix M
+
+    # apply CNOT gates to make stabilizer (M, M)
+
+    # apply phase gates to make stabilizer_x zero matrix
+
+    # apply CNOT gates to perform Gaussian elimination on stabilizer_x
+
+    # apply Hadamard gates to make destabilizer_x = identity,
+    # destabilizer_z = previous destabilizer_x
+    # stabilizer_x = zero matrix,
+    # destabilizer_z = identity
+
+    # apply phase gates to make destabilizer_z invertible
+
+    # find the invertible matrix N
+
+    # apply CNOT gates to make destabilizer_x = N,
+    # destabilizer_z = N, stabilizer_x = 0,
+    # stabilizer_z = original stabilizer_x
+
+    # apply phase gates to make destabilizer_z = 0
+
+    # apply CNOT gates to get the tableau of all ket 0 states
+
+    return
+
+
+def min_generator_distance(tableau1, tableau2):
+    """
+    TODO: implement this function.
+
+    :param tableau1:
+    :type tableau1:
+    :param tableau2:
+    :type tableau2:
+    :return:
+    :rtype:
+    """
+    # unitary = inverse_circuit(tableau1)
+
+    # apply the unitary to the state tableau2
+    tableau2_transformed = tableau2  # TODO: update this line
+
+    stabilizer1 = tableau1.stabilizer
+    stabilizer2 = tableau2_transformed.stabilizer
+    counter = 0
+    for i in range(stabilizer1.shape[0]):
+        if ~np.allclose(stabilizer1[i], stabilizer2[i]):
+            counter += 1
+    return counter
+
+
+def inner_product(tableau1, tableau2):
+    """
+    TODO: implement this function
+
+    :param tableau1:
+    :type tableau1:
+    :param tableau2:
+    :type tableau2:
+    :return:
+    :rtype:
+    """
+
+    return 2 ** (-min_generator_distance(tableau1, tableau2) / 2)

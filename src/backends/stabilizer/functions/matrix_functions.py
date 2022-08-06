@@ -85,19 +85,18 @@ def multiply_columns(matrix_one, matrix_two, first_col, second_col):
     :type first_col: int
     :param second_col: index of the column to be used from the second matrix
     :type second_col: int
+    :raises AssertionError: if two matrices have different number of rows
+        or the specified column index is out of range in one of the matrices
     :return: the resulting 1-d array of length n (= number of the rows of the matrices)
     :rtype: numpy.ndarray
     """
     n_rows, _ = np.shape(matrix_one)
     assert np.shape(matrix_one)[0] == np.shape(matrix_two)[0]
-    try:
-        assert (
-            first_col < np.shape(matrix_one)[1] and second_col < np.shape(matrix_two)[1]
-        )
-    except:
-        raise ValueError(
-            "the specified column index is out of range in one of the matrices"
-        )
+
+    assert (
+        first_col < np.shape(matrix_one)[1] and second_col < np.shape(matrix_two)[1]
+    ), "the specified column index is out of range in one of the matrices"
+
     resulting_col = np.multiply(matrix_one[:, first_col], matrix_two[:, second_col])
     # reshape into column form:
     # resulting_col = resulting_col.reshape(n_rows, 1)

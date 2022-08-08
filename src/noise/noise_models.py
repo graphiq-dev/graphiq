@@ -14,10 +14,10 @@ TODO: Check incompatibility between noise models and operations, between noise m
 """
 
 import numpy as np
-import src.backends.density_matrix.functions as dmf
-
 from itertools import combinations
 from abc import ABC
+
+import src.backends.density_matrix.functions as dmf
 from src.state import QuantumState
 from src.backends.density_matrix.state import DensityMatrix
 from src.backends.stabilizer.state import Stabilizer

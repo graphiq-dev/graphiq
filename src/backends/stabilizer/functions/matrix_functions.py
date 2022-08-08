@@ -138,7 +138,7 @@ def row_reduction(x_matrix, z_matrix):
     :return: a tuple of the transformed x_matrix and z_matrix and the index of the last non-zero row of the new x_matrix
     :rtype: tuple(numpy.ndarray, numpy.ndarray, int)
     """
-
+    # TODO: see if any built-in rref functions could provide a speedup
     pivot = [0, 0]
     old_pivot = [1, 1]
 

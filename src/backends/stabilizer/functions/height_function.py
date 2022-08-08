@@ -122,7 +122,7 @@ def height_max(x_matrix=None, z_matrix=None, graph=None):
 
 def height_plotter(h_dict):
     """
-    Plots the height function.
+    Plots the height function vs position.
 
     :param h_dict: the height function dict which is the output of the ``height_dict``.
     :type h_dict: dict

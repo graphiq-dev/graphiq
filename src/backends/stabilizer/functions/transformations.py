@@ -16,7 +16,7 @@ def hadamard_gate(tableau, qubit_position):
     """
     hadamard gate applied on a single qubit given its position, in a stabilizer state.
 
-    :param tableau:
+    :param tableau: Tableau of the state before gate action
     :type tableau: CliffordTableau
     :param qubit_position: index of the qubit that the gate acts on
     :type qubit_position: int
@@ -42,7 +42,7 @@ def phase_gate(tableau, qubit_position):
     """
     Phase gate applied on the qubit given its position in a stabilizer state.
 
-    :param tableau:
+    :param tableau: Tableau of the state before gate action
     :type tableau: CliffordTableau
     :param qubit_position: index of the qubit that the gate acts on
     :type qubit_position: int
@@ -68,7 +68,7 @@ def cnot_gate(tableau, ctrl_qubit, target_qubit):
     """
     CNOT on control and target qubits given their position, in a stabilizer state.
 
-    :param tableau:
+    :param tableau: Tableau of the state before gate action
     :type tableau: CliffordTableau
     :param ctrl_qubit: index of the control qubit
     :type ctrl_qubit: int
@@ -104,7 +104,7 @@ def z_measurement_gate(
     """
     Measurement applied on a single qubit given its position in a stabilizer state.
 
-    :param tableau:
+    :param tableau: Tableau of the state before gate action
     :type tableau: CliffordTableau
     :param qubit_position: index of the qubit that the gate acts on
     :type qubit_position: int
@@ -188,7 +188,7 @@ def phase_dagger_gate(tableau, qubit_position):
     """
     Phase dagger gate (inverse of phase) applied on a single qubit given its position, in a stabilizer state.
 
-    :param tableau:
+    :param tableau: Tableau of the state before gate action
     :type tableau: CliffordTableau
     :param qubit_position: index of the qubit that the gate acts on
     :type qubit_position: int
@@ -207,7 +207,7 @@ def z_gate(tableau, qubit_position):
     """
     Pauli Z applied on a single qubit given its position, in a stabilizer state tableau.
 
-    :param tableau:
+    :param tableau: Tableau of the state before gate action
     :type tableau: CliffordTableau
     :param qubit_position: index of the qubit that the gate acts on
     :type qubit_position: int
@@ -226,7 +226,7 @@ def x_gate(tableau, qubit_position):
     """
     Pauli X (= HZH) applied on a single qubit given its position, in a stabilizer state tableau.
 
-    :param tableau:
+    :param tableau: Tableau of the state before gate action
     :type tableau: CliffordTableau
     :param qubit_position: index of the qubit that the gate acts on
     :type qubit_position: int
@@ -246,7 +246,7 @@ def y_gate(tableau, qubit_position):
     """
     Pauli Y (=PXZP) applied on a single qubit given its position, in a stabilizer state tableau.
 
-    :param tableau:
+    :param tableau: Tableau of the state before gate action
     :type tableau: CliffordTableau
     :param qubit_position: index of the qubit that the gate acts on
     :type qubit_position: int
@@ -263,27 +263,11 @@ def y_gate(tableau, qubit_position):
     return tableau
 
 
-def control_x_gate(tableau, ctrl_qubit, target_qubit):
-    """
-    Controlled X gate on control and target qubits given their position, in a stabilizer state.
-
-    :param tableau:
-    :type tableau: CliffordTableau
-    :param ctrl_qubit: index of the control qubit
-    :type ctrl_qubit: int
-    :param target_qubit: index of the target qubit that the gate acts on
-    :type target_qubit: int
-    :return: the resulting state after gate action
-    :rtype: CliffordTableau
-    """
-    return cnot_gate(tableau, ctrl_qubit, target_qubit)
-
-
 def control_z_gate(tableau, ctrl_qubit, target_qubit):
     """
     Controlled Z gate on control and target qubits given their position, in a stabilizer state.
 
-    :param tableau:
+    :param tableau: Tableau of the state before gate action
     :type tableau: CliffordTableau
     :param ctrl_qubit: index of the control qubit
     :type ctrl_qubit: int
@@ -302,7 +286,7 @@ def control_y_gate(tableau, ctrl_qubit, target_qubit):
     """
     Controlled Y gate on control and target qubits given their position, in a stabilizer state.
 
-    :param tableau:
+    :param tableau: Tableau of the state before gate action
     :type tableau: CliffordTableau
     :param ctrl_qubit: index of the control qubit
     :type ctrl_qubit: int

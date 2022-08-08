@@ -17,6 +17,16 @@ class Stabilizer(StateRepresentationBase):
             raise TypeError("Cannot initialize the stabilizer representation")
 
     @property
+    def n_qubit(self):
+        """
+        Returns the number of qubits in the stabilizer state
+
+        :return: the number of qubits in the state
+        :rtype: int
+        """
+        return self.tableau.n_qubits
+
+    @property
     def tableau(self):
         """
 

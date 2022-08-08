@@ -754,14 +754,16 @@ def tensor(list_of_tables):
     return tableau
 
 
-def partial_trace():
+def partial_trace(state, keep, dims):
     """
-    TODO: Need to use this to remove emitter qubits.
+    TODO: Need to use this to remove emitter qubits. Also fill out src/state.py's partial trace func!!
 
     :return:
     :rtype:
     """
-    pass
+    raise NotImplementedError(
+        "Partial trace not implemented in the stabilizer representation"
+    )
 
 
 def fidelity(tableau1, tableau2):

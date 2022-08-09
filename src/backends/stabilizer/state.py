@@ -14,7 +14,13 @@ class Stabilizer(StateRepresentationBase):
         elif isinstance(data, CliffordTableau):
             self._tableau = data
         else:
-            raise TypeError("Cannot initialize the stabilizer representation")
+            raise TypeError(
+                f"Cannot initialize the stabilizer representation with datatype: {type(data)}"
+            )
+
+    @classmethod
+    def valid_datatype(cls, data):
+        return isinstance(data, (int, CliffordTableau))
 
     @property
     def n_qubit(self):

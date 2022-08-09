@@ -5,6 +5,8 @@ Graph representation of quantum state
 """
 import networkx as nx
 import warnings
+from collections.abc import Iterable
+import numpy as np
 
 from src.backends.state_base import StateRepresentationBase
 import src.backends.graph.functions as gf
@@ -360,3 +362,9 @@ class Graph(StateRepresentationBase):
         :rtype: None
         """
         draw_graph(self, show=show, ax=ax, with_labels=with_labels)
+
+    @classmethod
+    def valid_datatype(cls, data):
+        return isinstance(
+            data, (int, frozenset, nx.Graph, Iterable)
+        ) and not isinstance(data, np.ndarray)

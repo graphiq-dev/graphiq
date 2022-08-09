@@ -44,6 +44,9 @@ class QuantumState:
         :type n_qubit: int
         :param data: valid data input for "representation". If representations are given as a list,
                      the data must be a list of the same length
+                     Density matrices representations support np.dnarray or int inputs
+                     Stabilizer representations take int or StabilizerTableaus
+                     Graph representations take frozenset or int or networkx.Graph or iterable of data pairs
         :type data: list OR numpy.ndarray OR Graph OR nx.Graph
         :param representation: selected representations to initialize
         :type representation: str OR list of str
@@ -57,11 +60,24 @@ class QuantumState:
         self._stabilizer = None
 
         if representation is None:
-            if n_qubit < DENSITY_MATRIX_QUBIT_THRESH:
+            if n_qubit < DENSITY_MATRIX_QUBIT_THRESH and DensityMatrix.valid_datatype(
+                data
+            ):
                 self._initialize_dm(data)
-            else:
-                # TODO: initialize with stabilizer representation once stabilizer is implemented?
+            elif Stabilizer.valid_datatype(data):
+                self._initialize_stabilizer(data)
+            elif Graph.valid_datatype(data):
                 self._initialize_graph(data)
+            elif DensityMatrix.valid_datatype(data):
+                raise ValueError(
+                    f"Data's type is correct for density matrix representation, but state size exceeds the "
+                    f"recommended size for density matrix representation"
+                )
+            else:
+                raise ValueError(
+                    f"Data's type is invalid for initializing a QuantumState"
+                )
+
         elif isinstance(representation, str):
             self._initialize_representation(representation, data)
         elif isinstance(representation, list):

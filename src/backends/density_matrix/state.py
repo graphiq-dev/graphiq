@@ -62,6 +62,10 @@ class DensityMatrix(StateRepresentationBase):
         else:
             return cls(graph_to_density(graph))
 
+    @classmethod
+    def valid_datatype(cls, data):
+        return isinstance(data, (int, np.ndarray))
+
     def apply_unitary(self, unitary):
         """
         Apply a unitary to the state.

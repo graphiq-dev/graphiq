@@ -62,7 +62,7 @@ class DensityMatrixCompiler(CompilerBase):
         :return: nothing
         :rtype: None
         """
-        assert op.__class__ in DensityMatrixCompiler.ops.keys(), f"{op.__class__} is not a valid operation for this compiler"
+        assert op.__class__ in self.ops.keys(), f"{op.__class__} is not a valid operation for this compiler"
         state = state.dm
         if isinstance(op, ops.InputOutputOperationBase) or isinstance(op, ops.Identity):
             pass  # TODO: should think about best way to handle inputs/outputs
@@ -70,7 +70,7 @@ class DensityMatrixCompiler(CompilerBase):
         elif isinstance(op, ops.OneQubitOperationBase):
             unitary = dm.get_one_qubit_gate(
                 n_quantum, q_index(op.register, op.reg_type),
-                DensityMatrixCompiler.ops[op.__class__]
+                self.ops[op.__class__]
             )
             state.apply_unitary(unitary)
 
@@ -79,7 +79,7 @@ class DensityMatrixCompiler(CompilerBase):
                 n_quantum,
                 q_index(op.control, op.control_type),
                 q_index(op.target, op.target_type),
-                DensityMatrixCompiler.ops[op.__class__]
+                self.ops[op.__class__]
             )
             state.apply_unitary(unitary)
 
@@ -90,7 +90,7 @@ class DensityMatrixCompiler(CompilerBase):
 
             # apply an gate on the target qubit conditioned on the measurement outcome = 1
             unitary = dm.get_one_qubit_gate(
-                n_quantum, q_index(op.target, op.target_type), DensityMatrixCompiler.ops[op.__class__]
+                n_quantum, q_index(op.target, op.target_type), self.ops[op.__class__]
             )
 
             outcome = state.apply_measurement_controlled_gate(
@@ -189,7 +189,7 @@ class DensityMatrixCompiler(CompilerBase):
                 else:
                     # apply an X gate on the target qubit conditioned on the measurement outcome = 1
                     unitary = dm.get_one_qubit_gate(
-                        n_quantum, q_index(op.target, op.target_type), DensityMatrixCompiler.ops[op.__class__]
+                        n_quantum, q_index(op.target, op.target_type), self.ops[op.__class__]
                     )
 
                 outcome = state.dm.apply_measurement_controlled_gate(

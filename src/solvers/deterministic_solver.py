@@ -5,23 +5,18 @@ One can set these rules by the set of allowed transformations.
 """
 
 import numpy as np
-import src.backends.stabilizer.functions.height_function as height
 import warnings
 
+
+import src.backends.stabilizer.functions.height_function as height
 import src.backends.stabilizer.functions.matrix_functions as sfmf
-
 from src.backends.stabilizer.state import Stabilizer
-
-import src.noise.noise_models as nm
-
-from src.metrics import MetricBase
-
 from src.backends.compiler_base import CompilerBase
 
+import src.noise.noise_models as nm
+from src.metrics import MetricBase
 from src.solvers import SolverBase
-
 from src.circuit import CircuitDAG
-
 from src import ops
 
 
@@ -53,9 +48,12 @@ class DeterministicSolver(SolverBase):
         self.n_photon = n_photon
         self.noise_simulation = True
 
-        if noise_model_mapping is None or type(noise_model_mapping) is not dict:
+        if noise_model_mapping is None:
             noise_model_mapping = {}
             self.noise_simulation = False
+        elif type(noise_model_mapping) is not dict:
+            raise TypeError(f'Datatype {type(noise_model_mapping)} is not a valid noise_model_mapping. '
+                            f'noise_model_mapping should be a dict or None')
         self.noise_model_mapping = noise_model_mapping
 
     def solve(self):

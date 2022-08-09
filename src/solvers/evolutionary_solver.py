@@ -5,25 +5,15 @@ One can set these rules by the set of allowed transformations.
 """
 
 import copy
-import matplotlib.pyplot as plt
 import numpy as np
-import networkx as nx
 import warnings
 
 import src.backends.density_matrix.functions as dmf
 import src.noise.noise_models as nm
-
 from src.metrics import MetricBase
-
 from src.backends.compiler_base import CompilerBase
-
 from src.solvers import RandomSearchSolver
-
-from src.backends.density_matrix.compiler import DensityMatrixCompiler
 from src.circuit import CircuitDAG
-from src.metrics import Infidelity
-
-from src.visualizers.density_matrix import density_matrix_bars
 from src import ops
 
 
@@ -300,14 +290,13 @@ class EvolutionarySolver(RandomSearchSolver):
                 circuit.validate()
 
                 compiled_state = self.compiler.compile(circuit)
-                # this will pass out a density matrix object
 
-                state_data = dmf.partial_trace(
-                    compiled_state.data,
+                compiled_state.partial_trace(
                     keep=list(range(self.n_photon)),
                     dims=(self.n_photon + self.n_emitter) * [2],
                 )
-                score = self.metric.evaluate(state_data, circuit)
+
+                score = self.metric.evaluate(compiled_state, circuit)
 
                 population[j] = (score, circuit)
 

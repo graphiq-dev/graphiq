@@ -16,6 +16,8 @@ def symplectic_to_string(x_matrix, z_matrix):
     n_row, n_column = x_matrix.shape
     generator_list = []
     for i in range(n_row):
+        # TODO: consider performing this loop with a mutable type, pre-assigned
+        # to the correct size (convert to string after). This should be more efficient as n_row gets larged
         generator = ""
         for j in range(n_column):
             if x_matrix[i, j] == 1 and z_matrix[i, j] == 0:

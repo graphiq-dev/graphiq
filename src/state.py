@@ -17,6 +17,8 @@ import networkx as nx
 from src.backends.graph.state import Graph
 from src.backends.density_matrix.state import DensityMatrix
 from src.backends.stabilizer.state import Stabilizer
+import src.backends.density_matrix.functions as dmf
+import src.backends.stabilizer.functions.transformations as st
 
 DENSITY_MATRIX_QUBIT_THRESH = (
     10  # threshold above which density matrix representation is discouraged
@@ -69,6 +71,41 @@ class QuantumState:
             raise ValueError(
                 "passed representation argument must be a String or a list of strings"
             )
+
+    def partial_trace(self, keep, dims):
+        """
+        Calculates the partial trace on all state representations which are currently defined
+
+        :param keep:  An array of indices of the spaces to keep. For instance, if the space is
+                    :math:`A \\times B \\times C \\times D` and we want to trace out B and D, keep = [0,2]
+        :type keep: list OR numpy.ndarray
+        :param dims: An array of the dimensions of each space. For instance,
+                    if the space is :math:`A \\times B \\times C \\times D`,
+                    dims = [dim_A, dim_B, dim_C, dim_D]
+        :type dims: list OR numpy.ndarray
+        :return: nothing
+        :rtype: None
+        """
+        if self._dm is not None:
+            self.dm.data = dmf.partial_trace(self.dm.data, keep, dims)
+        if self._stabilizer is not None:
+            self.stabilizer.data = dmf.partial_trace(self._stabilizer.data, keep, dims)
+        if self._graph is not None:
+            raise NotImplementedError(
+                "Partial trace not yet implemented on graph state"
+            )
+
+    @property
+    def all_representations(self):
+        """
+        Returns all active representations of a QuantumState object
+
+        :return: a set with all initialized state representations
+        :rtype: set
+        """
+        representations = set([self._dm, self._stabilizer, self._graph])
+        representations.remove(None)
+        return representations
 
     @property
     def dm(self):
@@ -214,7 +251,7 @@ class QuantumState:
 
     def _initialize_graph(self, data):
         """
-        Initializes a graph based on the data
+        Initializes a graph state based on the data
 
         :param data: data to construct the Graph representation
         :type data: nx.Graph OR int OR frozenset
@@ -228,6 +265,21 @@ class QuantumState:
         assert self._graph.n_qubit == self.n_qubit, (
             f"Expected {self.n_qubit} qubits, "
             f"graph representation has {self._graph.n_qubit}"
+        )
+
+    def _initialize_stabilizer(self, data):
+        """
+        Initializes a stabilizer state based on the data
+
+        :param data: data to construct the stabilizer state representation
+        :type data: int or CliffordTableau
+        :return: nothing
+        :rtype: None
+        """
+        self._stabilizer = Stabilizer(data)
+        assert self._stabilizer.n_qubit == self.n_qubit, (
+            f"Expected {self.n_qubit} qubits, "
+            f"Stabilizer representation has {self._stabilizer.n_qubit}"
         )
 
     def _initialize_representation(self, representation, data):
@@ -253,10 +305,6 @@ class QuantumState:
         elif representation == "graph":
             self._initialize_graph(data)
         elif representation == "stabilizer":
-            raise NotImplementedError("Stabilizer representation not implemented yet")
+            self._initialize_stabilizer(data)
         else:
             raise ValueError("Passed representation is invalid")
-
-
-class GraphState(QuantumState):
-    """ """

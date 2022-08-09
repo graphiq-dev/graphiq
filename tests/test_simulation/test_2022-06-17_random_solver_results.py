@@ -12,6 +12,7 @@ from benchmarks.circuits import (
     linear_cluster_3qubit_circuit,
     linear_cluster_4qubit_circuit,
 )
+from src.state import QuantumState
 
 
 def ghz3_0():
@@ -184,13 +185,12 @@ def linear4_1():
 @pytest.mark.parametrize("ghz3", [ghz3_0(), ghz3_1(), ghz3_2()])
 def test_ghz3(ghz3):
     demo_circuit, ideal_state = ghz3_state_circuit()
+    ideal_state = QuantumState(3, ideal_state["dm"], representation="density matrix")
     compiler = DensityMatrixCompiler()
     independent, state1, state2 = circuit_measurement_independent(ghz3, compiler)
     assert independent
 
-    infidelity = Infidelity(ideal_state["dm"])
-    # print(f"state1: {state1}")
-    # print(f"state2: {state2}")
+    infidelity = Infidelity(ideal_state)
     assert np.isclose(infidelity.evaluate(state1, ghz3), 0.0), f"state 1: {state1}"
     assert np.isclose(infidelity.evaluate(state2, ghz3), 0.0), f"state 2: {state1}"
 
@@ -198,11 +198,12 @@ def test_ghz3(ghz3):
 @pytest.mark.parametrize("ghz4", [ghz4_0(), ghz4_1()])
 def test_ghz4(ghz4):
     demo_circuit, ideal_state = ghz4_state_circuit()
+    ideal_state = QuantumState(4, ideal_state["dm"], representation="density matrix")
     compiler = DensityMatrixCompiler()
     independent, state1, state2 = circuit_measurement_independent(ghz4, compiler)
     assert independent
 
-    infidelity = Infidelity(ideal_state["dm"])
+    infidelity = Infidelity(ideal_state)
     assert np.isclose(infidelity.evaluate(state1, ghz4), 0.0), f"state 1: {state1}"
     assert np.isclose(infidelity.evaluate(state2, ghz4), 0.0), f"state 2: {state1}"
 
@@ -210,11 +211,12 @@ def test_ghz4(ghz4):
 @pytest.mark.parametrize("linear3", [linear3_0(), linear3_1()])
 def test_linear3(linear3):
     demo_circuit, ideal_state = linear_cluster_3qubit_circuit()
+    ideal_state = QuantumState(3, ideal_state["dm"], representation="density matrix")
     compiler = DensityMatrixCompiler()
     independent, state1, state2 = circuit_measurement_independent(linear3, compiler)
     assert independent
 
-    infidelity = Infidelity(ideal_state["dm"])
+    infidelity = Infidelity(ideal_state)
     assert np.isclose(infidelity.evaluate(state1, linear3), 0.0), f"state 1: {state1}"
     assert np.isclose(infidelity.evaluate(state2, linear3), 0.0), f"state 2: {state1}"
 
@@ -222,10 +224,11 @@ def test_linear3(linear3):
 @pytest.mark.parametrize("linear4", [linear4_0(), linear4_1()])
 def test_linear4(linear4):
     demo_circuit, ideal_state = linear_cluster_4qubit_circuit()
+    ideal_state = QuantumState(4, ideal_state["dm"], representation="density matrix")
     compiler = DensityMatrixCompiler()
     independent, state1, state2 = circuit_measurement_independent(linear4, compiler)
     assert independent
 
-    infidelity = Infidelity(ideal_state["dm"])
+    infidelity = Infidelity(ideal_state)
     assert np.isclose(infidelity.evaluate(state1, linear4), 0.0), f"state 1: {state1}"
     assert np.isclose(infidelity.evaluate(state2, linear4), 0.0), f"state 2: {state1}"

@@ -9,6 +9,7 @@ import src.backends.density_matrix.functions as dmf
 from src.visualizers.density_matrix import density_matrix_bars
 from benchmarks.circuits import *
 import src.noise.noise_models as nm
+from src.state import QuantumState
 
 
 @pytest.fixture(scope="module")
@@ -54,9 +55,7 @@ def generate_run_noise(
 
     state = compiler.compile(solver.hof[0][1])
 
-    state = dmf.partial_trace(
-        state.data, list(range(n_photon)), (n_photon + n_emitter) * [2]
-    )
+    state.partial_trace(list(range(n_photon)), (n_photon + n_emitter) * [2])
     return solver.hof, state
 
 
@@ -75,9 +74,7 @@ def generate_run_no_noise(n_photon, n_emitter, expected_triple, compiler, seed):
 
     state = compiler.compile(solver.hof[0][1])
 
-    state = dmf.partial_trace(
-        state.data, list(range(n_photon)), (n_photon + n_emitter) * [2]
-    )
+    state.partial_trace(list(range(n_photon)), (n_photon + n_emitter) * [2])
     return solver.hof, state
 
 
@@ -95,11 +92,11 @@ def check_run_visual(run_info, expected_info):
 
     circuit = hof[0][1]
     circuit.draw_circuit()
-    fig, axs = density_matrix_bars(target_state)
+    fig, axs = density_matrix_bars(target_state.dm.data)
     fig.suptitle("TARGET DENSITY MATRIX")
     plt.show()
 
-    fig, axs = density_matrix_bars(state)
+    fig, axs = density_matrix_bars(state.dm.data)
     fig.suptitle("CREATED DENSITY MATRIX")
     plt.show()
 
@@ -112,18 +109,18 @@ def check_run_noise_visual(no_noise_run_info, noise_run_info, expected_info):
     circuit_no_noise = hof_no_noise[0][1]
     circuit_no_noise.draw_circuit()
 
-    fig, axs = density_matrix_bars(target_state)
+    fig, axs = density_matrix_bars(target_state.dm.data)
     fig.suptitle("TARGET DENSITY MATRIX")
     plt.show()
 
-    fig, axs = density_matrix_bars(state_no_noise)
+    fig, axs = density_matrix_bars(state_no_noise.dm.data)
     fig.suptitle("CREATED DENSITY MATRIX W/O NOISE")
     plt.show()
 
     circuit_noise = hof_noise[0][1]
     circuit_noise.draw_circuit()
 
-    fig, axs = density_matrix_bars(state_noise)
+    fig, axs = density_matrix_bars(state_noise.dm.data)
     fig.suptitle("CREATED DENSITY MATRIX WITH NOISE")
     plt.show()
 
@@ -195,7 +192,7 @@ def linear3_noise_model():
 @pytest.fixture(scope="module")
 def linear3_expected():
     circuit_ideal, state_ideal = linear_cluster_3qubit_circuit()
-    target_state = state_ideal["dm"]
+    target_state = QuantumState(3, state_ideal["dm"], representation="density matrix")
 
     metric = Infidelity(target=target_state)
 
@@ -205,7 +202,7 @@ def linear3_expected():
 @pytest.fixture(scope="module")
 def linear3_expected_trace_distance():
     circuit_ideal, state_ideal = linear_cluster_3qubit_circuit()
-    target_state = state_ideal["dm"]
+    target_state = QuantumState(3, state_ideal["dm"], representation="density matrix")
     metric = TraceDistance(target=target_state)
     return target_state, circuit_ideal, metric
 
@@ -265,7 +262,7 @@ def linear4_run_trace_distance(
 @pytest.fixture(scope="module")
 def linear4_expected():
     circuit_ideal, state_ideal = linear_cluster_4qubit_circuit()
-    target_state = state_ideal["dm"]
+    target_state = QuantumState(4, state_ideal["dm"], representation="density matrix")
 
     metric = Infidelity(target=target_state)
 
@@ -275,7 +272,7 @@ def linear4_expected():
 @pytest.fixture(scope="module")
 def linear4_expected_trace_distance():
     circuit_ideal, state_ideal = linear_cluster_4qubit_circuit()
-    target_state = state_ideal["dm"]
+    target_state = QuantumState(4, state_ideal["dm"], representation="density matrix")
 
     metric = TraceDistance(target=target_state)
 
@@ -299,7 +296,7 @@ def ghz3_run_no_noise(solver_stop_100, density_matrix_compiler, ghz3_expected):
 @pytest.fixture(scope="module")
 def ghz3_expected():
     circuit_ideal, state_ideal = ghz3_state_circuit()
-    target_state = state_ideal["dm"]
+    target_state = QuantumState(3, state_ideal["dm"], representation="density matrix")
 
     metric = Infidelity(target=target_state)
 

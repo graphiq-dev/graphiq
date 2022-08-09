@@ -5,7 +5,7 @@ from src.solvers.evolutionary_solver import EvolutionarySolver
 import matplotlib.pyplot as plt
 from src.backends.density_matrix.compiler import DensityMatrixCompiler
 from src.metrics import Infidelity
-import src.backends.density_matrix.functions as dmf
+from src.state import QuantumState
 from src.visualizers.density_matrix import density_matrix_bars
 from benchmarks.circuits import *
 
@@ -50,9 +50,7 @@ def generate_run(n_photon, n_emitter, expected_triple, compiler, seed):
 
     state = compiler.compile(solver.hof[0][1])
 
-    state = dmf.partial_trace(
-        state.data, list(range(n_photon)), (n_photon + n_emitter) * [2]
-    )
+    state.partial_trace(list(range(n_photon)), (n_photon + n_emitter) * [2])
     return solver.hof, state
 
 
@@ -63,7 +61,7 @@ def check_run(run_info, expected_info):
 
     circuit = hof[0][1]
     assert np.isclose(hof[0][0], metric.evaluate(state, circuit))
-    assert np.allclose(state, target_state)
+    assert np.allclose(state.dm.data, target_state.dm.data)
 
 
 def check_run_visual(run_info, expected_info):
@@ -72,11 +70,11 @@ def check_run_visual(run_info, expected_info):
 
     circuit = hof[0][1]
     circuit.draw_circuit()
-    fig, axs = density_matrix_bars(target_state)
+    fig, axs = density_matrix_bars(target_state.dm.data)
     fig.suptitle("TARGET DENSITY MATRIX")
     plt.show()
 
-    fig, axs = density_matrix_bars(state)
+    fig, axs = density_matrix_bars(state.dm.data)
     fig.suptitle("CREATED DENSITY MATRIX")
     plt.show()
 
@@ -96,11 +94,11 @@ def linear3_run(solver_stop_100, density_matrix_compiler, linear3_expected):
 @pytest.fixture(scope="module")
 def linear3_expected():
     circuit_ideal, state_ideal = linear_cluster_3qubit_circuit()
-    target_state = state_ideal["dm"]
+    ideal_state = QuantumState(3, state_ideal["dm"], representation="density matrix")
 
-    metric = Infidelity(target=target_state)
+    metric = Infidelity(target=ideal_state)
 
-    return target_state, circuit_ideal, metric
+    return ideal_state, circuit_ideal, metric
 
 
 @pytest.fixture(scope="module")
@@ -118,11 +116,11 @@ def linear4_run(solver_stop_100, density_matrix_compiler, linear4_expected):
 @pytest.fixture(scope="module")
 def linear4_expected():
     circuit_ideal, state_ideal = linear_cluster_4qubit_circuit()
-    target_state = state_ideal["dm"]
+    ideal_state = QuantumState(4, state_ideal["dm"], representation="density matrix")
 
-    metric = Infidelity(target=target_state)
+    metric = Infidelity(target=ideal_state)
 
-    return target_state, circuit_ideal, metric
+    return ideal_state, circuit_ideal, metric
 
 
 @pytest.fixture(scope="module")
@@ -133,11 +131,11 @@ def ghz3_run(solver_stop_100, density_matrix_compiler, ghz3_expected):
 @pytest.fixture(scope="module")
 def ghz3_expected():
     circuit_ideal, state_ideal = ghz3_state_circuit()
-    target_state = state_ideal["dm"]
+    ideal_state = QuantumState(3, state_ideal["dm"], representation="density matrix")
 
-    metric = Infidelity(target=target_state)
+    metric = Infidelity(target=ideal_state)
 
-    return target_state, circuit_ideal, metric
+    return ideal_state, circuit_ideal, metric
 
 
 def test_solver_linear3(linear3_run, linear3_expected):
@@ -176,7 +174,7 @@ def test_add_remove_measurements(seed):
     n_photon = 3
 
     circuit_ideal, state_ideal = linear_cluster_3qubit_circuit()
-    target_state = state_ideal["dm"]
+    target_state = QuantumState(3, state_ideal["dm"], representation="density matrix")
     compiler = DensityMatrixCompiler()
     metric = Infidelity(target=target_state)
     solver = EvolutionarySolver(

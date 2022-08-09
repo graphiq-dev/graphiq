@@ -33,7 +33,7 @@ class DensityMatrixCompiler(CompilerBase):
         ops.ClassicalCPhase: dm.sigmaz(),
         ops.MeasurementZ: None,
         ops.MeasurementCNOTandReset: dm.sigmax(),
-        ops.Output: None
+        ops.Output: None,
     }
 
     def __init__(self, *args, **kwargs):
@@ -62,15 +62,18 @@ class DensityMatrixCompiler(CompilerBase):
         :return: nothing
         :rtype: None
         """
-        assert op.__class__ in DensityMatrixCompiler.ops.keys(), f"{op.__class__} is not a valid operation for this compiler"
+        assert (
+            op.__class__ in DensityMatrixCompiler.ops.keys()
+        ), f"{op.__class__} is not a valid operation for this compiler"
         state = state.dm
         if isinstance(op, ops.InputOutputOperationBase) or isinstance(op, ops.Identity):
             pass  # TODO: should think about best way to handle inputs/outputs
 
         elif isinstance(op, ops.OneQubitOperationBase):
             unitary = dm.get_one_qubit_gate(
-                n_quantum, q_index(op.register, op.reg_type),
-                DensityMatrixCompiler.ops[op.__class__]
+                n_quantum,
+                q_index(op.register, op.reg_type),
+                DensityMatrixCompiler.ops[op.__class__],
             )
             state.apply_unitary(unitary)
 
@@ -79,7 +82,7 @@ class DensityMatrixCompiler(CompilerBase):
                 n_quantum,
                 q_index(op.control, op.control_type),
                 q_index(op.target, op.target_type),
-                DensityMatrixCompiler.ops[op.__class__]
+                DensityMatrixCompiler.ops[op.__class__],
             )
             state.apply_unitary(unitary)
 
@@ -90,7 +93,9 @@ class DensityMatrixCompiler(CompilerBase):
 
             # apply an gate on the target qubit conditioned on the measurement outcome = 1
             unitary = dm.get_one_qubit_gate(
-                n_quantum, q_index(op.target, op.target_type), DensityMatrixCompiler.ops[op.__class__]
+                n_quantum,
+                q_index(op.target, op.target_type),
+                DensityMatrixCompiler.ops[op.__class__],
             )
 
             outcome = state.apply_measurement_controlled_gate(
@@ -135,8 +140,10 @@ class DensityMatrixCompiler(CompilerBase):
             classical_registers[op.c_register] = outcome
 
         else:
-            raise ValueError(f"The compile function has an error. "
-                             f"{type(op)} is a valid operation of the class, but the op was not processed")
+            raise ValueError(
+                f"The compile function has an error. "
+                f"{type(op)} is a valid operation of the class, but the op was not processed"
+            )
 
     def compile_one_noisy_gate(
         self, state, op, n_quantum, q_index, classical_registers
@@ -189,7 +196,9 @@ class DensityMatrixCompiler(CompilerBase):
                 else:
                     # apply an X gate on the target qubit conditioned on the measurement outcome = 1
                     unitary = dm.get_one_qubit_gate(
-                        n_quantum, q_index(op.target, op.target_type), DensityMatrixCompiler.ops[op.__class__]
+                        n_quantum,
+                        q_index(op.target, op.target_type),
+                        DensityMatrixCompiler.ops[op.__class__],
                     )
 
                 outcome = state.dm.apply_measurement_controlled_gate(

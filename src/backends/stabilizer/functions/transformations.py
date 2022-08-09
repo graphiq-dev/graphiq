@@ -767,7 +767,7 @@ def fidelity(tableau1, tableau2):
 
 
 def full_rank_x(tableau):
-    #Based on lemma 6 in arXiv:quant-ph/0406196
+    # Based on lemma 6 in arXiv:quant-ph/0406196
     n_qubits = tableau.n_qubits
     x_matrix = tableau.stabilizer_x
     z_matrix = tableau.stabilizer_x

@@ -569,44 +569,62 @@ def canonical_form(x_matrix, z_matrix, r_vector):
         pivot[1] = j
         x_list, y_list, z_list = pauli_type_finder(x_matrix, z_matrix, pivot)
         if x_list:
-            x_matrix, z_matrix, r_vector = row_swap_full(x_matrix, z_matrix, r_vector, pivot[0], x_list[0])
+            x_matrix, z_matrix, r_vector = row_swap_full(
+                x_matrix, z_matrix, r_vector, pivot[0], x_list[0]
+            )
             # update list for the whole column
-            x_list, y_list, z_list = pauli_type_finder(x_matrix, z_matrix, [0, pivot[1]])
+            x_list, y_list, z_list = pauli_type_finder(
+                x_matrix, z_matrix, [0, pivot[1]]
+            )
             # remove first element
             x_list = x_list[1:]
             rows_to_mul = x_list + y_list
             for row_i in rows_to_mul:
                 # multiplying rows with similar pauli to eliminate them
                 # and multiplying rows with Y pauli to turn them to Z
-                x_matrix, z_matrix, r_vector = row_sum(x_matrix, z_matrix, r_vector, pivot[0], row_i)
+                x_matrix, z_matrix, r_vector = row_sum(
+                    x_matrix, z_matrix, r_vector, pivot[0], row_i
+                )
             pivot[0] = pivot[0] + 1
         elif y_list:
-            x_matrix, z_matrix, r_vector = row_swap_full(x_matrix, z_matrix, r_vector, pivot[0], y_list[0])
+            x_matrix, z_matrix, r_vector = row_swap_full(
+                x_matrix, z_matrix, r_vector, pivot[0], y_list[0]
+            )
             # update list for the whole column
-            x_list, y_list, z_list = pauli_type_finder(x_matrix, z_matrix, [0, pivot[1]])
+            x_list, y_list, z_list = pauli_type_finder(
+                x_matrix, z_matrix, [0, pivot[1]]
+            )
             # remove first element
             y_list = y_list[1:]
             rows_to_mul = x_list + y_list
             for row_i in rows_to_mul:
                 # multiplying rows with similar pauli to eliminate them
                 # and multiplying rows with Y pauli to turn them to Z
-                x_matrix, z_matrix, r_vector = row_sum(x_matrix, z_matrix, r_vector, pivot[0], row_i)
+                x_matrix, z_matrix, r_vector = row_sum(
+                    x_matrix, z_matrix, r_vector, pivot[0], row_i
+                )
             pivot[0] = pivot[0] + 1
     # Z block
     for j in range(n_qubits):
         pivot[1] = j
         x_list, y_list, z_list = pauli_type_finder(x_matrix, z_matrix, pivot)
         if z_list:
-            x_matrix, z_matrix, r_vector = row_swap_full(x_matrix, z_matrix, r_vector, pivot[0], x_list[0])
+            x_matrix, z_matrix, r_vector = row_swap_full(
+                x_matrix, z_matrix, r_vector, pivot[0], x_list[0]
+            )
             # update list for the whole column
-            x_list, y_list, z_list = pauli_type_finder(x_matrix, z_matrix, [0, pivot[1]])
+            x_list, y_list, z_list = pauli_type_finder(
+                x_matrix, z_matrix, [0, pivot[1]]
+            )
             # remove first element
             z_list = z_list[1:]
             rows_to_mul = z_list + y_list
             for row_i in rows_to_mul:
                 # multiplying rows with similar pauli to eliminate them
                 # and multiplying rows with Y pauli to turn them to Z
-                x_matrix, z_matrix, r_vector = row_sum(x_matrix, z_matrix, r_vector, pivot[0], row_i)
+                x_matrix, z_matrix, r_vector = row_sum(
+                    x_matrix, z_matrix, r_vector, pivot[0], row_i
+                )
             pivot[0] = pivot[0] + 1
     # confirm if there is any trivial rows equivalent to all identity matrices.
     assert pivot[0] == n_qubits
@@ -626,12 +644,20 @@ def inverse_circuit(x_matrix, z_matrix, r_vector):
         pivot[1] = j
         x_list, y_list, z_list = pauli_type_finder(x_matrix, z_matrix, pivot)
         if x_list:
-            x_matrix, z_matrix, r_vector = row_swap_full(x_matrix, z_matrix, r_vector, pivot[0], x_list[0])
+            x_matrix, z_matrix, r_vector = row_swap_full(
+                x_matrix, z_matrix, r_vector, pivot[0], x_list[0]
+            )
         elif y_list:
-            x_matrix, z_matrix, r_vector = row_swap_full(x_matrix, z_matrix, r_vector, pivot[0], y_list[0])
+            x_matrix, z_matrix, r_vector = row_swap_full(
+                x_matrix, z_matrix, r_vector, pivot[0], y_list[0]
+            )
         elif z_list:
-            x_matrix, z_matrix, r_vector = row_swap_full(x_matrix, z_matrix, r_vector, pivot[0], z_list[-1])
-            if np.any(x_matrix[pivot[0], j + 1:n_qubits]) or np.any(z_matrix[pivot[0], j + 1:n_qubits]):
+            x_matrix, z_matrix, r_vector = row_swap_full(
+                x_matrix, z_matrix, r_vector, pivot[0], z_list[-1]
+            )
+            if np.any(x_matrix[pivot[0], j + 1 : n_qubits]) or np.any(
+                z_matrix[pivot[0], j + 1 : n_qubits]
+            ):
                 circuit_list.append(("H", j))
                 x_matrix, z_matrix = hadamard_transform(x_matrix, z_matrix, j)
         pivot[0] = pivot[0] + 1
@@ -642,7 +668,7 @@ def inverse_circuit(x_matrix, z_matrix, r_vector):
                 circuit_list.append(("CNOT", j, k))
                 x_matrix[:, k] = x_matrix[:, k] ^ x_matrix[:, j]
                 z_matrix[:, j] = z_matrix[:, j] ^ z_matrix[:, k]
-    #CZ block
+    # CZ block
     for j in range(n_qubits):
         for k in range(j + 1, n_qubits):
             if x_matrix[j, k] == 0 and z_matrix[j, k] == 1:
@@ -666,7 +692,9 @@ def inverse_circuit(x_matrix, z_matrix, r_vector):
     for j in range(n_qubits):
         for k in range(j + 1, n_qubits):
             if x_matrix[k, j] == 0 and z_matrix[k, j] == 1:
-                x_matrix, z_matrix, r_vector = row_sum(x_matrix, z_matrix, r_vector, j, k)
+                x_matrix, z_matrix, r_vector = row_sum(
+                    x_matrix, z_matrix, r_vector, j, k
+                )
 
     return x_matrix, z_matrix, r_vector, circuit_list
 
@@ -678,8 +706,8 @@ def inner_product(tableau1, tableau2):
     z1_matrix = tableau1.stabilizer_x
     x2_matrix = tableau2.stabilizer_x
     z2_matrix = tableau2.stabilizer_x
-    r1_vector = tableau1.phase[n_qubits:2*n_qubits]
-    r2_vector = tableau2.phase[n_qubits:2 * n_qubits]
+    r1_vector = tableau1.phase[n_qubits : 2 * n_qubits]
+    r2_vector = tableau2.phase[n_qubits : 2 * n_qubits]
     _, _, _, circ1 = inverse_circuit(x1_matrix, z1_matrix, r1_vector)
     # apply inverse circuit on the 2nd state
     for ops in circ1:
@@ -709,11 +737,13 @@ def inner_product(tableau1, tableau2):
             r_vector = np.zero(n_qubits + 1)
             z_list = [j for j in range(n_qubits) if z2_matrix[i, j] == 1]
             for index in z_list:
-                x_matrix, z_matrix, r_vector = row_sum(x_matrix, z_matrix, r_vector, index, n_qubits)
-            if np.array_equal(x_matrix[-1], x2_matrix[i]) and np.array_equal(z_matrix[-1] == z2_matrix[i]) and r_vector[-1] == 1:
+                x_matrix, z_matrix, r_vector = row_sum(
+                    x_matrix, z_matrix, r_vector, index, n_qubits
+                )
+            if (
+                np.array_equal(x_matrix[-1], x2_matrix[i])
+                and np.array_equal(z_matrix[-1] == z2_matrix[i])
+                and r_vector[-1] == 1
+            ):
                 return 0
-    return 2**(-counter/2)
-
-
-
-
+    return 2 ** (-counter / 2)

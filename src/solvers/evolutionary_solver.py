@@ -1,29 +1,27 @@
 """
 Evolutionary solver which includes a random search solver as a special case.
 This solver is based on certain physical rules imposed by a platform.
-One can set these rules by the set of allowed transformations.
+One can define these rules via the allowed DAG transformations.
 """
-
 import copy
-import matplotlib.pyplot as plt
 import numpy as np
-import networkx as nx
+import matplotlib.pyplot as plt
 import warnings
 
 import src.backends.density_matrix.functions as dmf
 import src.noise.noise_models as nm
-
+import pandas as pd
 from src.metrics import MetricBase
 
 from src.backends.compiler_base import CompilerBase
-
-from src.solvers import RandomSearchSolver
-
 from src.backends.density_matrix.compiler import DensityMatrixCompiler
+from src.solvers import RandomSearchSolver
 from src.circuit import CircuitDAG
+from src.metrics import MetricBase
 from src.metrics import Infidelity
 
 from src.visualizers.density_matrix import density_matrix_bars
+from src.io import IO
 from src import ops
 
 
@@ -49,15 +47,39 @@ class EvolutionarySolver(RandomSearchSolver):
         metric: MetricBase,
         compiler: CompilerBase,
         circuit: CircuitDAG = None,
+        io: IO = None,
         n_emitter=1,
         n_photon=1,
         selection_active=False,
+        save_openqasm: str = "none",
         noise_model_mapping=None,
         *args,
         **kwargs,
     ):
+        """
 
-        super().__init__(target, metric, compiler, circuit, *args, **kwargs)
+        :param target: target quantum state
+        :type target: QuantumState  # TODO: consolidate everything to use QuantumState
+        :param metric: metric (cost) function to minimize
+        :type metric: MetricBase
+        :param compiler: compiler backend to use when simulating quantum circuits
+        :type compiler: CompilerBase
+        :param circuit: (optional) initial circuit
+        :type circuit: CircuitDAG
+        :param io: input/output object for saving logs, intermediate results, circuits, etc.
+        :type io: IO
+        :param n_emitter: number of emitter registers to maintain in the circuit
+        :type n_emitter: int
+        :param n_photon: number of photon registers to maintain in the circuit
+        :type n_photon: int
+        :param selection_active: use selection in the evolutionary algorithm
+        :type selection_active: bool
+        :param save_openqasm: save population, hof, or both to openQASM strings (options: None, "hof", "pop", "both")
+        :type save_openqasm: str, None
+        :param args:
+        :param kwargs:
+        """
+        super().__init__(target, metric, compiler, circuit, io, *args, **kwargs)
 
         self.n_emitter = n_emitter
         self.n_photon = n_photon
@@ -70,6 +92,8 @@ class EvolutionarySolver(RandomSearchSolver):
             noise_model_mapping = {}
             self.noise_simulation = False
         self.noise_model_mapping = noise_model_mapping
+
+        self.save_openqasm = save_openqasm
 
         self.p_dist = [0.5] + 11 * [0.1 / 22] + [0.4] + 11 * [0.1 / 22]
         self.e_dist = [0.5] + 11 * [0.02 / 22] + [0.48] + 11 * [0.02 / 22]
@@ -255,6 +279,8 @@ class EvolutionarySolver(RandomSearchSolver):
             circuit.add(op)
         return circuit
 
+    """ Main solver algorithm """
+
     def solve(self):
         """
         The main function for the solver
@@ -315,10 +341,101 @@ class EvolutionarySolver(RandomSearchSolver):
             if EvolutionarySolver.use_adapt_probability:
                 self.adapt_probabilities(i)
 
+            # this should be the last thing performed *prior* to selecting a new population (after updating HoF)
+            self.update_logs(population=population, iteration=i)
+            self.save_circuits(population=population, hof=self.hof, iteration=i)
+
             if self.selection_active:
                 population = self.tournament_selection(population, k=self.tournament_k)
 
             print(f"Iteration {i} | Best score: {self.hof[0][0]:.4f}")
+
+        self.logs_to_df()  # convert the logs to a DataFrame
+
+    """ Logging and saving openQASM strings """
+
+    def update_logs(self, population: list, iteration: int):
+        """
+        Updates the log table, which tracks cost function values through solver iterations.
+
+        :param population: population list for the i-th iteration, as a list of tuples (score, circuit)
+        :type population: list
+        :param iteration: iteration integer, from 0 to n_stop-1
+        :type iteration: int
+        :return:
+        """
+        # get the scores from the population/hof as a list
+        scores_pop = list(zip(*population))[0]
+        scores_hof = list(zip(*self.hof))[0]
+
+        depth_pop = [circuit.depth for (_, circuit) in population]
+        depth_hof = [circuit.depth for (_, circuit) in self.hof]
+
+        self.logs["population"].append(
+            dict(
+                iteration=iteration,
+                cost_mean=np.mean(scores_pop),
+                cost_variance=np.var(scores_pop),
+                cost_min=np.min(scores_pop),
+                cost_max=np.max(scores_pop),
+                depth_mean=np.mean(depth_pop),
+                depth_variance=np.var(depth_pop),
+                depth_min=np.min(depth_pop),
+                depth_max=np.max(depth_pop),
+            )
+        )
+
+        self.logs["hof"].append(
+            dict(
+                iteration=iteration,
+                cost_mean=np.mean(scores_hof),
+                cost_variance=np.var(scores_hof),
+                cost_min=np.min(scores_hof),
+                cost_max=np.max(scores_hof),
+                depth_mean=np.mean(depth_hof),
+                depth_variance=np.var(depth_hof),
+                depth_min=np.min(depth_hof),
+                depth_max=np.max(depth_hof),
+            )
+        )
+
+    def save_circuits(self, population: list, hof: list, iteration: int = -1):
+        """
+        Saves the population and/or the HoF circuits over iterations as openQASM strings.
+
+        :param population: list of (score, circuit) pairs
+        :param hof: list of (score, circuit) pairs
+        :param iteration: integer step in the solver algorithm
+        :return:
+        """
+        if self.io is None or self.save_openqasm == "none":
+            return
+
+        elif self.save_openqasm == "hof":
+            self._save_hof(hof, iteration=iteration)
+
+        elif self.save_openqasm == "pop":
+            self._save_pop(population, iteration=iteration)
+
+        elif self.save_openqasm == "both":
+            self._save_pop(population, iteration=iteration)
+            self._save_hof(hof, iteration=iteration)
+        return
+
+    def _save_pop(self, pop, iteration):
+        for i, (score, circuit) in enumerate(pop):
+            name = f"pop/iteration{iteration}_pop{i}.txt"
+            self.io.save_json(circuit.to_openqasm(), name)
+
+    def _save_hof(self, hof, iteration):
+        for i, (score, circuit) in enumerate(hof):
+            name = f"hof/iteration{iteration}_hof{i}.txt"
+            self.io.save_json(circuit.to_openqasm(), name)
+
+    def logs_to_df(self):
+        """Converts each logs (population, hof, etc.) to a pandas DataFrame for easier visualization/saving"""
+        for key, val in self.logs.items():
+            self.logs[key] = pd.DataFrame(val)
 
     @staticmethod
     def _wrap_noise(op, noise_model_mapping):
@@ -363,6 +480,8 @@ class EvolutionarySolver(RandomSearchSolver):
             return noise_model_mapping[op_name]
         else:
             return nm.NoNoise()
+
+    """ Circuit transformations """
 
     def replace_photon_one_qubit_op(self, circuit):
         """

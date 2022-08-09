@@ -545,3 +545,205 @@ def rref(x_matrix, z_matrix, r_vector):
         pivot[0] >= n_qubits - 1
     ), "Invalid input. One of the stabilizers is identity on all qubits!"  # rank check
     return x_matrix, z_matrix, r_vector
+
+
+def canonical_form(x_matrix, z_matrix, r_vector):
+    """
+    Takes stabilizer tableau matrices, and converts them to the canonical reduced echelon form.
+    (Different from standard row reduced echelon form)
+
+    :param x_matrix: x matrix in the symplectic representation of the stabilizers
+    :type x_matrix: np.ndarray
+    :param z_matrix: z matrix in the symplectic representation of the stabilizers
+    :type z_matrix: np.ndarray
+    :param r_vector: the vector of phase factors.
+    :type r_vector: np.ndarray
+    :return: stabilizer tableau in the row reduced echelon form
+    :rtype: numpy.ndarray, numpy.ndarray, numpy.ndarray
+    """
+    pivot = [0, 0]
+    n_qubits = np.shape(x_matrix)[0]
+
+    # X block
+    for j in range(n_qubits):
+        pivot[1] = j
+        x_list, y_list, z_list = pauli_type_finder(x_matrix, z_matrix, pivot)
+        if x_list:
+            x_matrix, z_matrix, r_vector = row_swap_full(
+                x_matrix, z_matrix, r_vector, pivot[0], x_list[0]
+            )
+            # update list for the whole column
+            x_list, y_list, z_list = pauli_type_finder(
+                x_matrix, z_matrix, [0, pivot[1]]
+            )
+            # remove first element
+            x_list = x_list[1:]
+            rows_to_mul = x_list + y_list
+            for row_i in rows_to_mul:
+                # multiplying rows with similar pauli to eliminate them
+                # and multiplying rows with Y pauli to turn them to Z
+                x_matrix, z_matrix, r_vector = row_sum(
+                    x_matrix, z_matrix, r_vector, pivot[0], row_i
+                )
+            pivot[0] = pivot[0] + 1
+        elif y_list:
+            x_matrix, z_matrix, r_vector = row_swap_full(
+                x_matrix, z_matrix, r_vector, pivot[0], y_list[0]
+            )
+            # update list for the whole column
+            x_list, y_list, z_list = pauli_type_finder(
+                x_matrix, z_matrix, [0, pivot[1]]
+            )
+            # remove first element
+            y_list = y_list[1:]
+            rows_to_mul = x_list + y_list
+            for row_i in rows_to_mul:
+                # multiplying rows with similar pauli to eliminate them
+                # and multiplying rows with Y pauli to turn them to Z
+                x_matrix, z_matrix, r_vector = row_sum(
+                    x_matrix, z_matrix, r_vector, pivot[0], row_i
+                )
+            pivot[0] = pivot[0] + 1
+    # Z block
+    for j in range(n_qubits):
+        pivot[1] = j
+        x_list, y_list, z_list = pauli_type_finder(x_matrix, z_matrix, pivot)
+        if z_list:
+            x_matrix, z_matrix, r_vector = row_swap_full(
+                x_matrix, z_matrix, r_vector, pivot[0], x_list[0]
+            )
+            # update list for the whole column
+            x_list, y_list, z_list = pauli_type_finder(
+                x_matrix, z_matrix, [0, pivot[1]]
+            )
+            # remove first element
+            z_list = z_list[1:]
+            rows_to_mul = z_list + y_list
+            for row_i in rows_to_mul:
+                # multiplying rows with similar pauli to eliminate them
+                # and multiplying rows with Y pauli to turn them to Z
+                x_matrix, z_matrix, r_vector = row_sum(
+                    x_matrix, z_matrix, r_vector, pivot[0], row_i
+                )
+            pivot[0] = pivot[0] + 1
+    # confirm if there is any trivial rows equivalent to all identity matrices.
+    assert pivot[0] == n_qubits
+    return x_matrix, z_matrix, r_vector
+
+
+def inverse_circuit(x_matrix, z_matrix, r_vector):
+    # Phase vector is not being updated correctly here for now
+    # Once we use the full initial tableau as input we can use actual stabilizer gates instead of matrix operations to
+    # implement hadamard, phase and Cnot and hence the phase vector will be automatically included. But is it needed?
+    circuit_list = []
+    pivot = [0, 0]
+    n_qubits = np.shape(x_matrix)[0]
+    x_matrix, z_matrix, r_vector = canonical_form(x_matrix, z_matrix, r_vector)
+    # Hadamard block
+    for j in range(n_qubits):
+        pivot[1] = j
+        x_list, y_list, z_list = pauli_type_finder(x_matrix, z_matrix, pivot)
+        if x_list:
+            x_matrix, z_matrix, r_vector = row_swap_full(
+                x_matrix, z_matrix, r_vector, pivot[0], x_list[0]
+            )
+        elif y_list:
+            x_matrix, z_matrix, r_vector = row_swap_full(
+                x_matrix, z_matrix, r_vector, pivot[0], y_list[0]
+            )
+        elif z_list:
+            x_matrix, z_matrix, r_vector = row_swap_full(
+                x_matrix, z_matrix, r_vector, pivot[0], z_list[-1]
+            )
+            if np.any(x_matrix[pivot[0], j + 1 : n_qubits]) or np.any(
+                z_matrix[pivot[0], j + 1 : n_qubits]
+            ):
+                circuit_list.append(("H", j))
+                x_matrix, z_matrix = hadamard_transform(x_matrix, z_matrix, j)
+        pivot[0] = pivot[0] + 1
+    # CNOT block
+    for j in range(n_qubits):
+        for k in range(j + 1, n_qubits):
+            if x_matrix[j, k] == 1:
+                circuit_list.append(("CNOT", j, k))
+                x_matrix[:, k] = x_matrix[:, k] ^ x_matrix[:, j]
+                z_matrix[:, j] = z_matrix[:, j] ^ z_matrix[:, k]
+    # CZ block
+    for j in range(n_qubits):
+        for k in range(j + 1, n_qubits):
+            if x_matrix[j, k] == 0 and z_matrix[j, k] == 1:
+                circuit_list.append(("CZ", j, k))
+                # CZ = H CNOT H
+                x_matrix, z_matrix = hadamard_transform(x_matrix, z_matrix, k)
+                x_matrix[:, k] = x_matrix[:, k] ^ x_matrix[:, j]
+                z_matrix[:, j] = z_matrix[:, j] ^ z_matrix[:, k]
+                x_matrix, z_matrix = hadamard_transform(x_matrix, z_matrix, k)
+    # Phase gate block
+    for j in range(n_qubits):
+        if x_matrix[j, j] == 1 and z_matrix[j, j] == 1:
+            circuit_list.append(("P", j))
+            z_matrix[:, j] = z_matrix[:, j] ^ x_matrix[:, j]
+    # Hadamard block
+    for j in range(n_qubits):
+        if x_matrix[j, j] == 1 and z_matrix[j, j] == 0:
+            circuit_list.append(("H", j))
+            x_matrix, z_matrix = hadamard_transform(x_matrix, z_matrix, j)
+    # Eliminate Zs
+    for j in range(n_qubits):
+        for k in range(j + 1, n_qubits):
+            if x_matrix[k, j] == 0 and z_matrix[k, j] == 1:
+                x_matrix, z_matrix, r_vector = row_sum(
+                    x_matrix, z_matrix, r_vector, j, k
+                )
+
+    return x_matrix, z_matrix, r_vector, circuit_list
+
+
+def inner_product(tableau1, tableau2):
+    n_qubits = tableau1.n_qubits
+    assert tableau1.n_qubits == tableau2.n_qubits
+    x1_matrix = tableau1.stabilizer_x
+    z1_matrix = tableau1.stabilizer_x
+    x2_matrix = tableau2.stabilizer_x
+    z2_matrix = tableau2.stabilizer_x
+    r1_vector = tableau1.phase[n_qubits : 2 * n_qubits]
+    r2_vector = tableau2.phase[n_qubits : 2 * n_qubits]
+    _, _, _, circ1 = inverse_circuit(x1_matrix, z1_matrix, r1_vector)
+    # apply inverse circuit on the 2nd state
+    for ops in circ1:
+        if ops[0] == "H":
+            x2_matrix, z2_matrix = hadamard_transform(x2_matrix, z2_matrix, ops[1])
+        if ops[0] == "P":
+            z2_matrix[:, ops[1]] = z2_matrix[:, ops[1]] ^ x2_matrix[:, ops[1]]
+        if ops[0] == "CNOT":
+            x2_matrix[:, ops[2]] = x2_matrix[:, ops[2]] ^ x2_matrix[:, ops[1]]
+            z2_matrix[:, ops[1]] = z2_matrix[:, ops[1]] ^ z2_matrix[:, ops[2]]
+        if ops[0] == "CZ":
+            x2_matrix, z2_matrix = hadamard_transform(x2_matrix, z2_matrix, ops[2])
+            x2_matrix[:, ops[2]] = x2_matrix[:, ops[2]] ^ x2_matrix[:, ops[1]]
+            z2_matrix[:, ops[1]] = z2_matrix[:, ops[1]] ^ z2_matrix[:, ops[2]]
+            x2_matrix, z2_matrix = hadamard_transform(x2_matrix, z2_matrix, ops[2])
+    # make the updated 2nd state canonical form
+    x2_matrix, z2_matrix, r2_vector = canonical_form(x2_matrix, z2_matrix, r2_vector)
+    counter = 0
+    for i in range(n_qubits):
+        if np.any(x2_matrix[i]):
+            counter = counter + 1
+        else:
+            identity_x = np.zero(n_qubits)
+            identity_y = np.zero(n_qubits)
+            x_matrix = np.vstack((x1_matrix, identity_x))
+            z_matrix = np.vstack((z1_matrix, identity_y))
+            r_vector = np.zero(n_qubits + 1)
+            z_list = [j for j in range(n_qubits) if z2_matrix[i, j] == 1]
+            for index in z_list:
+                x_matrix, z_matrix, r_vector = row_sum(
+                    x_matrix, z_matrix, r_vector, index, n_qubits
+                )
+            if (
+                np.array_equal(x_matrix[-1], x2_matrix[i])
+                and np.array_equal(z_matrix[-1] == z2_matrix[i])
+                and r_vector[-1] == 1
+            ):
+                return 0
+    return 2 ** (-counter / 2)

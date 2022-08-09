@@ -52,8 +52,10 @@ class DeterministicSolver(SolverBase):
             noise_model_mapping = {}
             self.noise_simulation = False
         elif type(noise_model_mapping) is not dict:
-            raise TypeError(f'Datatype {type(noise_model_mapping)} is not a valid noise_model_mapping. '
-                            f'noise_model_mapping should be a dict or None')
+            raise TypeError(
+                f"Datatype {type(noise_model_mapping)} is not a valid noise_model_mapping. "
+                f"noise_model_mapping should be a dict or None"
+            )
         self.noise_model_mapping = noise_model_mapping
 
     def solve(self):

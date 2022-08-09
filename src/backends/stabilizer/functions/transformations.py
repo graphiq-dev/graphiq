@@ -5,6 +5,8 @@ from src.backends.stabilizer.functions.matrix_functions import (
     column_swap,
     add_columns,
     row_sum,
+    add_rows,
+    row_reduction,
 )
 from scipy.linalg import block_diag
 
@@ -762,6 +764,34 @@ def fidelity(tableau1, tableau2):
     :rtype: float
     """
     return np.abs(inner_product(tableau1, tableau2)) ** 2
+
+
+def full_rank_x(tableau):
+    # Based on lemma 6 in arXiv:quant-ph/0406196
+    n_qubits = tableau.n_qubits
+    x_matrix = tableau.stabilizer_x
+    z_matrix = tableau.stabilizer_x
+    x_matrix, z_matrix, index = row_reduction(x_matrix, z_matrix)
+    rank = index + 1
+    z1_matrix = z_matrix[rank:n_qubits, 0:rank]
+    z_2matrix = z_matrix[rank:n_qubits, rank:n_qubits]
+    z_2matrix, z1_matrix, index1 = row_reduction(z_2matrix, z1_matrix)
+    assert index1 == n_qubits - rank - 1
+    for j in range(n_qubits - rank):
+        for i in range(j):
+            if z_2matrix[i, j] == 1:
+                z_2matrix = add_rows(z_2matrix, j, i)
+                z_1matrix = add_rows(z_1matrix, j, i)
+
+    assert np.array_equal(z_2matrix, np.eye(n_qubits - rank))
+    z_matrix = np.hstack(z_1matrix, z_2matrix)
+    tableau.x_stabilizer = x_matrix
+    tableau.z_stabilizer = z_matrix
+    # hadamard on some qubits to make the x-stabilizer table full rank
+    for qubit in range(rank, n_qubits):
+        tableau = hadamard_gate(tableau, qubit)
+
+    return tableau
 
 
 def trace_out():

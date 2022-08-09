@@ -780,11 +780,6 @@ def fidelity(tableau1, tableau2):
     return np.abs(inner_product(tableau1, tableau2)) ** 2
 
 
-def cnot_row_red(tableau):
-    #requires full rank x matrix
-    pass
-
-
 def full_rank_x(tableau):
     #Based on lemma 6 in arXiv:quant-ph/0406196
     n_qubits = tableau.n_qubits

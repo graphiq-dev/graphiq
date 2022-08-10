@@ -5,16 +5,16 @@ Solvers have a main function, .solve(), which runs the search algorithm and retu
 """
 
 from abc import ABC, abstractmethod
+import numpy as np
+import random
+import warnings
+import copy
 
 from src.metrics import MetricBase
 from src.circuit import CircuitBase
 from src.backends.compiler_base import CompilerBase
 from src import ops
-
-import numpy as np
-import random
-import warnings
-import copy
+from src.io import IO
 
 
 class SolverBase(ABC):
@@ -29,17 +29,21 @@ class SolverBase(ABC):
         metric: MetricBase,
         compiler: CompilerBase,
         circuit: CircuitBase = None,
+        io: IO = None,
     ):
         self.name = "base"
         self.target = target
         self.metric = metric
         self.compiler = compiler
+        self.io = io
 
         if circuit is None:
             warnings.warn(f"Initial circuit for {self.__class__.__name__} is 'None'. ")
         self.circuit = circuit
 
         self.last_seed = None
+
+        self.logs = {"population": [], "hof": []}
 
     @abstractmethod
     def solve(self, *args):
@@ -93,11 +97,12 @@ class RandomSearchSolver(SolverBase):
         metric: MetricBase,
         compiler: CompilerBase,
         circuit: CircuitBase = None,
+        io: IO = None,
         *args,
         **kwargs,
     ):
 
-        super().__init__(target, metric, compiler, circuit)
+        super().__init__(target, metric, compiler, circuit, io)
 
         # hof stores the best circuits and their scores in the form of: (scores, circuits)
         self.hof = [(np.inf, None) for _ in range(self.n_hof)]

@@ -1,13 +1,16 @@
 import pytest
-from tests.test_flags import visualization
-
-from src.solvers.evolutionary_solver import EvolutionarySolver
 import matplotlib.pyplot as plt
+import src.backends.density_matrix.functions as dmf
+
+from benchmarks.circuits import *
+from tests.test_flags import visualization
+from src.solvers.evolutionary_solver import EvolutionarySolver
 from src.backends.density_matrix.compiler import DensityMatrixCompiler
+
 from src.metrics import Infidelity
 from src.state import QuantumState
+from src.io import IO
 from src.visualizers.density_matrix import density_matrix_bars
-from benchmarks.circuits import *
 
 
 @pytest.fixture(scope="module")
@@ -185,6 +188,7 @@ def test_add_remove_measurements(seed):
         n_photon=n_photon,
     )
     solver.seed(seed)
+    solver.n_stop = 10
 
     original_trans_prob = solver.trans_probs
     solver.trans_probs = {
@@ -194,6 +198,36 @@ def test_add_remove_measurements(seed):
     solver.solve()
 
     solver.trans_probs = original_trans_prob
+
+
+@pytest.mark.parametrize("seed", [0, 3])
+def test_solver_logging(seed):
+    n_emitter = 1
+    n_photon = 2
+
+    circuit_ideal, state_ideal = bell_state_circuit()
+    target_state = QuantumState(n_photon, state_ideal["dm"])
+    compiler = DensityMatrixCompiler()
+    metric = Infidelity(target=target_state)
+    io = IO.new_directory(
+        folder="_tests",
+        include_date=False,
+        include_time=False,
+        include_id=False,
+        verbose=False,
+    )
+    solver = EvolutionarySolver(
+        target=target_state,
+        metric=metric,
+        compiler=compiler,
+        n_emitter=n_emitter,
+        n_photon=n_photon,
+        io=io,
+    )
+    solver.seed(seed)
+
+    solver.solve()
+    solver.logs_to_df()
 
 
 """
@@ -211,7 +245,7 @@ def test_square_4qubit():
         n_photons=n_photon,
         name='square4'
     )
-    target_state = state.data
+    target_state = QuantumState(state.data)
     compiler = DensityMatrixCompiler()
     metric = Infidelity(target=target_state)
     solver = EvolutionarySolver(target=target_state, metric=metric, compiler=compiler,

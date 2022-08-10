@@ -1,6 +1,6 @@
 from benchmarks.circuits import *
 from src.backends.stabilizer.state import Stabilizer
-from src.backends.stabilizer.tableau import CliffordTableau
+from src.backends.stabilizer.tableau import *
 from src.backends.stabilizer.compiler import StabilizerCompiler
 from src.solvers.evolutionary_solver import EvolutionarySolver
 import src.backends.state_representation_conversion as converter
@@ -12,15 +12,20 @@ import src.backends.stabilizer.functions.stabilizer as sfs
 def test_linear_3qubit():
     circuit, state = linear_cluster_3qubit_circuit()
     compiler = StabilizerCompiler()
+    compiler.measurement_determinism = 1
     output_stabilizer = compiler.compile(circuit)
     output_stabilizer.stabilizer.remove_qubit(3)
     tableau = output_stabilizer.stabilizer.tableau.to_stabilizer()
-
+    print(tableau)
     tableau = sfs.canonical_form(tableau)
     print(tableau)
 
     generator_string = converter.density_to_stabilizer(state["dm"])
-    print(f"generator string is {generator_string}")
+    target_tableau = StabilizerTableau(3)
+    target_tableau.from_labels(generator_string)
+    target_tableau = sfs.canonical_form(target_tableau)
+    print(target_tableau)
+    # print(f"generator string is {generator_string}")
 
     # TODO: validate the result
 

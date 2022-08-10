@@ -58,7 +58,9 @@ class Stabilizer(StateRepresentationBase):
             raise TypeError("Must use CliffordTableau for the stabilizer's tableau")
 
     def apply_unitary(self, qubit_position, unitary):
-        pass
+        raise NotImplementedError(
+            "Stabilizer backend does not support general unitary operation."
+        )
 
     def apply_measurement(
         self, qubit_position, measurement_determinism="probabilistic"

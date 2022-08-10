@@ -28,7 +28,7 @@ def _one_pauli_type_finder(x_matrix, z_matrix, pivot, pauli_type):
 
 def pauli_type_finder(x_matrix, z_matrix, pivot):
     """
-    Count the number of the Pauli operators of each type that are present in and below the row given
+    Find all row indices of the Pauli operators of each type that are present in and below the row given
     by pivot[0] and in the column specified by pivot[1] in the stabilizer tableau.
 
     :param x_matrix: x matrix in the symplectic representation of the stabilizers
@@ -66,7 +66,7 @@ def inverse_circuit(tableau):
     Find the inverse circuit that transforms the input stabilizer tableau back to the stabilizer tableau
     of n tensor products of the :math:`|0\\rangle` state
 
-    TODO: check if we need to update the phase vector since it is not updated here for now
+    TODO: check if we need to update the phase vector since it is not updated properly here for now
 
     :param tableau:
     :type tableau: StabilizerTableau
@@ -86,11 +86,11 @@ def inverse_circuit(tableau):
             tableau.x_matrix, tableau.z_matrix, pivot
         )
         if x_list:
-            tableau = row_swap_full(tableau, pivot[0], x_list[0])
+            tableau = tab_row_swap(tableau, pivot[0], x_list[0])
         elif y_list:
-            tableau = row_swap_full(tableau, pivot[0], y_list[0])
+            tableau = tab_row_swap(tableau, pivot[0], y_list[0])
         elif z_list:
-            tableau = row_swap_full(tableau, pivot[0], z_list[-1])
+            tableau = tab_row_swap(tableau, pivot[0], z_list[-1])
             if np.any(tableau.x_matrix[pivot[0], j + 1 : n_qubits]) or np.any(
                 tableau.z_matrix[pivot[0], j + 1 : n_qubits]
             ):
@@ -167,7 +167,7 @@ def tab_row_sum(tableau, row_to_add, target_row):
     return tableau
 
 
-def row_swap_full(tableau, first_row, second_row):
+def tab_row_swap(tableau, first_row, second_row):
     """
     swaps the rows of the full stabilizer tableau (including the phase factor vector)
 
@@ -196,7 +196,7 @@ def _process_one_pauli(tableau, pivot, pauli_list):
     :param pauli_list:
     :return:
     """
-    tableau = row_swap_full(tableau, pivot[0], pauli_list[0])
+    tableau = tab_row_swap(tableau, pivot[0], pauli_list[0])
 
     # remove the first element of the list
     pauli_list = pauli_list[1:]
@@ -228,7 +228,7 @@ def _process_two_pauli(
     """
     # swap the pivot and its next row with them
 
-    tableau = row_swap_full(tableau, pivot[0], pauli_list_dict[pauli_type1][0])
+    tableau = tab_row_swap(tableau, pivot[0], pauli_list_dict[pauli_type1][0])
     # update pauli lists
     pauli_x_list, pauli_y_list, pauli_z_list = pauli_type_finder(
         tableau.x_matrix, tableau.z_matrix, pivot
@@ -237,7 +237,7 @@ def _process_two_pauli(
     pauli_list_dict["x"] = pauli_x_list
     pauli_list_dict["y"] = pauli_y_list
     pauli_list_dict["z"] = pauli_z_list
-    tableau = row_swap_full(tableau, pivot[0] + 1, pauli_list_dict[pauli_type2][0])
+    tableau = tab_row_swap(tableau, pivot[0] + 1, pauli_list_dict[pauli_type2][0])
     # update pauli lists
     pauli_x_list, pauli_y_list, pauli_z_list = pauli_type_finder(
         tableau.x_matrix, tableau.z_matrix, pivot
@@ -355,10 +355,10 @@ def rref(tableau):
 
 def canonical_form(tableau):
     """
-    Takes stabilizer tableau matrices, and converts them to the canonical reduced echelon form.
-    (Different from standard row reduced echelon form)
+    Takes stabilizer tableau, and converts it to the canonical reduced echelon form, which is
+    different from standard row reduced echelon form.
 
-    :param tableau:
+    :param tableau: the input tableau
     :type tableau: StabilizerTableau
     :return: stabilizer tableau in the canonical form
     :rtype: StabilizerTableau
@@ -372,53 +372,30 @@ def canonical_form(tableau):
         x_list, y_list, z_list = pauli_type_finder(
             tableau.x_matrix, tableau.z_matrix, pivot
         )
-        if x_list:
-            tableau = row_swap_full(tableau, pivot[0], x_list[0])
-            # update list for the whole column
-            x_list, y_list, z_list = pauli_type_finder(
-                tableau.x_matrix, tableau.z_matrix, [0, pivot[1]]
-            )
-            # remove first element
-            x_list = x_list[1:]
-            rows_to_mul = x_list + y_list
-            for row_i in rows_to_mul:
-                # multiplying rows with similar pauli to eliminate them
-                # and multiplying rows with Y pauli to turn them to Z
-                tableau = tab_row_sum(tableau, pivot[0], row_i)
+        if x_list or y_list:
+            if x_list:
+                tableau = tab_row_swap(tableau, pivot[0], x_list[0])
+
+            else:
+                tableau = tab_row_swap(tableau, pivot[0], y_list[0])
+
+            for row_m in range(n_qubits):
+                if tableau.x_matrix[row_m, j] == 1 and row_m != pivot[0]:
+                    # update the generator in row_m
+                    tableau = tab_row_sum(tableau, pivot[0], row_m)
             pivot[0] = pivot[0] + 1
-        elif y_list:
-            tableau = row_swap_full(tableau, pivot[0], y_list[0])
-            # update list for the whole column
-            x_list, y_list, z_list = pauli_type_finder(
-                tableau.x_matrix, tableau.z_matrix, [0, pivot[1]]
-            )
-            # remove first element
-            y_list = y_list[1:]
-            rows_to_mul = x_list + y_list
-            for row_i in rows_to_mul:
-                # multiplying rows with similar pauli to eliminate them
-                # and multiplying rows with Y pauli to turn them to Z
-                tableau = tab_row_sum(tableau, pivot[0], row_i)
-            pivot[0] = pivot[0] + 1
+
     # setup Z block
     for j in range(n_qubits):
         pivot[1] = j
-        x_list, y_list, z_list = pauli_type_finder(
-            tableau.x_matrix, tableau.z_matrix, pivot
-        )
+        z_list = _one_pauli_type_finder(tableau.x_matrix, tableau.z_matrix, pivot, "z")
         if z_list:
-            tableau = row_swap_full(tableau, pivot[0], z_list[0])
-            # update list for the whole column
-            x_list, y_list, z_list = pauli_type_finder(
-                tableau.x_matrix, tableau.z_matrix, [0, pivot[1]]
-            )
-            # remove first element
-            z_list = z_list[1:]
-            rows_to_mul = z_list + y_list
-            for row_i in rows_to_mul:
-                # multiplying rows with similar pauli to eliminate them
-                # and multiplying rows with Y pauli to turn them to Z
-                tableau = tab_row_sum(tableau, pivot[0], row_i)
+            tableau = tab_row_swap(tableau, pivot[0], z_list[0])
+
+            for row_m in range(n_qubits):
+                if tableau.z_matrix[row_m, j] == 1 and row_m != pivot[0]:
+                    # update the generator in row_m
+                    tableau = tab_row_sum(tableau, pivot[0], row_m)
             pivot[0] = pivot[0] + 1
     # confirm if there is any trivial rows equivalent to all identity matrices.
     assert pivot[0] == n_qubits

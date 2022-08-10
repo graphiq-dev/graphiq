@@ -45,8 +45,6 @@ class CompilerBase(ABC):
         :rtype: QuantumState
         """
         # TODO: make this more general, but for now we assume all registers are initialized to |0>
-        # initialization of quantum registers
-        # init = np.outer(np.array([1, 0]), np.array([1, 0])).astype("complex64")
 
         state = QuantumState(
             circuit.n_quantum, circuit.n_quantum, representation=self.__class__.name

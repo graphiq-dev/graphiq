@@ -1184,7 +1184,7 @@ class CircuitDAG(CircuitBase):
                     circuit_reg.append(1)
                 elif i > len(circuit_reg):
                     raise ValueError(
-                        f"Register numbering must be continuous. {reg_type} register {i} cannot be added."
+                        f"Register numbering must be continuous. {reg_type} register {i} cannot be added. "
                         f"Next register that can be added is {len(circuit_reg)}"
                     )
 

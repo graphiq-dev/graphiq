@@ -69,10 +69,10 @@ class Infidelity(MetricBase):
     def evaluate(self, state, circuit):
         """
         Evaluates the infidelity from a given state and circuit
-        TODO: take the state as a QuantumState object instead of a numpy.ndarray
+
 
         :param state: the state to evaluate
-        :type state: QuantumState (currently numpy.ndarray)
+        :type state: QuantumState
         :param circuit: circuit which generated state
                         Not used for the fidelity evaluation, but argument is provided for API consistency
         :type circuit: CircuitBase (or subclass of it)

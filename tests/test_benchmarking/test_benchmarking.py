@@ -5,11 +5,12 @@ from src.metrics import Infidelity
 from src.io import IO
 
 from benchmarks.pipeline import benchmark
+from src.state import QuantumState
 
 
 def test_one_benchmarking_run():
     # define a single run by creating an instance of each object
-    target = ghz3_state_circuit()[1]["dm"]
+    target = QuantumState(3, ghz3_state_circuit()[1]["dm"])
     compiler = DensityMatrixCompiler()
     metric = Infidelity(target=target)
 

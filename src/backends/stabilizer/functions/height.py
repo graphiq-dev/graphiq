@@ -2,7 +2,8 @@ import networkx as nx
 import numpy as np
 from matplotlib import pyplot as plt
 
-from src.backends.stabilizer.functions.matrix_functions import rref
+from src.backends.stabilizer.functions.stabilizer import rref
+from src.backends.stabilizer.tableau import StabilizerTableau
 
 
 def height_func_list(x_matrix, z_matrix):
@@ -19,10 +20,11 @@ def height_func_list(x_matrix, z_matrix):
     :rtype: list[int]
     """
     n_qubits = np.shape(x_matrix)[0]
-    r_vector = np.zeros([n_qubits, 1])
     height_list = []
-
-    x_matrix, z_matrix, r_vector = rref(x_matrix, z_matrix, r_vector)
+    tableau = StabilizerTableau([x_matrix, z_matrix])
+    tableau = rref(tableau)
+    x_matrix = tableau.x_matrix
+    z_matrix = tableau.z_matrix
 
     for qubit_position in range(n_qubits):
         left_most_nontrivial = []

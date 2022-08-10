@@ -8,8 +8,8 @@ import numpy as np
 import warnings
 
 
-import src.backends.stabilizer.functions.height_function as height
-import src.backends.stabilizer.functions.matrix_functions as sfmf
+import src.backends.stabilizer.functions.height as height
+import src.backends.stabilizer.functions.linalg as slinalg
 from src.backends.stabilizer.state import Stabilizer
 from src.backends.compiler_base import CompilerBase
 
@@ -78,7 +78,7 @@ class DeterministicSolver(SolverBase):
         target_x = self.target.tableau.stabilizer_x
         target_z = self.target.tableau.stabilizer_z
         # convert to echelon gauge
-        target_x, target_z = sfmf.rref(target_x, target_z)
+        target_x, target_z = slinalg.rref(target_x, target_z)
         for j in range(self.n_photon, 0, -1):
 
             height_list = height.height_func_list(target_x, target_z)
@@ -97,7 +97,7 @@ class DeterministicSolver(SolverBase):
         compiled_state = self.compiler.compile(circuit)
         # this will pass out a density matrix object
 
-        state_data = sfmf.partial_trace(
+        state_data = slinalg.partial_trace(
             compiled_state.data, keep=list(range(self.n_photon))
         )
         # evaluate the metric

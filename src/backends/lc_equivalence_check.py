@@ -158,7 +158,7 @@ import numpy as np
 import networkx as nx
 from itertools import combinations, permutations
 
-import src.backends.stabilizer.functions.matrix_functions as sfmf
+import src.backends.stabilizer.functions.linalg as slinalg
 
 
 def is_lc_equivalent(adj_matrix1, adj_matrix2, mode="deterministic", seed=0):
@@ -189,7 +189,7 @@ def is_lc_equivalent(adj_matrix1, adj_matrix2, mode="deterministic", seed=0):
     coeff_matrix = _coeff_maker(adj_matrix1, adj_matrix2)
 
     # row reduction applied
-    reduced_coeff_matrix, _, last_nonzero_row_index = sfmf.row_reduction(
+    reduced_coeff_matrix, _, last_nonzero_row_index = slinalg.row_reduction(
         coeff_matrix, coeff_matrix * 0
     )
 

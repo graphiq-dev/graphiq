@@ -1,13 +1,15 @@
 import numpy as np
 from src.backends.stabilizer.tableau import CliffordTableau
-from src.backends.stabilizer.functions.matrix_functions import (
+from src.backends.stabilizer.functions.linalg import (
     multiply_columns,
     column_swap,
     add_columns,
-    row_sum,
     add_rows,
     row_reduction,
+    row_sum,
 )
+
+# from src.backends.stabilizer.functions.matrix_functions import row_sum
 from scipy.linalg import block_diag
 
 
@@ -304,74 +306,6 @@ def control_y_gate(tableau, ctrl_qubit, target_qubit):
     return tableau
 
 
-def projector_z0(tableau, qubit_position, measurement_determinism="probabilistic"):
-    """
-    This function is probably not needed.
-
-    :param tableau:
-    :type tableau:
-    :param qubit_position:
-    :type qubit_position:
-    :param measurement_determinism:
-    :type measurement_determinism:
-    :return:
-    :rtype:
-    """
-    success = True
-    n_qubits = tableau.n_qubits  # number of qubits
-    assert qubit_position < n_qubits
-    tableau, outcome, probabilistic = z_measurement_gate(
-        tableau, qubit_position, measurement_determinism
-    )
-    if probabilistic:
-        if outcome == 0:
-            pass
-        else:
-            tableau.phase[probabilistic] = 0
-    else:
-        if outcome == 0:
-            pass
-        else:
-            tableau = 0
-            success = False
-            # TODO: see how impossible projection is handled in the density matrix formalism
-    return tableau, success
-
-
-def projector_z1(tableau, qubit_position, measurement_determinism="probabilistic"):
-    """
-     This function is probably not needed.
-
-    :param tableau:
-    :type tableau:
-    :param qubit_position:
-    :type qubit_position:
-    :param measurement_determinism:
-    :type measurement_determinism:
-    :return:
-    :rtype:
-    """
-    success = True
-    n_qubits = tableau.n_qubits  # number of qubits
-    assert qubit_position < n_qubits
-    tableau, outcome, probabilistic = z_measurement_gate(
-        tableau, qubit_position, measurement_determinism
-    )
-    if probabilistic:
-        if outcome == 1:
-            pass
-        else:
-            tableau.phase[probabilistic] = 1
-    else:
-        if outcome == 1:
-            pass
-        else:
-            tableau = 0
-            success = False
-            # TODO: see how impossible projection is handled in the density matrix formalism
-    return tableau, success
-
-
 def reset_z(
     tableau, qubit_position, intended_state, measurement_determinism="probabilistic"
 ):
@@ -518,49 +452,47 @@ def add_qubit(tableau):
     return new_tableau
 
 
-def insert_qubit(tableau, new_qubit_position):
+def insert_qubit(tableau, new_position):
     """
     Insert a qubit in :math:`| 0 \\rangle` state to a given position.
 
     :param tableau: the state represented by a CliffordTableau before insertion
     :type tableau: CliffordTableau
-    :param new_qubit_position: the future position of the inserted qubit
-    :type new_qubit_position: int
+    :param new_position: the future position of the inserted qubit
+    :type new_position: int
     :return: updated state
     :rtype: CliffordTableau
     """
     n_qubits = tableau.n_qubits
-    assert new_qubit_position < n_qubits
+    assert new_position < n_qubits
     new_column = np.zeros(n_qubits)
     new_row = np.zeros(n_qubits + 1)
     # x destabilizer part
 
-    tmp_dex = np.insert(tableau.destabilizer_x, new_qubit_position, new_column, axis=1)
-    tmp_dex = np.insert(tmp_dex, new_qubit_position, new_row, axis=0)
+    tmp_dex = np.insert(tableau.destabilizer_x, new_position, new_column, axis=1)
+    tmp_dex = np.insert(tmp_dex, new_position, new_row, axis=0)
 
     # z destabilizer part
-    tmp_dez = np.insert(tableau.destabilizer_z, new_qubit_position, new_column, axis=1)
-    tmp_dez = np.insert(tmp_dez, new_qubit_position, new_row, axis=0)
+    tmp_dez = np.insert(tableau.destabilizer_z, new_position, new_column, axis=1)
+    tmp_dez = np.insert(tmp_dez, new_position, new_row, axis=0)
 
     # x stabilizer part
-    tmp_sx = np.insert(tableau.stabilizer_x, new_qubit_position, new_column, axis=1)
-    tmp_sx = np.insert(tmp_sx, new_qubit_position, new_row, axis=0)
+    tmp_sx = np.insert(tableau.stabilizer_x, new_position, new_column, axis=1)
+    tmp_sx = np.insert(tmp_sx, new_position, new_row, axis=0)
 
     # z stabilizer part
-    tmp_sz = np.insert(tableau.stabilizer_z, new_qubit_position, new_column, axis=1)
-    tmp_sz = np.insert(tmp_sz, new_qubit_position, new_row, axis=0)
+    tmp_sz = np.insert(tableau.stabilizer_z, new_position, new_column, axis=1)
+    tmp_sz = np.insert(tmp_sz, new_position, new_row, axis=0)
 
     # phase vector part
-    new_phase = np.insert(
-        tableau.phase, [new_qubit_position, n_qubits + 1 + new_qubit_position], 0
-    )
+    new_phase = np.insert(tableau.phase, [new_position, n_qubits + 1 + new_position], 0)
 
     new_table = np.block([[tmp_dex, tmp_dez], [tmp_sx, tmp_sz]])
     tableau.expand(new_table, new_phase)
 
     # set the new qubit to ket 0 state
-    tableau.destabilizer_x[new_qubit_position, new_qubit_position] = 1
-    tableau.stabilizer_z[new_qubit_position, new_qubit_position] = 1
+    tableau.destabilizer_x[new_position, new_position] = 1
+    tableau.stabilizer_z[new_position, new_position] = 1
 
     return tableau
 
@@ -727,15 +659,25 @@ def tensor(list_of_tables):
     tableau = list_of_tables[0]
     list_of_tables = list_of_tables[1:]
     for tab in list_of_tables:
-        tableau.destabilizer_x = block_diag(tableau.destabilizer_x, tab.destabilizer_x)
-        tableau.destabilizer_z = block_diag(tableau.destabilizer_z, tab.destabilizer_z)
-        tableau.stabilizer_x = block_diag(tableau.stabilizer_x, tab.stabilizer_x)
-        tableau.stabilizer_z = block_diag(tableau.stabilizer_z, tab.stabilizer_z)
+        tableau.n_qubits = tableau.n_qubits + tab.n_qubits
+        tableau.destabilizer.x_matrix = block_diag(
+            tableau.destabilizer.x_matrix, tab.destabilizer.x_matrix
+        )
+        tableau.destabilizer.z_matrix = block_diag(
+            tableau.destabilizer.z_matrix, tab.destabilizer.z_matrix
+        )
+        tableau.stabilizer.x_matrix = block_diag(
+            tableau.stabilizer.x_matrix, tab.stabilizer.x_matrix
+        )
+        tableau.stabilizer.z_matrix = block_diag(
+            tableau.stabilizer.z_matrix, tab.stabilizer.z_matrix
+        )
         phase_list1 = np.split(tableau.phase, 2)
         phase_list2 = np.split(tab.phase, 2)
         phase_vector = np.hstack(
             (phase_list1[0], phase_list2[0], phase_list1[1], phase_list2[1])
         )
+
         tableau.phase = phase_vector
     return tableau
 
@@ -752,65 +694,9 @@ def partial_trace(state, keep, dims):
     )
 
 
-def fidelity(tableau1, tableau2):
-    """
-    Compute the fidelity of two stabilizer states given their tableaux.
-
-    :param tableau1:
-    :type tableau1:
-    :param tableau2:
-    :type tableau2:
-    :return:
-    :rtype: float
-    """
-    return np.abs(inner_product(tableau1, tableau2)) ** 2
-
-
 def full_rank_x(tableau):
-    # Based on lemma 6 in arXiv:quant-ph/0406196
-    n_qubits = tableau.n_qubits
-    x_matrix = tableau.stabilizer_x
-    z_matrix = tableau.stabilizer_x
-    x_matrix, z_matrix, index = row_reduction(x_matrix, z_matrix)
-    rank = index + 1
-    z1_matrix = z_matrix[rank:n_qubits, 0:rank]
-    z_2matrix = z_matrix[rank:n_qubits, rank:n_qubits]
-    z_2matrix, z1_matrix, index1 = row_reduction(z_2matrix, z1_matrix)
-    assert index1 == n_qubits - rank - 1
-    for j in range(n_qubits - rank):
-        for i in range(j):
-            if z_2matrix[i, j] == 1:
-                z_2matrix = add_rows(z_2matrix, j, i)
-                z_1matrix = add_rows(z_1matrix, j, i)
-
-    assert np.array_equal(z_2matrix, np.eye(n_qubits - rank))
-    z_matrix = np.hstack(z_1matrix, z_2matrix)
-    tableau.x_stabilizer = x_matrix
-    tableau.z_stabilizer = z_matrix
-    # hadamard on some qubits to make the x-stabilizer table full rank
-    for qubit in range(rank, n_qubits):
-        tableau = hadamard_gate(tableau, qubit)
-
-    return tableau
-
-
-def trace_out():
-    pass
-
-
-def set_qubit(qubit, intended_state):
-    """probably no possible to implement"""
-    pass
-
-
-def project_to_z0_and_remove(tableau, locations):
-    # probably not implementing this
-    pass
-
-
-def inverse_circuit(tableau):
     """
-    TODO: implement this function
+    Based on lemma 6 in arXiv:quant-ph/0406196
 
     :param tableau:
     :type tableau:
@@ -818,75 +704,27 @@ def inverse_circuit(tableau):
     :rtype:
     """
 
-    # apply Hadamard gates to make the stabilizer_x full rank
+    n_qubits = tableau.n_qubits
+    x_matrix = tableau.stabilizer_x
+    z_matrix = tableau.stabilizer_z
+    x_matrix, z_matrix, index = row_reduction(x_matrix, z_matrix)
+    rank = index + 1
+    z1_matrix = z_matrix[rank:n_qubits, 0:rank]
+    z2_matrix = z_matrix[rank:n_qubits, rank:n_qubits]
+    z2_matrix, z1_matrix, index1 = row_reduction(z2_matrix, z1_matrix)
+    assert index1 == n_qubits - rank - 1
+    for j in range(n_qubits - rank):
+        for i in range(j):
+            if z2_matrix[i, j] == 1:
+                z2_matrix = add_rows(z2_matrix, j, i)
+                z1_matrix = add_rows(z1_matrix, j, i)
 
-    # apply CNOT gates to perform Gaussian elimination on stabilizer_x
+    assert np.array_equal(z2_matrix, np.eye(n_qubits - rank))
+    z_matrix = np.hstack(z1_matrix, z2_matrix)
+    tableau.x_stabilizer = x_matrix
+    tableau.z_stabilizer = z_matrix
+    # hadamard on some qubits to make the x-stabilizer table full rank
+    for qubit in range(rank, n_qubits):
+        tableau = hadamard_gate(tableau, qubit)
 
-    # apply phase gates to make stabilizer_z full rank
-
-    # find invertible matrix M
-
-    # apply CNOT gates to make stabilizer (M, M)
-
-    # apply phase gates to make stabilizer_x zero matrix
-
-    # apply CNOT gates to perform Gaussian elimination on stabilizer_x
-
-    # apply Hadamard gates to make destabilizer_x = identity,
-    # destabilizer_z = previous destabilizer_x
-    # stabilizer_x = zero matrix,
-    # destabilizer_z = identity
-
-    # apply phase gates to make destabilizer_z invertible
-
-    # find the invertible matrix N
-
-    # apply CNOT gates to make destabilizer_x = N,
-    # destabilizer_z = N, stabilizer_x = 0,
-    # stabilizer_z = original stabilizer_x
-
-    # apply phase gates to make destabilizer_z = 0
-
-    # apply CNOT gates to get the tableau of all ket 0 states
-
-    return
-
-
-def min_generator_distance(tableau1, tableau2):
-    """
-    TODO: implement this function.
-
-    :param tableau1:
-    :type tableau1:
-    :param tableau2:
-    :type tableau2:
-    :return:
-    :rtype:
-    """
-    # unitary = inverse_circuit(tableau1)
-
-    # apply the unitary to the state tableau2
-    tableau2_transformed = tableau2  # TODO: update this line
-
-    stabilizer1 = tableau1.stabilizer
-    stabilizer2 = tableau2_transformed.stabilizer
-    counter = 0
-    for i in range(stabilizer1.shape[0]):
-        if ~np.allclose(stabilizer1[i], stabilizer2[i]):
-            counter += 1
-    return counter
-
-
-def inner_product(tableau1, tableau2):
-    """
-    TODO: implement this function
-
-    :param tableau1:
-    :type tableau1:
-    :param tableau2:
-    :type tableau2:
-    :return:
-    :rtype:
-    """
-
-    return 2 ** (-min_generator_distance(tableau1, tableau2) / 2)
+    return tableau

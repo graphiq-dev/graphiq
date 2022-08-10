@@ -1,6 +1,7 @@
 import pytest
-from src.backends.stabilizer.functions.matrix_functions import rref
-from src.backends.stabilizer.functions.height_function import height_func_list
+from src.backends.stabilizer.functions.stabilizer import rref
+from src.backends.stabilizer.functions.height import height_func_list
+from src.backends.stabilizer.tableau import StabilizerTableau
 import numpy as np
 import networkx as nx
 
@@ -120,15 +121,15 @@ def test_Li_et_al_example():
     ).astype(int)
     x_matrix_in = np.eye(4, 4)
     r_vector_in = np.zeros([4, 1])
-
+    tableau = StabilizerTableau([x_matrix_in, z_matrix_in], r_vector_in)
     # Get echelon gauge matrices
-    x_matrix, z_matrix, _ = rref(x_matrix_in, z_matrix_in, r_vector_in)
+    tableau = rref(tableau)
 
     # Height function of before and after gauge transformation. Should be the same as
     # height function also does the transformation.
     height_list_1 = height_func_list(x_matrix_in, z_matrix_in)
     height_list_1 = np.array(height_list_1)
-    height_list_2 = height_func_list(x_matrix, z_matrix)
+    height_list_2 = height_func_list(tableau.x_matrix, tableau.z_matrix)
     height_list_2 = np.array(height_list_2)
 
     # Check matrices of Fig.1(c)(i) which corresponds to after echelon gauge transformation
@@ -154,5 +155,5 @@ def test_Li_et_al_example():
 
     assert (height_list_1 == height_list_expected).all()
     assert (height_list_2 == height_list_expected).all()
-    assert (x_matrix == x_matrix_expected).all()
-    assert (z_matrix == z_matrix_expected).all()
+    assert (tableau.x_matrix == x_matrix_expected).all()
+    assert (tableau.z_matrix == z_matrix_expected).all()

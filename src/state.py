@@ -18,7 +18,7 @@ from src.backends.graph.state import Graph
 from src.backends.density_matrix.state import DensityMatrix
 from src.backends.stabilizer.state import Stabilizer
 import src.backends.density_matrix.functions as dmf
-import src.backends.stabilizer.functions.transformations as st
+import src.backends.stabilizer.functions.clifford as sfc
 
 DENSITY_MATRIX_QUBIT_THRESH = (
     10  # threshold above which density matrix representation is discouraged

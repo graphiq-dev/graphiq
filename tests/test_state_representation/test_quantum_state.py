@@ -29,11 +29,11 @@ def test_initializing_dm_3():
 
 
 def test_initializing_dm_4():
-    """ Test that it fails if we have a size mismatch between state n and the data"""
+    """Test that it fails if we have a size mismatch between state n and the data"""
     n = 5
-    data = np.eye(2**(n + 1))
+    data = np.eye(2 ** (n + 1))
     with pytest.raises(AssertionError):
-        QuantumState(n, data, representation='density matrix')
+        QuantumState(n, data, representation="density matrix")
 
 
 def test_initializing_graph_1():
@@ -51,11 +51,11 @@ def test_initializing_graph_2():
 
 
 def test_initializing_graph_3():
-    """ Test that it fails if we have a size mismatch between state n and the data"""
+    """Test that it fails if we have a size mismatch between state n and the data"""
     n = 5
     data = nx.star_graph(n + 1)
     with pytest.raises(AssertionError):
-        QuantumState(n, data, representation='graph')
+        QuantumState(n, data, representation="graph")
 
 
 def test_initializing_dm_and_graph():
@@ -84,11 +84,11 @@ def test_initializing_stabilizer_2():
 
 
 def test_initializing_stabilizer_3():
-    """ Test that it fails if we have a size mismatch between state n and the data"""
+    """Test that it fails if we have a size mismatch between state n and the data"""
     n = 5
     data = CliffordTableau(n + 1)
     with pytest.raises(AssertionError):
-        QuantumState(n, data, representation='stabilizer')
+        QuantumState(n, data, representation="stabilizer")
 
 
 @pytest.mark.parametrize("size, data", [(5, 5), (4, np.eye(2**4))])

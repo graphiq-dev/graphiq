@@ -84,9 +84,14 @@ class EvolutionarySolver(RandomSearchSolver):
         self.trans_probs = self.initialize_transformation_probabilities()
         self.selection_active = selection_active
         self.noise_simulation = True
-        if noise_model_mapping is None or type(noise_model_mapping) is not dict:
+        if noise_model_mapping is None:
             noise_model_mapping = {}
             self.noise_simulation = False
+        elif type(noise_model_mapping) is not dict:
+            raise TypeError(
+                f"Datatype {type(noise_model_mapping)} is not a valid noise_model_mapping. "
+                f"noise_model_mapping should be a dict or None"
+            )
         self.noise_model_mapping = noise_model_mapping
 
         self.save_openqasm = save_openqasm
@@ -218,8 +223,8 @@ class EvolutionarySolver(RandomSearchSolver):
         :param noise_model_mapping: a dictionary that stores the mapping between an operation
             and its associated noise model
         :type noise_model_mapping: dict
-        :return: nothing
-        :rtype: None
+        :return: a circuit specified by emission and measurement assignments
+        :rtype: CircuitDAG
         """
         n_photon = len(emission_assignment)
         n_emitter = len(measurement_assignment)

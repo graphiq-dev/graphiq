@@ -71,7 +71,7 @@ def inverse_circuit(tableau):
     :param tableau:
     :type tableau: StabilizerTableau
     :return:
-    :rtype:
+    :rtype: StabilizerTableau, list[tuple]
     """
     # Once we use the full initial tableau as input we can use actual stabilizer gates instead of matrix operations to
     # implement hadamard, phase and CNOT and hence the phase vector will be automatically included. But is it needed?

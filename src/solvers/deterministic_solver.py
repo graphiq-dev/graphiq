@@ -7,9 +7,10 @@ One can set these rules by the set of allowed transformations.
 import numpy as np
 import warnings
 
-
 import src.backends.stabilizer.functions.height as height
 import src.backends.stabilizer.functions.linalg as slinalg
+import src.backends.stabilizer.functions.stabilizer as sfs
+import src.backends.stabilizer.functions.clifford as sfc
 from src.backends.stabilizer.state import Stabilizer
 from src.backends.compiler_base import CompilerBase
 
@@ -17,6 +18,7 @@ import src.noise.noise_models as nm
 from src.metrics import MetricBase
 from src.solvers import SolverBase
 from src.circuit import CircuitDAG
+from src.io import IO
 from src import ops
 
 
@@ -74,16 +76,18 @@ class DeterministicSolver(SolverBase):
             n_emitter=self.n_emitter, n_photon=self.n_photon, n_classical=1
         )
 
-        # main loop
-        target_x = self.target.tableau.stabilizer_x
-        target_z = self.target.tableau.stabilizer_z
         # convert to echelon gauge
-        target_x, target_z = slinalg.rref(target_x, target_z)
+        stabilizer_tableau = sfs.rref(self.target.data.to_stabilizer())
+        target_x = stabilizer_tableau.x_matrix
+        target_z = stabilizer_tableau.z_matrix
+
+        # main loop
+
         for j in range(self.n_photon, 0, -1):
 
             height_list = height.height_func_list(target_x, target_z)
             if height_list[j] >= height_list[j - 1]:
-                # add CNOT and update
+                # add CNOT and update the stabilizer tableau
                 pass
             else:
                 # add measurement and update
@@ -97,7 +101,7 @@ class DeterministicSolver(SolverBase):
         compiled_state = self.compiler.compile(circuit)
         # this will pass out a density matrix object
 
-        state_data = slinalg.partial_trace(
+        state_data = sfc.partial_trace(
             compiled_state.data, keep=list(range(self.n_photon))
         )
         # evaluate the metric
@@ -141,42 +145,18 @@ class DeterministicSolver(SolverBase):
         else:
             return nm.NoNoise()
 
-    def replace_photon_one_qubit_op(self, circuit):
-        """
-        Replace one one-qubit Clifford gate applied on a photonic qubit to another one.
-        # TODO: check if this is needed after some modification
-
-        :param circuit: a quantum circuit
-        :type circuit: CircuitDAG
-        :return: nothing
-        :rtype: None
-        """
-        nodes = circuit.get_node_by_labels(["OneQubitGateWrapper", "Photonic"])
-
-        if len(nodes) == 0:
-            return
-        ind = np.random.randint(len(nodes))
-        node = list(nodes)[ind]
-
-        old_op = circuit.dag.nodes[node]["op"]
-
-        reg = old_op.register
-        ind = np.random.choice(len(self.one_qubit_ops), p=self.p_dist)
-        op = self.one_qubit_ops[ind]
-        noise = self._wrap_noise(op, self.noise_model_mapping)
-        gate = ops.OneQubitGateWrapper(op, reg_type="p", register=reg, noise=noise)
-        gate.add_labels("Fixed")
-        # circuit.replace_op(node, gate)
-        circuit._openqasm_update(gate)
-        circuit.dag.nodes[node]["op"] = gate
-
-    def add_emitter_one_qubit_op(self, circuit, edge):
+    def add_one_qubit_op(self, circuit, op, op_type, edge):
         """
         Insert a one-qubit operation at a specified edge
 
-
         :param circuit: a quantum circuit
         :type circuit: CircuitDAG
+        :param op:
+        :type op:
+        :param op_type:
+        :type op_type:
+        :param edge:
+        :type edge:
         :return: nothing
         :rtype: None
         """
@@ -184,10 +164,8 @@ class DeterministicSolver(SolverBase):
         reg = circuit.dag.edges[edge]["reg"]
         label = edge[2]
 
-        ind = np.random.choice(len(self.one_qubit_ops), p=self.e_dist)
-        op = self.one_qubit_ops[ind]
         noise = self._wrap_noise(op, self.noise_model_mapping)
-        gate = ops.OneQubitGateWrapper(op, reg_type="e", register=reg, noise=noise)
+        gate = ops.OneQubitGateWrapper(op, reg_type=op_type, register=reg, noise=noise)
 
         circuit.insert_at(gate, [edge])
 

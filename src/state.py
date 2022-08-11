@@ -105,7 +105,7 @@ class QuantumState:
         if self._dm is not None:
             self.dm.data = dmf.partial_trace(self.dm.data, keep, dims)
         if self._stabilizer is not None:
-            self.stabilizer.data = dmf.partial_trace(self._stabilizer.data, keep, dims)
+            self.stabilizer.data = sfc.partial_trace(self._stabilizer.data, keep, dims)
         if self._graph is not None:
             raise NotImplementedError(
                 "Partial trace not yet implemented on graph state"

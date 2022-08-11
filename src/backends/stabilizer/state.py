@@ -30,7 +30,7 @@ class Stabilizer(StateRepresentationBase):
         :return: the number of qubits in the state
         :rtype: int
         """
-        return self.tableau.n_qubits
+        return self._tableau.n_qubits
 
     @property
     def tableau(self):
@@ -56,6 +56,14 @@ class Stabilizer(StateRepresentationBase):
             self._tableau = value
         else:
             raise TypeError("Must use CliffordTableau for the stabilizer's tableau")
+
+    @property
+    def data(self):
+        return self.tableau
+
+    @data.setter
+    def data(self, value):
+        self.tableau = value
 
     def apply_unitary(self, qubit_position, unitary):
         raise NotImplementedError(

@@ -9,9 +9,8 @@ from src.backends.stabilizer.functions.linalg import (
     row_sum,
 )
 
-# from src.backends.stabilizer.functions.matrix_functions import row_sum
-from scipy.linalg import block_diag
 
+from scipy.linalg import block_diag
 
 """Main gates """
 
@@ -94,11 +93,15 @@ def cnot_gate(tableau, ctrl_qubit, target_qubit):
     tableau.phase = tableau.phase ^ (x_ctrl_times_z_target * (x_target ^ z_ctrl ^ 1))
 
     # updating the rest of the tableau
-    table[:, target_qubit] = table[:, target_qubit] ^ table[:, ctrl_qubit]
-    table[:, n_qubits + ctrl_qubit] = (
-        table[:, n_qubits + ctrl_qubit] ^ table[:, n_qubits + target_qubit]
+    # table[:, target_qubit] = table[:, target_qubit] ^ table[:, ctrl_qubit]
+    # table[:, n_qubits + ctrl_qubit] = (
+    #    table[:, n_qubits + ctrl_qubit] ^ table[:, n_qubits + target_qubit]
+    # )
+    tableau.table = add_columns(tableau.table, ctrl_qubit, target_qubit)
+    tableau.table = add_columns(
+        tableau.table, n_qubits + target_qubit, n_qubits + ctrl_qubit
     )
-    tableau.table = table
+
     return tableau
 
 
@@ -116,7 +119,7 @@ def z_measurement_gate(
         select a specific outcome.
     :type measurement_determinism: str or int
     :return: the resulting state after gate action, the measurement outcome, whether the measurement outcome is
-    probabilistic (zero means deterministic)
+        probabilistic (zero means deterministic)
     :rtype: CliffordTableau, int, int
     """
     n_qubits = tableau.n_qubits  # number of qubits
@@ -144,14 +147,15 @@ def z_measurement_gate(
         tableau.table_x = x_matrix
         tableau.table_z = z_matrix
         tableau.phase = r_vector
-
         table = tableau.table
+
         # set x_p - n row equal to x_p row
         table[x_p - n_qubits] = table[x_p]
-        # set x_p row equal to 0 except for z element of measured qubit which is 1.
 
+        # set x_p row equal to 0 except for z element of measured qubit which is 1.
         table[x_p] = np.zeros(2 * n_qubits)
         table[x_p, qubit_position + n_qubits] = 1
+
         # set r_vector of that row to random measurement outcome 0 or 1. (equal probability)
         # We have the option to remove randomness and pick a specific outcome
         # measurement_determinism is only used when we know random measurement outcome is possible
@@ -311,7 +315,7 @@ def reset_z(
 ):
     """
     Resets a qubit to a Z basis state. Note that it only works after a measurement gate on the same qubit or for
-    isolated qubits. Otherwise, the action of this gate would be like measure in Z basis and reset.
+    isolated qubits. Otherwise, the action of this gate would be measuring in Z basis and resetting the qubit.
 
     :param tableau: Tableau of the state before gate action
     :type tableau: CliffordTableau
@@ -325,7 +329,7 @@ def reset_z(
     :rtype:CliffordTableau
     """
     # reset qubit to computational basis states
-    # .
+
     n_qubits = tableau.n_qubits  # number of qubits
     assert qubit_position < n_qubits
     assert intended_state == 0 or intended_state == 1
@@ -682,16 +686,13 @@ def tensor(list_of_tables):
     return tableau
 
 
-def partial_trace(state, keep, dims):
+def partial_trace(tableau, keep, dims):
     """
     TODO: Need to use this to remove emitter qubits. Also fill out src/state.py's partial trace func!!
 
     :return:
     :rtype:
     """
-    raise NotImplementedError(
-        "Partial trace not implemented in the stabilizer representation"
-    )
 
 
 def full_rank_x(tableau):

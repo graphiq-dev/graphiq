@@ -126,7 +126,7 @@ class StabilizerCompiler(CompilerBase):
             )
 
             if outcome == 1:
-                state.apply_sigmax(q_index(op.target, op.target_type))
+                state.apply_sigmaz(q_index(op.target, op.target_type))
 
             classical_registers[op.c_register] = outcome
 
@@ -141,7 +141,7 @@ class StabilizerCompiler(CompilerBase):
 
             # reset the control qubit
             state.reset_qubit(
-                q_index(op.target, op.target_type),
+                q_index(op.control, op.control_type),
                 measurement_determinism=self.measurement_determinism,
             )
 

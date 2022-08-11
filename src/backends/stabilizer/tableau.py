@@ -122,6 +122,12 @@ class StabilizerTableau(ABC):
     def __str__(self):
         return f"Stabilizer: \n {self.to_labels()} \n Phase: \n {self.phase}"
 
+    def __eq__(self, other):
+        if isinstance(other, StabilizerTableau):
+            return np.all(self.phase == other.phase) and np.array_equal(
+                self.table.astype(int), other.table.astype(int)
+            )
+
     def to_labels(self):
         """
 
@@ -148,6 +154,7 @@ class CliffordTableau(ABC):
     def __init__(self, data, phase=None, *args, **kwargs):
         """
         TODO: support more ways to initialize the tableau
+
         :param data:
         :type data:
         :param phase:

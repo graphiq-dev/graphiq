@@ -193,7 +193,9 @@ class Metrics(MetricBase):
         "CircuitDepth": CircuitDepth,
     }
 
-    def __init__(self, metrics_list: list, metric_weight=None, log_steps=1, *args, **kwargs):
+    def __init__(
+        self, metrics_list: list, metric_weight=None, log_steps=1, *args, **kwargs
+    ):
         """
         Create a Metrics object which acts as a wrapper around Metric functions
 
@@ -220,7 +222,11 @@ class Metrics(MetricBase):
                 )
         self._metrics = _metrics
 
-        if metric_weight is None or isinstance(metric_weight, list) or isinstance(metric_weight, np.ndarray):
+        if (
+            metric_weight is None
+            or isinstance(metric_weight, list)
+            or isinstance(metric_weight, np.ndarray)
+        ):
             if metric_weight is None:
                 metric_weight = np.ones(len(metrics_list)).flatten()
 
@@ -231,7 +237,12 @@ class Metrics(MetricBase):
                 metric_weight = metric_weight.flatten()
 
             def weighting_func(state, circuit):
-                return np.dot(metric_weight, np.array([met.evaluate(state, circuit) for met in self._metrics]).flatten())
+                return np.dot(
+                    metric_weight,
+                    np.array(
+                        [met.evaluate(state, circuit) for met in self._metrics]
+                    ).flatten(),
+                )
 
             self.weighting_func = weighting_func
         elif callable(metric_weight):

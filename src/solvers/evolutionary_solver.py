@@ -2,6 +2,8 @@
 Evolutionary solver which includes a random search solver as a special case.
 This solver is based on certain physical rules imposed by a platform.
 One can define these rules via the allowed DAG transformations.
+
+# TODO: evolutionary solvers very often perform better with elitism. Consider adding
 """
 import copy
 import numpy as np
@@ -34,7 +36,6 @@ class EvolutionarySolver(RandomSearchSolver):
     name = "evolutionary-search"
     n_stop = 50  # maximum number of iterations
     n_pop = 50
-    n_hof = 5
     tournament_k = 2  # tournament size for selection of the next population
 
     one_qubit_ops = list(ops.one_qubit_cliffords())
@@ -48,6 +49,7 @@ class EvolutionarySolver(RandomSearchSolver):
         compiler: CompilerBase,
         circuit: CircuitDAG = None,
         io: IO = None,
+        n_hof=5,
         n_emitter=1,
         n_photon=1,
         selection_active=False,
@@ -68,6 +70,8 @@ class EvolutionarySolver(RandomSearchSolver):
         :type circuit: CircuitDAG
         :param io: input/output object for saving logs, intermediate results, circuits, etc.
         :type io: IO
+        :param n_hof: the size of the hall of fame (hof)
+        :type n_hof: int
         :param n_emitter: number of emitter registers to maintain in the circuit
         :type n_emitter: int
         :param n_photon: number of photon registers to maintain in the circuit
@@ -79,7 +83,9 @@ class EvolutionarySolver(RandomSearchSolver):
         :param args:
         :param kwargs:
         """
-        super().__init__(target, metric, compiler, circuit, io, *args, **kwargs)
+        super().__init__(
+            target, metric, compiler, circuit, io, n_hof=n_hof, *args, **kwargs
+        )
 
         self.n_emitter = n_emitter
         self.n_photon = n_photon

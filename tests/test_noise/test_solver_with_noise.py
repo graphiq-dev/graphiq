@@ -191,8 +191,7 @@ def linear3_noise_model():
 
 @pytest.fixture(scope="module")
 def linear3_expected():
-    circuit_ideal, state_ideal = linear_cluster_3qubit_circuit()
-    target_state = QuantumState(3, state_ideal["dm"], representation="density matrix")
+    circuit_ideal, target_state = linear_cluster_3qubit_circuit()
 
     metric = Infidelity(target=target_state)
 
@@ -201,8 +200,8 @@ def linear3_expected():
 
 @pytest.fixture(scope="module")
 def linear3_expected_trace_distance():
-    circuit_ideal, state_ideal = linear_cluster_3qubit_circuit()
-    target_state = QuantumState(3, state_ideal["dm"], representation="density matrix")
+    circuit_ideal, target_state = linear_cluster_3qubit_circuit()
+
     metric = TraceDistance(target=target_state)
     return target_state, circuit_ideal, metric
 
@@ -261,8 +260,7 @@ def linear4_run_trace_distance(
 
 @pytest.fixture(scope="module")
 def linear4_expected():
-    circuit_ideal, state_ideal = linear_cluster_4qubit_circuit()
-    target_state = QuantumState(4, state_ideal["dm"], representation="density matrix")
+    circuit_ideal, target_state = linear_cluster_4qubit_circuit()
 
     metric = Infidelity(target=target_state)
 
@@ -271,8 +269,7 @@ def linear4_expected():
 
 @pytest.fixture(scope="module")
 def linear4_expected_trace_distance():
-    circuit_ideal, state_ideal = linear_cluster_4qubit_circuit()
-    target_state = QuantumState(4, state_ideal["dm"], representation="density matrix")
+    circuit_ideal, target_state = linear_cluster_4qubit_circuit()
 
     metric = TraceDistance(target=target_state)
 
@@ -295,8 +292,7 @@ def ghz3_run_no_noise(solver_stop_100, density_matrix_compiler, ghz3_expected):
 
 @pytest.fixture(scope="module")
 def ghz3_expected():
-    circuit_ideal, state_ideal = ghz3_state_circuit()
-    target_state = QuantumState(3, state_ideal["dm"], representation="density matrix")
+    circuit_ideal, target_state = ghz3_state_circuit()
 
     metric = Infidelity(target=target_state)
 

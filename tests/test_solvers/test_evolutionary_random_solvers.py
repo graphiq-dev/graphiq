@@ -97,11 +97,10 @@ def linear3_run(solver_stop_100, density_matrix_compiler, linear3_expected):
 @pytest.fixture(scope="module")
 def linear3_expected():
     circuit_ideal, state_ideal = linear_cluster_3qubit_circuit()
-    ideal_state = QuantumState(3, state_ideal["dm"], representation="density matrix")
 
-    metric = Infidelity(target=ideal_state)
+    metric = Infidelity(target=state_ideal)
 
-    return ideal_state, circuit_ideal, metric
+    return state_ideal, circuit_ideal, metric
 
 
 @pytest.fixture(scope="module")
@@ -119,11 +118,10 @@ def linear4_run(solver_stop_100, density_matrix_compiler, linear4_expected):
 @pytest.fixture(scope="module")
 def linear4_expected():
     circuit_ideal, state_ideal = linear_cluster_4qubit_circuit()
-    ideal_state = QuantumState(4, state_ideal["dm"], representation="density matrix")
 
-    metric = Infidelity(target=ideal_state)
+    metric = Infidelity(target=state_ideal)
 
-    return ideal_state, circuit_ideal, metric
+    return state_ideal, circuit_ideal, metric
 
 
 @pytest.fixture(scope="module")
@@ -134,11 +132,10 @@ def ghz3_run(solver_stop_100, density_matrix_compiler, ghz3_expected):
 @pytest.fixture(scope="module")
 def ghz3_expected():
     circuit_ideal, state_ideal = ghz3_state_circuit()
-    ideal_state = QuantumState(3, state_ideal["dm"], representation="density matrix")
 
-    metric = Infidelity(target=ideal_state)
+    metric = Infidelity(target=state_ideal)
 
-    return ideal_state, circuit_ideal, metric
+    return state_ideal, circuit_ideal, metric
 
 
 def test_solver_linear3(linear3_run, linear3_expected):
@@ -176,8 +173,7 @@ def test_add_remove_measurements(seed):
     n_emitter = 1
     n_photon = 3
 
-    circuit_ideal, state_ideal = linear_cluster_3qubit_circuit()
-    target_state = QuantumState(3, state_ideal["dm"], representation="density matrix")
+    circuit_ideal, target_state = linear_cluster_3qubit_circuit()
     compiler = DensityMatrixCompiler()
     metric = Infidelity(target=target_state)
     solver = EvolutionarySolver(
@@ -205,8 +201,8 @@ def test_solver_logging(seed):
     n_emitter = 1
     n_photon = 2
 
-    circuit_ideal, state_ideal = bell_state_circuit()
-    target_state = QuantumState(n_photon, state_ideal["dm"])
+    circuit_ideal, target_state = bell_state_circuit()
+
     compiler = DensityMatrixCompiler()
     metric = Infidelity(target=target_state)
     io = IO.new_directory(
@@ -239,13 +235,8 @@ def test_square_4qubit():
     state = DensityMatrix.from_graph(graph)
     n_emitter = 2
     n_photon = 4
-    ideal_state = dict(
-        dm=state.data,
-        n_emitters=n_emitter,
-        n_photons=n_photon,
-        name='square4'
-    )
-    target_state = QuantumState(state.data)
+ 
+    target_state = QuantumState(n_photon, state.data)
     compiler = DensityMatrixCompiler()
     metric = Infidelity(target=target_state)
     solver = EvolutionarySolver(target=target_state, metric=metric, compiler=compiler,

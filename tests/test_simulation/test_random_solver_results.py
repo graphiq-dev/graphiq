@@ -185,7 +185,7 @@ def linear4_1():
 @pytest.mark.parametrize("ghz3", [ghz3_0(), ghz3_1(), ghz3_2()])
 def test_ghz3(ghz3):
     demo_circuit, ideal_state = ghz3_state_circuit()
-    ideal_state = QuantumState(3, ideal_state["dm"], representation="density matrix")
+
     compiler = DensityMatrixCompiler()
     independent, state1, state2 = circuit_measurement_independent(ghz3, compiler)
     assert independent
@@ -198,7 +198,7 @@ def test_ghz3(ghz3):
 @pytest.mark.parametrize("ghz4", [ghz4_0(), ghz4_1()])
 def test_ghz4(ghz4):
     demo_circuit, ideal_state = ghz4_state_circuit()
-    ideal_state = QuantumState(4, ideal_state["dm"], representation="density matrix")
+
     compiler = DensityMatrixCompiler()
     independent, state1, state2 = circuit_measurement_independent(ghz4, compiler)
     assert independent
@@ -211,7 +211,7 @@ def test_ghz4(ghz4):
 @pytest.mark.parametrize("linear3", [linear3_0(), linear3_1()])
 def test_linear3(linear3):
     demo_circuit, ideal_state = linear_cluster_3qubit_circuit()
-    ideal_state = QuantumState(3, ideal_state["dm"], representation="density matrix")
+
     compiler = DensityMatrixCompiler()
     independent, state1, state2 = circuit_measurement_independent(linear3, compiler)
     assert independent
@@ -224,7 +224,7 @@ def test_linear3(linear3):
 @pytest.mark.parametrize("linear4", [linear4_0(), linear4_1()])
 def test_linear4(linear4):
     demo_circuit, ideal_state = linear_cluster_4qubit_circuit()
-    ideal_state = QuantumState(4, ideal_state["dm"], representation="density matrix")
+
     compiler = DensityMatrixCompiler()
     independent, state1, state2 = circuit_measurement_independent(linear4, compiler)
     assert independent

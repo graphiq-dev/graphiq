@@ -10,7 +10,7 @@ from src.state import QuantumState
 
 def test_one_benchmarking_run():
     # define a single run by creating an instance of each object
-    target = QuantumState(3, ghz3_state_circuit()[1]["dm"])
+    _, target = ghz3_state_circuit()
     compiler = DensityMatrixCompiler()
     metric = Infidelity(target=target)
 

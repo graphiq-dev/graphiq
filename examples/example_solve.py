@@ -7,12 +7,11 @@ import time
 from src.backends.density_matrix.compiler import DensityMatrixCompiler
 from src.solvers.evolutionary_solver import EvolutionarySolver
 from src.metrics import Infidelity
-from src.circuit import CircuitDAG
 import src.backends.density_matrix.functions as dmf
 
+from benchmarks.circuits import *
 from src.visualizers.density_matrix import density_matrix_bars
-from benchmarks.circuits import bell_state_circuit
-
+from src.visualizers.solver_logs import plot_solver_logs
 
 if __name__ == "__main__":
     # %% here we have access
@@ -25,12 +24,11 @@ if __name__ == "__main__":
     EvolutionarySolver.seed(3)
 
     # %% select which state we want to target
-    from benchmarks.circuits import *
 
     circuit_ideal, state_ideal = linear_cluster_3qubit_circuit()
 
     # %% construct all of our important objects
-    target = state_ideal["dm"]
+    target = state_ideal.dm.data
     compiler = DensityMatrixCompiler()
     metric = Infidelity(target=target)
 
@@ -70,9 +68,6 @@ if __name__ == "__main__":
     plt.show()
 
     circuit.draw_circuit()
-
-    #%%
-    from src.visualizers.solver_logs import plot_solver_logs
 
     fig, axs = plot_solver_logs(solver.logs)
     plt.show()

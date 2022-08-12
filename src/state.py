@@ -170,7 +170,7 @@ class QuantumState:
         """
         if self._graph is not None:
             return self._graph
-        # TODO: ATTEMPT TO CONVERT EXISTING REPRESENTATION to dm. This should call on backend functions
+        # TODO: ATTEMPT TO CONVERT EXISTING REPRESENTATION to graph. This should call on backend functions
         raise ValueError(
             "Cannot convert existing representation to graph representation"
         )
@@ -207,7 +207,7 @@ class QuantumState:
         """
         if self._stabilizer is not None:
             return self._stabilizer
-        # TODO: ATTEMPT TO CONVERT EXISTING REPRESENTATION to dm. This should call on backend functions
+        # TODO: ATTEMPT TO CONVERT EXISTING REPRESENTATION to stabilizer. This should call on backend functions
         raise ValueError(
             "Cannot convert existing representation to stabilizer representation"
         )
@@ -239,7 +239,7 @@ class QuantumState:
         :param representation: 'all' to show all possible representations,
                                list of representation strings otherwise to show specific representations
         :type representation: str OR list (of strs)
-        :param show: if True, the selected representations are plotted. Otherwise they are drawn but not plotted
+        :param show: if True, the selected representations are plotted. Otherwise, they are drawn but not plotted
         :type show: bool
         :param ax: axis/axes on which to plot the selected representations
         :type ax: matplotlib.axis
@@ -275,9 +275,8 @@ class QuantumState:
         :return: function returns nothing
         :rtype: None
         """
-        self._graph = Graph(
-            data, 1
-        )  # TODO: adjust root_node_id field once we've figured out how we want to use it
+        self._graph = Graph(data, 1)
+        # TODO: adjust root_node_id field once we've figured out how we want to use it
         assert self._graph.n_qubit == self.n_qubit, (
             f"Expected {self.n_qubit} qubits, "
             f"graph representation has {self._graph.n_qubit}"

@@ -16,12 +16,16 @@ from src.backends.density_matrix.functions import (
     partial_trace,
 )
 from src.backends.density_matrix.state import DensityMatrix
+from src.state import QuantumState
 
 
 def bell_state_circuit():
     """
-    Two qubit Bell state preparation circuit
+    Two-qubit Bell state preparation circuit
     """
+    rho = ket2dm(
+        (tensor(2 * [state_ketz0()]) + tensor(2 * [state_ketz1()])) / np.sqrt(2)
+    )
     ideal_state = dict(
         dm=ket2dm(
             (tensor(2 * [state_ketz0()]) + tensor(2 * [state_ketz1()])) / np.sqrt(2)
@@ -30,6 +34,7 @@ def bell_state_circuit():
         n_photons=0,
         name="bell_state",
     )
+    ideal_state = QuantumState(2, rho, representation="density matrix")
     circuit = CircuitDAG(n_emitter=2, n_classical=0)
     circuit.add(Hadamard(register=0))
     circuit.add(CNOT(control=0, control_type="e", target=1, target_type="e"))
@@ -38,8 +43,11 @@ def bell_state_circuit():
 
 def ghz3_state_circuit():
     """
-    Three qubit GHZ state, see examples in literature folder
+    Three-qubit GHZ state
     """
+    rho = ket2dm(
+        (tensor(3 * [state_ketz0()]) + tensor(3 * [state_ketz1()])) / np.sqrt(2)
+    )
     ideal_state = dict(
         dm=ket2dm(
             (tensor(3 * [state_ketz0()]) + tensor(3 * [state_ketz1()])) / np.sqrt(2)
@@ -48,7 +56,7 @@ def ghz3_state_circuit():
         n_photons=3,
         name="ghz3",
     )
-
+    ideal_state = QuantumState(3, rho, representation="density matrix")
     circuit = CircuitDAG(n_emitter=1, n_photon=3, n_classical=1)
     circuit.add(
         Hadamard(register=0, reg_type="e")
@@ -72,8 +80,11 @@ def ghz3_state_circuit():
 
 def ghz4_state_circuit():
     """
-    Four qubit GHZ state, see examples in literature folder
+    Four-qubit GHZ state
     """
+    rho = ket2dm(
+        (tensor(4 * [state_ketz0()]) + tensor(4 * [state_ketz1()])) / np.sqrt(2)
+    )
     ideal_state = dict(
         dm=ket2dm(
             (tensor(4 * [state_ketz0()]) + tensor(4 * [state_ketz1()])) / np.sqrt(2)
@@ -82,7 +93,7 @@ def ghz4_state_circuit():
         n_photons=4,
         name="ghz4",
     )
-
+    ideal_state = QuantumState(4, rho, representation="density matrix")
     circuit = CircuitDAG(n_emitter=1, n_photon=4, n_classical=1)
     circuit.add(Hadamard(register=0, reg_type="e"))
     circuit.add(CNOT(control=0, control_type="e", target=0, target_type="p"))
@@ -107,13 +118,13 @@ def ghz4_state_circuit():
 
 def linear_cluster_3qubit_circuit():
     """
-    Three qubit linear cluster state, see examples in literature folder
+    Three-qubit linear cluster state
     """
 
     graph = nx.Graph([(1, 2), (2, 3)])
     state = DensityMatrix.from_graph(graph)
-    ideal_state = dict(dm=state.data, n_emitters=1, n_photons=3, name="linear3")
-
+    # ideal_state = dict(dm=state.data, n_emitters=1, n_photons=3, name="linear3")
+    ideal_state = QuantumState(3, state.data, representation="density matrix")
     circuit = CircuitDAG(n_emitter=1, n_photon=3, n_classical=1)
     circuit.add(Hadamard(register=0, reg_type="e"))
     circuit.add(CNOT(control=0, control_type="e", target=0, target_type="p"))
@@ -134,7 +145,7 @@ def linear_cluster_3qubit_circuit():
 
 def linear_cluster_4qubit_circuit():
     """
-    Four qubit linear cluster state, see examples in literature folder
+    Four-qubit linear cluster state
     """
 
     graph = nx.Graph([(1, 2), (2, 3), (3, 4)])
@@ -145,7 +156,7 @@ def linear_cluster_4qubit_circuit():
         n_photons=4,
         name="linear4",
     )
-
+    ideal_state = QuantumState(4, state.data, representation="density matrix")
     circuit = CircuitDAG(n_emitter=1, n_photon=4, n_classical=1)
     circuit.add(Hadamard(register=0, reg_type="e"))
     circuit.add(CNOT(control=0, control_type="e", target=0, target_type="p"))

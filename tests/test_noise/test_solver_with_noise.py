@@ -12,20 +12,6 @@ import src.noise.noise_models as nm
 
 
 @pytest.fixture(scope="module")
-def solver_stop_100():
-    """
-    Fixtures like these can be used to set up and teardown preparations for a test.
-
-    Here, the first two lines will run BEFORE the test, the test will run after the yield, and the lines
-    after the yield will run AFTER the test
-    """
-    n_stop_original = EvolutionarySolver.n_stop
-    EvolutionarySolver.n_stop = 100
-    yield
-    EvolutionarySolver.n_stop = n_stop_original
-
-
-@pytest.fixture(scope="module")
 def density_matrix_compiler():
     """
     Here, we set the scope to module because, while we want to use a DensityMatrixCompiler multiple times, we don't
@@ -48,6 +34,7 @@ def generate_run_noise(
         n_emitter=n_emitter,
         n_photon=n_photon,
         noise_model_mapping=noise_model_mapping,
+        n_stop=100,
     )
     solver.seed(seed)
     solver.solve()
@@ -69,6 +56,7 @@ def generate_run_no_noise(n_photon, n_emitter, expected_triple, compiler, seed):
         compiler=compiler,
         n_emitter=n_emitter,
         n_photon=n_photon,
+        n_stop=100
     )
     solver.seed(seed)
     solver.solve()
@@ -130,7 +118,7 @@ def check_run_noise_visual(no_noise_run_info, noise_run_info, expected_info):
 
 @pytest.fixture(scope="module")
 def linear3_run_noise(
-    solver_stop_100, density_matrix_compiler, linear3_expected, linear3_noise_model_2
+    density_matrix_compiler, linear3_expected, linear3_noise_model_2
 ):
     """
     Again, we set the fixture scope to module. Arguably, this is more important than last time because actually
@@ -145,7 +133,7 @@ def linear3_run_noise(
 
 
 @pytest.fixture(scope="module")
-def linear3_run_no_noise(solver_stop_100, density_matrix_compiler, linear3_expected):
+def linear3_run_no_noise(density_matrix_compiler, linear3_expected):
     """
     Again, we set the fixture scope to module. Arguably, this is more important than last time because actually
     running the solve takes (relatively) long.
@@ -158,7 +146,6 @@ def linear3_run_no_noise(solver_stop_100, density_matrix_compiler, linear3_expec
 
 @pytest.fixture(scope="module")
 def linear3_run_trace_distance(
-    solver_stop_100,
     density_matrix_compiler,
     linear3_expected_trace_distance,
     linear3_noise_model,
@@ -212,7 +199,7 @@ def linear3_expected_trace_distance():
 
 @pytest.fixture(scope="module")
 def linear4_run_noise(
-    solver_stop_100, density_matrix_compiler, linear4_expected, linear4_noise_model
+    density_matrix_compiler, linear4_expected, linear4_noise_model
 ):
     """
     Again, we set the fixture scope to module. Arguably, this is more important than last time because actually
@@ -227,7 +214,7 @@ def linear4_run_noise(
 
 
 @pytest.fixture(scope="module")
-def linear4_run_no_noise(solver_stop_100, density_matrix_compiler, linear4_expected):
+def linear4_run_no_noise(density_matrix_compiler, linear4_expected):
     """
     Again, we set the fixture scope to module. Arguably, this is more important than last time because actually
     running the solve takes (relatively) long.
@@ -240,7 +227,6 @@ def linear4_run_no_noise(solver_stop_100, density_matrix_compiler, linear4_expec
 
 @pytest.fixture(scope="module")
 def linear4_run_trace_distance(
-    solver_stop_100,
     density_matrix_compiler,
     linear4_expected_trace_distance,
     linear4_noise_model,
@@ -284,7 +270,7 @@ def linear4_expected_trace_distance():
 
 @pytest.fixture(scope="module")
 def ghz3_run_noise(
-    solver_stop_100, density_matrix_compiler, ghz3_expected, ghz3_noise_model
+    density_matrix_compiler, ghz3_expected, ghz3_noise_model
 ):
     return generate_run_noise(
         3, 1, ghz3_expected, density_matrix_compiler, ghz3_noise_model, 0
@@ -292,7 +278,7 @@ def ghz3_run_noise(
 
 
 @pytest.fixture(scope="module")
-def ghz3_run_no_noise(solver_stop_100, density_matrix_compiler, ghz3_expected):
+def ghz3_run_no_noise(density_matrix_compiler, ghz3_expected):
     return generate_run_no_noise(3, 1, ghz3_expected, density_matrix_compiler, 0)
 
 

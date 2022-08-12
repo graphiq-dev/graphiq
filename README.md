@@ -5,8 +5,9 @@ This is a collaboration between Ki3 and QBT through US Air Force project.
 
 ## Onboarding
 
-Please begin by reading through `examples/implementer_startup.ipynb`.
-This will introduce the most important classes in the software.
+Please begin by reading through `examples/startup_guide/`.
+This will introduce the most important classes in the software, as well as
+our version control and testing frameworks.
 
 ## Contributing
 

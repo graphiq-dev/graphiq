@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import copy
 
+from tests.test_flags import visualization
 import benchmarks.graph_states as gs
 
 
@@ -105,7 +106,6 @@ def test_equivalence_random_lc_lattice_1(seed):
 def test_equivalence_random_lc_lattice_debug_1(seed):
     graph = gs.lattice_cluster_state((6, 3))
     fig, ax = plt.subplots(figsize=(10, 10))
-    graph.draw(ax=ax)
     _lc_equiv_test(graph, seed, n_graphs=1, max_transform_path=4)
 
 
@@ -113,5 +113,4 @@ def test_equivalence_random_lc_lattice_debug_1(seed):
 def test_equivalence_random_lc_lattice_debug_2(seed):
     graph = gs.lattice_cluster_state((2, 3))
     fig, ax = plt.subplots(figsize=(10, 10))
-    graph.draw(ax=ax)
     _lc_equiv_test(graph, seed, n_graphs=1, max_transform_path=4)

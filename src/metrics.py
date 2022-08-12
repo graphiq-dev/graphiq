@@ -204,7 +204,12 @@ class Metrics(MetricBase):
                             MetricBase objects may be preferable, since we cannot set initial parameters via the list of strings.
         :param metric_weight: some representation of how to weigh the different metric results against one another
                               if None, all metrics provided are weighted equally (by 1)
-                              if a
+                              if a list or ndarray, the metrics are a linear combination weighted by the list/ndarray values
+                              Otherwise, metric_weight is a function, that can make any mathematical function of the individual
+                              metric values.
+        :type metric_weight: None, numpy.ndarray, list, or Function
+        :param log_steps: the metric values are computed at every log_steps optimization step
+        :type log_steps: int
         :return: function returns nothing
         :rtype: None
         """

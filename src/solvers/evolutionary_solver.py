@@ -34,9 +34,6 @@ class EvolutionarySolver(RandomSearchSolver):
     """
 
     name = "evolutionary-search"
-    n_stop = 50  # maximum number of iterations
-    n_pop = 50
-    tournament_k = 2  # tournament size for selection of the next population
 
     one_qubit_ops = list(ops.one_qubit_cliffords())
 
@@ -50,6 +47,9 @@ class EvolutionarySolver(RandomSearchSolver):
         circuit: CircuitDAG = None,
         io: IO = None,
         n_hof=5,
+        n_stop=50,
+        n_pop=50,
+        tournament_k=2,
         n_emitter=1,
         n_photon=1,
         selection_active=False,
@@ -84,7 +84,16 @@ class EvolutionarySolver(RandomSearchSolver):
         :param kwargs:
         """
         super().__init__(
-            target, metric, compiler, circuit, io, n_hof=n_hof, *args, **kwargs
+            target,
+            metric,
+            compiler,
+            circuit,
+            io,
+            n_hof=n_hof,
+            n_stop=n_stop,
+            n_pop=n_pop,
+            *args,
+            **kwargs,
         )
 
         self.n_emitter = n_emitter
@@ -93,6 +102,7 @@ class EvolutionarySolver(RandomSearchSolver):
         # transformation functions and their relative probabilities
         self.trans_probs = self.initialize_transformation_probabilities()
         self.selection_active = selection_active
+        self.tournament_k = tournament_k
         self.noise_simulation = True
         if noise_model_mapping is None or type(noise_model_mapping) is not dict:
             noise_model_mapping = {}

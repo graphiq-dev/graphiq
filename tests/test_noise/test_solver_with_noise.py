@@ -56,7 +56,7 @@ def generate_run_no_noise(n_photon, n_emitter, expected_triple, compiler, seed):
         compiler=compiler,
         n_emitter=n_emitter,
         n_photon=n_photon,
-        n_stop=100
+        n_stop=100,
     )
     solver.seed(seed)
     solver.solve()
@@ -117,9 +117,7 @@ def check_run_noise_visual(no_noise_run_info, noise_run_info, expected_info):
 
 
 @pytest.fixture(scope="module")
-def linear3_run_noise(
-    density_matrix_compiler, linear3_expected, linear3_noise_model_2
-):
+def linear3_run_noise(density_matrix_compiler, linear3_expected, linear3_noise_model_2):
     """
     Again, we set the fixture scope to module. Arguably, this is more important than last time because actually
     running the solve takes (relatively) long.
@@ -198,9 +196,7 @@ def linear3_expected_trace_distance():
 
 
 @pytest.fixture(scope="module")
-def linear4_run_noise(
-    density_matrix_compiler, linear4_expected, linear4_noise_model
-):
+def linear4_run_noise(density_matrix_compiler, linear4_expected, linear4_noise_model):
     """
     Again, we set the fixture scope to module. Arguably, this is more important than last time because actually
     running the solve takes (relatively) long.
@@ -269,9 +265,7 @@ def linear4_expected_trace_distance():
 
 
 @pytest.fixture(scope="module")
-def ghz3_run_noise(
-    density_matrix_compiler, ghz3_expected, ghz3_noise_model
-):
+def ghz3_run_noise(density_matrix_compiler, ghz3_expected, ghz3_noise_model):
     return generate_run_noise(
         3, 1, ghz3_expected, density_matrix_compiler, ghz3_noise_model, 0
     )

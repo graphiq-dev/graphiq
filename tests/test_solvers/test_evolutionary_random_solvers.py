@@ -13,6 +13,7 @@ from src.io import IO
 
 from src.visualizers.density_matrix import density_matrix_bars
 
+
 @pytest.fixture(scope="module")
 def density_matrix_compiler():
     """

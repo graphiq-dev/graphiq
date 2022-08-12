@@ -2,6 +2,9 @@ import pytest
 from src.backends.lc_equivalence_check import *
 import matplotlib.pyplot as plt
 import numpy as np
+import copy
+
+import benchmarks.graph_states as gs
 
 
 def _tester(n):
@@ -62,3 +65,53 @@ def test_star_graph(n_nodes):
     assert isinstance(solution, np.ndarray) or solution is None
     is_equivalent, _ = iso_equal_check(g1, g2)
     assert is_equivalent
+
+
+def _lc_equiv_test(graph, seed, n_graphs=5, max_transform_path=17):
+    """
+    Make local complementation operations, and verify that is_lc_equivalent
+    reports the fact that the original and final graphs are the same
+    """
+    new_graphs, new_graph_seqs = gs.random_lc_equivalent(
+        graph, n_graphs, max_transform_path, np_rng=np.random.default_rng(seed=seed)
+    )
+    for new_graph, new_graph_seq in zip(new_graphs, new_graph_seqs):
+        equivalent, solution = graph.lc_equivalent(new_graph, mode="deterministic")
+        assert equivalent, (
+            "Graph built from complementations was assessed as not LC equivalent. "
+            f"Complementation sequence was on nodes: {new_graph_seq}"
+        )
+
+
+@pytest.mark.parametrize("seed", [0, 335, 930])
+def test_equivalence_random_lc_linear(seed):
+    graph = gs.linear_cluster_state(10)
+    _lc_equiv_test(graph, seed)
+
+
+@pytest.mark.parametrize("seed", [0, 335, 930])
+def test_equivalence_random_lc_star(seed):
+    graph = gs.star_graph_state(25)
+    _lc_equiv_test(graph, seed)
+
+
+@pytest.mark.parametrize("seed", [0, 335, 930])
+def test_equivalence_random_lc_lattice_1(seed):
+    graph = gs.lattice_cluster_state((7, 3, 5))
+    _lc_equiv_test(graph, seed)
+
+
+@pytest.mark.parametrize("seed", [0])
+def test_equivalence_random_lc_lattice_debug_1(seed):
+    graph = gs.lattice_cluster_state((6, 3))
+    fig, ax = plt.subplots(figsize=(10, 10))
+    graph.draw(ax=ax)
+    _lc_equiv_test(graph, seed, n_graphs=1, max_transform_path=4)
+
+
+@pytest.mark.parametrize("seed", [2])
+def test_equivalence_random_lc_lattice_debug_2(seed):
+    graph = gs.lattice_cluster_state((2, 3))
+    fig, ax = plt.subplots(figsize=(10, 10))
+    graph.draw(ax=ax)
+    _lc_equiv_test(graph, seed, n_graphs=1, max_transform_path=4)

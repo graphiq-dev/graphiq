@@ -54,6 +54,28 @@ def test_linear_4qubit():
     assert np.allclose(target_tableau.table, output_tableau.table)
 
 
+def test_ghz3():
+    n_photon = 3
+    circuit, state = ghz3_state_circuit()
+    compiler = StabilizerCompiler()
+    output_stabilizer = compiler.compile(circuit)
+
+    output_stabilizer.stabilizer.remove_qubit(n_photon)
+    tableau = output_stabilizer.stabilizer.tableau.to_stabilizer()
+    output_state = converter.stabilizer_to_density(tableau.to_labels())
+    # use representation conversion to convert to density matrix
+    assert np.allclose(output_state, state["dm"])
+
+    output_tableau = sfs.canonical_form(tableau)
+    generator_string = converter.density_to_stabilizer(state["dm"])
+    target_tableau = StabilizerTableau(n_photon)
+    target_tableau.from_labels(generator_string)
+    target_tableau = sfs.canonical_form(target_tableau)
+    # compare stabilizer tableau
+    # TODO: check phase vector
+    # assert np.allclose(target_tableau.table, output_tableau.table)
+
+
 def test_1000_qubits():
     n_photon = 998
     n_emitter = 2

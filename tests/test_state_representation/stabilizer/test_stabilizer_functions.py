@@ -5,6 +5,7 @@ import src.backends.stabilizer.functions.utils as sfu
 
 import src.backends.stabilizer.functions.clifford as sfc
 from src.backends.stabilizer.functions.stabilizer import rref
+import src.backends.stabilizer.functions.metric as sfm
 from src.backends.stabilizer.functions.height import height_func_list
 from src.backends.stabilizer.tableau import StabilizerTableau
 from functools import reduce
@@ -138,3 +139,17 @@ def test_qubit_insertion_removal():
     tableau = sfc.create_n_plus_state(4)
     tableau = sfc.insert_qubit(tableau, 1)
     sfc.remove_qubit(tableau, 1)
+
+
+def test_stabilizer_inner_product():
+    tableau1 = sfc.create_n_plus_state(4)
+    tableau2 = sfc.create_n_ket0_state(4)
+    assert sfm.inner_product(tableau1, tableau2) == 0.25
+    assert sfm.inner_product(tableau1, tableau1) == 1.0
+
+
+def test_stabilizer_fidelity():
+    tableau1 = sfc.create_n_plus_state(4)
+    tableau2 = sfc.create_n_ket0_state(4)
+    assert sfm.fidelity(tableau1, tableau2) == 0.25**2
+    assert sfm.fidelity(tableau1, tableau1) == 1.0

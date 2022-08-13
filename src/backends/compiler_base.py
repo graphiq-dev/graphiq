@@ -20,7 +20,7 @@ class CompilerBase(ABC):
     name = "base"
     ops = [ops.OperationBase]  # the accepted operations for a given compiler
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self):
         """
         Initializes CompilerBase fields
 

@@ -14,20 +14,6 @@ from src.visualizers.density_matrix import density_matrix_bars
 
 
 @pytest.fixture(scope="module")
-def solver_stop_100():
-    """
-    Fixtures like these can be used to set up and teardown preparations for a test.
-
-    Here, the first two lines will run BEFORE the test, the test will run after the yield, and the lines
-    after the yield will run AFTER the test
-    """
-    n_stop_original = EvolutionarySolver.n_stop
-    EvolutionarySolver.n_stop = 100
-    yield
-    EvolutionarySolver.n_stop = n_stop_original
-
-
-@pytest.fixture(scope="module")
 def density_matrix_compiler():
     """
     Here, we set the scope to module because, while we want to use a DensityMatrixCompiler multiple times, we don't
@@ -83,7 +69,7 @@ def check_run_visual(run_info, expected_info):
 
 
 @pytest.fixture(scope="module")
-def linear3_run(solver_stop_100, density_matrix_compiler, linear3_expected):
+def linear3_run(density_matrix_compiler, linear3_expected):
     """
     Again, we set the fixture scope to module. Arguably, this is more important than last time because actually
     running the solve takes (relatively) long.
@@ -104,7 +90,7 @@ def linear3_expected():
 
 
 @pytest.fixture(scope="module")
-def linear4_run(solver_stop_100, density_matrix_compiler, linear4_expected):
+def linear4_run(density_matrix_compiler, linear4_expected):
     """
     Again, we set the fixture scope to module. Arguably, this is more important than last time because actually
     running the solve takes (relatively) long.
@@ -125,7 +111,7 @@ def linear4_expected():
 
 
 @pytest.fixture(scope="module")
-def ghz3_run(solver_stop_100, density_matrix_compiler, ghz3_expected):
+def ghz3_run(density_matrix_compiler, ghz3_expected):
     return generate_run(3, 1, ghz3_expected, density_matrix_compiler, 0)
 
 

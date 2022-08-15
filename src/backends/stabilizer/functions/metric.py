@@ -55,8 +55,8 @@ def inner_product(tableau1, tableau2):
         else:
             identity_x = np.zeros(n_qubits)
             identity_y = np.zeros(n_qubits)
-            x_matrix = np.vstack((x1_matrix, identity_x))
-            z_matrix = np.vstack((z1_matrix, identity_y))
+            x_matrix = np.vstack((x1_matrix, identity_x)).astype(int)
+            z_matrix = np.vstack((z1_matrix, identity_y)).astype(int)
             r_vector = np.zeros(n_qubits + 1)
             z_list = [j for j in range(n_qubits) if z2_matrix[i, j] == 1]
             for index in z_list:

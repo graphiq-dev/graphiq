@@ -208,7 +208,7 @@ class CliffordTableau(ABC):
         """
         assert value.shape == (2 * self.n_qubits, self.n_qubits)
         value = value.astype(int)
-        self._table[:, 0 : self.n_qubits] = value.astype(int)
+        self._table[:, 0 : self.n_qubits] = value
 
     @property
     def table_z(self):
@@ -226,7 +226,7 @@ class CliffordTableau(ABC):
         """
         assert value.shape == (2 * self.n_qubits, self.n_qubits)
         value = value.astype(int)
-        self._table[:, self.n_qubits : 2 * self.n_qubits] = value.astype(int)
+        self._table[:, self.n_qubits : 2 * self.n_qubits] = value
 
     @property
     def destabilizer(self):
@@ -425,8 +425,8 @@ class CliffordTableau(ABC):
     def _reset(self, new_table, new_phase):
         new_n_qubits = int(new_table.shape[0] / 2)
         assert len(new_phase) == 2 * new_n_qubits
-        self._table = new_table
-        self._phase = new_phase
+        self._table = new_table.astype(int)
+        self._phase = new_phase.astype(int)
         self.n_qubits = new_n_qubits
 
     def expand(self, new_table, new_phase):

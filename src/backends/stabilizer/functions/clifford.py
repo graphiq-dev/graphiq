@@ -60,7 +60,6 @@ def phase_gate(tableau, qubit_position):
     tableau.table = add_columns(
         tableau.table, qubit_position, n_qubits + qubit_position
     )
-
     return tableau
 
 
@@ -84,7 +83,7 @@ def cnot_gate(tableau, ctrl_qubit, target_qubit):
     # update phase vector
     x_ctrl_times_z_target = multiply_columns(
         table, table, ctrl_qubit, n_qubits + target_qubit
-    ).astype(int)
+    )
     x_target = table[:, target_qubit]
     z_ctrl = table[:, n_qubits + ctrl_qubit]
     tableau.phase = tableau.phase ^ (x_ctrl_times_z_target * (x_target ^ z_ctrl ^ 1))
@@ -166,10 +165,10 @@ def z_measurement_gate(
         # deterministic outcome
         # We ignore measurement_determinism here since the outcome is deterministic and fixed
         # add an extra 2n+1 th row to the tableau
-        new_table = np.vstack([tableau.table, np.zeros(2 * n_qubits)])
+        new_table = np.vstack([tableau.table, np.zeros(2 * n_qubits)]).astype(int)
         x_matrix = new_table[:, 0:n_qubits]
         z_matrix = new_table[:, n_qubits : 2 * n_qubits]
-        r_vector = np.append(tableau.phase, 0)
+        r_vector = np.append(tableau.phase, 0).astype(int)
 
         # list of nonzero elements in the x destabilizers
         for non_zero in non_zero_x[non_zero_x < n_qubits]:
@@ -325,7 +324,7 @@ def reset_z(
         tableau, qubit_position, measurement_determinism
     )
     if probabilistic:
-        tableau.phase[probabilistic] = int(intended_state)
+        tableau.phase[probabilistic] = intended_state
         return tableau
 
     else:
@@ -662,7 +661,7 @@ def tensor(list_of_tables):
         phase_list2 = np.split(tab.phase, 2)
         phase_vector = np.hstack(
             (phase_list1[0], phase_list2[0], phase_list1[1], phase_list2[1])
-        )
+        ).astype(int)
 
         tableau.phase = phase_vector
     return tableau
@@ -720,7 +719,7 @@ def full_rank_x(tableau):
                 z1_matrix = add_rows(z1_matrix, j, i)
 
     assert np.array_equal(z2_matrix, np.eye(n_qubits - rank))
-    z_matrix = np.hstack(z1_matrix, z2_matrix)
+    z_matrix = np.hstack(z1_matrix, z2_matrix).astype(int)
     tableau.x_stabilizer = x_matrix
     tableau.z_stabilizer = z_matrix
     # hadamard on some qubits to make the x-stabilizer table full rank

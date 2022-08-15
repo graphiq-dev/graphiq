@@ -257,25 +257,14 @@ def row_sum(x_matrix, z_matrix, r_vector, row_to_add, target_row):
     n_qubits = np.shape(x_matrix)[1]
     # determining the phase factor
     g_sum = 0
-    # print(f"row_to_add={row_to_add}, target_row={target_row}")
     for j in range(n_qubits):
-        tmp = g_function(
-            x_matrix[row_to_add, j],
-            z_matrix[row_to_add, j],
-            x_matrix[target_row, j],
-            z_matrix[target_row, j],
-        )
 
-        # if type(tmp) is not (int or np.int64):
-        #    print(f"tmp is {type(tmp)}, the x_matrix is {x_matrix.dtype}, the z_matrix is {z_matrix.dtype}")
-        #    print(f"the x_matrix is {x_matrix}, the z_matrix is {z_matrix}")
         g_sum = g_sum + g_function(
             x_matrix[row_to_add, j],
             z_matrix[row_to_add, j],
             x_matrix[target_row, j],
             z_matrix[target_row, j],
         )
-        # print(f"row sum for j= {j}, tmp is {tmp}")
     if (2 * r_vector[target_row] + 2 * r_vector[row_to_add] + 2 * g_sum) % 4 == 0:
         r_vector[target_row] = 0
     elif (2 * r_vector[target_row] + 2 * r_vector[row_to_add] + 2 * g_sum) % 4 == 2:

@@ -1,6 +1,6 @@
 import pytest
 from tests.test_flags import visualization
-
+import numpy as np
 from src.solvers.evolutionary_solver import EvolutionarySolver
 import matplotlib.pyplot as plt
 from src.backends.density_matrix.compiler import DensityMatrixCompiler

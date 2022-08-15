@@ -31,7 +31,8 @@ def add_rows(input_matrix, row_to_add, target_row):
     :return: the matrix after adding two rows modulo 2 and putting in the row of the second input
     :rtype: numpy.ndarray
     """
-    input_matrix[target_row] = (input_matrix[row_to_add] + input_matrix[target_row]) % 2
+    tmp = (input_matrix[row_to_add] + input_matrix[target_row]) % 2
+    input_matrix[target_row] = tmp.astype(int)
     return input_matrix
 
 
@@ -66,7 +67,7 @@ def add_columns(input_matrix, col_to_add, target_col):
     :rtype: numpy.ndarray
     """
     tmp = (input_matrix[:, col_to_add] + input_matrix[:, target_col]) % 2
-    input_matrix[:, target_col] = tmp
+    input_matrix[:, target_col] = tmp.astype(int)
     return input_matrix
 
 
@@ -116,8 +117,8 @@ def hadamard_transform(x_matrix, z_matrix, positions):
     :rtype: numpy.ndarray, numpy.ndarray
     :return: the resulting X matrix and Z matrix
     """
-    temp1 = list(z_matrix[:, positions])
-    temp2 = list(x_matrix[:, positions])
+    temp1 = z_matrix[:, positions]
+    temp2 = x_matrix[:, positions]
     z_matrix[:, positions] = temp2
     x_matrix[:, positions] = temp1
     return x_matrix, z_matrix
@@ -223,9 +224,10 @@ def g_function(x1, z1, x2, z2):
         either 0, 1, or -1
     :rtype: int
     """
-    if not (x1 or z1):  # both equal to zero
+    # print(f"x1={x1}, z1={z1}, x2={x2}, z2={z2}")
+    if x1 == z1 == 0:  # both equal to zero
         return 0
-    elif x1 and z1:
+    elif x1 == z1 == 1:
         return z2 - x2
     elif x1 == 1 and z1 == 0:
         return z2 * (2 * x2 - 1)
@@ -255,18 +257,34 @@ def row_sum(x_matrix, z_matrix, r_vector, row_to_add, target_row):
     n_qubits = np.shape(x_matrix)[1]
     # determining the phase factor
     g_sum = 0
+    # print(f"row_to_add={row_to_add}, target_row={target_row}")
     for j in range(n_qubits):
+        tmp = g_function(
+            x_matrix[row_to_add, j],
+            z_matrix[row_to_add, j],
+            x_matrix[target_row, j],
+            z_matrix[target_row, j],
+        )
+
+        # if type(tmp) is not (int or np.int64):
+        #    print(f"tmp is {type(tmp)}, the x_matrix is {x_matrix.dtype}, the z_matrix is {z_matrix.dtype}")
+        #    print(f"the x_matrix is {x_matrix}, the z_matrix is {z_matrix}")
         g_sum = g_sum + g_function(
             x_matrix[row_to_add, j],
             z_matrix[row_to_add, j],
             x_matrix[target_row, j],
             z_matrix[target_row, j],
         )
-    if (2 * r_vector[target_row] + 2 * r_vector[row_to_add] + g_sum) % 4 == 0:
+        # print(f"row sum for j= {j}, tmp is {tmp}")
+    if (2 * r_vector[target_row] + 2 * r_vector[row_to_add] + 2 * g_sum) % 4 == 0:
         r_vector[target_row] = 0
-    elif (2 * r_vector[target_row] + 2 * r_vector[row_to_add] + g_sum) % 4 == 2:
+    elif (2 * r_vector[target_row] + 2 * r_vector[row_to_add] + 2 * g_sum) % 4 == 2:
         r_vector[target_row] = 1
     else:
+        # print(f" row sum for j = {j}")
+        # print(r_vector[target_row])
+        # print(r_vector[row_to_add])
+        # print(g_sum)
         raise Exception("input cannot be valid, due to unexpected outcome")
 
     # calculating the resulting new matrices after adding row i to h.

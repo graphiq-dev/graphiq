@@ -153,3 +153,11 @@ def test_stabilizer_fidelity():
     tableau2 = sfc.create_n_ket0_state(4)
     assert sfm.fidelity(tableau1, tableau2) == 0.25**2
     assert sfm.fidelity(tableau1, tableau1) == 1.0
+
+
+def test_clifford_from_stabilizer():
+    tableau1 = sfc.create_n_plus_state(4)
+    tableau2 = sfm.clifford_from_stabilizer(tableau1.to_stabilizer())
+    assert tableau1 == tableau2
+    print(tableau1)
+    print(tableau2)

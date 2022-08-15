@@ -106,7 +106,7 @@ def test_height_comparison(case_number):
     assert h_x == h_func
 
 
-def test_Li_et_al_example():
+def test_paper_example():
     # This corresponds to the echelon gauge transformation from Fig.1(b) to Fig.1(c)(i)
     # of Li et al.'s supplementary material.
 
@@ -120,13 +120,13 @@ def test_Li_et_al_example():
         ]
     ).astype(int)
     x_matrix_in = np.eye(4, 4)
-    r_vector_in = np.zeros([4, 1])
+    r_vector_in = np.zeros(4)
     tableau = StabilizerTableau([x_matrix_in, z_matrix_in], r_vector_in)
     # Get echelon gauge matrices
     tableau = rref(tableau)
 
-    # Height function of before and after gauge transformation. Should be the same as
-    # height function also does the transformation.
+    # Height function of before and after gauge transformation.
+    # Should be the same as height function also does the transformation.
     height_list_1 = height_func_list(x_matrix_in, z_matrix_in)
     height_list_1 = np.array(height_list_1)
     height_list_2 = height_func_list(tableau.x_matrix, tableau.z_matrix)

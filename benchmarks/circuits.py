@@ -2,7 +2,6 @@
 A suite of circuits for small, known quantum states that can be used for benchmarking, testing, and learning.
 """
 
-import numpy as np
 import networkx as nx
 
 from src.circuit import CircuitDAG
@@ -13,27 +12,19 @@ from src.backends.density_matrix.functions import (
     state_ketz1,
     tensor,
     ket2dm,
-    partial_trace,
 )
 from src.backends.density_matrix.state import DensityMatrix
 from src.state import QuantumState
+from src.backends.stabilizer.tableau import CliffordTableau
+from src.backends.stabilizer.state import Stabilizer
+import src.backends.state_representation_conversion as converter
 
 
 def bell_state_circuit():
     """
     Two-qubit Bell state preparation circuit
     """
-    rho = ket2dm(
-        (tensor(2 * [state_ketz0()]) + tensor(2 * [state_ketz1()])) / np.sqrt(2)
-    )
-    ideal_state = dict(
-        dm=ket2dm(
-            (tensor(2 * [state_ketz0()]) + tensor(2 * [state_ketz1()])) / np.sqrt(2)
-        ),
-        n_emitters=2,
-        n_photons=0,
-        name="bell_state",
-    )
+    rho = ket2dm((tensor(2 * [state_ketz0()]) + tensor(2 * [state_ketz1()]))) / 2.0
     ideal_state = QuantumState(2, rho, representation="density matrix")
     circuit = CircuitDAG(n_emitter=2, n_classical=0)
     circuit.add(Hadamard(register=0))
@@ -45,26 +36,15 @@ def ghz3_state_circuit():
     """
     Three-qubit GHZ state
     """
-    rho = ket2dm(
-        (tensor(3 * [state_ketz0()]) + tensor(3 * [state_ketz1()])) / np.sqrt(2)
-    )
-    ideal_state = dict(
-        dm=ket2dm(
-            (tensor(3 * [state_ketz0()]) + tensor(3 * [state_ketz1()])) / np.sqrt(2)
-        ),
-        n_emitters=1,
-        n_photons=3,
-        name="ghz3",
-    )
+    rho = ket2dm((tensor(3 * [state_ketz0()]) + tensor(3 * [state_ketz1()]))) / 2.0
     ideal_state = QuantumState(3, rho, representation="density matrix")
     circuit = CircuitDAG(n_emitter=1, n_photon=3, n_classical=1)
-    circuit.add(
-        Hadamard(register=0, reg_type="e")
-    )  # reg_type='e' by default for single-qubit gates
-    # control_type, target_type not necessary since this is their default value), but added to explain class API
+    circuit.add(Hadamard(register=0, reg_type="e"))
+    # reg_type='e' by default for single-qubit gates
+    # control_type, target_type not necessary since this is their default value, but added to explain class API
     circuit.add(CNOT(control=0, control_type="e", target=0, target_type="p"))
     circuit.add(CNOT(control=0, control_type="e", target=1, target_type="p"))
-    # circuit.add(Hadamard(register=1, reg_type='p'))
+
     circuit.add(CNOT(control=0, control_type="e", target=2, target_type="p"))
     circuit.add(Hadamard(register=2, reg_type="p"))
     circuit.add(Hadamard(register=0, reg_type="e"))
@@ -82,18 +62,9 @@ def ghz4_state_circuit():
     """
     Four-qubit GHZ state
     """
-    rho = ket2dm(
-        (tensor(4 * [state_ketz0()]) + tensor(4 * [state_ketz1()])) / np.sqrt(2)
-    )
-    ideal_state = dict(
-        dm=ket2dm(
-            (tensor(4 * [state_ketz0()]) + tensor(4 * [state_ketz1()])) / np.sqrt(2)
-        ),
-        n_emitters=1,
-        n_photons=4,
-        name="ghz4",
-    )
+    rho = ket2dm((tensor(4 * [state_ketz0()]) + tensor(4 * [state_ketz1()]))) / 2.0
     ideal_state = QuantumState(4, rho, representation="density matrix")
+
     circuit = CircuitDAG(n_emitter=1, n_photon=4, n_classical=1)
     circuit.add(Hadamard(register=0, reg_type="e"))
     circuit.add(CNOT(control=0, control_type="e", target=0, target_type="p"))
@@ -120,11 +91,12 @@ def linear_cluster_3qubit_circuit():
     """
     Three-qubit linear cluster state
     """
-
     graph = nx.Graph([(1, 2), (2, 3)])
     state = DensityMatrix.from_graph(graph)
-    # ideal_state = dict(dm=state.data, n_emitters=1, n_photons=3, name="linear3")
     ideal_state = QuantumState(3, state.data, representation="density matrix")
+    c_tableau = CliffordTableau(3)
+    c_tableau.stabilizer_from_labels(converter.graph_to_stabilizer(graph))
+    ideal_state.stabilizer = Stabilizer(c_tableau)
     circuit = CircuitDAG(n_emitter=1, n_photon=3, n_classical=1)
     circuit.add(Hadamard(register=0, reg_type="e"))
     circuit.add(CNOT(control=0, control_type="e", target=0, target_type="p"))
@@ -147,16 +119,12 @@ def linear_cluster_4qubit_circuit():
     """
     Four-qubit linear cluster state
     """
-
     graph = nx.Graph([(1, 2), (2, 3), (3, 4)])
     state = DensityMatrix.from_graph(graph)
-    ideal_state = dict(
-        dm=state.data,
-        n_emitters=1,
-        n_photons=4,
-        name="linear4",
-    )
     ideal_state = QuantumState(4, state.data, representation="density matrix")
+    c_tableau = CliffordTableau(4)
+    c_tableau.stabilizer_from_labels(converter.graph_to_stabilizer(graph))
+    ideal_state.stabilizer = Stabilizer(c_tableau)
     circuit = CircuitDAG(n_emitter=1, n_photon=4, n_classical=1)
     circuit.add(Hadamard(register=0, reg_type="e"))
     circuit.add(CNOT(control=0, control_type="e", target=0, target_type="p"))

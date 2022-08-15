@@ -36,12 +36,12 @@ class QuantumState:
     TODO: add a handle to delete specific representations (may be useful to clear out memory)
     """
 
-    def __init__(self, n_qubit, data, representation=None):
+    def __init__(self, n_qubits, data, representation=None):
         """
         Creates the QuantumState class with certain initial representations
 
-        :param n_qubit: number of qubits in the system (system size)
-        :type n_qubit: int
+        :param n_qubits: number of qubits in the system (system size)
+        :type n_qubits: int
         :param data: valid data input for "representation". If representations are given as a list,
                      the data must be a list of the same length
                      Density matrices representations support np.dnarray or int inputs
@@ -53,14 +53,14 @@ class QuantumState:
         :return: function returns nothing
         :rtype: None
         """
-        self.n_qubit = n_qubit
+        self.n_qubits = n_qubits
 
         self._dm = None
         self._graph = None
         self._stabilizer = None
 
         if representation is None:
-            if n_qubit < DENSITY_MATRIX_QUBIT_THRESH and DensityMatrix.valid_datatype(
+            if n_qubits < DENSITY_MATRIX_QUBIT_THRESH and DensityMatrix.valid_datatype(
                 data
             ):
                 self._initialize_dm(data)
@@ -88,7 +88,7 @@ class QuantumState:
                 "passed representation argument must be a String or a list of strings"
             )
 
-    def partial_trace(self, keep, dims):
+    def partial_trace(self, keep, dims, measurement_determinism="probabilistic"):
         """
         Calculates the partial trace on all state representations which are currently defined
 
@@ -99,13 +99,17 @@ class QuantumState:
                     if the space is :math:`A \\times B \\times C \\times D`,
                     dims = [dim_A, dim_B, dim_C, dim_D]
         :type dims: list OR numpy.ndarray
+        :param measurement_determinism:
+        :type measurement_determinism:
         :return: nothing
         :rtype: None
         """
         if self._dm is not None:
             self.dm.data = dmf.partial_trace(self.dm.data, keep, dims)
         if self._stabilizer is not None:
-            self.stabilizer.data = sfc.partial_trace(self._stabilizer.data, keep, dims)
+            self.stabilizer.data = sfc.partial_trace(
+                self._stabilizer.data, keep, dims, measurement_determinism
+            )
         if self._graph is not None:
             raise NotImplementedError(
                 "Partial trace not yet implemented on graph state"
@@ -263,7 +267,7 @@ class QuantumState:
         else:
             self._dm = DensityMatrix(data)
 
-        assert self._dm.data.shape[0] == self._dm.data.shape[1] == 2**self.n_qubit
+        assert self._dm.data.shape[0] == self._dm.data.shape[1] == 2**self.n_qubits
 
     def _initialize_graph(self, data):
         """
@@ -277,8 +281,8 @@ class QuantumState:
         """
         self._graph = Graph(data, 1)
         # TODO: adjust root_node_id field once we've figured out how we want to use it
-        assert self._graph.n_qubit == self.n_qubit, (
-            f"Expected {self.n_qubit} qubits, "
+        assert self._graph.n_qubit == self.n_qubits, (
+            f"Expected {self.n_qubits} qubits, "
             f"graph representation has {self._graph.n_qubit}"
         )
 
@@ -292,8 +296,8 @@ class QuantumState:
         :rtype: None
         """
         self._stabilizer = Stabilizer(data)
-        assert self._stabilizer.n_qubit == self.n_qubit, (
-            f"Expected {self.n_qubit} qubits, "
+        assert self._stabilizer.n_qubit == self.n_qubits, (
+            f"Expected {self.n_qubits} qubits, "
             f"Stabilizer representation has {self._stabilizer.n_qubit}"
         )
 
@@ -310,7 +314,7 @@ class QuantumState:
         :rtype: None
         """
         if representation == "density matrix":
-            if self.n_qubit > DENSITY_MATRIX_QUBIT_THRESH:
+            if self.n_qubits > DENSITY_MATRIX_QUBIT_THRESH:
                 warnings.warn(
                     UserWarning(
                         "Density matrix is not recommended for a state of this size"

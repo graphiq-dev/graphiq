@@ -8,8 +8,6 @@ from src.backends.stabilizer.functions.linalg import (
     row_reduction,
     row_sum,
 )
-
-
 from scipy.linalg import block_diag
 
 """Main gates """
@@ -29,15 +27,14 @@ def hadamard_gate(tableau, qubit_position):
     n_qubits = tableau.n_qubits  # number of qubits
     assert qubit_position < n_qubits
 
-    # updating phase vector
+    # update phase vector
     tableau.phase = tableau.phase ^ multiply_columns(
         tableau.table, tableau.table, qubit_position, n_qubits + qubit_position
     )
-    # updating the rest of the tableau
+    # update the rest of the tableau
     tableau.table = column_swap(
         tableau.table, qubit_position, n_qubits + qubit_position
     )
-
     return tableau
 
 
@@ -55,11 +52,11 @@ def phase_gate(tableau, qubit_position):
     n_qubits = tableau.n_qubits  # number of qubits
     assert qubit_position < n_qubits
 
-    # updating phase vector
+    # update phase vector
     tableau.phase = tableau.phase ^ multiply_columns(
         tableau.table, tableau.table, qubit_position, n_qubits + qubit_position
     )
-    # updating the rest of the tableau
+    # update the rest of the tableau
     tableau.table = add_columns(
         tableau.table, qubit_position, n_qubits + qubit_position
     )
@@ -84,19 +81,15 @@ def cnot_gate(tableau, ctrl_qubit, target_qubit):
     assert ctrl_qubit < n_qubits and target_qubit < n_qubits
     table = tableau.table
 
-    # updating phase vector
+    # update phase vector
     x_ctrl_times_z_target = multiply_columns(
         table, table, ctrl_qubit, n_qubits + target_qubit
-    )
+    ).astype(int)
     x_target = table[:, target_qubit]
     z_ctrl = table[:, n_qubits + ctrl_qubit]
     tableau.phase = tableau.phase ^ (x_ctrl_times_z_target * (x_target ^ z_ctrl ^ 1))
 
-    # updating the rest of the tableau
-    # table[:, target_qubit] = table[:, target_qubit] ^ table[:, ctrl_qubit]
-    # table[:, n_qubits + ctrl_qubit] = (
-    #    table[:, n_qubits + ctrl_qubit] ^ table[:, n_qubits + target_qubit]
-    # )
+    # update the rest of the tableau
     tableau.table = add_columns(tableau.table, ctrl_qubit, target_qubit)
     tableau.table = add_columns(
         tableau.table, n_qubits + target_qubit, n_qubits + ctrl_qubit
@@ -109,7 +102,7 @@ def z_measurement_gate(
     tableau, qubit_position, measurement_determinism="probabilistic"
 ):
     """
-    Measurement applied on a single qubit given its position in a stabilizer state.
+    Apply a Z-basis measurement on a given qubit in a stabilizer state.
 
     :param tableau: Tableau of the state before gate action
     :type tableau: CliffordTableau
@@ -156,11 +149,11 @@ def z_measurement_gate(
         table[x_p] = np.zeros(2 * n_qubits)
         table[x_p, qubit_position + n_qubits] = 1
 
-        # set r_vector of that row to random measurement outcome 0 or 1. (equal probability)
+        # set that row of the phase vector to random measurement outcome 0 or 1 with an equal probability.
         # We have the option to remove randomness and pick a specific outcome
         # measurement_determinism is only used when we know random measurement outcome is possible
         if measurement_determinism == "probabilistic":
-            outcome = np.random.randint(0, 1)
+            outcome = np.random.randint(0, 2)
         elif measurement_determinism == 1:
             outcome = 1
         else:
@@ -179,8 +172,7 @@ def z_measurement_gate(
         r_vector = np.append(tableau.phase, 0)
 
         # list of nonzero elements in the x destabilizers
-        non_zero_x = [i for i in non_zero_x if i < n_qubits]
-        for non_zero in non_zero_x:
+        for non_zero in non_zero_x[non_zero_x < n_qubits]:
             x_matrix, z_matrix, r_vector = row_sum(
                 x_matrix, z_matrix, r_vector, non_zero + n_qubits, 2 * n_qubits
             )
@@ -194,7 +186,7 @@ def z_measurement_gate(
 
 def phase_dagger_gate(tableau, qubit_position):
     """
-    Phase dagger gate (inverse of phase) applied on a single qubit given its position, in a stabilizer state.
+    Phase dagger gate (inverse of phase) applied to a given qubit in a stabilizer state tableau.
 
     :param tableau: Tableau of the state before gate action
     :type tableau: CliffordTableau
@@ -203,8 +195,7 @@ def phase_dagger_gate(tableau, qubit_position):
     :return: the resulting state after gate action
     :rtype: CliffordTableau
     """
-    n_qubits = tableau.n_qubits  # number of qubits
-    assert qubit_position < n_qubits
+
     for _ in range(3):
         tableau = phase_gate(tableau, qubit_position)
 
@@ -213,7 +204,7 @@ def phase_dagger_gate(tableau, qubit_position):
 
 def z_gate(tableau, qubit_position):
     """
-    Pauli Z applied on a single qubit given its position, in a stabilizer state tableau.
+    Apply the Pauli Z to a given qubit in a stabilizer state tableau.
 
     :param tableau: Tableau of the state before gate action
     :type tableau: CliffordTableau
@@ -222,8 +213,7 @@ def z_gate(tableau, qubit_position):
     :return: the resulting state after gate action
     :rtype: CliffordTableau
     """
-    n_qubits = tableau.n_qubits  # number of qubits
-    assert qubit_position < n_qubits
+
     for _ in range(2):
         tableau = phase_gate(tableau, qubit_position)
 
@@ -232,7 +222,7 @@ def z_gate(tableau, qubit_position):
 
 def x_gate(tableau, qubit_position):
     """
-    Pauli X (= HZH) applied on a single qubit given its position, in a stabilizer state tableau.
+    Apply the Pauli X (= HZH) to a given qubit in a stabilizer state tableau.
 
     :param tableau: Tableau of the state before gate action
     :type tableau: CliffordTableau
@@ -241,8 +231,7 @@ def x_gate(tableau, qubit_position):
     :return: the resulting state after gate action
     :rtype: CliffordTableau
     """
-    n_qubits = tableau.n_qubits  # number of qubits
-    assert qubit_position < n_qubits
+
     tableau = hadamard_gate(tableau, qubit_position)
     tableau = z_gate(tableau, qubit_position)
     tableau = hadamard_gate(tableau, qubit_position)
@@ -252,7 +241,7 @@ def x_gate(tableau, qubit_position):
 
 def y_gate(tableau, qubit_position):
     """
-    Pauli Y (=PXZP) applied on a single qubit given its position, in a stabilizer state tableau.
+    Apply the Pauli Y (=PXZP) to a given qubit in a stabilizer state tableau.
 
     :param tableau: Tableau of the state before gate action
     :type tableau: CliffordTableau
@@ -261,8 +250,7 @@ def y_gate(tableau, qubit_position):
     :return: the resulting state after gate action
     :rtype: CliffordTableau
     """
-    n_qubits = tableau.n_qubits  # number of qubits
-    assert qubit_position < n_qubits
+
     tableau = phase_gate(tableau, qubit_position)
     tableau = z_gate(tableau, qubit_position)
     tableau = x_gate(tableau, qubit_position)
@@ -273,7 +261,7 @@ def y_gate(tableau, qubit_position):
 
 def control_z_gate(tableau, ctrl_qubit, target_qubit):
     """
-    Controlled Z gate on control and target qubits given their position, in a stabilizer state.
+    Controlled Z gate on control and target qubits in a stabilizer state tableau.
 
     :param tableau: Tableau of the state before gate action
     :type tableau: CliffordTableau
@@ -292,7 +280,7 @@ def control_z_gate(tableau, ctrl_qubit, target_qubit):
 
 def control_y_gate(tableau, ctrl_qubit, target_qubit):
     """
-    Controlled Y gate on control and target qubits given their position, in a stabilizer state.
+    Controlled Y gate on control and target qubits in a stabilizer state tableau.
 
     :param tableau: Tableau of the state before gate action
     :type tableau: CliffordTableau
@@ -314,14 +302,14 @@ def reset_z(
     tableau, qubit_position, intended_state, measurement_determinism="probabilistic"
 ):
     """
-    Resets a qubit to a Z basis state. Note that it only works after a measurement gate on the same qubit or for
-    isolated qubits. Otherwise, the action of this gate would be measuring in Z basis and resetting the qubit.
+    Resets a qubit to a Z basis state. Note that it only works after a measurement gate on the same qubit or if
+    the qubit is isolated. Otherwise, the action of this gate would be measuring in Z basis and resetting the qubit.
 
     :param tableau: Tableau of the state before gate action
     :type tableau: CliffordTableau
     :param qubit_position: index of the qubit to be reset
     :type qubit_position: int
-    :param intended_state: either 0 for Z_0 state or 1 for Z_1 state
+    :param intended_state: either 0 for :math:`|0 \\rangle` state or 1 for :math:`|1 \\rangle`  state
     :type intended_state: int
     :param measurement_determinism:
     :type measurement_determinism: int or str
@@ -337,53 +325,49 @@ def reset_z(
         tableau, qubit_position, measurement_determinism
     )
     if probabilistic:
-        if outcome == intended_state:
-            return tableau
-        else:
-            tableau.phase[probabilistic] = intended_state
-            return tableau
+        tableau.phase[probabilistic] = int(intended_state)
+        return tableau
+
     else:
         if outcome == intended_state:
             return tableau
         else:
-            non_zero = [
-                i
-                for i in range(n_qubits)
-                if tableau.destabilizer_x[i, qubit_position] != 0
-            ]
-            if len(non_zero) <= 1:
-                tableau.phase[non_zero[0]] = 1 ^ tableau.phase[non_zero[0]]
-                return tableau
-            else:
-                removed_qubit_table = np.delete(
-                    tableau.table, [qubit_position, n_qubits + qubit_position], axis=1
-                )
-                for i in non_zero:
-                    if np.array_equal(
-                        removed_qubit_table[i], np.zeros(2 * n_qubits - 2)
-                    ):
-                        tableau.phase[i] = 1 ^ tableau.phase[i]
-                        return tableau
-                tableau.phase[non_zero[-1]] = 1 ^ tableau.phase[non_zero[-1]]
-                return tableau
+            return x_gate(tableau, qubit_position)
+            # the following code does differently and leave here for debugging purpose.
+            # non_zero = [i for i in range(n_qubits)if tableau.destabilizer_x[i, qubit_position] != 0]
+            # if len(non_zero) <= 1:
+            #     tableau.phase[non_zero[0]] = 1 ^ tableau.phase[non_zero[0]]
+            #     return tableau
+            # else:
+            #     removed_qubit_table = np.delete(
+            #         tableau.table, [qubit_position, n_qubits + qubit_position], axis=1
+            #     )
+            #     for i in non_zero:
+            #         if np.array_equal(
+            #             removed_qubit_table[i], np.zeros(2 * n_qubits - 2)
+            #         ):
+            #             tableau.phase[i] = 1 ^ tableau.phase[i]
+            #             return tableau
+            #     tableau.phase[non_zero[-1]] = 1 ^ tableau.phase[non_zero[-1]]
+            #     return tableau
 
 
 def reset_x(
     tableau, qubit_position, intended_state, measurement_determinism="probabilistic"
 ):
     """
-
+    Reset the qubit in one of X-basis states
 
     :param tableau:
-    :type tableau:
+    :type tableau: CliffordTableau
     :param qubit_position:
-    :type qubit_position:
+    :type qubit_position: int
     :param intended_state:
-    :type intended_state:
+    :type intended_state: int
     :param measurement_determinism:
-    :type measurement_determinism:
+    :type measurement_determinism: str or int
     :return:
-    :rtype:
+    :rtype: CliffordTableau
     """
     new_tableau = reset_z(
         tableau,
@@ -399,18 +383,18 @@ def reset_y(
     tableau, qubit_position, intended_state, measurement_determinism="probabilistic"
 ):
     """
-
+    Reset the qubit to one of the eigenstates of the Y basis.
 
     :param tableau:
-    :type tableau:
+    :type tableau: CliffordTableau
     :param qubit_position:
-    :type qubit_position:
+    :type qubit_position: int
     :param intended_state:
-    :type intended_state:
+    :type intended_state: int
     :param measurement_determinism:
-    :type measurement_determinism:
+    :type measurement_determinism: str or int
     :return:
-    :rtype:
+    :rtype: CliffordTableau
     """
     new_tableau = reset_z(
         tableau,
@@ -425,35 +409,14 @@ def reset_y(
 
 def add_qubit(tableau):
     """
-    add one isolated qubit in :math:`|0 \\rangle` state to the current state at the end.
-    # TODO: rewrite this by calling insert_qubit
+    Add one isolated qubit in :math:`|0 \\rangle` state to the current state at the end.
 
+    :param tableau: the input state tableau
+    :type tableau: CliffordTableau
     :return: the updated stabilizer state
     :rtype: CliffordTableau
     """
-    n_qubits = tableau.n_qubits  # number of qubits
-    n_new = 1 + n_qubits
-    if n_qubits == 0:
-        return create_n_ket0_state(1)
-
-    new_tableau = create_n_ket0_state(n_new)
-    # x destabilizer part
-    new_tableau.destabilizer_x[0:n_qubits, 0:n_qubits] = tableau.destabilizer_x
-    # z destabilizer part
-    new_tableau.destabilizer_z[0:n_qubits, 0:n_qubits] = tableau.destabilizer_z
-    # r destabilizer part
-    new_tableau.phase[0:n_qubits] = tableau.phase[0, n_qubits]
-    # x stabilizer part
-    new_tableau.stabilizer_x[0:n_qubits, 0:n_qubits] = tableau.stabilizer_x
-    # z stabilizer part
-    new_tableau.stabilizer_z[0:n_qubits, 0:n_qubits] = tableau.stabilizer_z
-    # r stabilizer part
-    new_tableau.phase[n_new : 2 * n_new - 1] = tableau.phase[n_qubits : 2 * n_qubits]
-
-    # TODO: decide whether we want to update the old tableau
-    tableau.expand(new_tableau.table, new_tableau.phase)
-
-    return new_tableau
+    return insert_qubit(tableau, tableau.n_qubits)
 
 
 def insert_qubit(tableau, new_position):
@@ -506,7 +469,7 @@ def remove_qubit(tableau, qubit_position, measurement_determinism="probabilistic
     The action of the function is measure and remove. If isolated, state should not change. Entangled qubits cannot be
     removed without affecting other parts of the state.
     Only works correctly for isolated qubits! e.g. after measurement.
-    TODO: Check if a qubit is isolated in general? Only isolated qubits in the Z basis states can be confirmed for now.
+    TODO: Check if a qubit is isolated in general. Only isolated qubits in the Z basis states can be confirmed for now.
 
     :param tableau:
     :type tableau: CliffordTableau
@@ -525,12 +488,12 @@ def remove_qubit(tableau, qubit_position, measurement_determinism="probabilistic
     new_table = np.delete(
         tableau.table, [qubit_position, qubit_position + n_qubits], axis=1
     )
-    new_phase = np.delete(tableau.phase, [qubit_position, qubit_position + n_qubits])
+
     if probabilistic:
         new_table = np.delete(
             new_table, [probabilistic, probabilistic - n_qubits], axis=0
         )
-
+        new_phase = np.delete(tableau.phase, [probabilistic, probabilistic - n_qubits])
     else:
         non_zero = [
             i for i in range(n_qubits) if tableau.destabilizer_x[i, qubit_position] != 0
@@ -539,15 +502,17 @@ def remove_qubit(tableau, qubit_position, measurement_determinism="probabilistic
             new_table = np.delete(
                 new_table, [non_zero[0], non_zero[0] + n_qubits], axis=0
             )
-
+            new_phase = np.delete(tableau.phase, [non_zero[0], non_zero[0] + n_qubits])
         else:
+            new_phase = tableau.phase
             for i in non_zero:
                 if np.array_equal(new_table[i], np.zeros(2 * n_qubits - 2)):
                     new_table = np.delete(new_table, [i, i + n_qubits], axis=0)
-
+                    new_phase = np.delete(new_phase, [i, i + n_qubits])
             new_table = np.delete(
                 new_table, [non_zero[-1], non_zero[-1] + n_qubits], axis=0
             )
+            new_phase = np.delete(new_phase, [non_zero[-1], non_zero[-1] + n_qubits])
 
     tableau.shrink(new_table, new_phase)
     return tableau
@@ -581,8 +546,7 @@ def measure_y(tableau, qubit_position, measurement_determinism="probabilistic"):
     :type tableau: CliffordTableau
     :param qubit_position: index of the qubit that the gate acts on
     :type qubit_position: int
-
-    :return: the classical outcome of measuring given qubit in the X basis.
+    :return: the classical outcome of measuring given qubit in the Y basis.
     :rtype: int
     """
     new_tableau = tableau
@@ -599,16 +563,16 @@ def measure_y(tableau, qubit_position, measurement_determinism="probabilistic"):
 
 def measure_z(tableau, qubit_position, measurement_determinism="probabilistic"):
     """
-    Returns the outcome 0 or 1 if one measures the given qubit in the X basis.
+    Returns the outcome 0 or 1 if one measures the given qubit in the Z basis.
     NOTE: Does not update the stabilizer state after measurement.
 
-    :param tableau:
+    :param tableau: the initial state tableau
     :type tableau: CliffordTableau
     :param qubit_position: index of the qubit that the gate acts on
     :type qubit_position: int
     :param measurement_determinism:
-    :type measurement_determinism:
-    :return: the classical outcome of measuring given qubit in the X basis.
+    :type measurement_determinism: str or int
+    :return: the classical outcome of measuring given qubit in the Z basis.
     :rtype: int
     """
     _, outcome, _ = z_measurement_gate(tableau, qubit_position, measurement_determinism)
@@ -619,29 +583,46 @@ def swap_gate(tableau, qubit1, qubit2):
     """
     Swap gate between two qubits.
 
-    :param tableau:
-    :param qubit1: One of the qubits as input to the swap gate. (symmetrical)
-    :param qubit2: The other qubit.
+    :param tableau: a stabilizer state tableau consists of stabilizer and destabilizer
+    :type tableau: CliffordTableau
+    :param qubit1: One of the qubits as input to the swap gate
+    :type qubit1: int
+    :param qubit2: The other qubit position
+    :type qubit2: int
     :return: Updated state
+    :rtype: CliffordTableau
     """
     n_qubits = tableau.n_qubits  # number of qubits
     assert qubit1 < n_qubits and qubit2 < n_qubits
     tableau.table = column_swap(tableau.table, qubit1, qubit2)
     tableau.table = column_swap(tableau.table, qubit1 + n_qubits, qubit2 + n_qubits)
+    tableau.phase[[qubit1, qubit2]] = tableau.phase[[qubit2, qubit1]]
+    tableau.phase[[qubit1 + n_qubits, qubit2 + n_qubits]] = tableau.phase[
+        [qubit2 + n_qubits, qubit1 + n_qubits]
+    ]
     return tableau
 
 
 def create_n_ket0_state(n_qubits):
     """
-    Creates a product state that consists :math:`n` tensor factors of the computational (Pauli Z) 0 state.
-    """
+    Create the product state :math:`|0\\rangle^{\\otimes n}`
 
+    :param n_qubits: number of qubits
+    :type n_qubits: int
+    :return: the state :math:`|0\\rangle^{\\otimes n}`
+    :rtype: CliffordTableau
+    """
     return CliffordTableau(n_qubits)
 
 
 def create_n_plus_state(n_qubits):
     """
-    Creates a product state that consists :math:`n` tensor factors of the "plus state" (Pauli X's +1 eigenstate)
+    Create the product state :math:`|+\\rangle^{\\otimes n}`
+
+    :param n_qubits: number of qubits
+    :type n_qubits: int
+    :return: the state :math:`|+\\rangle^{\\otimes n}`
+    :rtype: CliffordTableau
     """
     tableau = create_n_ket0_state(n_qubits)
 
@@ -654,8 +635,9 @@ def create_n_plus_state(n_qubits):
 
 def tensor(list_of_tables):
     """
+    Return the stabilizer state (Clifford) tableau that is tensor product of states given by list_of_tables
 
-    :param list_of_tables: A list of the states' tableau we want to tensor in the same order. (left to right)
+    :param list_of_tables: A list of the states' tableau we want to tensor in the same order (left to right)
     :type list_of_tables: list[CliffordTableau]
     :return: The resulting tableau
     :rtype: CliffordTableau
@@ -686,13 +668,30 @@ def tensor(list_of_tables):
     return tableau
 
 
-def partial_trace(tableau, keep, dims):
+def partial_trace(tableau, keep, dims, measurement_determinism="probabilistic"):
     """
-    TODO: Need to use this to remove emitter qubits. Also fill out src/state.py's partial trace func!!
+    Return the tableau corresponding to taking the partial trace of the state
 
-    :return:
-    :rtype:
+    :param tableau: the state represented by CliffordTableau
+    :type tableau: CliffordTableau
+    :param keep: the qubit positions to be kept
+    :type keep: list[int]
+    :param dims: currently not used for this function
+    :type dims: list[int]
+    :param measurement_determinism:
+    :type measurement_determinism:
+    :return: the tableau corresponding to taking the partial trace of the state
+    :rtype: CliffordTableau
     """
+
+    n_qubits = tableau.n_qubits
+    total = set(range(n_qubits))
+    keep = set(keep)
+    removal = sorted(total - keep, reverse=True)
+    for qubit_position in removal:
+        tableau = remove_qubit(tableau, qubit_position, measurement_determinism)
+
+    return tableau
 
 
 def full_rank_x(tableau):
@@ -728,4 +727,27 @@ def full_rank_x(tableau):
     for qubit in range(rank, n_qubits):
         tableau = hadamard_gate(tableau, qubit)
 
+    return tableau
+
+
+def run_circuit(tableau, circuit_list):
+    """
+    Return the stabilizer state tableau after the execution of the circuit.
+
+    :param tableau: initial state tableau
+    :type tableau: CliffordTableau
+    :param circuit_list: a list of gates in the circuit
+    :type circuit_list: list[tuple]
+    :return: the stabilizer state tableau after the execution of the circuit.
+    :rtype: CliffordTableau
+    """
+    for ops in circuit_list:
+        if ops[0] == "H":
+            tableau = hadamard_gate(tableau, ops[1])
+        if ops[0] == "P":
+            tableau = phase_gate(tableau, ops[1])
+        if ops[0] == "CNOT":
+            tableau = cnot_gate(tableau, ops[1], ops[2])
+        if ops[0] == "CZ":
+            tableau = control_z_gate(tableau, ops[1], ops[2])
     return tableau

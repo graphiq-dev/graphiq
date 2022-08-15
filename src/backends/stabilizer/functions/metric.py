@@ -1,10 +1,10 @@
 import numpy as np
-from src.backends.stabilizer.functions.linalg import hadamard_transform
+
 from src.backends.stabilizer.functions.stabilizer import (
     canonical_form,
-    row_sum,
     inverse_circuit,
 )
+from src.backends.stabilizer.functions.linalg import row_sum
 import src.backends.stabilizer.functions.clifford as sfc
 
 
@@ -39,15 +39,7 @@ def inner_product(tableau1, tableau2):
     _, circ = inverse_circuit(stabilizer_tableau1)
 
     # apply inverse circuit on the 2nd state
-    for ops in circ:
-        if ops[0] == "H":
-            tableau2 = sfc.hadamard_gate(tableau2, ops[1])
-        if ops[0] == "P":
-            tableau2 = sfc.phase_gate(tableau2, ops[1])
-        if ops[0] == "CNOT":
-            tableau2 = sfc.cnot_gate(tableau2, ops[1], ops[2])
-        if ops[0] == "CZ":
-            tableau2 = sfc.control_z_gate(tableau2, ops[1], ops[2])
+    tableau2 = sfc.run_circuit(tableau2, circ)
 
     # make the updated 2nd state canonical form
     stabilizer_tableau2 = tableau2.to_stabilizer()
@@ -78,3 +70,17 @@ def inner_product(tableau1, tableau2):
             ):
                 return 0
     return 2 ** (-counter / 2)
+
+
+def clifford_from_stabilizer(stabilizer_tableau):
+    """
+
+    :param stabilizer_tableau:
+    :type stabilizer_tableau: StabilizerTableau
+    :return:
+    :rtype: CliffordTableau
+    """
+    n_qubits = stabilizer_tableau.n_qubits
+    tableau, circuit = inverse_circuit(stabilizer_tableau)
+    clifford_tableau = sfc.create_n_ket0_state(n_qubits)
+    return sfc.run_circuit(clifford_tableau, circuit)

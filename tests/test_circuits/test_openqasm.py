@@ -35,7 +35,7 @@ def all_gate_circuit():
 
     # controlled gates
     dag.add(ops.CNOT(control=0, control_type="e", target=0, target_type="p"))
-    dag.add(ops.CPhase(control=0, control_type="e", target=0, target_type="p"))
+    dag.add(ops.CZ(control=0, control_type="e", target=0, target_type="p"))
 
     # Controlled measurements
     dag.add(
@@ -44,7 +44,7 @@ def all_gate_circuit():
         )
     )
     dag.add(
-        ops.ClassicalCPhase(
+        ops.ClassicalCZ(
             control=0, control_type="e", target=0, target_type="p", c_register=0
         )
     )
@@ -183,7 +183,7 @@ def test_load_circuit_2():
     circuit1.add(ops.Phase(register=1, reg_type="p"))
     circuit1.add(ops.Identity(register=0, reg_type="p"))
     circuit1.add(ops.CNOT(control=0, control_type="e", target=1, target_type="p"))
-    circuit1.add(ops.CPhase(control=0, control_type="p", target=1, target_type="p"))
+    circuit1.add(ops.CZ(control=0, control_type="p", target=1, target_type="p"))
     circuit1.add(
         ops.MeasurementCNOTandReset(
             control=0, control_type="e", target=0, target_type="p", c_register=1
@@ -196,7 +196,7 @@ def test_load_circuit_2():
         )
     )
     circuit1.add(
-        ops.ClassicalCPhase(
+        ops.ClassicalCZ(
             control=0, control_type="p", target=0, target_type="e", c_register=1
         )
     )
@@ -261,7 +261,7 @@ def test_visualization_3(dag):
     dag.add(ops.SigmaY(register=0))
     dag.add(ops.SigmaZ(register=0))
     dag.add(ops.CNOT(control=0, control_type="e", target=1, target_type="e"))
-    dag.add(ops.CPhase(control=1, control_type="e", target=0, target_type="e"))
+    dag.add(ops.CZ(control=1, control_type="e", target=0, target_type="e"))
     dag.add(ops.MeasurementZ(register=0, reg_type="e", c_register=0))
     fig, ax = dag.draw_circuit(show=False)
     fig.suptitle("testing fig reception")

@@ -1,5 +1,5 @@
 """
-Stabilizer state representation
+State representation using the stabilizer formalism
 """
 from src.backends.state_base import StateRepresentationBase
 import src.backends.stabilizer.functions.clifford as sfc
@@ -36,7 +36,7 @@ class Stabilizer(StateRepresentationBase):
     def tableau(self):
         """
 
-        :return:
+        :return: the underlying representation
         :rtype: CliffordTableau
         """
         return self._tableau
@@ -59,10 +59,22 @@ class Stabilizer(StateRepresentationBase):
 
     @property
     def data(self):
+        """
+
+        :return:
+        :rtype:
+        """
         return self.tableau
 
     @data.setter
     def data(self, value):
+        """
+
+        :param value:
+        :type value:
+        :return:
+        :rtype:
+        """
         self.tableau = value
 
     def apply_unitary(self, qubit_position, unitary):
@@ -95,7 +107,7 @@ class Stabilizer(StateRepresentationBase):
     def apply_cnot(self, control, target):
         self._tableau = sfc.cnot_gate(self._tableau, control, target)
 
-    def apply_cphase(self, control, target):
+    def apply_cz(self, control, target):
         self._tableau = sfc.control_z_gate(self._tableau, control, target)
 
     def apply_phase(self, qubit_position):
@@ -115,5 +127,35 @@ class Stabilizer(StateRepresentationBase):
             self._tableau, qubit_position, 0, measurement_determinism
         )
 
-    def remove_qubit(self, qubit_position):
-        self._tableau = sfc.remove_qubit(self._tableau, qubit_position)
+    def remove_qubit(self, qubit_position, measurement_determinism="probabilistic"):
+        self._tableau = sfc.remove_qubit(
+            self._tableau, qubit_position, measurement_determinism
+        )
+
+    def trace_out_qubits(
+        self, qubit_positions, measurement_determinism="probabilistic"
+    ):
+        self._tableau = sfc.partial_trace(
+            self._tableau,
+            keep=qubit_positions,
+            dims=self.n_qubit * [2],
+            measurement_determinism=measurement_determinism,
+        )
+
+    def __str__(self):
+        """
+
+        :return:
+        :rtype: str
+        """
+        return self._tableau.__str__()
+
+    def __eq__(self, other):
+        """
+
+        :param other:
+        :type other: Stabilizer
+        :return: True if the stabilizer tableaux of two Stabilizer objects are the same
+        :rtype: bool
+        """
+        return self.data.to_stabilizer().__eq__(other.data.to_stabilizer())

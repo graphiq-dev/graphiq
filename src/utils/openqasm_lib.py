@@ -245,7 +245,7 @@ def single_qubit_wrapper_info(op_list):
     )
 
 
-def cphase_info():
+def cz_info():
     imports = []
     definition = "gate cz a, b { U(pi/2, 0, pi) b; CX a, b; U(pi/2, 0, pi) b; }"  # H on target, CX, H on target
 
@@ -268,7 +268,7 @@ def classical_cnot_info():
     return OpenQASMInfo("ccnot", imports, definition, usage, True)
 
 
-def classical_cphase_info():
+def classical_cz_info():
     imports = []
     definition = sigma_z_info().definitions[0]
 
@@ -278,7 +278,7 @@ def classical_cphase_info():
             f"if (c{c_reg[0]}==1) z {q_reg_type[1]}{q_reg[1]}[0];"
         )
 
-    return OpenQASMInfo("ccphase", imports, definition, usage, True)
+    return OpenQASMInfo("ccz", imports, definition, usage, True)
 
 
 def measurement_cnot_and_reset():

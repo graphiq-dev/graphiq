@@ -6,6 +6,7 @@ from abc import ABC, abstractmethod
 import numpy as np
 
 import src.backends.density_matrix.functions as dmf
+import src.backends.stabilizer.functions.metric as sfm
 
 
 class MetricBase(ABC):
@@ -80,8 +81,13 @@ class Infidelity(MetricBase):
         :return: infidelity = 1 - fidelity
         :rtype: float
         """
-        # TODO: add check for the representation (we may want to use stabilizer instead of dm)
-        fid = dmf.fidelity(self.target.dm.data, state.dm.data)
+        # TODO: add check for the representation
+        if state._stabilizer is not None:
+            fid = sfm.fidelity(self.target.stabilizer.data, state.stabilizer.data)
+        elif state._dm is not None:
+            fid = dmf.fidelity(self.target.dm.data, state.dm.data)
+        else:
+            raise ValueError("Cannot compute the infidelity.")
         self.increment()
 
         if self._inc % self.log_steps == 0:

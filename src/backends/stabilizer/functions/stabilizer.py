@@ -1,10 +1,10 @@
+import numpy as np
 from src.backends.stabilizer.tableau import StabilizerTableau
 from src.backends.stabilizer.functions.linalg import (
     row_swap,
     row_sum,
     hadamard_transform,
 )
-import numpy as np
 
 
 def _one_pauli_type_finder(x_matrix, z_matrix, pivot, pauli_type):

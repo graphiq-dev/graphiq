@@ -1,11 +1,11 @@
 import pytest
 import matplotlib.pyplot as plt
-import src.backends.density_matrix.functions as dmf
-
+import numpy as np
 from benchmarks.circuits import *
 from tests.test_flags import visualization
 from src.solvers.evolutionary_solver import EvolutionarySolver
 from src.backends.density_matrix.compiler import DensityMatrixCompiler
+from src.backends.stabilizer.compiler import StabilizerCompiler
 
 from src.metrics import Infidelity
 from src.state import QuantumState
@@ -20,6 +20,17 @@ def density_matrix_compiler():
     actually need a different copy each time
     """
     compiler = DensityMatrixCompiler()
+    compiler.measurement_determinism = 1
+    return compiler
+
+
+@pytest.fixture(scope="module")
+def stabilizer_compiler():
+    """
+    Here, we set the scope to module because, while we want to use a StabilizerCompiler multiple times, we don't
+    actually need a different copy each time
+    """
+    compiler = StabilizerCompiler()
     compiler.measurement_determinism = 1
     return compiler
 
@@ -39,7 +50,11 @@ def generate_run(n_photon, n_emitter, expected_triple, compiler, seed):
 
     state = compiler.compile(solver.hof[0][1])
 
-    state.partial_trace(list(range(n_photon)), (n_photon + n_emitter) * [2])
+    state.partial_trace(
+        list(range(n_photon)),
+        (n_photon + n_emitter) * [2],
+        compiler.measurement_determinism,
+    )
     return solver.hof, state
 
 
@@ -50,7 +65,10 @@ def check_run(run_info, expected_info):
 
     circuit = hof[0][1]
     assert np.isclose(hof[0][0], metric.evaluate(state, circuit))
-    assert np.allclose(state.dm.data, target_state.dm.data)
+    if state._dm is not None and target_state._dm is not None:
+        assert np.allclose(state.dm.data, target_state.dm.data)
+    if state._stabilizer is not None and target_state._stabilizer is not None:
+        assert state.stabilizer.__eq__(target_state.stabilizer)
 
 
 def check_run_visual(run_info, expected_info):
@@ -78,6 +96,12 @@ def linear3_run(density_matrix_compiler, linear3_expected):
     common fixture that only gets called once per module
     """
     return generate_run(3, 1, linear3_expected, density_matrix_compiler, 10)
+
+
+@pytest.fixture(scope="module")
+def linear3_run_stabilizer(stabilizer_compiler, linear3_expected):
+
+    return generate_run(3, 1, linear3_expected, stabilizer_compiler, 1)
 
 
 @pytest.fixture(scope="module")
@@ -126,6 +150,10 @@ def ghz3_expected():
 
 def test_solver_linear3(linear3_run, linear3_expected):
     check_run(linear3_run, linear3_expected)
+
+
+def test_solver_linear3_stabilizer(linear3_run_stabilizer, linear3_expected):
+    check_run(linear3_run_stabilizer, linear3_expected)
 
 
 @visualization

@@ -193,7 +193,10 @@ def stabilizer_to_density(input_stabilizer):
 
 def density_to_stabilizer(input_matrix):
     """
-    Convert a density matrix to stabilizer
+    Convert a density matrix to stabilizer via graph representation
+
+    This works only for graph states, not for general stabilizer states that are not graph states
+    TODO: generalize to general stabilizer states
 
     :param input_matrix: a density matrix
     :type input_matrix: numpy.ndarray

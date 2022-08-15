@@ -208,3 +208,15 @@ class DensityMatrix(StateRepresentationBase):
             plt.show()
 
         return fig, axs
+
+    def __eq__(self, other):
+        """
+        Compare two DensityMatrix objects and return True if the underlying density matrices are equal
+        (up to precision)
+
+        :param other: another DensityMatrix object
+        :type other: DensityMatrix
+        :return: True if they are equal; False otherwise
+        :rtype: bool
+        """
+        return np.allclose(self._data, other.data)

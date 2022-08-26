@@ -131,14 +131,16 @@ def z_measurement_gate(
         x_matrix = tableau.table_x
         z_matrix = tableau.table_z
         r_vector = tableau.phase
+        iphase_vector = tableau.iphase
         # rowsum for all other x elements equal to 1 other than x_p
         for target_row in non_zero_x:
-            x_matrix, z_matrix, r_vector = row_sum(
-                x_matrix, z_matrix, r_vector, x_p, target_row
+            x_matrix, z_matrix, r_vector, iphase_vector = row_sum(
+                x_matrix, z_matrix, r_vector, iphase_vector, x_p, target_row
             )
         tableau.table_x = x_matrix
         tableau.table_z = z_matrix
         tableau.phase = r_vector
+        tableau.iphase = iphase_vector
         table = tableau.table
 
         # set x_p - n row equal to x_p row
@@ -169,11 +171,16 @@ def z_measurement_gate(
         x_matrix = new_table[:, 0:n_qubits]
         z_matrix = new_table[:, n_qubits : 2 * n_qubits]
         r_vector = np.append(tableau.phase, 0).astype(int)
-
+        iphase_vector = np.append(tableau.iphase, 0).astype(int)
         # list of nonzero elements in the x destabilizers
         for non_zero in non_zero_x[non_zero_x < n_qubits]:
-            x_matrix, z_matrix, r_vector = row_sum(
-                x_matrix, z_matrix, r_vector, non_zero + n_qubits, 2 * n_qubits
+            x_matrix, z_matrix, r_vector, iphase_vector = row_sum(
+                x_matrix,
+                z_matrix,
+                r_vector,
+                iphase_vector,
+                non_zero + n_qubits,
+                2 * n_qubits,
             )
         # no need to update the tableau
         outcome = r_vector[2 * n_qubits]
@@ -325,6 +332,7 @@ def reset_z(
     )
     if probabilistic:
         tableau.phase[probabilistic] = intended_state
+        tableau.iphase[probabilistic] = 0
         return tableau
 
     else:
@@ -452,9 +460,11 @@ def insert_qubit(tableau, new_position):
 
     # phase vector part
     new_phase = np.insert(tableau.phase, [new_position, n_qubits + 1 + new_position], 0)
-
+    new_iphase = np.insert(
+        tableau.iphase, [new_position, n_qubits + 1 + new_position], 0
+    )
     new_table = np.block([[tmp_dex, tmp_dez], [tmp_sx, tmp_sz]])
-    tableau.expand(new_table, new_phase)
+    tableau.expand(new_table, new_phase, new_iphase)
 
     # set the new qubit to ket 0 state
     tableau.destabilizer_x[new_position, new_position] = 1
@@ -493,6 +503,9 @@ def remove_qubit(tableau, qubit_position, measurement_determinism="probabilistic
             new_table, [probabilistic, probabilistic - n_qubits], axis=0
         )
         new_phase = np.delete(tableau.phase, [probabilistic, probabilistic - n_qubits])
+        new_iphase = np.delete(
+            tableau.iphase, [probabilistic, probabilistic - n_qubits]
+        )
     else:
         non_zero = [
             i for i in range(n_qubits) if tableau.destabilizer_x[i, qubit_position] != 0
@@ -502,8 +515,12 @@ def remove_qubit(tableau, qubit_position, measurement_determinism="probabilistic
                 new_table, [non_zero[0], non_zero[0] + n_qubits], axis=0
             )
             new_phase = np.delete(tableau.phase, [non_zero[0], non_zero[0] + n_qubits])
+            new_iphase = np.delete(
+                tableau.iphase, [non_zero[0], non_zero[0] + n_qubits]
+            )
         else:
             new_phase = tableau.phase
+            new_iphase = tableau.iphase
             for i in non_zero:
                 if np.array_equal(new_table[i], np.zeros(2 * n_qubits - 2)):
                     new_table = np.delete(new_table, [i, i + n_qubits], axis=0)
@@ -512,8 +529,8 @@ def remove_qubit(tableau, qubit_position, measurement_determinism="probabilistic
                 new_table, [non_zero[-1], non_zero[-1] + n_qubits], axis=0
             )
             new_phase = np.delete(new_phase, [non_zero[-1], non_zero[-1] + n_qubits])
-
-    tableau.shrink(new_table, new_phase)
+            new_iphase = np.delete(new_iphase, [non_zero[-1], non_zero[-1] + n_qubits])
+    tableau.shrink(new_table, new_phase, new_iphase)
     return tableau
 
 
@@ -599,6 +616,10 @@ def swap_gate(tableau, qubit1, qubit2):
     tableau.phase[[qubit1 + n_qubits, qubit2 + n_qubits]] = tableau.phase[
         [qubit2 + n_qubits, qubit1 + n_qubits]
     ]
+    tableau.iphase[[qubit1, qubit2]] = tableau.iphase[[qubit2, qubit1]]
+    tableau.iphase[[qubit1 + n_qubits, qubit2 + n_qubits]] = tableau.iphase[
+        [qubit2 + n_qubits, qubit1 + n_qubits]
+    ]
     return tableau
 
 
@@ -664,6 +685,15 @@ def tensor(list_of_tables):
         ).astype(int)
 
         tableau.phase = phase_vector
+
+        iphase_list1 = np.split(tableau.iphase, 2)
+        iphase_list2 = np.split(tab.iphase, 2)
+        iphase_vector = np.hstack(
+            (iphase_list1[0], iphase_list2[0], iphase_list1[1], iphase_list2[1])
+        ).astype(int)
+
+        tableau.iphase = iphase_vector
+
     return tableau
 
 

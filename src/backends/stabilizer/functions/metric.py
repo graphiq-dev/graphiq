@@ -54,14 +54,19 @@ def inner_product(tableau1, tableau2):
             counter = counter + 1
         else:
             identity_x = np.zeros(n_qubits)
-            identity_y = np.zeros(n_qubits)
+            identity_z = np.zeros(n_qubits)
             x_matrix = np.vstack((x1_matrix, identity_x)).astype(int)
-            z_matrix = np.vstack((z1_matrix, identity_y)).astype(int)
+            z_matrix = np.vstack((z1_matrix, identity_z)).astype(int)
             r_vector = np.zeros(n_qubits + 1)
             z_list = [j for j in range(n_qubits) if z2_matrix[i, j] == 1]
             for index in z_list:
-                x_matrix, z_matrix, r_vector = row_sum(
-                    x_matrix, z_matrix, r_vector, index, n_qubits
+                x_matrix, z_matrix, r_vector, _ = row_sum(
+                    x_matrix,
+                    z_matrix,
+                    r_vector,
+                    np.zeros(n_qubits + 1),
+                    index,
+                    n_qubits,
                 )
             if (
                 np.array_equal(x_matrix[-1], x2_matrix[i])
@@ -81,6 +86,6 @@ def clifford_from_stabilizer(stabilizer_tableau):
     :rtype: CliffordTableau
     """
     n_qubits = stabilizer_tableau.n_qubits
-    tableau, circuit = inverse_circuit(stabilizer_tableau)
+    _, circuit = inverse_circuit(stabilizer_tableau)
     clifford_tableau = sfc.create_n_ket0_state(n_qubits)
     return sfc.run_circuit(clifford_tableau, circuit)

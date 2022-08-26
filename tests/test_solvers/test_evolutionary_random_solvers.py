@@ -1,6 +1,7 @@
 import pytest
 import matplotlib.pyplot as plt
 import numpy as np
+import src.backends.stabilizer.functions.stabilizer as sfs
 from benchmarks.circuits import *
 from tests.test_flags import visualization
 from src.solvers.evolutionary_solver import EvolutionarySolver
@@ -100,7 +101,6 @@ def linear3_run(density_matrix_compiler, linear3_expected):
 
 @pytest.fixture(scope="module")
 def linear3_run_stabilizer(stabilizer_compiler, linear3_expected):
-
     return generate_run(3, 1, linear3_expected, stabilizer_compiler, 1)
 
 
@@ -238,6 +238,54 @@ def test_solver_logging(seed):
 
     solver.solve()
     solver.logs_to_df()
+
+
+def test_stabilizer_linear3():
+    n_emitter = 1
+    n_photon = 3
+    circuit_ideal, target_state = linear_cluster_3qubit_circuit()
+    metric = Infidelity(target=target_state)
+    compiler = StabilizerCompiler()
+    compiler.measurement_determinism = 1
+    solver = EvolutionarySolver(
+        target=target_state,
+        metric=metric,
+        compiler=compiler,
+        n_emitter=n_emitter,
+        n_photon=n_photon,
+    )
+    solver.seed(1)
+    solver.solve()
+    state = compiler.compile(solver.hof[0][1])
+    state.partial_trace(
+        list(range(n_photon)),
+        (n_photon + n_emitter) * [2],
+        compiler.measurement_determinism,
+    )
+    hof = solver.hof
+    assert np.isclose(hof[0][0], 0.0)  # infidelity score is 0, within numerical error
+    circuit = hof[0][1]
+    circuit.draw_circuit()
+    assert np.isclose(hof[0][0], metric.evaluate(state, circuit))
+
+    if state._dm is not None and target_state._dm is not None:
+        pass
+        # assert np.allclose(state.dm.data, target_state.dm.data)
+    if state._stabilizer is not None and target_state._stabilizer is not None:
+        print(f"the output stabilizer is {state.stabilizer.data.to_stabilizer()}")
+        output_s_tableau = sfs.canonical_form(state.stabilizer.tableau.to_stabilizer())
+        print(f"the output stabilizer in the canonical form is {output_s_tableau}")
+        target_s_tableau = sfs.canonical_form(
+            target_state.stabilizer.tableau.to_stabilizer()
+        )
+        print(
+            f"the target stabilizer is {target_state.stabilizer.data.to_stabilizer()}"
+        )
+        print(
+            f"the target stabilizer in the canonical form is {target_state.stabilizer.tableau.to_stabilizer()}"
+        )
+        # assert state.stabilizer.__eq__(target_state.stabilizer)
+        pass
 
 
 """

@@ -174,6 +174,7 @@ class CliffordTableau(ABC):
             self._phase = phase.astype(int)
         else:
             self._phase = np.zeros(2 * self.n_qubits).astype(int)
+        self._iphase = np.zeros(2 * self.n_qubits).astype(int)
 
     @property
     def table(self):
@@ -367,10 +368,29 @@ class CliffordTableau(ABC):
         assert value.shape[0] == 2 * self.n_qubits
         self._phase = value.astype(int)
 
+    @property
+    def iphase(self):
+        """
+        :return:
+        :rtype:
+        """
+        return self._iphase
+
+    @iphase.setter
+    def iphase(self, value):
+        """
+        :param value:
+        :type value:
+        :return:
+        :rtype:
+        """
+        assert value.shape[0] == 2 * self.n_qubits
+        self._iphase = value.astype(int)
+
     def __str__(self):
         return (
             f"Destabilizers: \n{self.destabilizer_to_labels()}\n Stabilizer: \n {self.stabilizer_to_labels()} \n "
-            f"Phase: \n {self.phase} "
+            f"Phase: \n {self.phase} i phase: \n {self.iphase}"
         )
 
     def stabilizer_to_labels(self):
@@ -408,8 +428,10 @@ class CliffordTableau(ABC):
     def __eq__(self, other):
         # TODO: check if it is necessary to reduce to the echelon gauge before comparison
         if isinstance(other, CliffordTableau):
-            return np.all(self.phase == other.phase) and np.array_equal(
-                self.table.astype(int), other.table.astype(int)
+            return (
+                np.all(self.phase == other.phase)
+                and np.all(self.iphase == other.iphase)
+                and np.array_equal(self.table.astype(int), other.table.astype(int))
             )
 
         return False
@@ -422,19 +444,20 @@ class CliffordTableau(ABC):
         """
         return StabilizerTableau(self.stabilizer, self.phase[self.n_qubits :])
 
-    def _reset(self, new_table, new_phase):
+    def _reset(self, new_table, new_phase, new_iphase):
         new_n_qubits = int(new_table.shape[0] / 2)
         assert len(new_phase) == 2 * new_n_qubits
         self._table = new_table.astype(int)
         self._phase = new_phase.astype(int)
+        self._iphase = new_iphase.astype(int)
         self.n_qubits = new_n_qubits
 
-    def expand(self, new_table, new_phase):
+    def expand(self, new_table, new_phase, new_iphase):
         new_n_qubits = int(new_table.shape[0] / 2)
         assert new_n_qubits > self.n_qubits
-        self._reset(new_table, new_phase)
+        self._reset(new_table, new_phase, new_iphase)
 
-    def shrink(self, new_table, new_phase):
+    def shrink(self, new_table, new_phase, new_iphase):
         new_n_qubits = int(new_table.shape[0] / 2)
         assert new_n_qubits < self.n_qubits
-        self._reset(new_table, new_phase)
+        self._reset(new_table, new_phase, new_iphase)

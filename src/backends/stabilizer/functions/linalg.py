@@ -209,6 +209,7 @@ def g_function(x1, z1, x2, z2):
     """
     A helper function to use in rowsum function. Takes 4 bits (2 Pauli matrices in the binary representation) as input
     and returns the phase factor needed when the two Pauli matrices are multiplied: Pauli_1 * Pauli_2
+    As a convention for the phase, each Y operator introduces -i phase factor.
 
     Refer to section III of arXiv:quant-ph/0406196v5
 
@@ -220,11 +221,10 @@ def g_function(x1, z1, x2, z2):
     :type x2: int
     :param z2: the z bit of the second Pauli operator
     :type z2: int
-    :return: the exponent k in the phase factor: i^k where "i" is the unit imaginary number, where k can be
-        either 0, 1, or -1
+    :return: the exponent k in the phase factor: i^k where "i" is the unit imaginary number
     :rtype: int
     """
-    # print(f"x1={x1}, z1={z1}, x2={x2}, z2={z2}")
+
     if x1 == z1 == 0:  # both equal to zero
         return 0
     elif x1 == z1 == 1:
@@ -235,18 +235,20 @@ def g_function(x1, z1, x2, z2):
         return x2 * (1 - 2 * z2)
 
 
-def row_sum(x_matrix, z_matrix, r_vector, row_to_add, target_row):
+def row_sum(x_matrix, z_matrix, r_vector, iphase_vector, row_to_add, target_row):
     """
     Takes the full stabilizer tableau as input and sets the stabilizer generator in the target_row equal to
-    (row_to_add + target_row) while keeping track of the phase factor by updating the r_vector.
+    (row_to_add + target_row) while keeping track of the phase vectors.
     This is based on the section III of the article arXiv:quant-ph/0406196v5
 
     :param x_matrix: x matrix in the symplectic representation of the stabilizers
     :type x_matrix: np.ndarray
     :param z_matrix: z matrix in the symplectic representation of the stabilizers
     :type z_matrix: np.ndarray
-    :param r_vector: the vector of phase factors.
+    :param r_vector: the vector of phase factors for +1 or -1 phase.
     :type r_vector: np.ndarray
+    :param iphase_vector: the vector of phase factors for +i or -i phase.
+    :type iphase_vector: np.ndarray
     :param row_to_add: the stabilizer to multiply the target stabilizer with
     :type row_to_add: int
     :param target_row: the stabilizer to be multiplied by the "to_add" stabilizer
@@ -258,26 +260,31 @@ def row_sum(x_matrix, z_matrix, r_vector, row_to_add, target_row):
     # determining the phase factor
     g_sum = 0
     for j in range(n_qubits):
-
         g_sum = g_sum + g_function(
             x_matrix[row_to_add, j],
             z_matrix[row_to_add, j],
             x_matrix[target_row, j],
             z_matrix[target_row, j],
         )
-    if (2 * r_vector[target_row] + 2 * r_vector[row_to_add] + 2 * g_sum) % 4 == 0:
+
+    phases = 2 * r_vector[target_row] + iphase_vector[target_row]
+    phases += 2 * r_vector[row_to_add] + iphase_vector[row_to_add] + g_sum
+    phases = phases % 4
+    if phases == 0:
         r_vector[target_row] = 0
-    elif (2 * r_vector[target_row] + 2 * r_vector[row_to_add] + 2 * g_sum) % 4 == 2:
+        iphase_vector[target_row] = 0
+    elif phases == 1:
+        r_vector[target_row] = 0
+        iphase_vector[target_row] = 1
+    elif phases == 2:
         r_vector[target_row] = 1
+        iphase_vector[target_row] = 0
     else:
-        # print(f" row sum for j = {j}")
-        # print(r_vector[target_row])
-        # print(r_vector[row_to_add])
-        # print(g_sum)
-        raise Exception("input cannot be valid, due to unexpected outcome")
+        r_vector[target_row] = 1
+        iphase_vector[target_row] = 1
 
     # calculating the resulting new matrices after adding row i to h.
     x_matrix = add_rows(x_matrix, row_to_add, target_row)
     z_matrix = add_rows(z_matrix, row_to_add, target_row)
 
-    return x_matrix, z_matrix, r_vector
+    return x_matrix, z_matrix, r_vector, iphase_vector

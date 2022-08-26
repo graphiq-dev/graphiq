@@ -2,6 +2,8 @@
 Deterministic solver which follows the paper by Li et al. This solver works for the stabilizer backend.
 This solver is based on certain physical rules imposed by a platform.
 One can set these rules by the set of allowed transformations.
+
+TODO: this implementation is not done yet.
 """
 
 import numpy as np

@@ -92,6 +92,28 @@ def test_compile_circuit():
     dag.validate()
     dag.draw_circuit()
     compiler = StabilizerCompiler()
+    compiler.measurement_determinism = 1
+    output_stabilizer = compiler.compile(dag)
+    print(output_stabilizer.stabilizer)
+
+
+def test_compile_circuit2():
+    dag = CircuitDAG(n_emitter=1, n_photon=2, n_classical=0)
+    dag.add(
+        ops.OneQubitGateWrapper([ops.Hadamard, ops.Phase], register=0, reg_type="e")
+    )
+    dag.add(ops.CNOT(control=0, control_type="e", target=0, target_type="p"))
+    dag.add(ops.OneQubitGateWrapper([ops.Phase, ops.SigmaY], register=0, reg_type="p"))
+    dag.add(ops.CNOT(control=0, control_type="e", target=1, target_type="p"))
+    dag.add(ops.Hadamard(register=1, reg_type="p"))
+    dag.add(
+        ops.MeasurementCNOTandReset(
+            control=0, control_type="e", target=1, target_type="p"
+        )
+    )
+    dag.validate()
+    dag.draw_circuit()
+    compiler = StabilizerCompiler()
     # compiler.measurement_determinism=1
     output_stabilizer = compiler.compile(dag)
     print(output_stabilizer.stabilizer)

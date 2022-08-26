@@ -156,9 +156,14 @@ def tab_row_sum(tableau, row_to_add, target_row):
     :return: updated stabilizer tableau
     :rtype: StabilizerTableau
     """
-
-    x_matrix, z_matrix, r_vector = row_sum(
-        tableau.x_matrix, tableau.z_matrix, tableau.phase, row_to_add, target_row
+    n_qubits = tableau.n_qubits
+    x_matrix, z_matrix, r_vector, _ = row_sum(
+        tableau.x_matrix,
+        tableau.z_matrix,
+        tableau.phase,
+        np.zeros(n_qubits),
+        row_to_add,
+        target_row,
     )
 
     tableau.x_matrix = x_matrix

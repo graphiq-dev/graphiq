@@ -1,11 +1,9 @@
 """
 Compilation tools for simulating a circuit with a Stabilizer backend
 """
-import numpy as np
+
 from src import ops as ops
 from src.backends.compiler_base import CompilerBase
-from src.circuit import CircuitBase
-import src.noise.noise_models as nm
 
 
 class StabilizerCompiler(CompilerBase):
@@ -152,15 +150,9 @@ class StabilizerCompiler(CompilerBase):
             raise ValueError(
                 f"{type(op)} is invalid or not implemented for {self.__class__.__name__}."
             )
-        if state.data.table.dtype == int or state.data.table.dtype == np.int64:
-            pass
-        else:
-            print(
-                f"After applying {type(op)}, it contains non-integer. Its data type is {state.data.table.dtype}"
-            )
-            raise ValueError("stop here")
-        # print(f"After applying {type(op)}, the state is \n destabilizer: \n {state.data.destabilizer} \n
-        # stabilizer: \n {state.data.stabilizer} \n with phase {state.data.phase}")
+
+        # For debugging
+        # print(f"After applying {type(op)}, the state is \n destabilizer: \n {state.data.destabilizer} \n stabilizer: \n {state.data.stabilizer} \n with phase {state.data.phase}")
 
     def compile_one_noisy_gate(
         self, state, op, n_quantum, q_index, classical_registers

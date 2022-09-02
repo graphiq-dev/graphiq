@@ -40,7 +40,7 @@ def test_density_to_graph():
 
     rgraph = rep_converter.density_to_graph(rho_all)
 
-    assert np.allclose(nx.to_numpy_matrix(graph1), rgraph)
+    assert np.allclose(nx.to_numpy_array(graph1), rgraph)
 
 
 def test_density_to_graph2():
@@ -49,13 +49,13 @@ def test_density_to_graph2():
 
     rgraph = rep_converter.density_to_graph(rho_all)
 
-    assert np.allclose(nx.to_numpy_matrix(graph1), rgraph)
+    assert np.allclose(nx.to_numpy_array(graph1), rgraph)
 
 
 def test_stabilizer_to_graph():
     x_matrix = np.eye(4)
     graph1 = nx.Graph([(1, 2), (2, 3), (3, 4)])
-    z_matrix = nx.to_numpy_matrix(graph1)
+    z_matrix = nx.to_numpy_array(graph1)
     generator_list = sfu.symplectic_to_string(x_matrix, z_matrix)
     graph2 = rep_converter.stabilizer_to_graph(generator_list)
     assert nx.is_isomorphic(graph1, graph2)
@@ -64,7 +64,7 @@ def test_stabilizer_to_graph():
 def test_stabilizer_and_density_conversion():
     x_matrix = np.eye(4)
     graph1 = nx.Graph([(1, 2), (2, 3), (3, 4)])
-    z_matrix = nx.to_numpy_matrix(graph1)
+    z_matrix = nx.to_numpy_array(graph1)
     generator_list = sfu.symplectic_to_string(x_matrix, z_matrix)
     rho1 = rep_converter.stabilizer_to_density(generator_list)
     rho2 = rep_converter.graph_to_density(graph1)
@@ -82,7 +82,7 @@ def test_stabilizer_and_density_conversion():
 def test_stabilizer_and_density_conversion2():
     x_matrix = np.eye(5)
     graph1 = nx.Graph([(1, 2), (2, 3), (3, 4), (3, 5)])
-    z_matrix = nx.to_numpy_matrix(graph1)
+    z_matrix = nx.to_numpy_array(graph1)
     generator_list = sfu.symplectic_to_string(x_matrix, z_matrix)
     rho1 = rep_converter.stabilizer_to_density(generator_list)
     rho2 = rep_converter.graph_to_density(graph1)

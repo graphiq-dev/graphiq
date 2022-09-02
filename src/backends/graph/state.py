@@ -445,14 +445,12 @@ class Graph(StateRepresentationBase):
         """
         Takes the local complementation of the graph around node.
 
-        Local complementation: let n(node) be the set of neighbours of node. If a, b \in n(node) and (a, b) is in
+        Local complementation: let n(node) be the set of neighbours of node. If a, b in n(node) and (a, b) is in
         the set of edges E of graph, then remove (a, b) from E. If a, b in n(node) and (a, b) is NOT in E, then
         add (a, b) into E.
 
-        :param graph: the graph to edit
-        :type graph: Graph
-        :param node: the ID of the node around which local complementation should take place
-        :type node: int or frozenset
+        :param node_id: the ID of the node around which local complementation should take place
+        :type node_id: int or frozenset
         :return: nothing
         :rtype: None
         """

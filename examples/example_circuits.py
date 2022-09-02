@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 
 from src.backends.density_matrix.compiler import DensityMatrixCompiler
 
-from src.backends.density_matrix.functions import fidelity
+from src.metrics import Infidelity
 from src.visualizers.density_matrix import density_matrix_bars
 
 from benchmarks.circuits import *
@@ -27,24 +27,21 @@ if __name__ == "__main__":
     # Compile
     compiler = DensityMatrixCompiler()
     state = compiler.compile(circuit)
+    metric = Infidelity(ideal_state)
 
-    if example_circuit is bell_state_circuit:
-        state_data = state.data
-    else:
+    if example_circuit is not bell_state_circuit:
         # trace out the ancilla qubit
-        state_data = partial_trace(
-            state.data,
-            keep=list(range(0, circuit.n_quantum - 1)),
-            dims=circuit.n_quantum * [2],
+        state.partial_trace(
+            keep=[*range(0, circuit.n_quantum - 1)], dims=circuit.n_quantum * [2]
         )
 
-    f = fidelity(state_data, ideal_state["dm"])
-    print(f"Fidelity with the ideal state is {f}")
+    infid = metric.evaluate(state, circuit)
+    print(f"Infidelity with the ideal state is {infid}")
 
-    fig, _ = density_matrix_bars(ideal_state["dm"])
+    fig, _ = density_matrix_bars(ideal_state.dm.data)
     fig.suptitle("Ideal density matrix")
 
-    fig, _ = density_matrix_bars(state_data)
+    fig, _ = density_matrix_bars(state.dm.data)
     fig.suptitle("Simulated circuit density matrix")
 
     plt.show()

@@ -636,12 +636,12 @@ class CNOT(ControlledPairOperationBase):
         super().__init__(control, control_type, target, target_type, noise)
 
 
-class CPhase(ControlledPairOperationBase):
+class CZ(ControlledPairOperationBase):
     """
-    CPHASE gate Operation
+    Controlled-Z gate Operation
     """
 
-    _openqasm_info = oq_lib.cphase_info()
+    _openqasm_info = oq_lib.cz_info()
 
     def __init__(
         self, control=0, control_type="e", target=0, target_type="e", noise=nm.NoNoise()
@@ -657,12 +657,12 @@ class ClassicalCNOT(ClassicalControlledPairOperationBase):
     _openqasm_info = oq_lib.classical_cnot_info()
 
 
-class ClassicalCPhase(ClassicalControlledPairOperationBase):
+class ClassicalCZ(ClassicalControlledPairOperationBase):
     """
-    Classical CPHASE gate Operation
+    Classical CZ gate Operation
     """
 
-    _openqasm_info = oq_lib.classical_cphase_info()
+    _openqasm_info = oq_lib.classical_cz_info()
 
 
 class MeasurementCNOTandReset(ClassicalControlledPairOperationBase):
@@ -671,17 +671,16 @@ class MeasurementCNOTandReset(ClassicalControlledPairOperationBase):
     """
 
     _openqasm_info = oq_lib.measurement_cnot_and_reset()
-    # _openqasm_info = oq_lib.cnot_info()
 
     def __init__(
         self,
-        control=0,
-        control_type="e",
-        target=0,
-        target_type="p",
-        c_register=0,
-        noise=nm.NoNoise(),
-    ):
+        control: object = 0,
+        control_type: object = "e",
+        target: object = 0,
+        target_type: object = "p",
+        c_register: object = 0,
+        noise: object = nm.NoNoise(),
+    ) -> object:
         super().__init__(control, control_type, target, target_type, c_register, noise)
 
 
@@ -812,9 +811,9 @@ def name_to_class_map(name):
         "z": SigmaZ,
         "h": Hadamard,
         "s": Phase,
-        "cz": CPhase,
+        "cz": CZ,
         "classical x": ClassicalCNOT,
-        "classical z": ClassicalCPhase,
+        "classical z": ClassicalCZ,
         "classical reset x": MeasurementCNOTandReset,
     }
     if name in map:

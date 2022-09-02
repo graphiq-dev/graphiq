@@ -1,10 +1,12 @@
 """
 The QuantumState/GraphState classes mediates the interactions between different graph representations
 
+State representations that we support are:
+1. Density matrix
+2. Stabilizer
+
 State representations that we intend to support in the near future are:
 1. Graph representation
-2. Density matrix
-3. Stabilizer
 
 TODO: once we can convert more easily between different representations,
 we should REMOVE the requirement that data be a list the same length as the
@@ -17,10 +19,11 @@ import networkx as nx
 from src.backends.graph.state import Graph
 from src.backends.density_matrix.state import DensityMatrix
 from src.backends.stabilizer.state import Stabilizer
+import src.backends.density_matrix.functions as dmf
+import src.backends.stabilizer.functions.clifford as sfc
 
-DENSITY_MATRIX_QUBIT_THRESH = (
-    10  # threshold above which density matrix representation is discouraged
-)
+# threshold above which density matrix representation is discouraged
+DENSITY_MATRIX_QUBIT_THRESH = 10
 
 
 class QuantumState:
@@ -34,32 +37,48 @@ class QuantumState:
     TODO: add a handle to delete specific representations (may be useful to clear out memory)
     """
 
-    def __init__(self, n_qubit, data, representation=None):
+    def __init__(self, n_qubits, data, representation=None):
         """
         Creates the QuantumState class with certain initial representations
 
-        :param n_qubit: number of qubits in the system (system size)
-        :type n_qubit: int
+        :param n_qubits: number of qubits in the system (system size)
+        :type n_qubits: int
         :param data: valid data input for "representation". If representations are given as a list,
                      the data must be a list of the same length
+                     Density matrices representations support np.dnarray or int inputs
+                     Stabilizer representations take int or StabilizerTableaus
+                     Graph representations take frozenset or int or networkx.Graph or iterable of data pairs
         :type data: list OR numpy.ndarray OR Graph OR nx.Graph
         :param representation: selected representations to initialize
         :type representation: str OR list of str
         :return: function returns nothing
         :rtype: None
         """
-        self.n_qubit = n_qubit
+        self.n_qubits = n_qubits
 
         self._dm = None
         self._graph = None
         self._stabilizer = None
 
         if representation is None:
-            if n_qubit < DENSITY_MATRIX_QUBIT_THRESH:
+            if n_qubits < DENSITY_MATRIX_QUBIT_THRESH and DensityMatrix.valid_datatype(
+                data
+            ):
                 self._initialize_dm(data)
-            else:
-                # TODO: initialize with stabilizer representation once stabilizer is implemented?
+            elif Stabilizer.valid_datatype(data):
+                self._initialize_stabilizer(data)
+            elif Graph.valid_datatype(data):
                 self._initialize_graph(data)
+            elif DensityMatrix.valid_datatype(data):
+                raise ValueError(
+                    f"Data's type is correct for density matrix representation, but state size exceeds the "
+                    f"recommended size for density matrix representation"
+                )
+            else:
+                raise ValueError(
+                    f"Data's type is invalid for initializing a QuantumState"
+                )
+
         elif isinstance(representation, str):
             self._initialize_representation(representation, data)
         elif isinstance(representation, list):
@@ -69,6 +88,51 @@ class QuantumState:
             raise ValueError(
                 "passed representation argument must be a String or a list of strings"
             )
+
+    def partial_trace(self, keep, dims, measurement_determinism="probabilistic"):
+        """
+        Calculates the partial trace on all state representations which are currently defined
+
+        :param keep:  An array of indices of the spaces to keep. For instance, if the space is
+                    :math:`A \\times B \\times C \\times D` and we want to trace out B and D, keep = [0,2]
+        :type keep: list OR numpy.ndarray
+        :param dims: An array of the dimensions of each space. For instance,
+                    if the space is :math:`A \\times B \\times C \\times D`,
+                    dims = [dim_A, dim_B, dim_C, dim_D]
+        :type dims: list OR numpy.ndarray
+        :param measurement_determinism:
+        :type measurement_determinism: str or int
+        :return: nothing
+        :rtype: None
+        """
+        if self._dm is not None:
+            self.dm.data = dmf.partial_trace(self.dm.data, keep, dims)
+        if self._stabilizer is not None:
+            self.stabilizer.data = sfc.partial_trace(
+                self._stabilizer.data, keep, dims, measurement_determinism
+            )
+        if self._graph is not None:
+            raise NotImplementedError(
+                "Partial trace not yet implemented on graph state"
+            )
+
+    @property
+    def all_representations(self):
+        """
+        Returns all active representations of a QuantumState object
+
+        :return: a list with all initialized state representations
+        :rtype: list
+        """
+        representations = []
+        if self._dm is not None:
+            representations.append(self._dm)
+        if self._stabilizer is not None:
+            representations.append(self._stabilizer)
+        if self._graph is not None:
+            representations.append(self._graph)
+
+        return representations
 
     @property
     def dm(self):
@@ -117,7 +181,7 @@ class QuantumState:
         """
         if self._graph is not None:
             return self._graph
-        # TODO: ATTEMPT TO CONVERT EXISTING REPRESENTATION to dm. This should call on backend functions
+        # TODO: ATTEMPT TO CONVERT EXISTING REPRESENTATION to graph. This should call on backend functions
         raise ValueError(
             "Cannot convert existing representation to graph representation"
         )
@@ -154,7 +218,7 @@ class QuantumState:
         """
         if self._stabilizer is not None:
             return self._stabilizer
-        # TODO: ATTEMPT TO CONVERT EXISTING REPRESENTATION to dm. This should call on backend functions
+        # TODO: ATTEMPT TO CONVERT EXISTING REPRESENTATION to stabilizer. This should call on backend functions
         raise ValueError(
             "Cannot convert existing representation to stabilizer representation"
         )
@@ -186,7 +250,7 @@ class QuantumState:
         :param representation: 'all' to show all possible representations,
                                list of representation strings otherwise to show specific representations
         :type representation: str OR list (of strs)
-        :param show: if True, the selected representations are plotted. Otherwise they are drawn but not plotted
+        :param show: if True, the selected representations are plotted. Otherwise, they are drawn but not plotted
         :type show: bool
         :param ax: axis/axes on which to plot the selected representations
         :type ax: matplotlib.axis
@@ -210,11 +274,11 @@ class QuantumState:
         else:
             self._dm = DensityMatrix(data)
 
-        assert self._dm.data.shape[0] == self._dm.data.shape[1] == 2**self.n_qubit
+        assert self._dm.data.shape[0] == self._dm.data.shape[1] == 2**self.n_qubits
 
     def _initialize_graph(self, data):
         """
-        Initializes a graph based on the data
+        Initializes a graph state based on the data
 
         :param data: data to construct the Graph representation
         :type data: nx.Graph OR int OR frozenset
@@ -222,12 +286,26 @@ class QuantumState:
         :return: function returns nothing
         :rtype: None
         """
-        self._graph = Graph(
-            data, 1
-        )  # TODO: adjust root_node_id field once we've figured out how we want to use it
-        assert self._graph.n_qubit == self.n_qubit, (
-            f"Expected {self.n_qubit} qubits, "
+        self._graph = Graph(data, 1)
+        # TODO: adjust root_node_id field once we've figured out how we want to use it
+        assert self._graph.n_qubit == self.n_qubits, (
+            f"Expected {self.n_qubits} qubits, "
             f"graph representation has {self._graph.n_qubit}"
+        )
+
+    def _initialize_stabilizer(self, data):
+        """
+        Initializes a stabilizer state based on the data
+
+        :param data: data to construct the stabilizer state representation
+        :type data: int or CliffordTableau
+        :return: nothing
+        :rtype: None
+        """
+        self._stabilizer = Stabilizer(data)
+        assert self._stabilizer.n_qubit == self.n_qubits, (
+            f"Expected {self.n_qubits} qubits, "
+            f"Stabilizer representation has {self._stabilizer.n_qubit}"
         )
 
     def _initialize_representation(self, representation, data):
@@ -243,7 +321,7 @@ class QuantumState:
         :rtype: None
         """
         if representation == "density matrix":
-            if self.n_qubit > DENSITY_MATRIX_QUBIT_THRESH:
+            if self.n_qubits > DENSITY_MATRIX_QUBIT_THRESH:
                 warnings.warn(
                     UserWarning(
                         "Density matrix is not recommended for a state of this size"
@@ -253,10 +331,6 @@ class QuantumState:
         elif representation == "graph":
             self._initialize_graph(data)
         elif representation == "stabilizer":
-            raise NotImplementedError("Stabilizer representation not implemented yet")
+            self._initialize_stabilizer(data)
         else:
             raise ValueError("Passed representation is invalid")
-
-
-class GraphState(QuantumState):
-    """ """

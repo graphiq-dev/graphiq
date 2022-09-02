@@ -20,9 +20,7 @@ def test_bell_circuit():
     compiler = DensityMatrixCompiler()
     state = compiler.compile(circuit)
 
-    state = state.data
-
-    f = fidelity(state, ideal_state["dm"])
+    f = fidelity(state.dm.data, ideal_state.dm.data)
 
     assert np.isclose(1.0, f)
 
@@ -38,8 +36,7 @@ def test_bell_circuit_with_wrapper_op_1():
 
     compiler = DensityMatrixCompiler()
     state = compiler.compile(circuit)
-    state = state.data
-    f = fidelity(state, ideal_state["dm"])
+    f = fidelity(state.dm.data, ideal_state.dm.data)
 
     assert np.isclose(1.0, f)
 
@@ -57,8 +54,7 @@ def test_bell_circuit_with_wrapper_op_2():
 
     compiler = DensityMatrixCompiler()
     state = compiler.compile(circuit)
-    state = state.data
-    f = fidelity(state, ideal_state["dm"])
+    f = fidelity(state.dm.data, ideal_state.dm.data)
 
     assert np.isclose(1.0, f)
 
@@ -70,13 +66,11 @@ def test_bell_circuit_visualization():
     compiler = DensityMatrixCompiler()
     state = compiler.compile(circuit)
 
-    state = state.data
-
-    fig, ax = density_matrix_bars(state)
+    fig, ax = density_matrix_bars(state.dm.data)
     fig.suptitle("Simulated circuit density matrix")
     plt.show()
 
-    fig, ax = density_matrix_bars(ideal_state["dm"])
+    fig, ax = density_matrix_bars(ideal_state.dm.data)
     fig.suptitle("Ideal density matrix")
     plt.show()
 
@@ -88,10 +82,10 @@ def test_ghz3_circuit():
     state = compiler.compile(circuit)
 
     state = partial_trace(
-        state.data, keep=(0, 1, 2), dims=4 * [2]
+        state.dm.data, keep=(0, 1, 2), dims=4 * [2]
     )  # trace out the ancilla qubit
 
-    f = fidelity(state, ideal_state["dm"])
+    f = fidelity(state, ideal_state.dm.data)
 
     assert np.isclose(1.0, f)
 
@@ -104,14 +98,14 @@ def test_ghz3_circuit_visualization():
     state = compiler.compile(circuit)
 
     state = partial_trace(
-        state.data, keep=(0, 1, 2), dims=4 * [2]
+        state.dm.data, keep=(0, 1, 2), dims=4 * [2]
     )  # trace out the ancilla qubit
 
     fig, ax = density_matrix_bars(state)
     fig.suptitle("Simulated circuit density matrix")
     plt.show()
 
-    fig, ax = density_matrix_bars(ideal_state["dm"])
+    fig, ax = density_matrix_bars(ideal_state.dm.data)
     fig.suptitle("Ideal density matrix")
     plt.show()
 
@@ -124,10 +118,10 @@ def test_ghz4_circuit():
     state = compiler.compile(circuit)
 
     state = partial_trace(
-        state.data, keep=(0, 1, 2, 3), dims=5 * [2]
+        state.dm.data, keep=(0, 1, 2, 3), dims=5 * [2]
     )  # trace out the ancilla qubit
 
-    f = fidelity(state, ideal_state["dm"])
+    f = fidelity(state, ideal_state.dm.data)
 
     assert np.isclose(1.0, f)
 
@@ -140,14 +134,14 @@ def test_ghz4_circuit_visualization():
     state = compiler.compile(circuit)
 
     state = partial_trace(
-        state.data, keep=(0, 1, 2, 3), dims=5 * [2]
+        state.dm.data, keep=(0, 1, 2, 3), dims=5 * [2]
     )  # trace out the ancilla qubit
 
     fig, ax = density_matrix_bars(state)
     fig.suptitle("Simulated circuit density matrix")
     plt.show()
 
-    fig, ax = density_matrix_bars(ideal_state["dm"])
+    fig, ax = density_matrix_bars(ideal_state.dm.data)
     fig.suptitle("Ideal density matrix")
     plt.show()
 

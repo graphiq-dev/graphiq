@@ -6,6 +6,7 @@ from abc import ABC, abstractmethod
 import numpy as np
 
 import src.backends.density_matrix.functions as dmf
+import src.backends.stabilizer.functions.metric as sfm
 
 
 class MetricBase(ABC):
@@ -53,10 +54,9 @@ class Infidelity(MetricBase):
     def __init__(self, target, log_steps=1, *args, **kwargs):
         """
         Creates an Infidelity Metric object, which computes 1-fidelity with respect to the ideal_state
-        TODO: take the targe state as a QuantumState object instead of a numpy.ndarray
 
         :param target: the ideal state against which we compute fidelity
-        :type target: QuantumState (currently numpy.ndarray)
+        :type target: QuantumState
         :param log_steps: the metric values are computed at every log_steps optimization step
         :type log_steps: int
         :raises AssertionError: if targe is not a valid density matrix
@@ -64,17 +64,16 @@ class Infidelity(MetricBase):
         :rtype: None
         """
         super().__init__(log_steps=log_steps, *args, **kwargs)
-        assert dmf.is_density_matrix(target)
         self.target = target
         self.differentiable = False
 
     def evaluate(self, state, circuit):
         """
         Evaluates the infidelity from a given state and circuit
-        TODO: take the state as a QuantumState object instead of a numpy.ndarray
+
 
         :param state: the state to evaluate
-        :type state: QuantumState (currently numpy.ndarray)
+        :type state: QuantumState
         :param circuit: circuit which generated state
                         Not used for the fidelity evaluation, but argument is provided for API consistency
         :type circuit: CircuitBase (or subclass of it)
@@ -82,9 +81,13 @@ class Infidelity(MetricBase):
         :return: infidelity = 1 - fidelity
         :rtype: float
         """
-
-        assert dmf.is_density_matrix(state)
-        fid = dmf.fidelity(self.target, state)
+        # TODO: add check for the representation
+        if state._stabilizer is not None and self.target._stabilizer is not None:
+            fid = sfm.fidelity(self.target.stabilizer.data, state.stabilizer.data)
+        elif state._dm is not None and self.target._dm is not None:
+            fid = dmf.fidelity(self.target.dm.data, state.dm.data)
+        else:
+            raise ValueError("Cannot compute the infidelity.")
         self.increment()
 
         if self._inc % self.log_steps == 0:
@@ -98,10 +101,9 @@ class TraceDistance(MetricBase):
         """
         Creates a TraceDistance Metric object, which computes the trace distance between the current state and the
         target state.
-        TODO: take the targe state as a QuantumState object instead of a numpy.ndarray
 
         :param target: the ideal state against which we compute fidelity
-        :type target: QuantumState (currently a numpy.ndarray)
+        :type target: QuantumState
         :param log_steps: the metric values are computed at every log_steps optimization step
         :type log_steps: int
         :return: nothing
@@ -114,10 +116,9 @@ class TraceDistance(MetricBase):
     def evaluate(self, state, circuit):
         """
         Evaluates the trace distance from a given state and circuit
-        TODO: take the state as a QuantumState object instead of a numpy.ndarray
 
         :param state: the state to evaluate
-        :type state: QuantumState (currently numpy.ndarray)
+        :type state: QuantumState
         :param circuit: circuit which generated state
                         Not used for the trace distance evaluation, but argument is provided for API consistency
         :type circuit: CircuitBase (or subclass of it)
@@ -125,7 +126,7 @@ class TraceDistance(MetricBase):
         :rtype: float
         """
 
-        trace_distance = dmf.trace_distance(self.target, state)
+        trace_distance = dmf.trace_distance(self.target.dm.data, state.dm.data)
         self.increment()
 
         if self._inc % self.log_steps == 0:

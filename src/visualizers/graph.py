@@ -15,6 +15,8 @@ def draw_graph(state_graph, show=False, ax=None, with_labels=True):
     :type show: bool
     :param ax: axis on which to draw the graph
     :type ax: matplotlib.axis
+    :param with_labels: True if drawing the labels; False otherwise
+    :type with_labels: bool
     :return: function returns nothing
     :rtype: None
     TODO: return fig, ax

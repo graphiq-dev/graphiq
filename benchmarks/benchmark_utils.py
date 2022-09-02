@@ -18,6 +18,7 @@ from src.io import IO
 
 def circuit_measurement_independent(circuit, compiler):
     # Note: this doesn't check every option, only "all 0s, all 1s"
+    # TODO: make applicable to other representations. This only works on density matrices at the moment
     original_measurement_determinism = compiler.measurement_determinism
 
     compiler.measurement_determinism = 0
@@ -26,18 +27,16 @@ def circuit_measurement_independent(circuit, compiler):
     state2 = compiler.compile(circuit)
     compiler.measurement_determinism = original_measurement_determinism
 
-    state_data1 = partial_trace(
-        state1.data,
+    state1.partial_trace(
         keep=list(range(0, circuit.n_quantum - 1)),
         dims=circuit.n_quantum * [2],
     )
-    state_data2 = partial_trace(
-        state2.data,
+    state2.partial_trace(
         keep=list(range(0, circuit.n_quantum - 1)),
         dims=circuit.n_quantum * [2],
     )
 
-    return np.allclose(state_data1, state_data2), state_data1, state_data2
+    return np.allclose(state1.dm.data, state2.dm.data), state1, state2
 
 
 def benchmark_data(

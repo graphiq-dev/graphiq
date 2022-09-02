@@ -62,6 +62,10 @@ class DensityMatrix(StateRepresentationBase):
         else:
             return cls(graph_to_density(graph))
 
+    @classmethod
+    def valid_datatype(cls, data):
+        return isinstance(data, (int, np.ndarray))
+
     def apply_unitary(self, unitary):
         """
         Apply a unitary to the state.
@@ -204,3 +208,15 @@ class DensityMatrix(StateRepresentationBase):
             plt.show()
 
         return fig, axs
+
+    def __eq__(self, other):
+        """
+        Compare two DensityMatrix objects and return True if the underlying density matrices are equal
+        (up to precision)
+
+        :param other: another DensityMatrix object
+        :type other: DensityMatrix
+        :return: True if they are equal; False otherwise
+        :rtype: bool
+        """
+        return np.allclose(self._data, other.data)

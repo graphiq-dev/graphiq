@@ -7,12 +7,11 @@ import time
 from src.backends.density_matrix.compiler import DensityMatrixCompiler
 from src.solvers.evolutionary_solver import EvolutionarySolver
 from src.metrics import Infidelity
-from src.circuit import CircuitDAG
 import src.backends.density_matrix.functions as dmf
 
+from benchmarks.circuits import *
 from src.visualizers.density_matrix import density_matrix_bars
-from benchmarks.circuits import bell_state_circuit
-
+from src.visualizers.solver_logs import plot_solver_logs
 
 if __name__ == "__main__":
     # %% here we have access
@@ -25,19 +24,17 @@ if __name__ == "__main__":
     EvolutionarySolver.seed(3)
 
     # %% select which state we want to target
-    from benchmarks.circuits import *
 
-    circuit_ideal, state_ideal = linear_cluster_3qubit_circuit()
+    circuit_ideal, target_state = linear_cluster_3qubit_circuit()
 
     # %% construct all of our important objects
-    target = state_ideal["dm"]
     compiler = DensityMatrixCompiler()
-    metric = Infidelity(target=target)
+    metric = Infidelity(target=target_state)
 
     n_photon = 3
     n_emitter = 1
     solver = EvolutionarySolver(
-        target=target,
+        target=target_state,
         metric=metric,
         compiler=compiler,
         n_photon=n_photon,
@@ -56,23 +53,18 @@ if __name__ == "__main__":
     circuit = solver.hof[0][1]
     state = compiler.compile(circuit)  # this will pass out a density matrix object
 
-    state_data = dmf.partial_trace(
-        state.data, keep=list(range(n_photon)), dims=(n_photon + n_emitter) * [2]
-    )
+    state.partial_trace(keep=[*range(n_photon)], dims=(n_photon + n_emitter) * [2])
 
     # extract the best performing circuit
-    fig, axs = density_matrix_bars(target)
+    fig, axs = density_matrix_bars(target_state.dm.data)
     fig.suptitle("Target density matrix")
     plt.show()
 
-    fig, axs = density_matrix_bars(state_data)
+    fig, axs = density_matrix_bars(state.dm.data)
     fig.suptitle("Simulated density matrix")
     plt.show()
 
     circuit.draw_circuit()
-
-    #%%
-    from src.visualizers.solver_logs import plot_solver_logs
 
     fig, axs = plot_solver_logs(solver.logs)
     plt.show()

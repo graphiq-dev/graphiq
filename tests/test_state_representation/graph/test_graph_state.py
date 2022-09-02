@@ -25,11 +25,11 @@ def test_graph_initialization_adding(graph_rep_1):
     }
 
 
-@visualization
-def test_graph_draw(graph_rep_1):
-    graph_rep_1.add_node(4)
-    graph_rep_1.add_edge(3, 4)
-    graph_rep_1.draw()
+# @visualization
+# def test_graph_draw(graph_rep_1):
+#    graph_rep_1.add_node(4)
+#    graph_rep_1.add_edge(3, 4)
+#    graph_rep_1.draw()
 
 
 def test_get_node_by_id_no_id(graph_rep_1):

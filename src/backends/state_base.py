@@ -56,3 +56,7 @@ class StateRepresentationBase(ABC):
         :rtype: None
         """
         self._data = data
+
+    @classmethod
+    def valid_datatype(cls, data):
+        raise ValueError(f"Not implemented for abstract (base) class")

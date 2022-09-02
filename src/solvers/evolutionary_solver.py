@@ -7,22 +7,18 @@ One can define these rules via the allowed DAG transformations.
 """
 import copy
 import numpy as np
-import matplotlib.pyplot as plt
+
 import warnings
 
-import src.backends.density_matrix.functions as dmf
+
 import src.noise.noise_models as nm
 import pandas as pd
-from src.metrics import MetricBase
 
 from src.backends.compiler_base import CompilerBase
-from src.backends.density_matrix.compiler import DensityMatrixCompiler
 from src.solvers import RandomSearchSolver
 from src.circuit import CircuitDAG
 from src.metrics import MetricBase
-from src.metrics import Infidelity
 
-from src.visualizers.density_matrix import density_matrix_bars
 from src.io import IO
 from src import ops
 
@@ -104,9 +100,14 @@ class EvolutionarySolver(RandomSearchSolver):
         self.selection_active = selection_active
         self.tournament_k = tournament_k
         self.noise_simulation = True
-        if noise_model_mapping is None or type(noise_model_mapping) is not dict:
+        if noise_model_mapping is None:
             noise_model_mapping = {}
             self.noise_simulation = False
+        elif type(noise_model_mapping) is not dict:
+            raise TypeError(
+                f"Datatype {type(noise_model_mapping)} is not a valid noise_model_mapping. "
+                f"noise_model_mapping should be a dict or None"
+            )
         self.noise_model_mapping = noise_model_mapping
 
         self.save_openqasm = save_openqasm
@@ -238,8 +239,8 @@ class EvolutionarySolver(RandomSearchSolver):
         :param noise_model_mapping: a dictionary that stores the mapping between an operation
             and its associated noise model
         :type noise_model_mapping: dict
-        :return: nothing
-        :rtype: None
+        :return: a circuit specified by emission and measurement assignments
+        :rtype: CircuitDAG
         """
         n_photon = len(emission_assignment)
         n_emitter = len(measurement_assignment)
@@ -342,14 +343,13 @@ class EvolutionarySolver(RandomSearchSolver):
                 circuit.validate()
 
                 compiled_state = self.compiler.compile(circuit)
-                # this will pass out a density matrix object
 
-                state_data = dmf.partial_trace(
-                    compiled_state.data,
+                compiled_state.partial_trace(
                     keep=list(range(self.n_photon)),
                     dims=(self.n_photon + self.n_emitter) * [2],
                 )
-                score = self.metric.evaluate(state_data, circuit)
+
+                score = self.metric.evaluate(compiled_state, circuit)
 
                 population[j] = (score, circuit)
 
@@ -364,7 +364,7 @@ class EvolutionarySolver(RandomSearchSolver):
             if self.selection_active:
                 population = self.tournament_selection(population, k=self.tournament_k)
 
-            print(f"Iteration {i} | Best score: {self.hof[0][0]:.4f}")
+            print(f"Iteration {i} | Best score: {self.hof[0][0]:.6f}")
 
         self.logs_to_df()  # convert the logs to a DataFrame
 
@@ -614,7 +614,7 @@ class EvolutionarySolver(RandomSearchSolver):
 
     def add_measurement_cnot_and_reset(self, circuit):
         """
-        Add a MeausurementCNOTandReset operation from an emitter qubit to a photonic qubit such that no consecutive
+        Add a MeasurementCNOTandReset operation from an emitter qubit to a photonic qubit such that no consecutive
         MeasurementCNOTReset is allowed. This operation cannot be added before the photonic qubit is initialized.
 
         :param circuit: a quantum circuit

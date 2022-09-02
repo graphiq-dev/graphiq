@@ -158,13 +158,13 @@ import numpy as np
 import networkx as nx
 from itertools import combinations, permutations
 
-import src.backends.stabilizer.functions as sf
+import src.backends.stabilizer.functions.linalg as slinalg
 
 
 def is_lc_equivalent(adj_matrix1, adj_matrix2, mode="deterministic", seed=0):
     """
     Determines whether two graph states are local-Clifford equivalent or not, given the adjacency matrices of the two.
-    It takes two adjacency matrices as input and returns a numpy.array containing :math:`n` (:math:`2 \\times 2` array)s
+    It takes two adjacency matrices as input and returns a numpy.ndarray containing :math:`n` (:math:`2 \\times 2` arrays
     = clifford operations on each qubit.
 
     :param adj_matrix1: the adjacency matrix of the first graph. This is equal to the binary matrix for representing
@@ -189,7 +189,7 @@ def is_lc_equivalent(adj_matrix1, adj_matrix2, mode="deterministic", seed=0):
     coeff_matrix = _coeff_maker(adj_matrix1, adj_matrix2)
 
     # row reduction applied
-    reduced_coeff_matrix, _, last_nonzero_row_index = sf.row_reduction(
+    reduced_coeff_matrix, _, last_nonzero_row_index = slinalg.row_reduction(
         coeff_matrix, coeff_matrix * 0
     )
 

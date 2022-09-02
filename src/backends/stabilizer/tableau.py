@@ -10,6 +10,18 @@ class TableauBase(ABC):
     """
 
     def __init__(self, table, phase, n_qubits, shape):
+        """
+        Initialize a TableauBase object
+
+        :param table: the main matrix of the tableau
+        :type table: np.ndarray
+        :param phase: the phase vector
+        :type phase: np.ndarray
+        :param n_qubits:
+        :type n_qubits: int
+        :param shape: the shape of the tableau
+        :type shape: (int, int)
+        """
         self._table = table
         self._phase = phase
         self.n_qubits = n_qubits
@@ -18,6 +30,7 @@ class TableauBase(ABC):
     @property
     def table(self):
         """
+        The tableau data
 
         :return: the table
         :rtype: numpy.ndarray
@@ -27,9 +40,12 @@ class TableauBase(ABC):
     @table.setter
     def table(self, value):
         """
+        Set the tableau data
 
-        :param value:
-        :return:
+        :param value: the new table
+        :type value: numpy.ndarray
+        :return: nothing
+        :rtype: None
         """
         assert value.shape == self.shape
         self._table = value.astype(int)
@@ -37,20 +53,22 @@ class TableauBase(ABC):
     @property
     def phase(self):
         """
+        The phase vector
 
-        :return:
-        :rtype:
+        :return: the phase vector
+        :rtype: numpy.ndarray
         """
         return self._phase
 
     @phase.setter
     def phase(self, value):
         """
+        Set the phase vector
 
-        :param value:
-        :type value:
-        :return:
-        :rtype:
+        :param value: the new phase vector
+        :type value: numpy.ndarray
+        :return: nothing
+        :rtype: None
         """
         assert value.shape[0] == self.shape[0]
         self._phase = value.astype(int)
@@ -96,6 +114,7 @@ class StabilizerTableau(TableauBase):
     @property
     def x_matrix(self):
         """
+        The X part of the binary symplectic representation
 
         :return: the table that contains stabilizer generators for X part
         :rtype: numpy.ndarray
@@ -105,6 +124,7 @@ class StabilizerTableau(TableauBase):
     @x_matrix.setter
     def x_matrix(self, value):
         """
+        Set the X part of the binary symplectic representation
 
         :param value: the X matrix part of the stabilizer tableau
         :type value: numpy.ndarray
@@ -116,6 +136,7 @@ class StabilizerTableau(TableauBase):
     @property
     def z_matrix(self):
         """
+        The Z part of the binary symplectic representation
 
         :return: the table that contains stabilizer generators for Z part
         :rtype: numpy.ndarray
@@ -125,9 +146,12 @@ class StabilizerTableau(TableauBase):
     @z_matrix.setter
     def z_matrix(self, value):
         """
+        Set the Z part of the binary symplectic representation
 
-        :param value:
-        :return:
+        :param value: the Z matrix part of the stabilizer tableau
+        :type value: numpy.ndarray
+        :return: nothing
+        :rtype: None
         """
         assert value.shape == (self.n_qubits, self.n_qubits)
         self._table[:, self.n_qubits : 2 * self.n_qubits] = value.astype(int)
@@ -144,23 +168,31 @@ class StabilizerTableau(TableauBase):
 
     def to_labels(self):
         """
+        Convert the stabilizer tableau to generator strings
 
-        :return:
-        :rtype:
+        :return: a list of strings that represent the stabilizer generators
+        :rtype: list[str]
         """
         return sfu.symplectic_to_string(self.x_matrix, self.z_matrix)
 
     def from_labels(self, labels):
         """
+        Set the Stabilizer tableau according to the generator strings
 
-        :param labels:
+        :param labels: a list of strings that represent the stabilizer generators
         :type labels: list[str]
-        :return:
+        :return: nothing
         :rtype: None
         """
         self.x_matrix, self.z_matrix = sfu.string_to_symplectic(labels)
 
     def validate(self):
+        """
+        Validate that the tableau is a valid tableau
+
+        :return: True if the tableau is symplectic; False if it is not
+        :rtype: bool
+        """
         return sfu.is_stabilizer(self._table)
 
 
@@ -170,12 +202,11 @@ class CliffordTableau(TableauBase):
         TODO: support more ways to initialize the tableau
 
         :param data:
-        :type data:
-        :param phase:
-        :type phase:
+        :type data: numpy.ndarray or int or CliffordTableau
+        :param phase: a phase vector
+        :type phase: numpy.ndarray
         """
         if isinstance(data, int):
-
             self._table = np.eye(2 * data).astype(int)
             self.n_qubits = data
             self._initialize_phase(phase)
@@ -203,6 +234,8 @@ class CliffordTableau(TableauBase):
     @property
     def table_x(self):
         """
+        The X part of the tableau
+
         :return: the table that contains destabilizer and stabilizer generators for X part
         :rtype: numpy.ndarray
         """
@@ -211,8 +244,12 @@ class CliffordTableau(TableauBase):
     @table_x.setter
     def table_x(self, value):
         """
-        :param value:
-        :return:
+        Set the X part of the tableau
+
+        :param value: the new matrix for the X part of the tableau
+        :type value: numpy.ndarray
+        :return: nothing
+        :rtype: None
         """
         assert value.shape == (2 * self.n_qubits, self.n_qubits)
         value = value.astype(int)
@@ -221,7 +258,9 @@ class CliffordTableau(TableauBase):
     @property
     def table_z(self):
         """
-        :return: the table that contains destabilizer and stabilizer generators
+        The Z part of the tableau
+
+        :return: the table that contains destabilizer and stabilizer generators of the Z part
         :rtype: numpy.ndarray
         """
         return self._table[:, self.n_qubits : 2 * self.n_qubits]
@@ -229,8 +268,12 @@ class CliffordTableau(TableauBase):
     @table_z.setter
     def table_z(self, value):
         """
-        :param value:
-        :return:
+        Set the Z part of the tableau
+
+        :param value: the new matrix for the Z part of the tableau
+        :type value: numpy.ndarray
+        :return: nothing
+        :rtype: None
         """
         assert value.shape == (2 * self.n_qubits, self.n_qubits)
         value = value.astype(int)
@@ -239,18 +282,22 @@ class CliffordTableau(TableauBase):
     @property
     def destabilizer(self):
         """
-        :return:
-        :rtype:
+        The destabilizer part of the tableau
+
+        :return: the destabilizer part of the tableau
+        :rtype: numpy.ndarray
         """
         return self._table[0 : self.n_qubits]
 
     @destabilizer.setter
     def destabilizer(self, value):
         """
-        :param value:
-        :type value:
-        :return:
-        :rtype:
+        Set the destabilizer part of the tableau
+
+        :param value: a new matrix for the destabilizer part of the tableau
+        :type value: numpy.ndarray
+        :return: nothing
+        :rtype: None
         """
 
         assert value.shape == (self.n_qubits, 2 * self.n_qubits)
@@ -259,18 +306,22 @@ class CliffordTableau(TableauBase):
     @property
     def destabilizer_x(self):
         """
-        :return:
-        :rtype:
+        The X part of the destabilizer in the tableau
+
+        :return: the X part of the destabilizer in the tableau
+        :rtype: numpy.ndarray
         """
         return self._table[0 : self.n_qubits, 0 : self.n_qubits]
 
     @destabilizer_x.setter
     def destabilizer_x(self, value):
         """
+        Set the X part of the destabilizer in the tableau
+
         :param value:
-        :type value:
-        :return:
-        :rtype:
+        :type value: numpy.ndarray
+        :return: nothing
+        :rtype: None
         """
         assert value.shape == (self.n_qubits, self.n_qubits)
         self._table[0 : self.n_qubits, 0 : self.n_qubits] = value.astype(int)
@@ -278,18 +329,22 @@ class CliffordTableau(TableauBase):
     @property
     def destabilizer_z(self):
         """
-        :return:
-        :rtype:
+        The Z part of the destabilizer in the tableau
+
+        :return: the Z part of the destabilizer in the tableau
+        :rtype: numpy.ndarray
         """
         return self._table[0 : self.n_qubits, self.n_qubits : 2 * self.n_qubits]
 
     @destabilizer_z.setter
     def destabilizer_z(self, value):
         """
-        :param value:
-        :type value:
-        :return:
-        :rtype:
+        Set the Z part of the destabilizer in the tableau
+
+        :param value: the Z part of the destabilizer in the tableau
+        :type value: numpy.ndarray
+        :return: nothing
+        :rtype: None
         """
         assert value.shape == (self.n_qubits, self.n_qubits)
         value = value.astype(int)
@@ -298,18 +353,22 @@ class CliffordTableau(TableauBase):
     @property
     def stabilizer(self):
         """
-        :return:
-        :rtype:
+        The stabilizer part of the tableau
+
+        :return: the stabilizer part of the tableau
+        :rtype: numpy.ndarray
         """
         return self._table[self.n_qubits :]
 
     @stabilizer.setter
     def stabilizer(self, value):
         """
-        :param value:
+        Set the stabilizer part of the tableau
+
+        :param value: a new matrix that represents the stabilizer part of the tableau
         :type value: np.ndarray
-        :return:
-        :rtype:
+        :return: nothing
+        :rtype: None
         """
         assert sfu.is_symplectic_self_orthogonal(value)
         assert value.shape == (self.n_qubits, 2 * self.n_qubits)
@@ -318,18 +377,22 @@ class CliffordTableau(TableauBase):
     @property
     def stabilizer_x(self):
         """
-        :return:
-        :rtype:
+        The X part of the stabilizer in the tableau
+
+        :return: the X part of the stabilizer in the tableau
+        :rtype: numpy.ndarray
         """
         return self._table[self.n_qubits :, 0 : self.n_qubits]
 
     @stabilizer_x.setter
     def stabilizer_x(self, value):
         """
-        :param value:
-        :type value:
-        :return:
-        :rtype:
+        Set the X part of the stabilizer in the tableau
+
+        :param value: the X part of the stabilizer in the tableau
+        :type value: numpy.ndarray
+        :return: nothing
+        :rtype: None
         """
 
         assert value.shape == (self.n_qubits, self.n_qubits)
@@ -338,18 +401,22 @@ class CliffordTableau(TableauBase):
     @property
     def stabilizer_z(self):
         """
-        :return:
-        :rtype:
+        The Z part of the stabilizer in the tableau
+
+        :return: the Z part of the stabilizer in the tableau
+        :rtype: numpy.ndarray
         """
         return self._table[self.n_qubits :, self.n_qubits : 2 * self.n_qubits]
 
     @stabilizer_z.setter
     def stabilizer_z(self, value):
         """
-        :param value:
-        :type value:
-        :return:
-        :rtype:
+        The Z part of the stabilizer in the tableau
+
+        :param value: a new matrix that represents the Z part of the stabilizer in the tableau
+        :type value: numpy.ndarray
+        :return: nothing
+        :rtype: None
         """
 
         assert value.shape == (self.n_qubits, self.n_qubits)
@@ -359,18 +426,22 @@ class CliffordTableau(TableauBase):
     @property
     def iphase(self):
         """
-        :return:
-        :rtype:
+        A phase vector that represents the phase of i factor (imaginary part)
+
+        :return: a phase vector that represents the phase of i factor (imaginary part)
+        :rtype: numpy.ndarray
         """
         return self._iphase
 
     @iphase.setter
     def iphase(self, value):
         """
-        :param value:
-        :type value:
-        :return:
-        :rtype:
+        Set the phase vector that represents the phase of i factor (imaginary part)
+
+        :param value: a new phase vector
+        :type value: numpy.ndarray
+        :return: nothing
+        :rtype: None
         """
         assert value.shape[0] == 2 * self.n_qubits
         self._iphase = value.astype(int)
@@ -383,6 +454,8 @@ class CliffordTableau(TableauBase):
 
     def stabilizer_to_labels(self):
         """
+        Convert the stabilizers to generator strings
+
         :return:
         :rtype:
         """
@@ -390,6 +463,8 @@ class CliffordTableau(TableauBase):
 
     def destabilizer_to_labels(self):
         """
+        Convert the destabilizers to the generator strings
+
         :return:
         :rtype:
         """
@@ -397,24 +472,28 @@ class CliffordTableau(TableauBase):
 
     def stabilizer_from_labels(self, labels):
         """
-        :param labels:
+        Set the stabilizer part of the tableau according to generator strings
+
+        :param labels: generator strings for stabilizers
         :type labels: list[str]
-        :return:
+        :return: nothing
         :rtype: None
         """
         self.stabilizer_x, self.stabilizer_z = sfu.string_to_symplectic(labels)
 
     def destabilizer_from_labels(self, labels):
         """
-        :param labels:
+        Set the destabilizer part of the tableau according to generator strings
+
+        :param labels: generator strings for destabilizers
         :type labels: list[str]
-        :return:
+        :return: nothing
         :rtype: None
         """
         self.destabilizer_x, self.destabilizer_z = sfu.string_to_symplectic(labels)
 
     def __eq__(self, other):
-        # TODO: check if it is necessary to reduce to the echelon gauge before comparison
+        # check without converting to canonical form
         if isinstance(other, CliffordTableau):
             return (
                 np.all(self.phase == other.phase)
@@ -426,6 +505,7 @@ class CliffordTableau(TableauBase):
 
     def to_stabilizer(self):
         """
+        Return a StabilizerTableau that contains only the stabilizer part of the tableau
 
         :return: a StabilizerTableau that contains only the stabilizer part
         :rtype: StabilizerTableau
@@ -441,11 +521,35 @@ class CliffordTableau(TableauBase):
         self.n_qubits = new_n_qubits
 
     def expand(self, new_table, new_phase, new_iphase):
+        """
+        Expand the tableau by adding more qubits
+
+        :param new_table: a new table that represents the stabilizer and destabilizer generators
+        :type new_table: numpy.ndarray
+        :param new_phase: a new phase vector for :math:`-1` phase exponent
+        :type new_phase: numpy.ndarray
+        :param new_iphase: a new phase vector for :math:`i` phase exponent
+        :type new_iphase: numpy.ndarray
+        :return: nothing
+        :rtype: None
+        """
         new_n_qubits = int(new_table.shape[0] / 2)
         assert new_n_qubits > self.n_qubits
         self._reset(new_table, new_phase, new_iphase)
 
     def shrink(self, new_table, new_phase, new_iphase):
+        """
+        Shrink the tableau by removing qubits
+
+        :param new_table: a new table that represents the stabilizer and destabilizer generators
+        :type new_table: numpy.ndarray
+        :param new_phase: a new phase vector for :math:`-1` phase exponent
+        :type new_phase: numpy.ndarray
+        :param new_iphase: a new phase vector for :math:`i` phase exponent
+        :type new_iphase: numpy.ndarray
+        :return: nothing
+        :rtype: None
+        """
         new_n_qubits = int(new_table.shape[0] / 2)
         assert new_n_qubits < self.n_qubits
         self._reset(new_table, new_phase, new_iphase)

@@ -1,3 +1,7 @@
+"""
+Functions that are applicable to CliffordTableau.
+"""
+
 import numpy as np
 
 from src.backends.stabilizer.functions.transformation import (
@@ -28,8 +32,8 @@ def z_measurement_gate(
     :type tableau: CliffordTableau
     :param qubit_position: index of the qubit that the gate acts on
     :type qubit_position: int
-    :param measurement_determinism: If the outcome is probabilistic from the simulation, we have the option to
-        select a specific outcome.
+    :param measurement_determinism: if the outcome is probabilistic from the simulation, we have the option to
+        select a specific outcome
     :type measurement_determinism: str or int
     :return: the resulting state after gate action, the measurement outcome, whether the measurement outcome is
         probabilistic (zero means deterministic)
@@ -113,12 +117,13 @@ def measure_x(tableau, qubit_position, measurement_determinism="probabilistic"):
     Returns the outcome 0 or 1 if one measures the given qubit in the X basis.
     NOTE: cannot update the stabilizer state after measurement. Stabilizer formalism can only handle Z-measurements.
 
-    :param tableau:
+    :param tableau: the input tableau to be measured
     :type tableau: CliffordTableau
     :param qubit_position: index of the qubit that the gate acts on
     :type qubit_position: int
-    :param measurement_determinism:
-    :type measurement_determinism:
+    :param measurement_determinism: if the outcome is probabilistic from the simulation, we have the option to
+        select a specific outcome
+    :type measurement_determinism: str or int
     :return: the classical outcome of measuring given qubit in the X basis.
     :rtype: int
     """
@@ -134,10 +139,13 @@ def measure_y(tableau, qubit_position, measurement_determinism="probabilistic"):
     Returns the outcome 0 or 1 if one measures the given qubit in the Y basis.
     NOTE: cannot update the stabilizer state after measurement. Stabilizer formalism can only handle Z-measurements.
 
-    :param tableau:
+    :param tableau: the input tableau to be measured
     :type tableau: CliffordTableau
     :param qubit_position: index of the qubit that the gate acts on
     :type qubit_position: int
+    :param measurement_determinism: if the outcome is probabilistic from the simulation, we have the option to
+        select a specific outcome
+    :type measurement_determinism: str or int
     :return: the classical outcome of measuring given qubit in the Y basis.
     :rtype: int
     """
@@ -158,11 +166,12 @@ def measure_z(tableau, qubit_position, measurement_determinism="probabilistic"):
     Returns the outcome 0 or 1 if one measures the given qubit in the Z basis.
     NOTE: Does not update the stabilizer state after measurement.
 
-    :param tableau: the initial state tableau
+    :param tableau: the input tableau to be measured
     :type tableau: CliffordTableau
     :param qubit_position: index of the qubit that the gate acts on
     :type qubit_position: int
-    :param measurement_determinism:
+    :param measurement_determinism: if the outcome is probabilistic from the simulation, we have the option to
+        select a specific outcome
     :type measurement_determinism: str or int
     :return: the classical outcome of measuring given qubit in the Z basis.
     :rtype: int
@@ -178,13 +187,14 @@ def reset_z(
     Resets a qubit to a Z basis state. Note that it only works after a measurement gate on the same qubit or if
     the qubit is isolated. Otherwise, the action of this gate would be measuring in Z basis and resetting the qubit.
 
-    :param tableau: Tableau of the state before gate action
+    :param tableau: the input tableau of the state before gate action
     :type tableau: CliffordTableau
     :param qubit_position: index of the qubit to be reset
     :type qubit_position: int
     :param intended_state: either 0 for :math:`|0 \\rangle` state or 1 for :math:`|1 \\rangle`  state
     :type intended_state: int
-    :param measurement_determinism:
+    :param measurement_determinism: if the outcome is probabilistic from the simulation, we have the option to
+        select a specific outcome
     :type measurement_determinism: int or str
     :return: updated tableau
     :rtype:CliffordTableau
@@ -215,13 +225,14 @@ def reset_x(
     """
     Reset the qubit in one of X-basis states
 
-    :param tableau:
+    :param tableau: the input tableau to be reset
     :type tableau: CliffordTableau
-    :param qubit_position:
+    :param qubit_position: index of the qubit to be reset
     :type qubit_position: int
-    :param intended_state:
+    :param intended_state: either 0 for :math:`|+ \\rangle` state or 1 for :math:`|- \\rangle`  state
     :type intended_state: int
-    :param measurement_determinism:
+    :param measurement_determinism: if the outcome is probabilistic from the simulation, we have the option to
+        select a specific outcome
     :type measurement_determinism: str or int
     :return:
     :rtype: CliffordTableau
@@ -242,13 +253,14 @@ def reset_y(
     """
     Reset the qubit to one of the eigenstates of the Y basis.
 
-    :param tableau:
+    :param tableau: the input tableau to be reset
     :type tableau: CliffordTableau
-    :param qubit_position:
+    :param qubit_position: index of the qubit to be reset
     :type qubit_position: int
-    :param intended_state:
+    :param intended_state: either 0 for :math:`|+y \\rangle` state or 1 for :math:`|-y \\rangle`  state
     :type intended_state: int
-    :param measurement_determinism:
+    :param measurement_determinism: if the outcome is probabilistic from the simulation, we have the option to
+        select a specific outcome
     :type measurement_determinism: str or int
     :return:
     :rtype: CliffordTableau
@@ -330,13 +342,14 @@ def remove_qubit(tableau, qubit_position, measurement_determinism="probabilistic
     Only works correctly for isolated qubits! e.g. after measurement.
     TODO: Check if a qubit is isolated in general. Only isolated qubits in the Z basis states can be confirmed for now.
 
-    :param tableau:
+    :param tableau: the input tableau
     :type tableau: CliffordTableau
-    :param qubit_position:
+    :param qubit_position: index of the qubit to be removed
     :type qubit_position: int
-    :param measurement_determinism:
+    :param measurement_determinism: if the outcome is probabilistic from the simulation, we have the option to
+        select a specific outcome
     :type measurement_determinism: str or int
-    :return:
+    :return: the tableau after removing the qubit
     :rtype: CliffordTableau
     """
     n_qubits = tableau.n_qubits  # number of qubits
@@ -386,9 +399,9 @@ def remove_qubit(tableau, qubit_position, measurement_determinism="probabilistic
 
 def swap_gate(tableau, qubit1, qubit2):
     """
-    Swap gate between two qubits.
+    Swap gate between two qubits
 
-    :param tableau: a stabilizer state tableau consists of stabilizer and destabilizer
+    :param tableau: a stabilizer state tableau consists of stabilizers and destabilizers
     :type tableau: CliffordTableau
     :param qubit1: One of the qubits as input to the swap gate
     :type qubit1: int
@@ -504,8 +517,9 @@ def partial_trace(tableau, keep, dims, measurement_determinism="probabilistic"):
     :type keep: list[int]
     :param dims: currently not used for this function
     :type dims: list[int]
-    :param measurement_determinism:
-    :type measurement_determinism:
+    :param measurement_determinism: if the outcome is probabilistic from the simulation, we have the option to
+        select a specific outcome
+    :type measurement_determinism: str or int
     :return: the tableau corresponding to taking the partial trace of the state
     :rtype: CliffordTableau
     """
@@ -524,10 +538,10 @@ def full_rank_x(tableau):
     """
     Based on lemma 6 in arXiv:quant-ph/0406196
 
-    :param tableau:
-    :type tableau:
-    :return:
-    :rtype:
+    :param tableau: the input tableau to be processed
+    :type tableau: CliffordTableau
+    :return: the tableau after processing
+    :rtype: CliffordTableau
     """
 
     n_qubits = tableau.n_qubits

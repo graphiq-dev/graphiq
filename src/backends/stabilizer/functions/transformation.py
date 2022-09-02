@@ -1,6 +1,5 @@
 """
 The gate transformation here is applicable to both StabilizerTableau and CliffordTableau.
-
 """
 
 from src.backends.stabilizer.functions.linalg import (

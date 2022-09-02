@@ -1,3 +1,7 @@
+"""
+Miscellaneous functions
+"""
+
 import numpy as np
 
 from src.backends.density_matrix import functions as dmf
@@ -83,9 +87,9 @@ def is_symplectic(input_matrix):
     """
     Check if a given matrix is symplectic.
 
-    :param input_matrix:
-    :type input_matrix:
-    :return:
+    :param input_matrix: a binary matrix
+    :type input_matrix: numpy.ndarray
+    :return: True if the input matrix is symplectic; False otherwise
     :rtype: bool
     """
     dim = int(input_matrix.shape[1] / 2)
@@ -102,9 +106,9 @@ def is_symplectic_self_orthogonal(input_matrix):
     """
     Check if a given symplectic matrix is self-orthogonal.
 
-    :param input_matrix:
-    :type input_matrix:
-    :return:
+    :param input_matrix: a binary symplectic matrix
+    :type input_matrix: numpy.ndarray
+    :return: True if the input matrix is self-orthogonal; False otherwise
     :rtype: bool
     """
     dim = int(input_matrix.shape[1] / 2)
@@ -121,12 +125,12 @@ def binary_symplectic_product(matrix1, matrix2):
     The symplectic inner product between :math:`M_1` and :math:`M_2` is :math:`M_1 P M_2^T`,
     where :math:`P = \\begin{bmatrix} 0 & I \\\ I & 0 \\end{bmatrix}`.
 
-    :param matrix1:
-    :type matrix1:
-    :param matrix2:
-    :type matrix2:
-    :return:
-    :rtype:
+    :param matrix1: a binary symplectic matrix
+    :type matrix1: numpy.ndarray
+    :param matrix2: a binary symplectic matrix
+    :type matrix2: numpy.ndarray
+    :return: the symplectic product of these two matrices
+    :rtype: int
     """
     assert matrix1.shape[0] == matrix2.shape[0]
     dim = matrix1.shape[0]

@@ -1,3 +1,7 @@
+"""
+Functions that are binary matrix linear algebra
+"""
+
 import numpy as np
 
 
@@ -5,7 +9,7 @@ def row_swap(input_matrix, first_row, second_row):
     """
     Swap two rows of a matrix
 
-    :param input_matrix: a matrix
+    :param input_matrix: a binary matrix
     :type input_matrix: numpy.ndarray
     :param first_row: the first row
     :type first_row: int
@@ -126,7 +130,7 @@ def hadamard_transform(x_matrix, z_matrix, positions):
 
 def row_reduction(x_matrix, z_matrix):
     """
-    Turns the x_matrix into a row reduced echelon form. Applies same row operations on z_matrix.
+    Turn the x_matrix into a row reduced echelon form. Apply the same row operations on z_matrix.
 
     :param x_matrix: binary matrix for representing Pauli X part of the symplectic binary
         representation of the stabilizer generators.

@@ -151,9 +151,6 @@ class StabilizerCompiler(CompilerBase):
                 f"{type(op)} is invalid or not implemented for {self.__class__.__name__}."
             )
 
-        # For debugging
-        # print(f"After applying {type(op)}, the state is \n destabilizer: \n {state.data.destabilizer} \n stabilizer: \n {state.data.stabilizer} \n with phase {state.data.phase}")
-
     def compile_one_noisy_gate(
         self, state, op, n_quantum, q_index, classical_registers
     ):

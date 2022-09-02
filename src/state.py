@@ -1,10 +1,12 @@
 """
 The QuantumState/GraphState classes mediates the interactions between different graph representations
 
+State representations that we support are:
+1. Density matrix
+2. Stabilizer
+
 State representations that we intend to support in the near future are:
 1. Graph representation
-2. Density matrix
-3. Stabilizer
 
 TODO: once we can convert more easily between different representations,
 we should REMOVE the requirement that data be a list the same length as the
@@ -20,9 +22,8 @@ from src.backends.stabilizer.state import Stabilizer
 import src.backends.density_matrix.functions as dmf
 import src.backends.stabilizer.functions.clifford as sfc
 
-DENSITY_MATRIX_QUBIT_THRESH = (
-    10  # threshold above which density matrix representation is discouraged
-)
+# threshold above which density matrix representation is discouraged
+DENSITY_MATRIX_QUBIT_THRESH = 10
 
 
 class QuantumState:
@@ -100,7 +101,7 @@ class QuantumState:
                     dims = [dim_A, dim_B, dim_C, dim_D]
         :type dims: list OR numpy.ndarray
         :param measurement_determinism:
-        :type measurement_determinism:
+        :type measurement_determinism: str or int
         :return: nothing
         :rtype: None
         """

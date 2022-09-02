@@ -47,6 +47,8 @@ Stabilizer Representation Backend
    :members:
 .. automodule:: src.backends.stabilizer.functions.stabilizer
    :members:
+.. automodule:: src.backends.stabilizer.functions.transformation
+   :members:
 .. automodule:: src.backends.stabilizer.functions.utils
    :members:
 

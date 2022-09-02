@@ -1,3 +1,8 @@
+"""
+Functions that help calculation of various metrics in the stabilizer backend
+
+"""
+
 import numpy as np
 
 from src.backends.stabilizer.functions.stabilizer import (
@@ -13,11 +18,11 @@ def fidelity(tableau1, tableau2):
     """
     Compute the fidelity of two stabilizer states given their tableaux.
 
-    :param tableau1:
+    :param tableau1: the first tableau
     :type tableau1: CliffordTableau
-    :param tableau2:
+    :param tableau2: the second tableau
     :type tableau2: CliffordTableau
-    :return:
+    :return: the fidelity of these two states given by their tableaux
     :rtype: float
     """
     return np.abs(inner_product(tableau1, tableau2)) ** 2
@@ -25,14 +30,15 @@ def fidelity(tableau1, tableau2):
 
 def inner_product(tableau1, tableau2):
     """
-    Calculate the inner product of two stabilizer states using CliffordTableau
+    Calculate the inner product of two stabilizer states using CliffordTableau.
+    These two states are necessarily pure.
 
-    :param tableau1:
+    :param tableau1: the first tableau
     :type tableau1: CliffordTableau
-    :param tableau2:
+    :param tableau2: the second tableau
     :type tableau2: CliffordTableau
-    :return:
-    :rtype:
+    :return: the inner product of these two states given by their tableaux
+    :rtype: float
     """
     n_qubits = tableau1.n_qubits
     assert tableau1.n_qubits == tableau2.n_qubits
@@ -86,16 +92,18 @@ def inner_product(tableau1, tableau2):
                 and np.array_equal(z_matrix[-1], z2_matrix[i])
                 and r_vector[-1] != r2_vector[i]
             ):
+                # if R = - Q for Q being a generator of the second state
                 return 0
     return 2 ** (-counter / 2)
 
 
 def clifford_from_stabilizer(stabilizer_tableau):
     """
+    Return the CliffordTableau from the given StabilizerTableau after finding destabilizers
 
-    :param stabilizer_tableau:
+    :param stabilizer_tableau: a stabilizer Tableau
     :type stabilizer_tableau: StabilizerTableau
-    :return:
+    :return: the Clifford
     :rtype: CliffordTableau
     """
     n_qubits = stabilizer_tableau.n_qubits

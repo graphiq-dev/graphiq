@@ -1,3 +1,6 @@
+"""
+Functions that are specific for StabilizerTableau
+"""
 import numpy as np
 from src.backends.stabilizer.tableau import StabilizerTableau
 from src.backends.stabilizer.functions.linalg import (
@@ -36,7 +39,7 @@ def pauli_type_finder(x_matrix, z_matrix, pivot):
     :type x_matrix: np.ndarray
     :param z_matrix: z matrix in the symplectic representation of the stabilizers
     :type z_matrix: np.ndarray
-    :param pivot: the location of the pivot element [i,j] on the i-th row and j-th column of the stabilizer tableau.
+    :param pivot: the location of the pivot element [i,j] on the i-th row and j-th column of the stabilizer tableau
     :type pivot: list
     :return: three lists each containing the positions (row indices) of the Pauli X, Y, and Z operators in and below
         the row specified by pivot[0] in the column given by pivot[1], e.g. if the first list is [3, 4],
@@ -65,15 +68,13 @@ def pauli_type_finder(x_matrix, z_matrix, pivot):
 def inverse_circuit(tableau):
     """
     Find the inverse circuit that transforms the input stabilizer tableau back to the stabilizer tableau
-    of n tensor products of the :math:`|0\\rangle` state
+    of :math:`|0\\rangle^{\\otimes n}` state
 
-    :param tableau:
+    :param tableau: the input tableau
     :type tableau: StabilizerTableau
-    :return:
+    :return: the tableau that is converted to the basis state, list of gate instructions
     :rtype: StabilizerTableau, list[tuple]
     """
-    # Once we use the full initial tableau as input we can use actual stabilizer gates instead of matrix operations to
-    # implement hadamard, phase and CNOT and hence the phase vector will be automatically included. But is it needed?
     circuit_list = []
     pivot = [0, 0]
     n_qubits = tableau.n_qubits
@@ -169,7 +170,7 @@ def tab_row_swap(tableau, first_row, second_row):
     """
     swaps the rows of the full stabilizer tableau (including the phase factor vector)
 
-    :param tableau:
+    :param tableau: the input tableau to be manipulated
     :type tableau: StabilizerTableau
     :param first_row: one of the rows to be swapped
     :type first_row: int
@@ -188,11 +189,14 @@ def _process_one_pauli(tableau, pivot, pauli_list):
     """
     Helper function to process one Pauli list
 
-    :param tableau:
+    :param tableau: the input tableau to be processed
     :type tableau: StabilizerTableau
-    :param pivot:
-    :param pauli_list:
-    :return:
+    :param pivot: a pivot position (row index, column index)
+    :type pivot: [int, int]
+    :param pauli_list: a list of positions to apply actions
+    :type pauli_list: list
+    :return: the tableau after processing and the updated pivot position
+    :rtype: StabilizerTableau, [int, int]
     """
     tableau = tab_row_swap(tableau, pivot[0], pauli_list[0])
 
@@ -217,13 +221,20 @@ def _process_two_pauli(
     """
     Helper function to process two Pauli lists
 
-    :param tableau:
-    :param pivot:
-    :param pauli_list_dict:
-    :param pauli_type1:
-    :param pauli_type2:
-    :return:
+    :param tableau: the input tableau to be processed
+    :type tableau: StabilizerTableau
+    :param pivot: a pivot position (row index, column index)
+    :type pivot: [int, int]
+    :param pauli_list_dict: a dictionary that contains all Puali lists (for X, Y, Z)
+    :type pauli_list_dict: dict
+    :param pauli_type1: a string that identifies which Pauli to process
+    :type pauli_type1: str
+    :param pauli_type2: a string that identifies which Pauli to process
+    :type pauli_type2: str
+    :return: the tableau after processing, the updated pivot position
+    :rtype: StabilizerTableau, [int, int]
     """
+
     # swap the pivot and its next row with them
 
     tableau = tab_row_swap(tableau, pivot[0], pauli_list_dict[pauli_type1][0])
@@ -270,10 +281,10 @@ def one_step_rref(tableau, pivot):
     and converts the elements below the pivot to the standard row echelon form.
     This is one of the steps of the full row reduced echelon form algorithm.
 
-    :param tableau:
+    :param tableau: the input tableau to be processed
     :type tableau: StabilizerTableau
     :param pivot: the location of the pivot element [i,j] on the i-th row and j-th column of the stabilizer tableau.
-    :type pivot: list
+    :type pivot: [int, int]
     :return: updated stabilizer tableau and updated pivot
     :rtype: StabilizerTableau, list
     """
@@ -334,7 +345,7 @@ def rref(tableau):
     Takes stabilizer tableau, and converts it to the standard row echelon form.
     This implements the algorithm in New J. Phys. 7, 170 (2005).
 
-    :param tableau:
+    :param tableau: the input tableau to be processed
     :type tableau: StabilizerTableau
     :return: stabilizer tableau in the row reduced echelon form
     :rtype: StabilizerTableau
@@ -356,7 +367,7 @@ def canonical_form(tableau):
     Takes stabilizer tableau, and converts it to the canonical reduced echelon form, which is
     different from standard row reduced echelon form.
 
-    :param tableau: the input tableau
+    :param tableau: the input tableau to be processed
     :type tableau: StabilizerTableau
     :return: stabilizer tableau in the canonical form
     :rtype: StabilizerTableau

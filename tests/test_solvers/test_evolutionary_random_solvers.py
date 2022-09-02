@@ -69,7 +69,7 @@ def check_run(run_info, expected_info):
     if state._dm is not None and target_state._dm is not None:
         assert np.allclose(state.dm.data, target_state.dm.data)
     if state._stabilizer is not None and target_state._stabilizer is not None:
-        assert state.stabilizer.__eq__(target_state.stabilizer)
+        assert state.stabilizer == target_state.stabilizer
 
 
 def check_run_visual(run_info, expected_info):
@@ -101,7 +101,7 @@ def linear3_run(density_matrix_compiler, linear3_expected):
 
 @pytest.fixture(scope="module")
 def linear3_run_stabilizer(stabilizer_compiler, linear3_expected):
-    return generate_run(3, 1, linear3_expected, stabilizer_compiler, 1)
+    return generate_run(3, 1, linear3_expected, stabilizer_compiler, 10)
 
 
 @pytest.fixture(scope="module")
@@ -126,6 +126,11 @@ def linear4_run(density_matrix_compiler, linear4_expected):
 
 
 @pytest.fixture(scope="module")
+def linear4_run_stabilizer(stabilizer_compiler, linear4_expected):
+    return generate_run(4, 1, linear4_expected, stabilizer_compiler, 10)
+
+
+@pytest.fixture(scope="module")
 def linear4_expected():
     circuit_ideal, state_ideal = linear_cluster_4qubit_circuit()
 
@@ -137,6 +142,11 @@ def linear4_expected():
 @pytest.fixture(scope="module")
 def ghz3_run(density_matrix_compiler, ghz3_expected):
     return generate_run(3, 1, ghz3_expected, density_matrix_compiler, 0)
+
+
+@pytest.fixture(scope="module")
+def ghz3_run_stabilizer(stabilizer_compiler, ghz3_expected):
+    return generate_run(3, 1, ghz3_expected, stabilizer_compiler, 0)
 
 
 @pytest.fixture(scope="module")
@@ -165,6 +175,10 @@ def test_solver_linear4(linear4_run, linear4_expected):
     check_run(linear4_run, linear4_expected)
 
 
+def test_solver_linear4_stabilizer(linear4_run_stabilizer, linear4_expected):
+    check_run(linear4_run_stabilizer, linear4_expected)
+
+
 @visualization
 def test_solver_linear4_visualized(linear4_run, linear4_expected):
     check_run_visual(linear4_run, linear4_expected)
@@ -175,6 +189,12 @@ def test_solver_linear4_visualized(linear4_run, linear4_expected):
 )
 def test_solver_ghz3(ghz3_run, ghz3_expected, density_matrix_compiler):
     check_run(ghz3_run, ghz3_expected)
+
+
+def test_solver_ghz3_stabilizer(
+    ghz3_run_stabilizer, ghz3_expected, stabilizer_compiler
+):
+    check_run(ghz3_run_stabilizer, ghz3_expected)
 
 
 @visualization
@@ -241,6 +261,7 @@ def test_solver_logging(seed):
 
 
 def test_stabilizer_linear3():
+    # debugging purpose
     n_emitter = 1
     n_photon = 3
     circuit_ideal, target_state = linear_cluster_3qubit_circuit()
@@ -254,7 +275,7 @@ def test_stabilizer_linear3():
         n_emitter=n_emitter,
         n_photon=n_photon,
     )
-    solver.seed(1)
+    solver.seed(10)
     solver.solve()
     state = compiler.compile(solver.hof[0][1])
     state.partial_trace(
@@ -269,8 +290,7 @@ def test_stabilizer_linear3():
     assert np.isclose(hof[0][0], metric.evaluate(state, circuit))
 
     if state._dm is not None and target_state._dm is not None:
-        pass
-        # assert np.allclose(state.dm.data, target_state.dm.data)
+        assert np.allclose(state.dm.data, target_state.dm.data)
     if state._stabilizer is not None and target_state._stabilizer is not None:
         print(f"the output stabilizer is {state.stabilizer.data.to_stabilizer()}")
         output_s_tableau = sfs.canonical_form(state.stabilizer.tableau.to_stabilizer())
@@ -281,11 +301,9 @@ def test_stabilizer_linear3():
         print(
             f"the target stabilizer is {target_state.stabilizer.data.to_stabilizer()}"
         )
-        print(
-            f"the target stabilizer in the canonical form is {target_state.stabilizer.tableau.to_stabilizer()}"
-        )
-        # assert state.stabilizer.__eq__(target_state.stabilizer)
-        pass
+        print(f"the target stabilizer in the canonical form is {target_s_tableau}")
+        assert output_s_tableau == target_s_tableau
+        assert state.stabilizer == target_state.stabilizer
 
 
 """

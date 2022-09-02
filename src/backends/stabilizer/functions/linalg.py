@@ -270,18 +270,11 @@ def row_sum(x_matrix, z_matrix, r_vector, iphase_vector, row_to_add, target_row)
     phases = 2 * r_vector[target_row] + iphase_vector[target_row]
     phases += 2 * r_vector[row_to_add] + iphase_vector[row_to_add] + g_sum
     phases = phases % 4
-    if phases == 0:
-        r_vector[target_row] = 0
-        iphase_vector[target_row] = 0
-    elif phases == 1:
-        r_vector[target_row] = 0
-        iphase_vector[target_row] = 1
-    elif phases == 2:
-        r_vector[target_row] = 1
-        iphase_vector[target_row] = 0
-    else:
-        r_vector[target_row] = 1
-        iphase_vector[target_row] = 1
+
+    # for exponent of (-1)
+    r_vector[target_row] = int(phases / 2)
+    # for exponent of i
+    iphase_vector[target_row] = phases % 2
 
     # calculating the resulting new matrices after adding row i to h.
     x_matrix = add_rows(x_matrix, row_to_add, target_row)

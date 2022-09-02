@@ -114,6 +114,6 @@ def test_compile_circuit2():
     dag.validate()
     dag.draw_circuit()
     compiler = StabilizerCompiler()
-    # compiler.measurement_determinism=1
+    compiler.measurement_determinism = 1
     output_stabilizer = compiler.compile(dag)
     print(output_stabilizer.stabilizer)

@@ -364,7 +364,7 @@ class EvolutionarySolver(RandomSearchSolver):
             if self.selection_active:
                 population = self.tournament_selection(population, k=self.tournament_k)
 
-            print(f"Iteration {i} | Best score: {self.hof[0][0]:.4f}")
+            print(f"Iteration {i} | Best score: {self.hof[0][0]:.6f}")
 
         self.logs_to_df()  # convert the logs to a DataFrame
 

@@ -5,6 +5,7 @@ from src.backends.stabilizer.functions.linalg import (
     row_sum,
     hadamard_transform,
 )
+import src.backends.stabilizer.functions.transformation as transform
 
 
 def _one_pauli_type_finder(x_matrix, z_matrix, pivot, pauli_type):
@@ -66,8 +67,6 @@ def inverse_circuit(tableau):
     Find the inverse circuit that transforms the input stabilizer tableau back to the stabilizer tableau
     of n tensor products of the :math:`|0\\rangle` state
 
-    TODO: check if we need to update the phase vector since it is not updated properly here for now
-
     :param tableau:
     :type tableau: StabilizerTableau
     :return:
@@ -79,6 +78,7 @@ def inverse_circuit(tableau):
     pivot = [0, 0]
     n_qubits = tableau.n_qubits
     tableau = canonical_form(tableau)
+
     # Hadamard block
     for j in range(n_qubits):
         pivot[1] = j
@@ -104,40 +104,33 @@ def inverse_circuit(tableau):
         for k in range(j + 1, n_qubits):
             if tableau.x_matrix[j, k] == 1:
                 circuit_list.append(("CNOT", j, k))
-                tableau.x_matrix[:, k] = tableau.x_matrix[:, k] ^ tableau.x_matrix[:, j]
-                tableau.z_matrix[:, j] = tableau.z_matrix[:, j] ^ tableau.z_matrix[:, k]
+                tableau = transform.cnot_gate(tableau, j, k)
+
     # CZ block
     for j in range(n_qubits):
         for k in range(j + 1, n_qubits):
             if tableau.x_matrix[j, k] == 0 and tableau.z_matrix[j, k] == 1:
                 circuit_list.append(("CZ", j, k))
-                # CZ = H CNOT H
-                tableau.x_matrix, tableau.z_matrix = hadamard_transform(
-                    tableau.x_matrix, tableau.z_matrix, k
-                )
-                tableau.x_matrix[:, k] = tableau.x_matrix[:, k] ^ tableau.x_matrix[:, j]
-                tableau.z_matrix[:, j] = tableau.z_matrix[:, j] ^ tableau.z_matrix[:, k]
-                tableau.x_matrix, tableau.z_matrix = hadamard_transform(
-                    tableau.x_matrix, tableau.z_matrix, k
-                )
+                tableau = transform.control_z_gate(tableau, j, k)
+
     # Phase gate block
     for j in range(n_qubits):
         if tableau.x_matrix[j, j] == 1 and tableau.z_matrix[j, j] == 1:
             circuit_list.append(("P", j))
-            tableau.z_matrix[:, j] = tableau.z_matrix[:, j] ^ tableau.x_matrix[:, j]
+            circuit_list.append(("P", j))
+            circuit_list.append(("P", j))
+            tableau = transform.phase_dagger_gate(tableau, j)
+
     # Hadamard block
     for j in range(n_qubits):
         if tableau.x_matrix[j, j] == 1 and tableau.z_matrix[j, j] == 0:
             circuit_list.append(("H", j))
-            tableau.x_matrix, tableau.z_matrix = hadamard_transform(
-                tableau.x_matrix, tableau.z_matrix, j
-            )
+            tableau = transform.hadamard_gate(tableau, j)
     # Eliminate Zs
     for j in range(n_qubits):
         for k in range(j + 1, n_qubits):
             if tableau.x_matrix[k, j] == 0 and tableau.z_matrix[k, j] == 1:
-                tableau = row_sum(tableau, j, k)
-
+                tableau = tab_row_sum(tableau, j, k)
     return tableau, circuit_list
 
 
@@ -403,5 +396,6 @@ def canonical_form(tableau):
                     tableau = tab_row_sum(tableau, pivot[0], row_m)
             pivot[0] = pivot[0] + 1
     # confirm if there is any trivial rows equivalent to all identity matrices.
+
     assert pivot[0] == n_qubits
     return tableau

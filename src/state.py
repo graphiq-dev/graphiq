@@ -120,11 +120,17 @@ class QuantumState:
         """
         Returns all active representations of a QuantumState object
 
-        :return: a set with all initialized state representations
-        :rtype: set
+        :return: a list with all initialized state representations
+        :rtype: list
         """
-        representations = set([self._dm, self._stabilizer, self._graph])
-        representations.remove(None)
+        representations = []
+        if self._dm is not None:
+            representations.append(self._dm)
+        if self._stabilizer is not None:
+            representations.append(self._stabilizer)
+        if self._graph is not None:
+            representations.append(self._graph)
+
         return representations
 
     @property

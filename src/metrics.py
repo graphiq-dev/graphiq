@@ -82,9 +82,9 @@ class Infidelity(MetricBase):
         :rtype: float
         """
         # TODO: add check for the representation
-        if state._stabilizer is not None:
+        if state._stabilizer is not None and self.target._stabilizer is not None:
             fid = sfm.fidelity(self.target.stabilizer.data, state.stabilizer.data)
-        elif state._dm is not None:
+        elif state._dm is not None and self.target._dm is not None:
             fid = dmf.fidelity(self.target.dm.data, state.dm.data)
         else:
             raise ValueError("Cannot compute the infidelity.")

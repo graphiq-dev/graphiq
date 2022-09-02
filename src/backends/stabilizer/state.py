@@ -1,9 +1,11 @@
 """
 State representation using the stabilizer formalism
 """
+import src.backends.stabilizer.functions.transformation as transform
 from src.backends.state_base import StateRepresentationBase
 import src.backends.stabilizer.functions.clifford as sfc
 from src.backends.stabilizer.tableau import CliffordTableau
+from src.backends.stabilizer.functions.stabilizer import canonical_form
 
 
 class Stabilizer(StateRepresentationBase):
@@ -96,31 +98,31 @@ class Stabilizer(StateRepresentationBase):
         :return:
         :rtype:
         """
-        self._tableau, outcome, _ = sfc.z_measurement_gate(
+        self._tableau, outcome, _, = sfc.z_measurement_gate(
             self._tableau, qubit_position, measurement_determinism
         )
         return outcome
 
     def apply_hadamard(self, qubit_position):
-        self._tableau = sfc.hadamard_gate(self._tableau, qubit_position)
+        self._tableau = transform.hadamard_gate(self._tableau, qubit_position)
 
     def apply_cnot(self, control, target):
-        self._tableau = sfc.cnot_gate(self._tableau, control, target)
+        self._tableau = transform.cnot_gate(self._tableau, control, target)
 
     def apply_cz(self, control, target):
-        self._tableau = sfc.control_z_gate(self._tableau, control, target)
+        self._tableau = transform.control_z_gate(self._tableau, control, target)
 
     def apply_phase(self, qubit_position):
-        self._tableau = sfc.phase_gate(self._tableau, qubit_position)
+        self._tableau = transform.phase_gate(self._tableau, qubit_position)
 
     def apply_sigmax(self, qubit_position):
-        self._tableau = sfc.x_gate(self._tableau, qubit_position)
+        self._tableau = transform.x_gate(self._tableau, qubit_position)
 
     def apply_sigmay(self, qubit_position):
-        self._tableau = sfc.y_gate(self._tableau, qubit_position)
+        self._tableau = transform.y_gate(self._tableau, qubit_position)
 
     def apply_sigmaz(self, qubit_position):
-        self._tableau = sfc.z_gate(self._tableau, qubit_position)
+        self._tableau = transform.z_gate(self._tableau, qubit_position)
 
     def reset_qubit(self, qubit_position, measurement_determinism="probabilistic"):
         self._tableau = sfc.reset_z(
@@ -158,4 +160,6 @@ class Stabilizer(StateRepresentationBase):
         :return: True if the stabilizer tableaux of two Stabilizer objects are the same
         :rtype: bool
         """
-        return self.data.to_stabilizer().__eq__(other.data.to_stabilizer())
+        tableau1 = canonical_form(self.data.to_stabilizer())
+        tableau2 = canonical_form(other.data.to_stabilizer())
+        return tableau1 == tableau2

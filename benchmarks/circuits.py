@@ -38,6 +38,14 @@ def ghz3_state_circuit():
     """
     rho = ket2dm((tensor(3 * [state_ketz0()]) + tensor(3 * [state_ketz1()]))) / 2.0
     ideal_state = QuantumState(3, rho, representation="density matrix")
+    graph = nx.Graph([(0, 1), (1, 2)])
+    c_tableau = CliffordTableau(3)
+    c_tableau.stabilizer_from_labels(converter.graph_to_stabilizer(graph))
+
+    ideal_state.stabilizer = Stabilizer(c_tableau)
+    ideal_state.stabilizer.apply_hadamard(1)
+    ideal_state.stabilizer.apply_hadamard(2)
+
     circuit = CircuitDAG(n_emitter=1, n_photon=3, n_classical=1)
     circuit.add(Hadamard(register=0, reg_type="e"))
     # reg_type='e' by default for single-qubit gates
@@ -62,9 +70,17 @@ def ghz4_state_circuit():
     """
     Four-qubit GHZ state
     """
+
     rho = ket2dm((tensor(4 * [state_ketz0()]) + tensor(4 * [state_ketz1()]))) / 2.0
     ideal_state = QuantumState(4, rho, representation="density matrix")
+    graph = nx.Graph([(0, 1), (1, 2), (2, 3)])
+    c_tableau = CliffordTableau(4)
+    c_tableau.stabilizer_from_labels(converter.graph_to_stabilizer(graph))
 
+    ideal_state.stabilizer = Stabilizer(c_tableau)
+    ideal_state.stabilizer.apply_hadamard(1)
+    ideal_state.stabilizer.apply_hadamard(2)
+    ideal_state.stabilizer.apply_hadamard(3)
     circuit = CircuitDAG(n_emitter=1, n_photon=4, n_classical=1)
     circuit.add(Hadamard(register=0, reg_type="e"))
     circuit.add(CNOT(control=0, control_type="e", target=0, target_type="p"))

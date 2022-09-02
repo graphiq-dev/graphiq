@@ -2,13 +2,18 @@ import pytest
 import numpy as np
 import networkx as nx
 import src.backends.stabilizer.functions.utils as sfu
-
+from src.circuit import CircuitDAG
 import src.backends.stabilizer.functions.clifford as sfc
 from src.backends.stabilizer.functions.stabilizer import rref
 import src.backends.stabilizer.functions.metric as sfm
 from src.backends.stabilizer.functions.height import height_func_list
 from src.backends.stabilizer.tableau import StabilizerTableau
 from functools import reduce
+import src.ops as ops
+from src.backends.density_matrix.compiler import DensityMatrixCompiler
+from src.backends.stabilizer.compiler import StabilizerCompiler
+from benchmarks.circuits import *
+from src.metrics import Infidelity
 
 
 def test_symplectic_to_string():
@@ -151,8 +156,40 @@ def test_stabilizer_inner_product():
 def test_stabilizer_fidelity():
     tableau1 = sfc.create_n_plus_state(4)
     tableau2 = sfc.create_n_ket0_state(4)
+    tableau3 = sfc.create_n_ket1_state(4)
     assert sfm.fidelity(tableau1, tableau2) == 0.25**2
     assert sfm.fidelity(tableau1, tableau1) == 1.0
+    assert sfm.fidelity(tableau2, tableau3) == 0.0
+
+
+def test_stabilizer_fidelity2():
+    dag = CircuitDAG(n_emitter=1, n_photon=3, n_classical=0)
+    dag.add(
+        ops.OneQubitGateWrapper([ops.Hadamard, ops.Phase], register=0, reg_type="e")
+    )
+    dag.add(ops.CNOT(control=0, control_type="e", target=0, target_type="p"))
+    dag.add(ops.OneQubitGateWrapper([ops.Phase, ops.SigmaY], register=0, reg_type="p"))
+    dag.add(ops.CNOT(control=0, control_type="e", target=1, target_type="p"))
+    dag.add(ops.CNOT(control=0, control_type="e", target=2, target_type="p"))
+    dag.add(ops.Hadamard(register=2, reg_type="p"))
+    dag.add(
+        ops.MeasurementCNOTandReset(
+            control=0, control_type="e", target=1, target_type="p"
+        )
+    )
+    dag.draw_circuit()
+    _, target_state = linear_cluster_3qubit_circuit()
+    metric = Infidelity(target_state)
+    dm_compiler = DensityMatrixCompiler()
+    dm_compiler.measurement_determinism = 1
+    stab_compiler = StabilizerCompiler()
+    stab_compiler.measurement_determinism = 1
+    state1 = dm_compiler.compile(dag)
+    state1.partial_trace([*range(3)], 4 * [2], measurement_determinism=1)
+    print(metric.evaluate(state1, dag))
+    state2 = stab_compiler.compile(dag)
+    state2.partial_trace([*range(3)], 4 * [2], measurement_determinism=1)
+    print(metric.evaluate(state2, dag))
 
 
 def test_clifford_from_stabilizer():

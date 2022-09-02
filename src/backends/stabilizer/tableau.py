@@ -3,7 +3,60 @@ import numpy as np
 import src.backends.stabilizer.functions.utils as sfu
 
 
-class StabilizerTableau(ABC):
+class TableauBase(ABC):
+    """
+    The base class for Stabilizer and Clifford Tableau
+
+    """
+
+    def __init__(self, table, phase, n_qubits, shape):
+        self._table = table
+        self._phase = phase
+        self.n_qubits = n_qubits
+        self.shape = shape
+
+    @property
+    def table(self):
+        """
+
+        :return: the table
+        :rtype: numpy.ndarray
+        """
+        return self._table
+
+    @table.setter
+    def table(self, value):
+        """
+
+        :param value:
+        :return:
+        """
+        assert value.shape == self.shape
+        self._table = value.astype(int)
+
+    @property
+    def phase(self):
+        """
+
+        :return:
+        :rtype:
+        """
+        return self._phase
+
+    @phase.setter
+    def phase(self, value):
+        """
+
+        :param value:
+        :type value:
+        :return:
+        :rtype:
+        """
+        assert value.shape[0] == self.shape[0]
+        self._phase = value.astype(int)
+
+
+class StabilizerTableau(TableauBase):
     """
     The stabilizer tableau, which is the binary symplectic representation of stabilizer generators
     """
@@ -22,7 +75,7 @@ class StabilizerTableau(ABC):
             self.n_qubits = data
         elif isinstance(data, np.ndarray):
             assert 2 * data.shape[0] == data.shape[1]
-            self._table = data.astype(int)
+            self._table = np.copy(data).astype(int)
             self.n_qubits = data.shape[0]
         elif isinstance(data, list):
             assert len(data) == 2
@@ -34,28 +87,11 @@ class StabilizerTableau(ABC):
             raise TypeError("Cannot support the input type")
 
         if isinstance(phase, np.ndarray) and phase.shape[0] == self.n_qubits:
-            self._phase = phase.astype(int)
+            self._phase = np.copy(phase).astype(int)
         else:
             self._phase = np.zeros(self.n_qubits).astype(int)
 
-    @property
-    def table(self):
-        """
-
-        :return: the table that contains stabilizer generators
-        :rtype: numpy.ndarray
-        """
-        return self._table
-
-    @table.setter
-    def table(self, value):
-        """
-
-        :param value:
-        :return:
-        """
-        assert value.shape == (self.n_qubits, 2 * self.n_qubits)
-        self._table = value.astype(int)
+        self.shape = (self.n_qubits, 2 * self.n_qubits)
 
     @property
     def x_matrix(self):
@@ -96,27 +132,6 @@ class StabilizerTableau(ABC):
         assert value.shape == (self.n_qubits, self.n_qubits)
         self._table[:, self.n_qubits : 2 * self.n_qubits] = value.astype(int)
 
-    @property
-    def phase(self):
-        """
-
-        :return:
-        :rtype:
-        """
-        return self._phase
-
-    @phase.setter
-    def phase(self, value):
-        """
-
-        :param value:
-        :type value:
-        :return:
-        :rtype:
-        """
-        assert value.shape[0] == self.n_qubits
-        self._phase = value.astype(int)
-
     def __str__(self):
         return f"Stabilizer: \n {self.to_labels()} \n Phase: \n {self.phase}"
 
@@ -149,7 +164,7 @@ class StabilizerTableau(ABC):
         return sfu.is_stabilizer(self._table)
 
 
-class CliffordTableau(ABC):
+class CliffordTableau(TableauBase):
     def __init__(self, data, phase=None, *args, **kwargs):
         """
         TODO: support more ways to initialize the tableau
@@ -163,35 +178,27 @@ class CliffordTableau(ABC):
 
             self._table = np.eye(2 * data).astype(int)
             self.n_qubits = data
+            self._initialize_phase(phase)
         elif isinstance(data, np.ndarray):
             assert data.shape[0] == data.shape[1]
             self._table = data.astype(int)
             self.n_qubits = int(data.shape[1] / 2)
+            self._initialize_phase(phase)
+        elif isinstance(data, CliffordTableau):
+            self._table = np.copy(data.table)
+            self.n_qubits = data.n_qubits
+            self._phase = np.copy(data.phase)
+            self._iphase = np.copy(data.iphase)
         else:
             raise TypeError("Cannot support the input type")
+        self.shape = (2 * self.n_qubits, 2 * self.n_qubits)
 
+    def _initialize_phase(self, phase):
         if isinstance(phase, np.ndarray) and phase.shape[0] == 2 * self.n_qubits:
             self._phase = phase.astype(int)
         else:
             self._phase = np.zeros(2 * self.n_qubits).astype(int)
         self._iphase = np.zeros(2 * self.n_qubits).astype(int)
-
-    @property
-    def table(self):
-        """
-        :return: the table that contains destabilizer and stabilizer generators
-        :rtype: numpy.ndarray
-        """
-        return self._table
-
-    @table.setter
-    def table(self, value):
-        """
-        :param value:
-        :return:
-        """
-        assert value.shape == (2 * self.n_qubits, 2 * self.n_qubits)
-        self._table = value.astype(int)
 
     @property
     def table_x(self):
@@ -350,25 +357,6 @@ class CliffordTableau(ABC):
         self._table[self.n_qubits :, self.n_qubits : 2 * self.n_qubits] = value
 
     @property
-    def phase(self):
-        """
-        :return:
-        :rtype:
-        """
-        return self._phase
-
-    @phase.setter
-    def phase(self, value):
-        """
-        :param value:
-        :type value:
-        :return:
-        :rtype:
-        """
-        assert value.shape[0] == 2 * self.n_qubits
-        self._phase = value.astype(int)
-
-    @property
     def iphase(self):
         """
         :return:
@@ -390,7 +378,7 @@ class CliffordTableau(ABC):
     def __str__(self):
         return (
             f"Destabilizers: \n{self.destabilizer_to_labels()}\n Stabilizer: \n {self.stabilizer_to_labels()} \n "
-            f"Phase: \n {self.phase} i phase: \n {self.iphase}"
+            f"Phase: \n {self.phase}\n i phase: \n {self.iphase}"
         )
 
     def stabilizer_to_labels(self):

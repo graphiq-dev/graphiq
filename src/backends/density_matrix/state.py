@@ -5,7 +5,9 @@ It supports applications of unitary operations, quantum channels and measurement
 
 """
 import networkx as nx
-import numpy as np
+# import numpy as np
+import numpy
+import jax.numpy as np
 import matplotlib.pyplot as plt
 import src.backends.density_matrix.functions as dmf
 
@@ -131,9 +133,9 @@ class DensityMatrix(StateRepresentationBase):
                 if prob < 0:
                     prob = 0
                 probs.append(prob)
-
+            probs = np.array(probs)
             if measurement_determinism == "probabilistic":
-                outcome = np.random.choice([0, 1], p=probs / np.sum(probs))
+                outcome = numpy.random.choice([0, 1], p=probs / np.sum(probs))
             elif measurement_determinism == 1:
                 if probs[1] > 0:
                     outcome = 1

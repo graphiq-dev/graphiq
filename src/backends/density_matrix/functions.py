@@ -6,8 +6,11 @@ Includes functions to generate commonly used matrices, apply certain gates, etc.
 """
 from functools import reduce
 
-import numpy as np
-from scipy.linalg import eigh
+import jax.numpy as np
+from jax.scipy.linalg import eigh
+import string
+# import numpy as np
+# from scipy.linalg import eigh
 
 
 def sigmax():
@@ -57,7 +60,7 @@ def phase():
     :return: the phase matrtix
     :rtype: numpy.ndarray
     """
-    return np.diag([1.0, 1.0j])
+    return np.diag(np.array([1.0, 1.0j]))
 
 
 def state_ketx0():
@@ -467,15 +470,22 @@ def partial_trace(rho, keep, dims, optimize=False):
     :return: the (2D) matrix after partial trace
     :rtype: numpy.ndarray
     """
+    import numpy as np
     keep = np.asarray(keep)
     dims = np.asarray(dims)
     ndim = dims.size
     nkeep = np.prod(dims[keep])
 
-    idx1 = [*range(ndim)]
-    idx2 = [ndim + i if i in keep else i for i in range(ndim)]
+    # idx1 = [*range(ndim)]
+
+    ssleft = "".join([string.ascii_lowercase[i] for i in range(ndim)]) + "".join([string.ascii_uppercase[i] for i in range(ndim)])
+    ssright = "".join([string.ascii_lowercase[i] for i in range(ndim) if i in keep]) + "".join([string.ascii_uppercase[i] for i in range(ndim) if i in keep])
+    superscript = ssleft + "->" + ssright
+    # print(keep)
+    # print(dims)
+    # print(superscript)
     rho_a = rho.reshape(np.tile(dims, 2))
-    rho_a = np.einsum(rho_a, idx1 + idx2, optimize=optimize)
+    rho_a = np.einsum(superscript, rho_a)
     return rho_a.reshape(nkeep, nkeep)
 
 

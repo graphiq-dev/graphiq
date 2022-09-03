@@ -202,6 +202,16 @@ def phase_info():
     return OpenQASMInfo("s", imports, definition, usage, False, gate_symbol="P")
 
 
+def parameterized_info():
+    imports = []
+    definition = "gate s a { U(0, pi/2, 0) a; }"
+
+    def usage(q_reg, q_reg_type, c_reg):
+        return f"s {q_reg_type[0]}{q_reg[0]}[0];"
+
+    return OpenQASMInfo("s", imports, definition, usage, False, gate_symbol="PR")
+
+
 def single_qubit_wrapper_info(op_list):
     """
     This function combines the openqasm info from multiple base Operations,

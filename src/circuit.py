@@ -1322,3 +1322,23 @@ class CircuitDAG(CircuitBase):
         """
         self._node_id += 1
         return self._node_id
+
+    def collect_params(self):
+        params = {}
+        for op in self.sequence(unwrapped=True):
+            params[id(op)] = op.params
+        return params
+
+    def set_params(self, params):
+        for op in self.sequence(unwrapped=True):
+            op.params = params[id(op)]
+
+    def init_params(self):
+        import random
+        for op in self.sequence(unwrapped=True):
+            if op.params and op.param_info:
+                params = []
+                for p, (lb, ub) in zip(op.params, op.param_info["bounds"]):
+                    params.append(random.uniform(lb, ub))
+                op.params = params
+        return

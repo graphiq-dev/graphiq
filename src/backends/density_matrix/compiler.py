@@ -26,8 +26,12 @@ class DensityMatrixCompiler(CompilerBase):
         ops.SigmaX: lambda: dm.sigmax(),
         ops.SigmaY: lambda: dm.sigmay(),
         ops.SigmaZ: lambda: dm.sigmaz(),
-        ops.ParameterizedOneQubitRotation: lambda theta, phi, lam: dm.parameterized_one_qubit_unitary(theta, phi, lam),
-        ops.ParameterizedControlledRotationQubit: lambda theta, phi, lam: dm.parameterized_one_qubit_unitary(theta, phi, lam),
+        ops.ParameterizedOneQubitRotation: lambda theta, phi, lam: dm.parameterized_one_qubit_unitary(
+            theta, phi, lam
+        ),
+        ops.ParameterizedControlledRotationQubit: lambda theta, phi, lam: dm.parameterized_one_qubit_unitary(
+            theta, phi, lam
+        ),
         ops.CNOT: lambda: dm.sigmax(),
         ops.CZ: lambda: dm.sigmaz(),
         ops.ClassicalCNOT: lambda: dm.sigmax(),
@@ -75,7 +79,9 @@ class DensityMatrixCompiler(CompilerBase):
 
         elif isinstance(op, ops.OneQubitOperationBase):
             unitary = dm.get_one_qubit_gate(
-                n_quantum, q_index(op.register, op.reg_type), self.ops[op.__class__](*params)
+                n_quantum,
+                q_index(op.register, op.reg_type),
+                self.ops[op.__class__](*params),
             )
             state.apply_unitary(unitary)
 
@@ -95,7 +101,9 @@ class DensityMatrixCompiler(CompilerBase):
 
             # apply an gate on the target qubit conditioned on the measurement outcome = 1
             unitary = dm.get_one_qubit_gate(
-                n_quantum, q_index(op.target, op.target_type), self.ops[op.__class__](*params)
+                n_quantum,
+                q_index(op.target, op.target_type),
+                self.ops[op.__class__](*params),
             )
 
             outcome = state.apply_measurement_controlled_gate(

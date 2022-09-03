@@ -449,6 +449,7 @@ class CircuitBase(ABC):
 
     def init_params(self):
         import random  # todo, better random initialization
+
         # todo docstrings
 
         for op in self.sequence(unwrapped=True):
@@ -458,7 +459,6 @@ class CircuitBase(ABC):
                     params.append(random.uniform(lb, ub))
                 op.params = params
         return
-
 
 
 class CircuitDAG(CircuitBase):

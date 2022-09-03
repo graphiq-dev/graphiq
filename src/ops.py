@@ -621,9 +621,13 @@ class ParameterizedOneQubitRotation(OneQubitOperationBase):
     Parameterized one qubit rotation.
     """
 
-    _openqasm_info = oq_lib.parameterized_info()  # todo, change to appropriate openQASM info
+    _openqasm_info = (
+        oq_lib.parameterized_info()
+    )  # todo, change to appropriate openQASM info
 
-    def __init__(self, register=0, reg_type="e", noise=nm.NoNoise(), params=None, param_info=None):
+    def __init__(
+        self, register=0, reg_type="e", noise=nm.NoNoise(), params=None, param_info=None
+    ):
         super().__init__(register, reg_type, noise)
 
         if params is None:
@@ -631,7 +635,7 @@ class ParameterizedOneQubitRotation(OneQubitOperationBase):
         if param_info is None:
             param_info = {
                 "bounds": ((0.0, 1.0), (0.0, 1.0), (0.0, 1.0)),
-                "labels": ("theta", "phi", "lambda")
+                "labels": ("theta", "phi", "lambda"),
             }
         self.params = params
         self.param_info = param_info
@@ -644,7 +648,16 @@ class ParameterizedControlledRotationQubit(ControlledPairOperationBase):
 
     _openqasm_info = oq_lib.phase_info()  # todo, change to appropriate openQASM info
 
-    def __init__(self, control=0, control_type="e", target=0, target_type="e", noise=nm.NoNoise(), params=None, param_info=None):
+    def __init__(
+        self,
+        control=0,
+        control_type="e",
+        target=0,
+        target_type="e",
+        noise=nm.NoNoise(),
+        params=None,
+        param_info=None,
+    ):
         super().__init__(control, control_type, target, target_type, noise)
 
         if params is None:
@@ -652,7 +665,7 @@ class ParameterizedControlledRotationQubit(ControlledPairOperationBase):
         if param_info is None:
             param_info = {
                 "bounds": ((0.0, 1.0), (0.0, 1.0), (0.0, 1.0)),
-                "labels": ("theta", "phi", "lambda")
+                "labels": ("theta", "phi", "lambda"),
             }
         self.params = params
         self.param_info = param_info

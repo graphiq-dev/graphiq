@@ -88,4 +88,3 @@ class GradientDescentSolver(SolverBase):
         return optax.adam(
             learning_rate=learning_rate, b1=b1, b2=b2, eps=eps, eps_root=eps_root
         )
-

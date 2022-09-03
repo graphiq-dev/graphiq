@@ -9,6 +9,7 @@ from functools import reduce
 import jax.numpy as np
 from jax.scipy.linalg import eigh
 import string
+
 # import numpy as np
 # from scipy.linalg import eigh
 
@@ -471,6 +472,7 @@ def partial_trace(rho, keep, dims, optimize=False):
     :rtype: numpy.ndarray
     """
     import numpy as np
+
     keep = np.asarray(keep)
     dims = np.asarray(dims)
     ndim = dims.size
@@ -478,8 +480,12 @@ def partial_trace(rho, keep, dims, optimize=False):
 
     # idx1 = [*range(ndim)]
 
-    ssleft = "".join([string.ascii_lowercase[i] for i in range(ndim)]) + "".join([string.ascii_uppercase[i] for i in range(ndim)])
-    ssright = "".join([string.ascii_lowercase[i] for i in range(ndim) if i in keep]) + "".join([string.ascii_uppercase[i] for i in range(ndim) if i in keep])
+    ssleft = "".join([string.ascii_lowercase[i] for i in range(ndim)]) + "".join(
+        [string.ascii_uppercase[i] for i in range(ndim)]
+    )
+    ssright = "".join(
+        [string.ascii_lowercase[i] for i in range(ndim) if i in keep]
+    ) + "".join([string.ascii_uppercase[i] for i in range(ndim) if i in keep])
     superscript = ssleft + "->" + ssright
     # print(keep)
     # print(dims)

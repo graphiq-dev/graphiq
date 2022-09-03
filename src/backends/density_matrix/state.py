@@ -5,6 +5,7 @@ It supports applications of unitary operations, quantum channels and measurement
 
 """
 import networkx as nx
+
 # import numpy as np
 import numpy
 import jax.numpy as np

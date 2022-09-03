@@ -11,3 +11,5 @@ qutip
 pylatexenc
 ray[default]
 psutil
+jax
+optax

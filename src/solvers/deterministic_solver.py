@@ -261,7 +261,17 @@ class DeterministicSolver(SolverBase):
         next_op = next_node["op"]
         if isinstance(next_op, ops.OneQubitGateWrapper):
             gate_list = next_op.operations + gate_list
-
+            gate_list = ops.simplify_local_clifford(gate_list)
+            if gate_list == [ops.Identity, ops.Identity]:
+                circuit.remove_op(edge[1])
+                if reg_type == "e":
+                    emitter_depth[reg] -= 1
+                return
+        else:
+            gate_list = ops.simplify_local_clifford(gate_list)
+            if gate_list == [ops.Identity, ops.Identity]:
+                # TODO: check what to do if identity gate imposes noise
+                return
         noise = self._wrap_noise(gate_list, self.noise_model_mapping)
         gate = ops.OneQubitGateWrapper(
             gate_list,

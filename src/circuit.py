@@ -726,7 +726,7 @@ class CircuitDAG(CircuitBase):
 
     def remove_op(self, node):
         """
-        remove an operation from the circuit
+        Remove an operation from the circuit
 
         :param node: the node to be removed
         :type node: int
@@ -737,7 +737,7 @@ class CircuitDAG(CircuitBase):
 
     def validate(self):
         """
-        Asserts that the circuit is valid (is a DAG, all nodes
+        Assert that the circuit is valid (is a DAG, all nodes
         without input edges are input nodes, all nodes without output edges
         are output nodes)
 
@@ -771,7 +771,7 @@ class CircuitDAG(CircuitBase):
 
     def sequence(self, unwrapped=False):
         """
-        Returns the sequence of operations composing this circuit
+        Return the sequence of operations composing this circuit
 
         :param unwrapped: If True, we "unwrap" the operation objects such that the returned sequence has only
                           non-composed gates (i.e. wrapper gates which include multiple non-composed gates are
@@ -865,7 +865,7 @@ class CircuitDAG(CircuitBase):
 
     def draw_dag(self, show=True, fig=None, ax=None):
         """
-        Draws the circuit as a DAG
+        Draw the circuit as a DAG
 
         :param show: if True, the DAG is displayed (shown). If False, the DAG is drawn but not displayed
         :type show: bool

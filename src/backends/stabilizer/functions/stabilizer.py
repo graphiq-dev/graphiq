@@ -118,9 +118,7 @@ def inverse_circuit(tableau):
     for j in range(n_qubits):
         if tableau.x_matrix[j, j] == 1 and tableau.z_matrix[j, j] == 1:
             circuit_list.append(("P", j))
-            circuit_list.append(("P", j))
-            circuit_list.append(("P", j))
-            tableau = transform.phase_dagger_gate(tableau, j)
+            tableau = transform.phase_gate(tableau, j)
 
     # Hadamard block
     for j in range(n_qubits):
@@ -225,7 +223,7 @@ def _process_two_pauli(
     :type tableau: StabilizerTableau
     :param pivot: a pivot position (row index, column index)
     :type pivot: [int, int]
-    :param pauli_list_dict: a dictionary that contains all Puali lists (for X, Y, Z)
+    :param pauli_list_dict: a dictionary that contains all Pauli lists (for X, Y, Z)
     :type pauli_list_dict: dict
     :param pauli_type1: a string that identifies which Pauli to process
     :type pauli_type1: str
@@ -296,7 +294,7 @@ def one_step_rref(tableau, pivot):
         tableau.x_matrix, tableau.z_matrix, pivot
     )
     pauli_list_dict = {"x": pauli_x_list, "y": pauli_y_list, "z": pauli_z_list}
-    # case of no pauli operator!
+    # case of no pauli operator
     if not (pauli_x_list or pauli_y_list or pauli_z_list):
         pivot = [pivot[0], pivot[1] + 1]
         return tableau, pivot
@@ -409,4 +407,39 @@ def canonical_form(tableau):
     # confirm if there is any trivial rows equivalent to all identity matrices.
 
     assert pivot[0] == n_qubits
+    return tableau
+
+
+def insert_qubit(tableau, new_position):
+    """
+    Insert a qubit in :math:`| 0 \\rangle` state to a given position.
+
+    :param tableau: the state represented by a StabilizerTableau before insertion
+    :type tableau: StabilizerTableau
+    :param new_position: the future position of the inserted qubit
+    :type new_position: int
+    :return: updated state
+    :rtype: StabilizerTableau
+    """
+    n_qubits = tableau.n_qubits
+    assert new_position <= n_qubits
+    new_column = np.zeros(n_qubits)
+    new_row = np.zeros(n_qubits + 1)
+
+    # x  part
+    tmp_x = np.insert(tableau.x_matrix, new_position, new_column, axis=1)
+    tmp_x = np.insert(tmp_x, new_position, new_row, axis=0)
+
+    # z  part
+    tmp_z = np.insert(tableau.z_matrix, new_position, new_column, axis=1)
+    tmp_z = np.insert(tmp_z, new_position, new_row, axis=0)
+
+    # phase vector part
+    new_phase = np.insert(tableau.phase, new_position, 0)
+
+    tableau.expand(np.hstack([tmp_x, tmp_z]), new_phase)
+
+    # set the new qubit to ket 0 state
+    tableau.z_matrix[new_position, new_position] = 1
+
     return tableau

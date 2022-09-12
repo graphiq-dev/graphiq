@@ -550,7 +550,7 @@ class CircuitDAG(CircuitBase):
         :param node: the node where the new operation is placed
         :type node: int
         :param new_operation: the new operation
-        :type new_operation: Operationbase or its subclass
+        :type new_operation: OperationBase or its subclass
         :raises AssertionError: if new_operation acts on different registers from the operation in the node
         :return: nothing
         :rtype: None

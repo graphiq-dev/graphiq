@@ -300,7 +300,7 @@ def insert_qubit(tableau, new_position):
     :rtype: CliffordTableau
     """
     n_qubits = tableau.n_qubits
-    assert new_position < n_qubits
+    assert new_position <= n_qubits
     new_column = np.zeros(n_qubits)
     new_row = np.zeros(n_qubits + 1)
     # x destabilizer part

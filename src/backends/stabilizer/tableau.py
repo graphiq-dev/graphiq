@@ -70,7 +70,7 @@ class TableauBase(ABC):
         :return: nothing
         :rtype: None
         """
-        assert value.shape[0] == self.shape[0]
+        assert value.shape[0] == self._phase.shape[0]
         self._phase = value.astype(int)
 
 
@@ -194,6 +194,43 @@ class StabilizerTableau(TableauBase):
         :rtype: bool
         """
         return sfu.is_stabilizer(self._table)
+
+    def _reset(self, new_table, new_phase):
+        new_n_qubits = int(new_table.shape[0])
+        self._table = new_table.astype(int)
+        self._phase = new_phase.astype(int)
+        self.n_qubits = new_n_qubits
+        self.shape = (self.n_qubits, 2 * self.n_qubits)
+
+    def expand(self, new_table, new_phase):
+        """
+        Expand the tableau by adding more qubits
+
+        :param new_table: a new table that represents the stabilizer generators
+        :type new_table: numpy.ndarray
+        :param new_phase: a new phase vector for :math:`-1` phase exponent
+        :type new_phase: numpy.ndarray
+        :return: nothing
+        :rtype: None
+        """
+        new_n_qubits = int(new_table.shape[0])
+        assert new_n_qubits > self.n_qubits
+        self._reset(new_table, new_phase)
+
+    def shrink(self, new_table, new_phase):
+        """
+        Shrink the tableau by removing qubits
+
+        :param new_table: a new table that represents the stabilizer generators
+        :type new_table: numpy.ndarray
+        :param new_phase: a new phase vector for :math:`-1` phase exponent
+        :type new_phase: numpy.ndarray
+        :return: nothing
+        :rtype: None
+        """
+        new_n_qubits = int(new_table.shape[0])
+        assert new_n_qubits < self.n_qubits
+        self._reset(new_table, new_phase)
 
 
 class CliffordTableau(TableauBase):
@@ -519,6 +556,7 @@ class CliffordTableau(TableauBase):
         self._phase = new_phase.astype(int)
         self._iphase = new_iphase.astype(int)
         self.n_qubits = new_n_qubits
+        self.shape = (2 * self.n_qubits, 2 * self.n_qubits)
 
     def expand(self, new_table, new_phase, new_iphase):
         """

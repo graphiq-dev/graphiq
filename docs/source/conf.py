@@ -12,11 +12,9 @@
 #
 import os
 import sys
+import pathlib
 
 sys.path.insert(0, os.path.abspath("."))
-
-import pathlib
-import sys
 
 sys.path.insert(0, pathlib.Path(__file__).parents[2].resolve().as_posix())
 
@@ -24,7 +22,6 @@ sys.path.insert(0, pathlib.Path(__file__).parents[2].resolve().as_posix())
 project = "Graph Compiler Library"
 copyright = "2022, Ki3-QBT"
 author = "Ki3-QBT"
-
 
 # -- General configuration ---------------------------------------------------
 
@@ -50,7 +47,6 @@ templates_path = ["_templates"]
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = []
-
 
 # -- Options for HTML output -------------------------------------------------
 

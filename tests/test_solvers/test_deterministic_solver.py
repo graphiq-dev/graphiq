@@ -2,9 +2,9 @@ import numpy as np
 import networkx as nx
 from src.backends.stabilizer.compiler import StabilizerCompiler
 from src.backends.stabilizer.state import Stabilizer
-from src.backends.stabilizer.functions.utils import (
-    get_clifford_tableau_from_graph,
+from src.backends.stabilizer.functions.rep_conversion import (
     get_stabilizer_tableau_from_graph,
+    get_clifford_tableau_from_graph,
 )
 from src.solvers.deterministic_solver import DeterministicSolver
 from benchmarks.circuits import *

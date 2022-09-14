@@ -53,3 +53,25 @@ def test_square4():
     score, circuit = solver.hof
     print(score)
     circuit.draw_circuit()
+
+
+def test_square4_alternate():
+    graph = nx.Graph([(1, 2), (1, 3), (1, 4), (2, 3), (2, 4)])
+    # note that adjacency matrix is in the ordering of node creation
+    target_tableau = get_clifford_tableau_from_graph(graph)
+    n_emitter = 1
+    n_photon = 4
+    target = QuantumState(n_photon, target_tableau, representation="stabilizer")
+    compiler = StabilizerCompiler()
+    metric = Infidelity(target)
+    solver = DeterministicSolver(
+        target=target,
+        metric=metric,
+        compiler=compiler,
+        n_emitter=n_emitter,
+        n_photon=n_photon,
+    )
+    solver.solve()
+    score, circuit = solver.hof
+    print(score)
+    circuit.draw_circuit()

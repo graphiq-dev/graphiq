@@ -111,6 +111,9 @@ class StabilizerTableau(TableauBase):
 
         self.shape = (self.n_qubits, 2 * self.n_qubits)
 
+    def copy(self):
+        return StabilizerTableau(self._table, self._phase)
+
     @property
     def x_matrix(self):
         """

@@ -140,3 +140,4 @@ def test_get_local_clifford_matrix_by_name():
     assert ops.simplify_local_clifford(
         [ops.Phase, ops.Phase, ops.Hadamard, ops.Hadamard]
     ) == [ops.Identity, ops.SigmaZ]
+

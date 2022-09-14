@@ -54,7 +54,7 @@ def phase():
     """
     Return the phase matrix :math:`P = \\begin{bmatrix} 1 & 0 \\\ 0 & i \\end{bmatrix}`
 
-    :return: the phase matrtix
+    :return: the phase matrix
     :rtype: numpy.ndarray
     """
     return np.diag([1.0, 1.0j])

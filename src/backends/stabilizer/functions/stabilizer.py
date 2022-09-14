@@ -6,12 +6,27 @@ from src.backends.stabilizer.tableau import StabilizerTableau
 from src.backends.stabilizer.functions.linalg import (
     row_swap,
     row_sum,
-    hadamard_transform,
 )
 import src.backends.stabilizer.functions.transformation as transform
 
 
-def _one_pauli_type_finder(x_matrix, z_matrix, pivot, pauli_type):
+def one_pauli_type_finder(x_matrix, z_matrix, pivot, pauli_type):
+    """
+    Find all row indices of the Pauli operators of a particular type that are present in and below the row given
+    by pivot[0] and in the column specified by pivot[1] in the stabilizer tableau.
+
+    :param x_matrix: X matrix in the symplectic representation of the stabilizers
+    :type x_matrix: np.ndarray
+    :param z_matrix: Z matrix in the symplectic representation of the stabilizers
+    :type z_matrix: np.ndarray
+    :param pivot: the location of the pivot element [i,j] on the i-th row and j-th column of the stabilizer tableau
+    :type pivot: list
+    :param pauli_type: A string to specify the type of Pauli to be found
+    :type pauli_type: str
+    :return:  a list containing the positions (row indices) of the Pauli operators of type pauli_type in and below
+        the row specified by pivot[0] in the column given by pivot[1]
+    :rtype: list
+    """
     if pauli_type.lower() == "x":
         match = (1, 0)
     elif pauli_type.lower() == "y":
@@ -96,9 +111,7 @@ def inverse_circuit(tableau):
                 tableau.z_matrix[pivot[0], j + 1 : n_qubits]
             ):
                 circuit_list.append(("H", j))
-                tableau.x_matrix, tableau.z_matrix = hadamard_transform(
-                    tableau.x_matrix, tableau.z_matrix, j
-                )
+                tableau = transform.hadamard_gate(tableau, j)
         pivot[0] = pivot[0] + 1
     # CNOT block
     for j in range(n_qubits):
@@ -117,6 +130,9 @@ def inverse_circuit(tableau):
     # Phase gate block
     for j in range(n_qubits):
         if tableau.x_matrix[j, j] == 1 and tableau.z_matrix[j, j] == 1:
+            # add the inverse of the phase gate to the circuit list
+            circuit_list.append(("P", j))
+            circuit_list.append(("P", j))
             circuit_list.append(("P", j))
             tableau = transform.phase_gate(tableau, j)
 
@@ -321,10 +337,8 @@ def one_step_rref(tableau, pivot):
 
     # case of all three kinds of paulis available in the column
     else:
-        old_pivot = [0, 0]
-        old_pivot[0] = pivot[0]
-        old_pivot[1] = pivot[1]
-        tableau, _ = _process_two_pauli(tableau, old_pivot, pauli_list_dict, "x", "z")
+
+        tableau, _ = _process_two_pauli(tableau, pivot, pauli_list_dict, "x", "z")
         # update pauli lists
         pauli_x_list, pauli_y_list, pauli_z_list = pauli_type_finder(
             tableau.x_matrix, tableau.z_matrix, pivot
@@ -395,7 +409,7 @@ def canonical_form(tableau):
     # setup Z block
     for j in range(n_qubits):
         pivot[1] = j
-        z_list = _one_pauli_type_finder(tableau.x_matrix, tableau.z_matrix, pivot, "z")
+        z_list = one_pauli_type_finder(tableau.x_matrix, tableau.z_matrix, pivot, "z")
         if z_list:
             tableau = tab_row_swap(tableau, pivot[0], z_list[0])
 

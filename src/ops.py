@@ -860,17 +860,34 @@ def find_local_clifford_by_matrix(matrix):
 
     :param matrix: a matrix representation of one-qubit Clifford gate
     :type matrix: numpy.ndarray
+    :raises ValueError: if the matrix does not correspond to a valid one-qubit Clifford gate.
     :return: the local Clifford gate specified by a list of basic gates it consists of
         or None if the input matrix is not a valid one-qubit Clifford gate
-    :rtype: list or None
+    :rtype: list
     """
     gate_list1, gate_list2 = local_clifford_composition()
     for op1 in gate_list1:
         for op2 in gate_list2:
             matrix1 = local_clifford_to_matrix_map(op1)
             matrix2 = local_clifford_to_matrix_map(op2)
-            if np.allclose(matrix, matrix1 @ matrix2):
+            product_matrix = matrix1 @ matrix2
+
+            if np.allclose(matrix, product_matrix):
                 return op1 + op2
+            else:
+                nonzero = np.nonzero(product_matrix)
+                row = nonzero[0][0]
+                column = nonzero[1][0]
+
+                # differ by a global phase
+                phase = matrix[row, column] / product_matrix[row, column]
+
+                if np.allclose(matrix, phase * product_matrix) and np.allclose(
+                    np.abs(phase), 1.0
+                ):
+                    return op1 + op2
+
+    raise ValueError("Invalid one-qubit Clifford gate.")
 
 
 def simplify_local_clifford(gate_list):
@@ -883,6 +900,7 @@ def simplify_local_clifford(gate_list):
     :rtype: list
     """
     matrix = local_clifford_to_matrix_map(gate_list)
+
     return find_local_clifford_by_matrix(matrix)
 
 

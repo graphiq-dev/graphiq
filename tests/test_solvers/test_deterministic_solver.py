@@ -1,7 +1,6 @@
 import numpy as np
 import networkx as nx
 from src.backends.stabilizer.compiler import StabilizerCompiler
-from src.backends.stabilizer.state import Stabilizer
 from src.backends.stabilizer.functions.rep_conversion import (
     get_stabilizer_tableau_from_graph,
     get_clifford_tableau_from_graph,
@@ -27,16 +26,13 @@ def test_linear4():
     )
     solver.solve()
     score, circuit = solver.hof
-    print(score)
-    # target_circuit.draw_circuit()
+    assert np.allclose(score, 0.0)
     circuit.draw_circuit()
 
 
 def test_square4():
     graph = nx.Graph([(1, 2), (2, 3), (2, 4), (4, 3), (1, 3)])
     target_tableau = get_clifford_tableau_from_graph(graph)
-    # print(f"stabilizer is {get_stabilizer_tableau_from_graph(graph)}")
-    # print(f"now target is {target_tableau.to_stabilizer()}")
     n_emitter = 2
     n_photon = 4
     target = QuantumState(n_photon, target_tableau, representation="stabilizer")
@@ -51,7 +47,7 @@ def test_square4():
     )
     solver.solve()
     score, circuit = solver.hof
-    print(score)
+    assert np.allclose(score, 0.0)
     circuit.draw_circuit()
 
 
@@ -73,5 +69,5 @@ def test_square4_alternate():
     )
     solver.solve()
     score, circuit = solver.hof
-    print(score)
+    assert np.allclose(score, 0.0)
     circuit.draw_circuit()

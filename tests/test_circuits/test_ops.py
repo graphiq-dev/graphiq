@@ -141,3 +141,9 @@ def test_get_local_clifford_matrix_by_name():
         [ops.Phase, ops.Phase, ops.Hadamard, ops.Hadamard]
     ) == [ops.Identity, ops.SigmaZ]
 
+
+def test_op():
+    u1 = dmf.phase() @ dmf.hadamard()
+    u2 = dmf.hadamard() @ dmf.phase() @ dmf.hadamard() @ dmf.phase()
+    print(u1)
+    print(u2)

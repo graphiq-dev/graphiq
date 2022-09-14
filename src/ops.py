@@ -871,21 +871,8 @@ def find_local_clifford_by_matrix(matrix):
             matrix1 = local_clifford_to_matrix_map(op1)
             matrix2 = local_clifford_to_matrix_map(op2)
             product_matrix = matrix1 @ matrix2
-
-            if np.allclose(matrix, product_matrix):
+            if dmf.check_equivalent_unitaries(matrix, product_matrix):
                 return op1 + op2
-            else:
-                nonzero = np.nonzero(product_matrix)
-                row = nonzero[0][0]
-                column = nonzero[1][0]
-
-                # differ by a global phase
-                phase = matrix[row, column] / product_matrix[row, column]
-
-                if np.allclose(matrix, phase * product_matrix) and np.allclose(
-                    np.abs(phase), 1.0
-                ):
-                    return op1 + op2
 
     raise ValueError("Invalid one-qubit Clifford gate.")
 

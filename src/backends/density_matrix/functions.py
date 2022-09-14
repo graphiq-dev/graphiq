@@ -790,3 +790,49 @@ def full_two_qubit_controlled_unitary(
     """
     gate = np.exp(1j * gamma) * parameterized_one_qubit_unitary(theta, phi, lam)
     return get_two_qubit_controlled_gate(n_qubits, ctr_qubit, target_qubit, gate)
+
+
+def is_unitary(input_matrix):
+    """
+    Check if the input matrix is a unitary matrix
+
+    :param input_matrix: an input matrix
+    :type input_matrix: numpy.ndarray
+    :return: True if the input matrix is unitary; False otherwise
+    :rtype: bool
+    """
+    if input_matrix.shape[0] != input_matrix.shape[1]:
+        return False
+    identity = np.eye(input_matrix.shape[0])
+    adjoint = np.conjugate(input_matrix.T)
+    return np.allclose(input_matrix @ adjoint, identity) and np.allclose(
+        adjoint @ input_matrix, identity
+    )
+
+
+def check_equivalent_unitaries(unitary_op1, unitary_op2):
+    """
+    Check if two input matrices are equivalent unitaries up to a global phase
+
+    :param unitary_op1: the first input matrix
+    :type unitary_op1: numpy.ndarray
+    :param unitary_op2: the second input matrix
+    :type unitary_op2: numpy.ndarray
+    :return: True if two input matrices are equivalent unitaries up to a global phase
+    :rtype: bool
+    """
+    if not (is_unitary(unitary_op1) and is_unitary(unitary_op2)):
+        return False
+
+    nonzero = np.nonzero(unitary_op2)
+    row = nonzero[0][0]
+    column = nonzero[1][0]
+
+    # differ by a global phase
+    global_phase = unitary_op1[row, column] / unitary_op2[row, column]
+    if np.allclose(unitary_op1, global_phase * unitary_op2) and np.allclose(
+        np.abs(global_phase), 1.0
+    ):
+        return True
+    else:
+        return False

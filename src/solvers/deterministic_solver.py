@@ -3,7 +3,6 @@ Deterministic solver which follows the paper by Li et al. This solver works for 
 This solver is based on certain physical rules imposed by a platform.
 One can set these rules by the set of allowed transformations.
 
-# TODO: debug.
 """
 import copy
 
@@ -39,17 +38,35 @@ class DeterministicSolver(SolverBase):
         compiler: CompilerBase,
         circuit: CircuitDAG = None,
         io: IO = None,
-        n_emitter=1,
-        n_photon=1,
         noise_model_mapping=None,
         *args,
         **kwargs,
     ):
+        """
+
+        :param target:
+        :type target: QuantumState
+        :param metric:
+        :type metric:
+        :param compiler:
+        :type compiler:
+        :param circuit:
+        :type circuit:
+        :param io:
+        :type io:
+        :param noise_model_mapping:
+        :type noise_model_mapping:
+        :param args:
+        :type args:
+        :param kwargs:
+        :type kwargs:
+        """
 
         super().__init__(target, metric, compiler, circuit, io, *args, **kwargs)
 
-        self.n_emitter = n_emitter
-        self.n_photon = n_photon
+        tableau = target.stabilizer.data.to_stabilizer()
+        self.n_emitter = self.determine_n_emitters(tableau)
+        self.n_photon = tableau.n_qubits
         self.noise_simulation = True
 
         if noise_model_mapping is None:
@@ -146,10 +163,25 @@ class DeterministicSolver(SolverBase):
         compiled_state.partial_trace(
             keep=[*range(self.n_photon)], dims=(self.n_photon + self.n_emitter) * [2]
         )
+        # print(f" the final state is {compiled_state.stabilizer.data.to_stabilizer()}")
         # evaluate the metric
         score = self.metric.evaluate(compiled_state, circuit)
 
         self.hof = (score, copy.deepcopy(circuit))
+
+    @staticmethod
+    def determine_n_emitters(tableau):
+        """
+        Determine the number of emitters needed
+
+        :param tableau:
+        :type tableau: StabilizerTableau
+        :return:
+        :rtype: int
+        """
+        tableau = sfs.rref(tableau)
+        height_list = height.height_func_list(tableau.x_matrix, tableau.z_matrix)
+        return max(height_list)
 
     def _time_reversed_measurement(self, circuit, emitter_depth, tableau, photon_index):
         """

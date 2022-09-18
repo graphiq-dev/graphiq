@@ -34,6 +34,7 @@ def test_square4():
     n_photon = target_tableau.n_qubits
     target = QuantumState(n_photon, target_tableau, representation="stabilizer")
     compiler = StabilizerCompiler()
+    compiler.measurement_determinism = 1
     metric = Infidelity(target)
     solver = DeterministicSolver(
         target=target,
@@ -61,11 +62,19 @@ def test_square4_alternate():
     )
     solver.solve()
     score, circuit = solver.hof
-    assert np.allclose(score, 0.0)
     circuit.draw_circuit()
+    assert np.allclose(score, 0.0)
 
 
 def repeater_graph_states(n_inner_qubits):
+    """
+    Construct a repeater graph state with the emission ordering (leaf qubit -> adjacent inner qubit -> next leaf qubit)
+
+    :param n_inner_qubits: number of qubits in the inner layer.
+    :type n_inner_qubits: int
+    :return: a networkx graph that represents the repeater graph state
+    :rtype: networkx.Graph
+    """
     edges = []
     for i in range(n_inner_qubits):
         edges.append((2 * i, 2 * i + 1))
@@ -74,13 +83,6 @@ def repeater_graph_states(n_inner_qubits):
         for j in range(i + 1, n_inner_qubits):
             edges.append((2 * i + 1, 2 * j + 1))
     return nx.Graph(edges)
-
-
-def test_graph():
-    fig, ax = plt.subplots()
-    graph = repeater_graph_states(4)
-    nx.draw(graph, ax=ax)
-    plt.show()
 
 
 def test_repeater_graph_states():
@@ -110,7 +112,6 @@ def test_graph_states(n_inner_photons):
     target_tableau = get_clifford_tableau_from_graph(
         repeater_graph_states(n_inner_photons)
     )
-    n_emitter = DeterministicSolver.determine_n_emitters(target_tableau.to_stabilizer())
     n_photon = target_tableau.n_qubits
     target = QuantumState(n_photon, target_tableau, representation="stabilizer")
     compiler = StabilizerCompiler()

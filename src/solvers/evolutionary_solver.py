@@ -76,8 +76,8 @@ class EvolutionarySolver(RandomSearchSolver):
         :type selection_active: bool
         :param save_openqasm: save population, hof, or both to openQASM strings (options: None, "hof", "pop", "both")
         :type save_openqasm: str, None
-        :param args:
-        :param kwargs:
+        :param noise_model_mapping: a dictionary that associates each operation type to a noise model
+        :type noise_model_mapping: dict
         """
         super().__init__(
             target,

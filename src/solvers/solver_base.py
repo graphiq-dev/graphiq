@@ -48,8 +48,6 @@ class SolverBase(ABC):
         self.compiler = compiler
         self.io = io
 
-        if circuit is None:
-            warnings.warn(f"Initial circuit for {self.__class__.__name__} is 'None'. ")
         self.circuit = circuit
 
         self.last_seed = None

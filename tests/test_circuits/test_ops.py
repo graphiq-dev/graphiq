@@ -144,6 +144,8 @@ def test_get_local_clifford_matrix_by_name():
 
 def test_op():
     u1 = dmf.phase() @ dmf.hadamard()
-    u2 = dmf.hadamard() @ dmf.phase() @ dmf.hadamard() @ dmf.phase()
-    print(u1)
-    print(u2)
+    u2 = dmf.hadamard() @ dmf.phase() @ dmf.hadamard() @ dmf.phase() @ dmf.sigmax()
+    print(f"is u1 equivalent to u2 = {dmf.check_equivalent_unitaries(u1,u2)}")
+    u3 = dmf.hadamard() @ dmf.phase() @ dmf.hadamard() @ dmf.phase()
+    u4 = dmf.phase() @ dmf.hadamard() @ dmf.sigmax()
+    print(f"is u3 equivalent to u4 = {dmf.check_equivalent_unitaries(u3,u4)}")

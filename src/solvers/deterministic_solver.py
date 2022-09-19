@@ -4,10 +4,7 @@ Deterministic solver which follows the paper by Li et al [1]_.
 .. [1] Bikun Li, Sophia E. Economou and Edwin Barnes, npj. Quantum Information 8, 11 (2022)
 
 """
-import copy
-
 import numpy as np
-import warnings
 
 import src.backends.stabilizer.functions.height as height
 import src.backends.stabilizer.functions.stabilizer as sfs
@@ -76,7 +73,6 @@ class DeterministicSolver(SolverBase):
                 f"noise_model_mapping should be a dict or None"
             )
         self.noise_model_mapping = noise_model_mapping
-        self.hof = None
 
     def solve(self):
         """
@@ -101,8 +97,6 @@ class DeterministicSolver(SolverBase):
             )
 
         # main loop
-        print(f"initial tableau: {stabilizer_tableau}")
-
         emitter_depth = np.zeros(self.n_emitter)
         for j in range(self.n_photon, 0, -1):
             # transform the stabilizers into echelon gauge
@@ -110,22 +104,19 @@ class DeterministicSolver(SolverBase):
             height_list = height.height_func_list(
                 stabilizer_tableau.x_matrix, stabilizer_tableau.z_matrix
             )
-            print(f"after gauge transformation: \n {stabilizer_tableau}")
+
             height_list = [0] + height_list
-            print(f"height function difference = {height_list[j] - height_list[j - 1]}")
             if height_list[j] < height_list[j - 1]:
                 # apply time-reversed measurement and update the tableau
                 self._time_reversed_measurement(
                     circuit, emitter_depth, stabilizer_tableau, j - 1
                 )
                 stabilizer_tableau = sfs.rref(stabilizer_tableau)
-                print(f"after time-reversed measurement: \n {stabilizer_tableau}")
 
             # apply photon-absorption and update the stabilizer tableau
             self._add_photon_absorption(
                 circuit, emitter_depth, stabilizer_tableau, j - 1
             )
-            print(f"after photon absorption of photon {j - 1}: \n {stabilizer_tableau}")
 
         stabilizer_tableau = sfs.rref(stabilizer_tableau)
 
@@ -142,7 +133,6 @@ class DeterministicSolver(SolverBase):
         # transform all the emitter qubits to the |0> state
         _, inverse_circuit = sfs.inverse_circuit(stabilizer_tableau.copy())
 
-        print(f"final gates is {inverse_circuit}")
         self._add_gates_from_str(
             circuit, emitter_depth, stabilizer_tableau, inverse_circuit
         )
@@ -155,24 +145,16 @@ class DeterministicSolver(SolverBase):
                     circuit, emitter_depth, [ops.SigmaX], self.n_photon + i
                 )
 
-        print(f"the final tableau is: \n {stabilizer_tableau}")
         # final circuit
         circuit.validate()
 
         compiled_state = self.compiler.compile(circuit)
-        print(
-            f" the compiled state is {sfs.canonical_form(compiled_state.stabilizer.data.to_stabilizer())}"
-        )
         compiled_state.partial_trace(
             keep=[*range(self.n_photon)], dims=(self.n_photon + self.n_emitter) * [2]
         )
-        print(
-            f" the final state is {sfs.canonical_form(compiled_state.stabilizer.data.to_stabilizer())}"
-        )
         # evaluate the metric
         score = self.metric.evaluate(compiled_state, circuit)
-
-        self.hof = (score, copy.deepcopy(circuit))
+        self.result = (score, circuit.copy())
 
     @staticmethod
     def determine_n_emitters(tableau):
@@ -249,13 +231,11 @@ class DeterministicSolver(SolverBase):
                 generator_index = i
                 break
 
-        print(f"generator index is {generator_index}")
         gate_list = self._change_pauli_type(tableau, generator_index, photon_index, "z")
         self._add_one_qubit_gate(circuit, emitter_depth, gate_list, photon_index)
 
         emitter_indices = self._find_emitter_indices(tableau, generator_index)
         emitter_index = int(emitter_indices[0])
-        print(f"emitter index is {emitter_index}")
         for i in range(self.n_emitter):
             # transform this generator so that it has only Z on emitter registers
             gate_list = self._change_pauli_type(
@@ -280,14 +260,12 @@ class DeterministicSolver(SolverBase):
             self._add_one_qubit_gate(
                 circuit, emitter_depth, [ops.SigmaX], self.n_photon + emitter_index
             )
-        print(f"stabilizer after LC in the photon absorption is {tableau}")
 
         # emit (absorb) this photon by the chosen emitter
         self._add_emitter_photon_cnot(
             circuit, emitter_depth, emitter_index, photon_index
         )
         transform.cnot_gate(tableau, self.n_photon + emitter_index, photon_index)
-        print(f"stabilizer after CNOT in photon absorption is {tableau}")
 
         # transform all generators (except the chosen generator) with Z on this photonic register
         # by eliminating Z
@@ -706,7 +684,6 @@ class DeterministicSolver(SolverBase):
             gate_list = self._change_pauli_type(
                 tableau, generator_index, self.n_photon + i, "z"
             )
-            print(f"perform a gate: {gate_list} on emitter {i}")
             if len(gate_list) > 0:
                 self._add_one_qubit_gate(
                     circuit, emitter_depth, gate_list, self.n_photon + i

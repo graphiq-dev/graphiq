@@ -108,12 +108,10 @@ class RandomSearchSolver(SolverBase):
         self.n_pop = n_pop
         self.n_stop = n_stop
         self.hof = [(np.inf, None) for _ in range(self.n_hof)]
-
         self.trans_probs = {None: None}
-
         self.transformations = list(self.trans_probs.keys())
-
         self.logs = {"population": [], "hof": []}
+        self.result = None
 
     @property
     def n_hof(self):
@@ -131,12 +129,12 @@ class RandomSearchSolver(SolverBase):
             for i in range(self.n_hof):
                 if np.isclose(score, self.hof[i][0]):
                     if len(circuit.dag.nodes) < len(self.hof[i][1].dag.nodes):
-                        self.hof.insert(i, (score, copy.deepcopy(circuit)))
+                        self.hof.insert(i, (score, circuit.copy()))
                         self.hof.pop()
                         break
 
                 elif score < self.hof[i][0]:
-                    self.hof.insert(i, (score, copy.deepcopy(circuit)))
+                    self.hof.insert(i, (score, circuit.copy()))
                     self.hof.pop()
                     break
 

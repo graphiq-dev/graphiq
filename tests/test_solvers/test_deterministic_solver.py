@@ -23,7 +23,7 @@ def test_linear4():
         compiler=compiler,
     )
     solver.solve()
-    score, circuit = solver.hof
+    score, circuit = solver.result
     assert np.allclose(score, 0.0)
     circuit.draw_circuit()
 
@@ -42,7 +42,7 @@ def test_square4():
         compiler=compiler,
     )
     solver.solve()
-    score, circuit = solver.hof
+    score, circuit = solver.result
     assert np.allclose(score, 0.0)
     circuit.draw_circuit()
 
@@ -61,7 +61,7 @@ def test_square4_alternate():
         compiler=compiler,
     )
     solver.solve()
-    score, circuit = solver.hof
+    score, circuit = solver.result
     circuit.draw_circuit()
     assert np.allclose(score, 0.0)
 
@@ -85,11 +85,9 @@ def repeater_graph_states(n_inner_qubits):
     return nx.Graph(edges)
 
 
-def test_repeater_graph_states():
+def test_repeater_graph_state_4():
     graph = repeater_graph_states(4)
     target_tableau = get_clifford_tableau_from_graph(graph)
-    n_emitter = DeterministicSolver.determine_n_emitters(target_tableau.to_stabilizer())
-    print(f"n_emitter= {n_emitter}")
     n_photon = target_tableau.n_qubits
     target = QuantumState(n_photon, target_tableau, representation="stabilizer")
     compiler = StabilizerCompiler()
@@ -101,13 +99,13 @@ def test_repeater_graph_states():
         compiler=compiler,
     )
     solver.solve()
-    score, circuit = solver.hof
+    score, circuit = solver.result
     assert np.allclose(score, 0.0)
-    circuit.draw_circuit()
+    # circuit.draw_circuit()
 
 
-@pytest.mark.parametrize("n_inner_photons", [4, 5, 6])
-def test_graph_states(n_inner_photons):
+@pytest.mark.parametrize("n_inner_photons", [6, 7, 8, 9, 10])
+def test_repeater_graph_states(n_inner_photons):
     target_tableau = get_clifford_tableau_from_graph(
         repeater_graph_states(n_inner_photons)
     )
@@ -121,6 +119,6 @@ def test_graph_states(n_inner_photons):
         compiler=compiler,
     )
     solver.solve()
-    score, circuit = solver.hof
+    score, circuit = solver.result
     assert np.allclose(score, 0.0)
     # circuit.draw_circuit()

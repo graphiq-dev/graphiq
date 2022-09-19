@@ -234,6 +234,7 @@ class QuantumState:
         :rtype: None
         """
         if self._stabilizer is None:
+            warnings.filterwarnings("ignore")
             warnings.warn(
                 UserWarning(
                     "Stabilizer representation being set is not compared to "

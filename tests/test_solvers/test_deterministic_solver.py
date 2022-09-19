@@ -102,8 +102,7 @@ def test_repeater_graph_states():
     )
     solver.solve()
     score, circuit = solver.hof
-    print(score)
-    # assert np.allclose(score, 0.0)
+    assert np.allclose(score, 0.0)
     circuit.draw_circuit()
 
 
@@ -123,6 +122,5 @@ def test_graph_states(n_inner_photons):
     )
     solver.solve()
     score, circuit = solver.hof
-    print(score)
-    # assert np.allclose(score, 0.0)
+    assert np.allclose(score, 0.0)
     # circuit.draw_circuit()

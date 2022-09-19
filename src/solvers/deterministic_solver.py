@@ -217,14 +217,15 @@ class DeterministicSolver(SolverBase):
         # find the first nontrivial emitter position in this generator
         emitter_indices = self._find_emitter_indices(tableau, generator_index)
         emitter_index = int(emitter_indices[0])
-        self._add_measurement_cnot_and_reset(circuit, emitter_index, photon_index)
 
-        transform.hadamard_gate(tableau, self.n_photon + emitter_index)
-        # transform this generator so that it acts nontrivially on only one emitter and that Pauli is X
         self._single_out_emitter(
             circuit, emitter_depth, tableau, generator_index, emitter_index
         )
 
+        transform.hadamard_gate(tableau, self.n_photon + emitter_index)
+        self._add_measurement_cnot_and_reset(circuit, emitter_index, photon_index)
+
+        # transform this generator so that it acts nontrivially on only one emitter and that Pauli is X
         emitter_depth[emitter_index] += 1
         transform.cnot_gate(tableau, self.n_photon + emitter_index, photon_index)
 
@@ -460,7 +461,6 @@ class DeterministicSolver(SolverBase):
         else:
             # simplify the gate to be one of the 24 local Clifford gates
             gate_list = ops.simplify_local_clifford(gate_list)
-            assert gate_list is not None
             if gate_list == [ops.Identity, ops.Identity]:
                 return
         noise = self._wrap_noise(gate_list, self.noise_model_mapping)
@@ -704,7 +704,7 @@ class DeterministicSolver(SolverBase):
         """
         for i in range(self.n_emitter):
             gate_list = self._change_pauli_type(
-                tableau, generator_index, self.n_photon + i, "x"
+                tableau, generator_index, self.n_photon + i, "z"
             )
             print(f"perform a gate: {gate_list} on emitter {i}")
             if len(gate_list) > 0:
@@ -713,13 +713,13 @@ class DeterministicSolver(SolverBase):
                 )
 
         self._transform_generator_emitters(
-            circuit, emitter_depth, tableau, generator_index, emitter_index, "x"
+            circuit, emitter_depth, tableau, generator_index, emitter_index, "z"
         )
 
         if tableau.phase[generator_index] == 1:
-            transform.z_gate(tableau, self.n_photon + emitter_index)
+            transform.x_gate(tableau, self.n_photon + emitter_index)
             self._add_one_qubit_gate(
-                circuit, emitter_depth, [ops.SigmaZ], self.n_photon + emitter_index
+                circuit, emitter_depth, [ops.SigmaX], self.n_photon + emitter_index
             )
 
     def _add_measurement_cnot_and_reset(self, circuit, emitter_index, photon_index):

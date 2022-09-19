@@ -1,10 +1,8 @@
 import pytest
-import matplotlib.pyplot as plt
-import numpy as np
-import networkx as nx
+
+from benchmarks.graph_states import repeater_graph_states
 from src.backends.stabilizer.compiler import StabilizerCompiler
 from src.backends.stabilizer.functions.rep_conversion import (
-    get_stabilizer_tableau_from_graph,
     get_clifford_tableau_from_graph,
 )
 from src.solvers.deterministic_solver import DeterministicSolver
@@ -64,25 +62,6 @@ def test_square4_alternate():
     score, circuit = solver.result
     circuit.draw_circuit()
     assert np.allclose(score, 0.0)
-
-
-def repeater_graph_states(n_inner_qubits):
-    """
-    Construct a repeater graph state with the emission ordering (leaf qubit -> adjacent inner qubit -> next leaf qubit)
-
-    :param n_inner_qubits: number of qubits in the inner layer.
-    :type n_inner_qubits: int
-    :return: a networkx graph that represents the repeater graph state
-    :rtype: networkx.Graph
-    """
-    edges = []
-    for i in range(n_inner_qubits):
-        edges.append((2 * i, 2 * i + 1))
-
-    for i in range(n_inner_qubits):
-        for j in range(i + 1, n_inner_qubits):
-            edges.append((2 * i + 1, 2 * j + 1))
-    return nx.Graph(edges)
 
 
 def test_repeater_graph_state_4():

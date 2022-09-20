@@ -5,12 +5,12 @@ Functions that help calculation of various metrics in the stabilizer backend
 
 import numpy as np
 
+import src.backends.stabilizer.functions.transformation as transform
 from src.backends.stabilizer.functions.stabilizer import (
     canonical_form,
     inverse_circuit,
 )
 from src.backends.stabilizer.functions.linalg import row_sum
-import src.backends.stabilizer.functions.clifford as sfc
 from src.backends.stabilizer.tableau import CliffordTableau
 
 
@@ -52,7 +52,7 @@ def inner_product(tableau1, tableau2):
 
     # apply inverse circuit on the 2nd state
 
-    tableau2 = sfc.run_circuit(CliffordTableau(tableau2), circ)
+    tableau2 = transform.run_circuit(CliffordTableau(tableau2), circ)
 
     # make the updated 2nd state canonical form
     stabilizer_tableau2 = tableau2.to_stabilizer()

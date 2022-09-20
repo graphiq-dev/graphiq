@@ -7,15 +7,11 @@ import numpy as np
 from src.backends.stabilizer.functions.transformation import (
     hadamard_gate,
     phase_gate,
-    cnot_gate,
     x_gate,
-    control_z_gate,
     phase_dagger_gate,
 )
 from src.backends.stabilizer.tableau import CliffordTableau
 from src.backends.stabilizer.functions.linalg import (
-    add_rows,
-    row_reduction,
     column_swap,
     row_sum,
 )
@@ -531,72 +527,4 @@ def partial_trace(tableau, keep, dims, measurement_determinism="probabilistic"):
     for qubit_position in removal:
         tableau = remove_qubit(tableau, qubit_position, measurement_determinism)
 
-    return tableau
-
-
-def full_rank_x(tableau):
-    """
-    Based on lemma 6 in arXiv:quant-ph/0406196
-
-    :param tableau: the input tableau to be processed
-    :type tableau: CliffordTableau
-    :return: the tableau after processing
-    :rtype: CliffordTableau
-    """
-
-    n_qubits = tableau.n_qubits
-    x_matrix = tableau.stabilizer_x
-    z_matrix = tableau.stabilizer_z
-    x_matrix, z_matrix, index = row_reduction(x_matrix, z_matrix)
-    rank = index + 1
-    z1_matrix = z_matrix[rank:n_qubits, 0:rank]
-    z2_matrix = z_matrix[rank:n_qubits, rank:n_qubits]
-    z2_matrix, z1_matrix, index1 = row_reduction(z2_matrix, z1_matrix)
-    assert index1 == n_qubits - rank - 1
-    for j in range(n_qubits - rank):
-        for i in range(j):
-            if z2_matrix[i, j] == 1:
-                z2_matrix = add_rows(z2_matrix, j, i)
-                z1_matrix = add_rows(z1_matrix, j, i)
-
-    assert np.array_equal(z2_matrix, np.eye(n_qubits - rank))
-    z_matrix = np.hstack(z1_matrix, z2_matrix).astype(int)
-    tableau.x_stabilizer = x_matrix
-    tableau.z_stabilizer = z_matrix
-    # hadamard on some qubits to make the x-stabilizer table full rank
-    for qubit in range(rank, n_qubits):
-        tableau = hadamard_gate(tableau, qubit)
-
-    return tableau
-
-
-def run_circuit(tableau, circuit_list, reverse=False):
-    """
-    Return the stabilizer state tableau after the execution of the circuit.
-
-    :param tableau: initial state tableau
-    :type tableau: CliffordTableau
-    :param circuit_list: a list of gates in the circuit
-    :type circuit_list: list[tuple]
-    :param reverse: a parameter to indicate whether running the inverse circuit
-    :type reverse: bool
-    :return: the stabilizer state tableau after the execution of the circuit.
-    :rtype: CliffordTableau
-    """
-    if reverse:
-        circuit_list.reverse()
-    for ops in circuit_list:
-        if ops[0] == "H":
-            tableau = hadamard_gate(tableau, ops[1])
-        elif ops[0] == "P":
-            if reverse:
-                tableau = phase_dagger_gate(tableau, ops[1])
-            else:
-                tableau = phase_gate(tableau, ops[1])
-        elif ops[0] == "X":
-            tableau = x_gate(tableau, ops[1])
-        elif ops[0] == "CNOT":
-            tableau = cnot_gate(tableau, ops[1], ops[2])
-        elif ops[0] == "CZ":
-            tableau = control_z_gate(tableau, ops[1], ops[2])
     return tableau

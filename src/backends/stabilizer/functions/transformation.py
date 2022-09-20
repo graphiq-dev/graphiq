@@ -210,3 +210,39 @@ def control_y_gate(tableau, ctrl_qubit, target_qubit):
     tableau = cnot_gate(tableau, ctrl_qubit, target_qubit)
     tableau = phase_gate(tableau, target_qubit)
     return tableau
+
+
+def run_circuit(tableau, circuit_list, reverse=False):
+    """
+    Return the stabilizer state tableau after the execution of the circuit.
+
+    :param tableau: initial state tableau
+    :type tableau: CliffordTableau or StabilizerTableau
+    :param circuit_list: a list of gates in the circuit
+    :type circuit_list: list[tuple]
+    :param reverse: a parameter to indicate whether running the inverse circuit
+    :type reverse: bool
+    :return: the stabilizer state tableau after the execution of the circuit.
+    :rtype: CliffordTableau or StabilizerTableau
+    """
+    if reverse:
+        circuit_list.reverse()
+    for ops in circuit_list:
+        if ops[0] == "H":
+            tableau = hadamard_gate(tableau, ops[1])
+        elif ops[0] == "P":
+            if reverse:
+                tableau = phase_dagger_gate(tableau, ops[1])
+            else:
+                tableau = phase_gate(tableau, ops[1])
+        elif ops[0] == "X":
+            tableau = x_gate(tableau, ops[1])
+        elif ops[0] == "Y":
+            tableau = y_gate(tableau, ops[1])
+        elif ops[0] == "Z":
+            tableau = z_gate(tableau, ops[1])
+        elif ops[0] == "CNOT":
+            tableau = cnot_gate(tableau, ops[1], ops[2])
+        elif ops[0] == "CZ":
+            tableau = control_z_gate(tableau, ops[1], ops[2])
+    return tableau

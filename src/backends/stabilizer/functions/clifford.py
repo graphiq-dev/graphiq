@@ -111,7 +111,7 @@ def z_measurement_gate(
 def measure_x(tableau, qubit_position, measurement_determinism="probabilistic"):
     """
     Returns the outcome 0 or 1 if one measures the given qubit in the X basis.
-    NOTE: cannot update the stabilizer state after measurement. Stabilizer formalism can only handle Z-measurements.
+    # TODO: be able to handle mixed states in the future
 
     :param tableau: the input tableau to be measured
     :type tableau: CliffordTableau
@@ -133,7 +133,7 @@ def measure_x(tableau, qubit_position, measurement_determinism="probabilistic"):
 def measure_y(tableau, qubit_position, measurement_determinism="probabilistic"):
     """
     Returns the outcome 0 or 1 if one measures the given qubit in the Y basis.
-    NOTE: cannot update the stabilizer state after measurement. Stabilizer formalism can only handle Z-measurements.
+     # TODO: be able to handle mixed states in the future
 
     :param tableau: the input tableau to be measured
     :type tableau: CliffordTableau
@@ -160,7 +160,7 @@ def measure_y(tableau, qubit_position, measurement_determinism="probabilistic"):
 def measure_z(tableau, qubit_position, measurement_determinism="probabilistic"):
     """
     Returns the outcome 0 or 1 if one measures the given qubit in the Z basis.
-    NOTE: Does not update the stabilizer state after measurement.
+
 
     :param tableau: the input tableau to be measured
     :type tableau: CliffordTableau

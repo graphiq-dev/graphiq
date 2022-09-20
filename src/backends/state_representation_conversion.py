@@ -62,7 +62,7 @@ def _graph_finder(x_matrix, z_matrix):
         np.allclose(x_matrix, np.eye(x_matrix.shape[0]))
     ), "Unexpected X matrix."
 
-    state_graph = nx.from_numpy_matrix(z_matrix)
+    state_graph = nx.from_numpy_array(z_matrix)
     return state_graph
 
 
@@ -116,7 +116,7 @@ def graph_to_density(input_graph):
     if isinstance(input_graph, nx.Graph):
         graph_data = input_graph
     elif isinstance(input_graph, np.ndarray):
-        graph_data = nx.from_numpy_matrix(input_graph)
+        graph_data = nx.from_numpy_array(input_graph)
     else:
         raise TypeError(
             "Input graph must be NetworkX graph or adjacency matrix using numpy.array."

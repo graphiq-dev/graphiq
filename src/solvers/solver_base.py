@@ -38,6 +38,7 @@ class SolverBase(ABC):
         self.io = io
 
         if circuit is None:
+            warnings.filterwarnings("ignore")
             warnings.warn(f"Initial circuit for {self.__class__.__name__} is 'None'. ")
         self.circuit = circuit
 

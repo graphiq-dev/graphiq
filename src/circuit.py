@@ -29,6 +29,7 @@ NOT retroactively apply to the added qubits
 
 
 """
+import numpy as np
 import networkx as nx
 import matplotlib.pyplot as plt
 from abc import ABC, abstractmethod
@@ -472,6 +473,7 @@ class CircuitDAG(CircuitBase):
         self._node_id = 0
         self.edge_dict = {}
         self.node_dict = {}
+        self._register_depth = dict()
         self._add_reg_if_absent(
             tuple(range(n_emitter)), tuple(range(n_photon)), tuple(range(n_classical))
         )
@@ -503,6 +505,7 @@ class CircuitDAG(CircuitBase):
                 if operation.q_registers_type[i] == "p"
             ]
         )
+
         self._add_reg_if_absent(e_reg, p_reg, operation.c_registers)
         self._add(operation, e_reg, p_reg, operation.c_registers)
 
@@ -542,6 +545,8 @@ class CircuitDAG(CircuitBase):
         # note that we implicitly assume there is only one classical register (bit) so that
         # we only count the quantum registers here. (Also only including quantum registers in edges)
         self._insert_at(operation, edges)
+
+        self._update_register_depth(e_reg=e_reg, p_reg=p_reg, c_reg=tuple())
 
     def replace_op(self, node, new_operation: ops.OperationBase):
         """
@@ -642,6 +647,7 @@ class CircuitDAG(CircuitBase):
                 if in_edge[2] == out_edge[2]:  # i.e. if the keys are the same
                     reg = self.dag.edges[in_edge]["reg"]
                     reg_type = self.dag.edges[in_edge]["reg_type"]
+                    self._remove_register_depth(reg_type=reg_type, reg=reg)
                     label = out_edge[2]
                     self._add_edge(
                         in_edge[0], out_edge[1], label, reg_type=reg_type, reg=reg
@@ -798,6 +804,16 @@ class CircuitDAG(CircuitBase):
         # TODO: check efficiency of this method
         # assert len(list(nx.topological_generations(self.dag)))-2 == nx.dag_longest_path_length(self.dag)-1
         return nx.dag_longest_path_length(self.dag) - 1
+
+    @property
+    def register_depth(self):
+        """
+        Returns the copy of register depth for each register
+
+        :return: register depth
+        :rtype: dict
+        """
+        return self._register_depth.copy()
 
     def _node_dict_append(self, key, value):
         """
@@ -1182,6 +1198,7 @@ class CircuitDAG(CircuitBase):
             ):  # we sort such that we can throw an error if we get discontinuous registers
                 if i == len(circuit_reg):
                     circuit_reg.append(1)
+                    self._add_register_depth(reg_type=reg_type[0].lower())
                 elif i > len(circuit_reg):
                     raise ValueError(
                         f"Register numbering must be continuous. {reg_type} register {i} cannot be added. "
@@ -1259,6 +1276,9 @@ class CircuitDAG(CircuitBase):
         :return: nothing
         :rtype: None
         """
+        # update register depth
+        self._update_register_depth(e_reg=e_reg, p_reg=p_reg, c_reg=c_reg)
+
         new_id = self._unique_node_id()
 
         self._add_node(new_id, operation)
@@ -1322,3 +1342,44 @@ class CircuitDAG(CircuitBase):
         """
         self._node_id += 1
         return self._node_id
+
+    def _add_register_depth(self, reg_type: str):
+        """
+        Adds a register depth to the register depth dict.
+        If register type is new, adds new register type, then adds register depth to that register type
+
+        :param: reg_type: str indicates register type. Can be "e", "p", or "c"
+        :type reg_type: str
+        :return: function returns nothing
+        :rtype: None
+        """
+        if reg_type in self._register_depth:
+            self._register_depth[reg_type].append(0)
+        else:
+            self._register_depth[reg_type] = [0]
+
+    def _update_register_depth(self, e_reg: tuple, p_reg: tuple, c_reg: tuple):
+        """
+        Update the register depth of the corresponding register when add a new operation.
+        Register depth will increase by 1.
+
+        :param e_reg: emitter qubit indexing (ereg0, ereg1, ...) on which the operation must be applied
+        :type e_reg: tuple (of ints)
+        :param p_reg: photonic qubit indexing (preg0, preg1, ...) on which the operation must be applied
+        :type p_reg: tuple (of ints)
+        :param c_reg: cbit indexing (creg0, creg1, ...) on which the operation must be applied
+        :type c_reg: tuple (of ints)
+        :return: function returns nothing
+        :rtype: None
+        """
+
+        for i in e_reg:
+            self._register_depth["e"][i] += 1
+        for i in p_reg:
+            self._register_depth["p"][i] += 1
+        for i in c_reg:
+            self._register_depth["c"][i] += 1
+
+    def _remove_register_depth(self, reg: int, reg_type: str):
+        self._register_depth[reg_type][reg] -= 1
+

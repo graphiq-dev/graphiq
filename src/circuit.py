@@ -546,8 +546,6 @@ class CircuitDAG(CircuitBase):
         # we only count the quantum registers here. (Also only including quantum registers in edges)
         self._insert_at(operation, edges)
 
-        self._update_register_depth(e_reg=e_reg, p_reg=p_reg, c_reg=tuple())
-
     def replace_op(self, node, new_operation: ops.OperationBase):
         """
         Replaces an operation by a new one with the same set of registers it acts on.
@@ -647,11 +645,13 @@ class CircuitDAG(CircuitBase):
                 if in_edge[2] == out_edge[2]:  # i.e. if the keys are the same
                     reg = self.dag.edges[in_edge]["reg"]
                     reg_type = self.dag.edges[in_edge]["reg_type"]
-                    self._remove_register_depth(reg_type=reg_type, reg=reg)
                     label = out_edge[2]
                     self._add_edge(
                         in_edge[0], out_edge[1], label, reg_type=reg_type, reg=reg
                     )
+
+                    # decrease register depth
+                    self._decrease_register_depth(reg_type=reg_type, reg=reg)
 
             self._remove_edge(in_edge)
 
@@ -1198,6 +1198,8 @@ class CircuitDAG(CircuitBase):
             ):  # we sort such that we can throw an error if we get discontinuous registers
                 if i == len(circuit_reg):
                     circuit_reg.append(1)
+
+                    # add new register depth to register depth dict
                     self._add_register_depth(reg_type=reg_type[0].lower())
                 elif i > len(circuit_reg):
                     raise ValueError(
@@ -1276,8 +1278,6 @@ class CircuitDAG(CircuitBase):
         :return: nothing
         :rtype: None
         """
-        # update register depth
-        self._update_register_depth(e_reg=e_reg, p_reg=p_reg, c_reg=c_reg)
 
         new_id = self._unique_node_id()
 
@@ -1306,6 +1306,9 @@ class CircuitDAG(CircuitBase):
 
                 self._remove_edge(edge)  # remove the unnecessary edges
 
+                # increase register depth
+                self._increase_register_depth(reg=reg, reg_type=reg_type)
+
     def _insert_at(self, operation: ops.OperationBase, reg_edges):
         """
         Add an operation to the circuit at a specified position
@@ -1333,6 +1336,9 @@ class CircuitDAG(CircuitBase):
             self._add_edge(new_id, reg_edge[1], label, reg_type=reg_type, reg=reg)
             self._remove_edge(reg_edge)  # remove the edge
 
+            # increase register depth
+            self._increase_register_depth(reg=reg, reg_type=reg_type)
+
     def _unique_node_id(self):
         """
         Internally used to provide a unique ID to each node. Note that this assumes a single thread assigning IDs
@@ -1358,28 +1364,33 @@ class CircuitDAG(CircuitBase):
         else:
             self._register_depth[reg_type] = [0]
 
-    def _update_register_depth(self, e_reg: tuple, p_reg: tuple, c_reg: tuple):
+    def _increase_register_depth(self, reg: int, reg_type: str):
         """
-        Update the register depth of the corresponding register when add a new operation.
+        Increase the register depth of the corresponding register when add a new operation.
         Register depth will increase by 1.
 
-        :param e_reg: emitter qubit indexing (ereg0, ereg1, ...) on which the operation must be applied
-        :type e_reg: tuple (of ints)
-        :param p_reg: photonic qubit indexing (preg0, preg1, ...) on which the operation must be applied
-        :type p_reg: tuple (of ints)
-        :param c_reg: cbit indexing (creg0, creg1, ...) on which the operation must be applied
-        :type c_reg: tuple (of ints)
+        :param reg: register index that need to be increased in register depth
+        :type reg: int
+        :param reg_type: type of register, can be "e", "p", or "c"
+        :type reg_type: str
         :return: function returns nothing
         :rtype: None
         """
 
-        for i in e_reg:
-            self._register_depth["e"][i] += 1
-        for i in p_reg:
-            self._register_depth["p"][i] += 1
-        for i in c_reg:
-            self._register_depth["c"][i] += 1
+        self._register_depth[reg_type][reg] += 1
 
-    def _remove_register_depth(self, reg: int, reg_type: str):
+    def _decrease_register_depth(self, reg: int, reg_type: str):
+        """
+        Decrease the register depth of the corresponding register when remove an operation
+        Register depth will decrease by 1
+
+        :param reg: register index that need to be decreased in register depth
+        :type reg: int
+        :param reg_type: type of register, can be "e", "p", or "c"
+        :type reg_type: str
+        :return: function returns nothing
+        :rtype: None
+        """
+
         self._register_depth[reg_type][reg] -= 1
 

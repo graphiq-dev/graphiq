@@ -172,12 +172,7 @@ def test_random_graph(seed):
             set([random.randint(0, c - 1) for _ in range(c_register_num_max)])
         )
 
-        dag.add(
-            ops.Hadamard(
-                register=0,
-                reg_type="e"
-            )
-        )
+        dag.add(ops.Hadamard(register=0, reg_type="e"))
 
     dag.validate()
 
@@ -297,12 +292,7 @@ def test_random_graph(seed):
         c_registers = tuple(
             set([random.randint(0, 120) for _ in range(c_register_num)])
         )
-        dag.add(
-            ops.Hadamard(
-                register=0,
-                reg_type="e"
-            )
-        )
+        dag.add(ops.Hadamard(register=0, reg_type="e"))
 
     dag.validate()
 
@@ -437,14 +427,8 @@ def test_visualization_4():
     circuit4 = CircuitDAG(n_emitter=3, n_classical=3)
     circuit4.add(ops.CNOT(control=0, control_type="e", target=1, target_type="e"))
     circuit4.add(ops.CNOT(control=0, control_type="e", target=2, target_type="e"))
-    circuit4.add(
-        ops.Hadamard(register=2, reg_type="e")
-    )
-    circuit4.add(
-        ops.Phase(
-            register=0, reg_type="e"
-        )
-    )
+    circuit4.add(ops.Hadamard(register=2, reg_type="e"))
+    circuit4.add(ops.Phase(register=0, reg_type="e"))
     circuit4.validate()
     circuit4.draw_dag()
 

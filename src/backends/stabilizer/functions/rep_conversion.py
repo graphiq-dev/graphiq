@@ -20,9 +20,8 @@ def clifford_from_stabilizer(stabilizer_tableau):
     """
     n_qubits = stabilizer_tableau.n_qubits
     _, circuit = inverse_circuit(stabilizer_tableau)
-    circuit.reverse()
     clifford_tableau = sfc.create_n_ket0_state(n_qubits)
-    return sfc.run_circuit(clifford_tableau, circuit)
+    return sfc.run_circuit(clifford_tableau, circuit, reverse=True)
 
 
 def get_stabilizer_tableau_from_graph(graph):

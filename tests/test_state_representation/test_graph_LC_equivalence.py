@@ -2,9 +2,6 @@ import pytest
 from src.backends.lc_equivalence_check import *
 import matplotlib.pyplot as plt
 import numpy as np
-import copy
-
-from tests.test_flags import visualization
 import benchmarks.graph_states as gs
 
 
@@ -26,13 +23,6 @@ def _tester(n):
         z_2 = nx.to_numpy_array(g2).astype(int)
 
         success, solution = is_lc_equivalent(z_1, z_2, mode="deterministic")
-
-        if isinstance(solution, np.ndarray):
-            plt.figure(1)
-            nx.draw(g1, with_labels=True)
-            plt.figure(2)
-            nx.draw(g2, with_labels=True)
-            print(local_clifford_ops(solution), "\n")
 
     return solution, (g1, g2)
 

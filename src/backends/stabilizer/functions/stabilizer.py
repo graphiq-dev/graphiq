@@ -130,9 +130,7 @@ def inverse_circuit(tableau):
     # Phase gate block
     for j in range(n_qubits):
         if tableau.x_matrix[j, j] == 1 and tableau.z_matrix[j, j] == 1:
-            # add the inverse of the phase gate to the circuit list
-            circuit_list.append(("P", j))
-            circuit_list.append(("P", j))
+            # add the phase gate to the circuit list
             circuit_list.append(("P", j))
             tableau = transform.phase_gate(tableau, j)
 
@@ -146,6 +144,11 @@ def inverse_circuit(tableau):
         for k in range(j + 1, n_qubits):
             if tableau.x_matrix[k, j] == 0 and tableau.z_matrix[k, j] == 1:
                 tableau = tab_row_sum(tableau, j, k)
+
+    # Eliminate phase
+    for i in np.nonzero(tableau.phase)[0]:
+        tableau = transform.x_gate(tableau, i)
+        circuit_list.append(("X", int(i)))
     return tableau, circuit_list
 
 

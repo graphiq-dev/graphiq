@@ -36,10 +36,13 @@ def test_insert_operation_at():
     circuit.add(ops.SigmaX(register=0, reg_type="p"))
     expected_depth["p"][0] += 1
 
-    circuit.insert_at(operation=ops.SigmaY(register=0, reg_type="p"), edges=[("p0_in", 1, "p0")])
+    circuit.insert_at(
+        operation=ops.SigmaY(register=0, reg_type="p"), edges=[("p0_in", 1, "p0")]
+    )
     expected_depth["p"][0] += 1
 
     assert circuit.register_depth == expected_depth
+
 
 # Test replace operation
 # Test registers depth after replace operation at nodes
@@ -68,4 +71,3 @@ def test_remove_operation():
     expected_depth["p"][0] -= 1
 
     assert circuit.register_depth == expected_depth
-

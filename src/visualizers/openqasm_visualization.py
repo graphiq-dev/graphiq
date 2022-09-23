@@ -34,6 +34,7 @@ def draw_openqasm(qasm, show=False, ax=None, display_text=None):
     if ax is None:
         fig, ax = plt.subplots()
         qc.draw(output="mpl", ax=ax, plot_barriers=False, style=style)
+        plt.close(fig)
     else:
         fig = qc.draw(output="mpl", ax=ax, plot_barriers=False, style=style)
     if show:

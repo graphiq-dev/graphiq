@@ -51,7 +51,7 @@ def hadamard():
 
 
 def phase():
-    """
+    r"""
     Return the phase matrix :math:`P = \\begin{bmatrix} 1 & 0 \\\ 0 & i \\end{bmatrix}`
 
     :return: the phase matrtix
@@ -707,7 +707,7 @@ def project_to_z0_and_remove(rho, locations):
 
 
 def parameterized_one_qubit_unitary(theta, phi, lam):
-    """
+    r"""
     Define a generic 3-parameter one-qubit unitary gate.
 
     :math:`U(\\theta, \\phi, \\lambda) = \\begin{bmatrix} \\cos(\\frac{\\theta}{2}) & -e^{i \\lambda}
@@ -736,7 +736,7 @@ def parameterized_one_qubit_unitary(theta, phi, lam):
 
 
 def full_one_qubit_unitary(n_qubits, qubit_position, theta, phi, lam):
-    """
+    r"""
     Define a generic 3-parameter one-qubit unitary gate that acts on the whole space.
 
     :math:`U(\\theta, \\phi, \\lambda) = \\begin{bmatrix} \\cos(\\frac{\\theta}{2}) & -e^{i \\lambda}

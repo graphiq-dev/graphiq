@@ -2,6 +2,9 @@ import pytest
 
 from benchmarks.graph_states import repeater_graph_states
 from src.backends.stabilizer.compiler import StabilizerCompiler
+from src.backends.density_matrix.compiler import DensityMatrixCompiler
+from src.backends.density_matrix.functions import fidelity
+from src.backends.state_representation_conversion import graph_to_density
 from src.backends.stabilizer.functions.rep_conversion import (
     get_clifford_tableau_from_graph,
 )
@@ -9,6 +12,8 @@ from src.solvers.deterministic_solver import DeterministicSolver
 from benchmarks.circuits import *
 from src.metrics import Infidelity
 from src.state import QuantumState
+import networkx as nx
+import numpy as np
 
 
 def test_linear4():
@@ -101,3 +106,35 @@ def test_repeater_graph_states(n_inner_photons):
     score, circuit = solver.result
     assert np.allclose(score, 0.0)
     # circuit.draw_circuit()
+
+
+@pytest.mark.parametrize("n_nodes", [3, 4, 5, 6])
+def test_random_graph_states(n_nodes):
+    not_connected = True
+    while not_connected:
+        graph = nx.fast_gnp_random_graph(n_nodes, 0.5)
+        not_connected = not nx.is_connected(graph)
+
+    target_tableau = get_clifford_tableau_from_graph(graph)
+    n_photon = target_tableau.n_qubits
+    target = QuantumState(n_photon, target_tableau, representation="stabilizer")
+    compiler = StabilizerCompiler()
+    metric = Infidelity(target)
+    solver = DeterministicSolver(
+        target=target,
+        metric=metric,
+        compiler=compiler,
+    )
+    solver.solve()
+    score, circuit = solver.result
+    assert np.allclose(score, 0.0)
+
+    compiler = DensityMatrixCompiler()
+    # compiler.measurement_determinism = 1
+    target_state = graph_to_density(graph)
+    final_state = compiler.compile(circuit)
+    n_total = final_state.n_qubits
+    # keeping only photonic qubits in the circuit output
+    final_state.partial_trace([*range(n_nodes)], n_total * [2])
+    fid = fidelity(target_state, np.round(final_state.dm.data, 8))
+    assert fid > 0.99

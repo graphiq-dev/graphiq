@@ -1,5 +1,5 @@
 numpy
-matplotlib
+matplotlib==3.5.1
 scipy
 networkx~=2.7.1
 autograd

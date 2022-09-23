@@ -1002,8 +1002,8 @@ class CircuitDAG(CircuitBase):
                 c_str = re.search(r"c(\d)+\[0\]", command).group(0)
 
                 q_type = q_str[0]
-                q_reg = int(re.split("\[", q_str[1:])[0])
-                c_reg = int(re.split("\[", c_str[1:])[0])
+                q_reg = int(re.split(r"\[", q_str[1:])[0])
+                c_reg = int(re.split(r"\[", c_str[1:])[0])
 
                 def _parse_if(command):
                     c_str = re.search(r"c(\d)+==1", command.replace(" ", "")).group(0)

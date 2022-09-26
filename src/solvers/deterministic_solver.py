@@ -97,7 +97,6 @@ class DeterministicSolver(SolverBase):
             )
 
         # main loop
-        emitter_depth = np.zeros(self.n_emitter)
         for j in range(self.n_photon, 0, -1):
             # transform the stabilizers into echelon gauge
             stabilizer_tableau = sfs.rref(stabilizer_tableau)
@@ -108,15 +107,11 @@ class DeterministicSolver(SolverBase):
             height_list = [0] + height_list
             if height_list[j] < height_list[j - 1]:
                 # apply time-reversed measurement and update the tableau
-                self._time_reversed_measurement(
-                    circuit, emitter_depth, stabilizer_tableau, j - 1
-                )
+                self._time_reversed_measurement(circuit, stabilizer_tableau, j - 1)
                 stabilizer_tableau = sfs.rref(stabilizer_tableau)
 
             # apply photon-absorption and update the stabilizer tableau
-            self._add_photon_absorption(
-                circuit, emitter_depth, stabilizer_tableau, j - 1
-            )
+            self._add_photon_absorption(circuit, stabilizer_tableau, j - 1)
 
         stabilizer_tableau = sfs.rref(stabilizer_tableau)
 
@@ -133,17 +128,13 @@ class DeterministicSolver(SolverBase):
         # transform all the emitter qubits to the |0> state
         _, inverse_circuit = sfs.inverse_circuit(stabilizer_tableau.copy())
 
-        self._add_gates_from_str(
-            circuit, emitter_depth, stabilizer_tableau, inverse_circuit
-        )
+        self._add_gates_from_str(circuit, stabilizer_tableau, inverse_circuit)
 
         # correct the phase of generators that act only on emitter qubits
         for i in range(self.n_emitter):
             if stabilizer_tableau.phase[self.n_photon + i] == 1:
                 transform.x_gate(stabilizer_tableau, self.n_photon + i)
-                self._add_one_qubit_gate(
-                    circuit, emitter_depth, [ops.SigmaX], self.n_photon + i
-                )
+                self._add_one_qubit_gate(circuit, [ops.SigmaX], self.n_photon + i)
 
         # final circuit
         circuit.validate()
@@ -166,18 +157,17 @@ class DeterministicSolver(SolverBase):
         :return: the minimum number of emitters required to generate the state
         :rtype: int
         """
+
         tableau = sfs.rref(tableau)
         height_list = height.height_func_list(tableau.x_matrix, tableau.z_matrix)
         return max(height_list)
 
-    def _time_reversed_measurement(self, circuit, emitter_depth, tableau, photon_index):
+    def _time_reversed_measurement(self, circuit, tableau, photon_index):
         """
         Apply the time-reversed measurement
 
         :param circuit: a quantum circuit
         :type circuit: CircuitDAG
-        :param emitter_depth: a list of circuit depths for emitter registers
-        :type emitter_depth: np.ndarray
         :param tableau: a stabilizer tableau
         :type tableau: StabilizerTableau
         :param photon_index: index of the photon for the conditional X gate
@@ -185,6 +175,7 @@ class DeterministicSolver(SolverBase):
         :return: nothing
         :rtype: None
         """
+
         # find the generators that act only on the emitters
         sum_table = (
             tableau.x_matrix[:, 0 : self.n_photon]
@@ -200,25 +191,20 @@ class DeterministicSolver(SolverBase):
         emitter_indices = self._find_emitter_indices(tableau, generator_index)
         emitter_index = int(emitter_indices[0])
 
-        self._single_out_emitter(
-            circuit, emitter_depth, tableau, generator_index, emitter_index
-        )
+        self._single_out_emitter(circuit, tableau, generator_index, emitter_index)
 
         transform.hadamard_gate(tableau, self.n_photon + emitter_index)
         self._add_measurement_cnot_and_reset(circuit, emitter_index, photon_index)
 
         # transform this generator so that it acts nontrivially on only one emitter and that Pauli is X
-        emitter_depth[emitter_index] += 1
         transform.cnot_gate(tableau, self.n_photon + emitter_index, photon_index)
 
-    def _add_photon_absorption(self, circuit, emitter_depth, tableau, photon_index):
+    def _add_photon_absorption(self, circuit, tableau, photon_index):
         """
         Add a photon absorption (time-reversed photon emission) event
 
         :param circuit: a quantum circuit
         :type circuit: CircuitDAG
-        :param emitter_depth: a list of circuit depths for emitter registers
-        :type emitter_depth: numpy.ndarray
         :param tableau: a stabilizer tableau
         :type tableau: StabilizerTableau
         :param photon_index: index of photon to be absorbed
@@ -226,13 +212,14 @@ class DeterministicSolver(SolverBase):
         :return: nothing
         :rtype: None
         """
+
         for i in range(tableau.n_qubits - 1, -1, -1):
             if height.leftmost_nontrivial_index(tableau, i) == photon_index:
                 generator_index = i
                 break
 
         gate_list = self._change_pauli_type(tableau, generator_index, photon_index, "z")
-        self._add_one_qubit_gate(circuit, emitter_depth, gate_list, photon_index)
+        self._add_one_qubit_gate(circuit, gate_list, photon_index)
 
         emitter_indices = self._find_emitter_indices(tableau, generator_index)
         emitter_index = int(emitter_indices[0])
@@ -244,27 +231,23 @@ class DeterministicSolver(SolverBase):
                 self.n_photon + i,
                 "z",
             )
-            self._add_one_qubit_gate(
-                circuit, emitter_depth, gate_list, self.n_photon + i
-            )
+            self._add_one_qubit_gate(circuit, gate_list, self.n_photon + i)
 
         # now this generator contains only ZZ on emitter qubits
         # transform this generator so that for emitter qubits, there is only one Z.
         self._transform_generator_emitters(
-            circuit, emitter_depth, tableau, generator_index, emitter_index, "z"
+            circuit, tableau, generator_index, emitter_index
         )
 
         # if the phase of this generator is -1, flip it by adding X gate to the emitter qubit
         if tableau.phase[generator_index] == 1:
             transform.x_gate(tableau, self.n_photon + emitter_index)
             self._add_one_qubit_gate(
-                circuit, emitter_depth, [ops.SigmaX], self.n_photon + emitter_index
+                circuit, [ops.SigmaX], self.n_photon + emitter_index
             )
 
         # emit (absorb) this photon by the chosen emitter
-        self._add_emitter_photon_cnot(
-            circuit, emitter_depth, emitter_index, photon_index
-        )
+        self._add_emitter_photon_cnot(circuit, emitter_index, photon_index)
         transform.cnot_gate(tableau, self.n_photon + emitter_index, photon_index)
 
         # transform all generators (except the chosen generator) with Z on this photonic register
@@ -284,14 +267,12 @@ class DeterministicSolver(SolverBase):
             tableau.table[generator_index] = original_row
             tableau.phase[generator_index] = original_phase
 
-    def _add_gates_from_str(self, circuit, emitter_depth, tableau, gate_str_list):
+    def _add_gates_from_str(self, circuit, tableau, gate_str_list):
         """
         Add gates to disentangle all emitter qubits. This is used in the last step.
 
         :param circuit: a quantum circuit
         :type circuit: CircuitDAG
-        :param emitter_depth: a list of circuit depths for emitter registers
-        :type emitter_depth: numpy.ndarray
         :param tableau: a stabilizer tableau
         :type tableau: StabilizerTableau
         :param gate_str_list: a list of gates to be applied
@@ -299,44 +280,31 @@ class DeterministicSolver(SolverBase):
         :return: nothing
         :rtype: None
         """
+
         for gate in gate_str_list:
             if gate[0] == "H":
-                self._add_one_qubit_gate(
-                    circuit, emitter_depth, [ops.Hadamard], gate[1]
-                )
+                self._add_one_qubit_gate(circuit, [ops.Hadamard], gate[1])
                 transform.hadamard_gate(tableau, gate[1])
             elif gate[0] == "P":
                 # add the inverse of the phase gate
-                self._add_one_qubit_gate(
-                    circuit, emitter_depth, [ops.SigmaZ, ops.Phase], gate[1]
-                )
+                self._add_one_qubit_gate(circuit, [ops.SigmaZ, ops.Phase], gate[1])
                 transform.phase_gate(tableau, gate[1])
             elif gate[0] == "X":
-                self._add_one_qubit_gate(circuit, emitter_depth, [ops.SigmaX], gate[1])
+                self._add_one_qubit_gate(circuit, [ops.SigmaX], gate[1])
                 transform.x_gate(tableau, gate[1])
             elif gate[0] == "CNOT":
                 self._add_one_emitter_cnot(
-                    circuit,
-                    emitter_depth,
-                    gate[1] - self.n_photon,
-                    gate[2] - self.n_photon,
+                    circuit, gate[1] - self.n_photon, gate[2] - self.n_photon
                 )
                 transform.cnot_gate(tableau, gate[1], gate[2])
             elif gate[0] == "CZ":
-                self._add_one_qubit_gate(
-                    circuit, emitter_depth, [ops.Hadamard], gate[2]
-                )
+                self._add_one_qubit_gate(circuit, [ops.Hadamard], gate[2])
                 transform.hadamard_gate(tableau, gate[2])
                 self._add_one_emitter_cnot(
-                    circuit,
-                    emitter_depth,
-                    gate[1] - self.n_photon,
-                    gate[2] - self.n_photon,
+                    circuit, gate[1] - self.n_photon, gate[2] - self.n_photon
                 )
                 transform.cnot_gate(tableau, gate[1], gate[2])
-                self._add_one_qubit_gate(
-                    circuit, emitter_depth, [ops.Hadamard], gate[2]
-                )
+                self._add_one_qubit_gate(circuit, [ops.Hadamard], gate[2])
                 transform.hadamard_gate(tableau, gate[2])
             else:
                 raise ValueError("Invalid gate in the list.")
@@ -357,6 +325,7 @@ class DeterministicSolver(SolverBase):
         :return: a list of one-qubit gates to be added to the circuit
         :rtype: list[ops.OperationBase]
         """
+
         gate_list = []
         if tableau.x_matrix[row, column] == 1 and tableau.z_matrix[row, column] == 0:
             # current is X
@@ -400,14 +369,12 @@ class DeterministicSolver(SolverBase):
 
         return gate_list
 
-    def _add_one_qubit_gate(self, circuit, emitter_depth, gate_list, index):
+    def _add_one_qubit_gate(self, circuit, gate_list, index):
         """
         Add a one-qubit gate to the circuit
 
         :param circuit: a quantum circuit
         :type circuit: CircuitDAG
-        :param emitter_depth: a list of circuit depths for emitter registers
-        :type emitter_depth: numpy.ndarray
         :param gate_list: a list of one-qubit gates to be added to the circuit
         :type gate_list: list[ops.OperationBase]
         :param index: the qubit position where this one-qubit gate is applied
@@ -433,8 +400,6 @@ class DeterministicSolver(SolverBase):
             gate_list = ops.simplify_local_clifford(gate_list)
             if gate_list == [ops.Identity, ops.Identity]:
                 circuit.remove_op(edge[1])
-                if reg_type == "e":
-                    emitter_depth[reg] -= 1
                 return
         else:
             # simplify the gate to be one of the 24 local Clifford gates
@@ -452,19 +417,13 @@ class DeterministicSolver(SolverBase):
             circuit.replace_op(edge[1], gate)
         else:
             circuit.insert_at(gate, [edge])
-            if reg_type == "e":
-                emitter_depth[reg] += 1
 
-    def _add_one_emitter_cnot(
-        self, circuit, emitter_depth, control_emitter, target_emitter
-    ):
+    def _add_one_emitter_cnot(self, circuit, control_emitter, target_emitter):
         """
         Add a CNOT between two emitter qubits
 
         :param circuit: a quantum circuit
         :type circuit: CircuitDAG
-        :param emitter_depth: a list of circuit depths for emitter registers
-        :type emitter_depth: numpy.ndarray
         :param control_emitter: register index of the control emitter
         :type control_emitter: int
         :param target_emitter: register index of the target emitter
@@ -485,142 +444,85 @@ class DeterministicSolver(SolverBase):
             noise=self._identify_noise(ops.CNOT.__name__, self.noise_model_mapping),
         )
         circuit.insert_at(gate, [edge0, edge1])
-        emitter_depth[control_emitter] += 1
-        emitter_depth[target_emitter] += 1
 
     def _transform_generator_emitters(
-        self, circuit, emitter_depth, tableau, generator_index, emitter_index, result
+        self, circuit, tableau, generator_index, emitter_index
     ):
         """
-        Transform a given generator such that it contains only one type of Pauli (specified by the parameter result)
-        on all emitter qubits
+        Transform a given generator such that it contains only one Pauli Z on emitter qubits
 
         :param circuit: a quantum circuit
         :type circuit: CircuitDAG
-        :param emitter_depth: a list of circuit depths for emitter registers
-        :type emitter_depth: numpy.ndarray
         :param tableau: a stabilizer tableau
         :type tableau: StabilizerTableau
         :param generator_index: the index of stabilizer generator in the tableau
         :type generator_index: int
         :param emitter_index: the index of chosen emitter register
         :type emitter_index: int
-        :param result: the intended type of Pauli
-        :type result: str
         :return: nothing
         :rtype: None
         """
+
         if self.n_emitter == 1:
             return
 
-        if result.lower() == "x":
-            assert not np.any(tableau.z_matrix[generator_index])
-            emitters = np.nonzero(tableau.x_matrix[generator_index, self.n_photon :])[0]
-            control_emitter = emitter_index
-            rest_emitters = np.setdiff1d(emitters, [control_emitter])
-            for target_emitter in rest_emitters:
-                # find two emitters with the desired XX in the generator specified by generator_index
-                self._add_one_emitter_cnot(
-                    circuit, emitter_depth, control_emitter, target_emitter
-                )
-                transform.cnot_gate(
-                    tableau,
-                    self.n_photon + control_emitter,
-                    self.n_photon + target_emitter,
-                )
-        else:
-            # only Z
-            assert not np.any(tableau.x_matrix[generator_index])
-            emitters = np.nonzero(tableau.z_matrix[generator_index, self.n_photon :])[0]
-            target_emitter = emitter_index
-            rest_emitters = np.setdiff1d(emitters, [target_emitter])
-            for control_emitter in rest_emitters:
-                # find two emitters with the desired ZZ in the generator specified by generator_index
-                self._add_one_emitter_cnot(
-                    circuit, emitter_depth, control_emitter, target_emitter
-                )
-                transform.cnot_gate(
-                    tableau,
-                    self.n_photon + control_emitter,
-                    self.n_photon + target_emitter,
-                )
+        # only Z
+        assert not np.any(tableau.x_matrix[generator_index])
+        emitters = np.nonzero(tableau.z_matrix[generator_index, self.n_photon :])[0]
+        target_emitter = emitter_index
+        rest_emitters = np.setdiff1d(emitters, [target_emitter])
+        for control_emitter in rest_emitters:
+            # find two emitters with ZZ in the generator specified by generator_index
+            # add CNOT to remove one Z
+            self._add_one_emitter_cnot(circuit, control_emitter, target_emitter)
+            transform.cnot_gate(
+                tableau,
+                self.n_photon + control_emitter,
+                self.n_photon + target_emitter,
+            )
 
-    def _transform_generator_emitters_advanced(
-        self, circuit, emitter_depth, tableau, generator_index, result
-    ):
+    def _transform_generator_emitters_advanced(self, circuit, tableau, generator_index):
         """
-        Transform a given generator such that it contains only one type of Pauli (specified by the parameter result)
-        on all emitter qubits.
+        Transform a given generator such that it contains only one Pauli Z on emitter qubits
         This function will be used when we can select which emitter for the shortest circuit depth.
 
         :param circuit: a quantum circuit
         :type circuit: CircuitDAG
-        :param emitter_depth: a list of circuit depths for emitter registers
-        :type emitter_depth: numpy.ndarray
         :param tableau: a stabilizer tableau
         :type tableau: StabilizerTableau
         :param generator_index: the index of stabilizer generator in the tableau
         :type generator_index: int
-        :param result: the intended type of Pauli
-        :type result: str
         :return: the index of emitter chosen for the shortest circuit depth
         :rtype: int
         """
+
+        # wait for the circuit class refactoring
+        emitter_depth = circuit.register_depth["e"]
         # allow selection of emitters
         if self.n_emitter == 1:
             return 0
-        if result.lower() == "x":
-            assert not np.any(tableau.z_matrix[generator_index])
-            emitters = np.nonzero(tableau.x_matrix[generator_index, self.n_photon :])[0]
-            while len(emitters) > 1:
-                # find two emitters with the desired Paulis in the generator specified by generator_index
-                # if multiple, find these two with the shortest circuit depths
-                min_index = np.argmin(emitter_depth[emitters])
-                control_emitter = int(emitters[min_index])
-                rest_emitters = np.setdiff1d(emitters, [control_emitter])
-                min_index = np.argmin(emitter_depth[rest_emitters])
-                target_emitter = int(rest_emitters[min_index])
-                self._add_one_emitter_cnot(
-                    circuit, emitter_depth, control_emitter, target_emitter
-                )
-                transform.cnot_gate(
-                    tableau,
-                    self.n_photon + control_emitter,
-                    self.n_photon + target_emitter,
-                )
 
-                emitters = np.nonzero(
-                    tableau.x_matrix[generator_index, self.n_photon :]
-                )[0]
+        assert not np.any(tableau.x_matrix[generator_index])
+        emitters = np.nonzero(tableau.z_matrix[generator_index, self.n_photon :])[0]
+        while len(emitters) > 1:
+            # find two emitters with ZZ in the generator specified by generator_index
+            # if multiple, find these two with the shortest circuit depths
+            min_index = np.argmin(emitter_depth[emitters])
+            target_emitter = int(emitters[min_index])
+            rest_emitters = np.setdiff1d(emitters, [target_emitter])
+            min_index = np.argmin(emitter_depth[rest_emitters])
+            control_emitter = int(rest_emitters[min_index])
+            self._add_one_emitter_cnot(circuit, control_emitter, target_emitter)
+            transform.cnot_gate(
+                tableau,
+                self.n_photon + control_emitter,
+                self.n_photon + target_emitter,
+            )
 
-        else:
-            assert not np.any(tableau.x_matrix[generator_index])
             emitters = np.nonzero(tableau.z_matrix[generator_index, self.n_photon :])[0]
-            while len(emitters) > 1:
-                # find two emitters with the desired Paulis in the generator specified by generator_index
-                # if multiple, find these two with the shortest circuit depths
-                min_index = np.argmin(emitter_depth[emitters])
-                target_emitter = int(emitters[min_index])
-                rest_emitters = np.setdiff1d(emitters, [target_emitter])
-                min_index = np.argmin(emitter_depth[rest_emitters])
-                control_emitter = int(rest_emitters[min_index])
-                self._add_one_emitter_cnot(
-                    circuit, emitter_depth, control_emitter, target_emitter
-                )
-                transform.cnot_gate(
-                    tableau,
-                    self.n_photon + control_emitter,
-                    self.n_photon + target_emitter,
-                )
-
-                emitters = np.nonzero(
-                    tableau.z_matrix[generator_index, self.n_photon :]
-                )[0]
         return int(emitters[0])
 
-    def _add_emitter_photon_cnot(
-        self, circuit, emitter_depth, emitter_index, photon_index
-    ):
+    def _add_emitter_photon_cnot(self, circuit, emitter_index, photon_index):
         """
         Add a CNOT gate between two edges
 
@@ -629,6 +531,7 @@ class DeterministicSolver(SolverBase):
         :return: nothing
         :rtype: None
         """
+
         emitter_edge = circuit.dag.out_edges(nbunch=f"e{emitter_index}_in", keys=True)
         edge0 = list(emitter_edge)[0]
         photonic_edge = circuit.dag.out_edges(nbunch=f"p{photon_index}_in", keys=True)
@@ -642,7 +545,6 @@ class DeterministicSolver(SolverBase):
             noise=self._identify_noise(ops.CNOT.__name__, self.noise_model_mapping),
         )
         circuit.insert_at(gate, [edge0, edge1])
-        emitter_depth[emitter_index] += 1
 
     def _find_emitter_indices(self, tableau, generator_index):
         """
@@ -655,22 +557,19 @@ class DeterministicSolver(SolverBase):
         :return: nontrivial emitter positions in this generator
         :rtype: numpy.ndarray
         """
+
         generator_sum = (
             tableau.x_matrix[generator_index, self.n_photon :]
             + tableau.z_matrix[generator_index, self.n_photon :]
         )
         return np.nonzero(generator_sum)[0]
 
-    def _single_out_emitter(
-        self, circuit, emitter_depth, tableau, generator_index, emitter_index
-    ):
+    def _single_out_emitter(self, circuit, tableau, generator_index, emitter_index):
         """
-        Turn the generator into a single Pauli X. This function is used in the time-reversed measurement.
+        Turn the chosen generator into a single Pauli Z. This function is used in the time-reversed measurement.
 
         :param circuit: a quantum circuit
         :type circuit: CircuitDAG
-        :param emitter_depth: a list of circuit depths for emitter registers
-        :type emitter_depth: numpy.ndarray
         :param tableau: a stabilizer tableau
         :type tableau: StabilizerTableau
         :param generator_index: the index of stabilizer generator in the tableau
@@ -680,23 +579,24 @@ class DeterministicSolver(SolverBase):
         :return: nothing
         :rtype: None
         """
+
+        # first transform this generator so that it only contains Zs.
         for i in range(self.n_emitter):
             gate_list = self._change_pauli_type(
                 tableau, generator_index, self.n_photon + i, "z"
             )
             if len(gate_list) > 0:
-                self._add_one_qubit_gate(
-                    circuit, emitter_depth, gate_list, self.n_photon + i
-                )
+                self._add_one_qubit_gate(circuit, gate_list, self.n_photon + i)
 
+        # disentangle the chosen emitter from the rest
         self._transform_generator_emitters(
-            circuit, emitter_depth, tableau, generator_index, emitter_index, "z"
+            circuit, tableau, generator_index, emitter_index
         )
 
         if tableau.phase[generator_index] == 1:
             transform.x_gate(tableau, self.n_photon + emitter_index)
             self._add_one_qubit_gate(
-                circuit, emitter_depth, [ops.SigmaX], self.n_photon + emitter_index
+                circuit, [ops.SigmaX], self.n_photon + emitter_index
             )
 
     def _add_measurement_cnot_and_reset(self, circuit, emitter_index, photon_index):
@@ -709,6 +609,7 @@ class DeterministicSolver(SolverBase):
         :return: nothing
         :rtype: None
         """
+
         emitter_edge = circuit.dag.out_edges(nbunch=f"e{emitter_index}_in", keys=True)
         edge0 = list(emitter_edge)[0]
         photonic_edge = circuit.dag.out_edges(nbunch=f"p{photon_index}_in", keys=True)
@@ -737,6 +638,7 @@ class DeterministicSolver(SolverBase):
         :return: a list of noise models
         :rtype: list[nm.NoiseBase]
         """
+
         noise = []
         for each_op in op:
             noise.append(self._identify_noise(each_op.__name__, noise_model_mapping))
@@ -754,6 +656,7 @@ class DeterministicSolver(SolverBase):
         :return: a noise model
         :rtype: nm.NoiseBase
         """
+
         if type(op) != str:
             op_name = type(op).__name__
         else:

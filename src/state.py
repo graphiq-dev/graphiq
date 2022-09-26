@@ -233,7 +233,7 @@ class QuantumState:
         :return: function returns nothing
         :rtype: None
         """
-        #TODO: Need to think about how to deal with mutiple state representations at the same time.
+        # TODO: Need to think about how to deal with mutiple state representations at the same time.
         if self._stabilizer is None:
             warnings.warn(
                 UserWarning(

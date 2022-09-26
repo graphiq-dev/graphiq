@@ -256,16 +256,10 @@ class DeterministicSolver(SolverBase):
             tableau.x_matrix, tableau.z_matrix, [0, photon_index], "z"
         )
 
-        original_row = np.copy(tableau.table[generator_index])
-        original_phase = tableau.phase[generator_index]
         pauli_z_list = np.setdiff1d(pauli_z_list, [generator_index])
         for i in pauli_z_list:
-
-            # right multiplication needed where rowsum is left multiplication
-            sfs.tab_row_swap(tableau, generator_index, i)
+            # use left multiplication instead of right multiplication
             sfs.tab_row_sum(tableau, generator_index, i)
-            tableau.table[generator_index] = original_row
-            tableau.phase[generator_index] = original_phase
 
     def _add_gates_from_str(self, circuit, tableau, gate_str_list):
         """

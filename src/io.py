@@ -20,7 +20,7 @@ def current_time():
 
 
 class IO:
-    """
+    r"""
     The IO class encapsulates all saving/loading features of data, figures, etc.
     This provides consistent filetypes, naming conventions, etc.
 

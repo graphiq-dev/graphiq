@@ -10,7 +10,6 @@ import numpy as np
 
 import warnings
 
-
 import src.noise.noise_models as nm
 import pandas as pd
 
@@ -76,8 +75,8 @@ class EvolutionarySolver(RandomSearchSolver):
         :type selection_active: bool
         :param save_openqasm: save population, hof, or both to openQASM strings (options: None, "hof", "pop", "both")
         :type save_openqasm: str, None
-        :param args:
-        :param kwargs:
+        :param noise_model_mapping: a dictionary that associates each operation type to a noise model
+        :type noise_model_mapping: dict
         """
         super().__init__(
             target,
@@ -329,7 +328,7 @@ class EvolutionarySolver(RandomSearchSolver):
                 population.append((np.inf, circuit))
         else:
             for j in range(self.n_pop):
-                population.append((np.inf, copy.deepcopy(self.circuit)))
+                population.append((np.inf, self.circuit.copy()))
 
         for i in range(self.n_stop):
             for j in range(self.n_pop):
@@ -367,6 +366,7 @@ class EvolutionarySolver(RandomSearchSolver):
             print(f"Iteration {i} | Best score: {self.hof[0][0]:.6f}")
 
         self.logs_to_df()  # convert the logs to a DataFrame
+        self.result = (self.hof[0][0], self.hof[0][1])
 
     """ Logging and saving openQASM strings """
 

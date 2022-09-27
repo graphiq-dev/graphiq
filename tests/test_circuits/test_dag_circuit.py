@@ -435,7 +435,7 @@ def test_visualization_4():
 
 @visualization
 def test_visualization_5():
-    # test visualization when dynamic dealing with register number (copied from test_circuit)
+    # test visualization when dynamic dealing with register number
     dag = CircuitDAG(n_emitter=1, n_classical=0)
     op1 = ops.CNOT(control=0, control_type="e", target=1, target_type="e")
     op2 = ops.Hadamard(register=1, reg_type="e")

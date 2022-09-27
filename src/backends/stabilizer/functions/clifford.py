@@ -115,7 +115,7 @@ def z_measurement_gate(
 def measure_x(tableau, qubit_position, measurement_determinism="probabilistic"):
     """
     Returns the outcome 0 or 1 if one measures the given qubit in the X basis.
-    NOTE: cannot update the stabilizer state after measurement. Stabilizer formalism can only handle Z-measurements.
+    # TODO: be able to handle mixed states in the future
 
     :param tableau: the input tableau to be measured
     :type tableau: CliffordTableau
@@ -137,7 +137,7 @@ def measure_x(tableau, qubit_position, measurement_determinism="probabilistic"):
 def measure_y(tableau, qubit_position, measurement_determinism="probabilistic"):
     """
     Returns the outcome 0 or 1 if one measures the given qubit in the Y basis.
-    NOTE: cannot update the stabilizer state after measurement. Stabilizer formalism can only handle Z-measurements.
+     # TODO: be able to handle mixed states in the future
 
     :param tableau: the input tableau to be measured
     :type tableau: CliffordTableau
@@ -164,7 +164,7 @@ def measure_y(tableau, qubit_position, measurement_determinism="probabilistic"):
 def measure_z(tableau, qubit_position, measurement_determinism="probabilistic"):
     """
     Returns the outcome 0 or 1 if one measures the given qubit in the Z basis.
-    NOTE: Does not update the stabilizer state after measurement.
+
 
     :param tableau: the input tableau to be measured
     :type tableau: CliffordTableau
@@ -300,7 +300,7 @@ def insert_qubit(tableau, new_position):
     :rtype: CliffordTableau
     """
     n_qubits = tableau.n_qubits
-    assert new_position < n_qubits
+    assert new_position <= n_qubits
     new_column = np.zeros(n_qubits)
     new_row = np.zeros(n_qubits + 1)
     # x destabilizer part
@@ -534,43 +534,7 @@ def partial_trace(tableau, keep, dims, measurement_determinism="probabilistic"):
     return tableau
 
 
-def full_rank_x(tableau):
-    """
-    Based on lemma 6 in arXiv:quant-ph/0406196
-
-    :param tableau: the input tableau to be processed
-    :type tableau: CliffordTableau
-    :return: the tableau after processing
-    :rtype: CliffordTableau
-    """
-
-    n_qubits = tableau.n_qubits
-    x_matrix = tableau.stabilizer_x
-    z_matrix = tableau.stabilizer_z
-    x_matrix, z_matrix, index = row_reduction(x_matrix, z_matrix)
-    rank = index + 1
-    z1_matrix = z_matrix[rank:n_qubits, 0:rank]
-    z2_matrix = z_matrix[rank:n_qubits, rank:n_qubits]
-    z2_matrix, z1_matrix, index1 = row_reduction(z2_matrix, z1_matrix)
-    assert index1 == n_qubits - rank - 1
-    for j in range(n_qubits - rank):
-        for i in range(j):
-            if z2_matrix[i, j] == 1:
-                z2_matrix = add_rows(z2_matrix, j, i)
-                z1_matrix = add_rows(z1_matrix, j, i)
-
-    assert np.array_equal(z2_matrix, np.eye(n_qubits - rank))
-    z_matrix = np.hstack(z1_matrix, z2_matrix).astype(int)
-    tableau.x_stabilizer = x_matrix
-    tableau.z_stabilizer = z_matrix
-    # hadamard on some qubits to make the x-stabilizer table full rank
-    for qubit in range(rank, n_qubits):
-        tableau = hadamard_gate(tableau, qubit)
-
-    return tableau
-
-
-def run_circuit(tableau, circuit_list):
+def run_circuit(tableau, circuit_list, reverse=False):
     """
     Return the stabilizer state tableau after the execution of the circuit.
 
@@ -578,14 +542,23 @@ def run_circuit(tableau, circuit_list):
     :type tableau: CliffordTableau
     :param circuit_list: a list of gates in the circuit
     :type circuit_list: list[tuple]
+    :param reverse: a parameter to indicate whether running the inverse circuit
+    :type reverse: bool
     :return: the stabilizer state tableau after the execution of the circuit.
     :rtype: CliffordTableau
     """
+    if reverse:
+        circuit_list.reverse()
     for ops in circuit_list:
         if ops[0] == "H":
             tableau = hadamard_gate(tableau, ops[1])
         elif ops[0] == "P":
-            tableau = phase_gate(tableau, ops[1])
+            if reverse:
+                tableau = phase_dagger_gate(tableau, ops[1])
+            else:
+                tableau = phase_gate(tableau, ops[1])
+        elif ops[0] == "X":
+            tableau = x_gate(tableau, ops[1])
         elif ops[0] == "CNOT":
             tableau = cnot_gate(tableau, ops[1], ops[2])
         elif ops[0] == "CZ":

@@ -22,8 +22,10 @@ TODO: consider refactoring register notation to not use tuples (which can be con
 """
 from abc import ABC
 import itertools
+import numpy as np
 import src.utils.openqasm_lib as oq_lib
 import src.noise.noise_models as nm
+import src.backends.density_matrix.functions as dmf
 
 """ Base classes from which operations will inherit """
 
@@ -34,6 +36,7 @@ class OperationBase(ABC):
     """
 
     _openqasm_info = None  # This is the information necessary to add our Operation into an openQASM script
+
     # If _openqasm_info is None, a given operation cannot be added to openQASM
 
     def __init__(
@@ -771,13 +774,7 @@ class Output(InputOutputOperationBase):
 """ Helper function to get useful sets of gates """
 
 
-def one_qubit_cliffords():
-    """
-    Returns an iterator of single-qubit clifford gates
-
-    :return: iterator covering each single-qubit clifford gate
-    :rtype: map
-    """
+def local_clifford_composition():
     a = [
         [Identity],
         [Hadamard, Phase, Hadamard, Phase],
@@ -787,11 +784,111 @@ def one_qubit_cliffords():
         [Phase],
     ]
     b = [[Identity], [SigmaX], [SigmaY], [SigmaZ]]
+    return a, b
+
+
+def one_qubit_cliffords():
+    """
+    Returns an iterator of single-qubit clifford gates
+
+    :return: iterator covering each single-qubit clifford gate
+    :rtype: map
+    """
+    a, b = local_clifford_composition()
 
     def flatten_gates(c):
-        return c[0] + c[1]  # where a is a tuple of lists
+        return c[0] + c[1]  # where c is a tuple of lists
 
     return map(flatten_gates, itertools.product(a, b))
+
+
+def local_clifford_to_matrix_map(gate):
+    """
+    Find the 2 X 2 matrix corresponding to the local Clifford gate
+
+    :param gate: the local Clifford gate
+    :type gate: list or a subclass of OperationBase
+    :return: the 2 X 2 matrix corresponding to the local Clifford gate
+    :rtype: numpy.ndarray
+    """
+    mapping = {
+        Identity.__name__: np.eye(2),
+        Hadamard.__name__: dmf.hadamard(),
+        Phase.__name__: dmf.phase(),
+        SigmaX.__name__: dmf.sigmax(),
+        SigmaY.__name__: dmf.sigmay(),
+        SigmaZ.__name__: dmf.sigmaz(),
+    }
+
+    if isinstance(gate, list):
+        result = np.eye(2)
+        for op in gate:
+            if op.__name__ in mapping.keys():
+                result = result @ mapping[op.__name__]
+            else:
+                raise ValueError(f"Cannot support the operator of type {op.__name__}")
+        return result
+    else:
+        if gate.__name__ in mapping.keys():
+            return mapping[gate.__name__]
+        else:
+            raise ValueError(f"Cannot support the operator of type {gate.__name__}")
+
+
+def local_cliffords_name_to_matrix_map():
+    """
+    Find all one-qubit local Clifford gates in the matrix representation
+
+    :return: all one-qubit local Clifford gates in the matrix representation
+    :rtype: map
+    """
+    a, b = local_clifford_composition()
+
+    def gate_matrix(c):
+        # where c is a tuple of lists
+        matrix1 = local_clifford_to_matrix_map(c[0])
+        matrix2 = local_clifford_to_matrix_map(c[1])
+
+        return matrix1 @ matrix2
+
+    return map(gate_matrix, itertools.product(a, b))
+
+
+def find_local_clifford_by_matrix(matrix):
+    """
+    Find local Clifford by its matrix representation
+
+    :param matrix: a matrix representation of one-qubit Clifford gate
+    :type matrix: numpy.ndarray
+    :raises ValueError: if the matrix does not correspond to a valid one-qubit Clifford gate.
+    :return: the local Clifford gate specified by a list of basic gates it consists of
+        or None if the input matrix is not a valid one-qubit Clifford gate
+    :rtype: list
+    """
+    gate_list1, gate_list2 = local_clifford_composition()
+    for op1 in gate_list1:
+        for op2 in gate_list2:
+            matrix1 = local_clifford_to_matrix_map(op1)
+            matrix2 = local_clifford_to_matrix_map(op2)
+            product_matrix = matrix1 @ matrix2
+            if dmf.check_equivalent_unitaries(matrix, product_matrix):
+                return op1 + op2
+
+    raise ValueError("Invalid one-qubit Clifford gate.")
+
+
+def simplify_local_clifford(gate_list):
+    """
+    Simplify the list of basic gates that represents a local Clifford
+
+    :param gate_list: original list of basic gates that represents a local Clifford
+    :type gate_list: list
+    :return: simplified list of basic gates that represents the same local Clifford
+    :rtype: list
+    """
+    matrix = local_clifford_to_matrix_map(gate_list)
+
+    return find_local_clifford_by_matrix(matrix)
 
 
 def name_to_class_map(name):
@@ -804,7 +901,7 @@ def name_to_class_map(name):
     :return: the operation class corresponding to the openqasm name if the name is a valid name
     :rtype: OperationBase class
     """
-    map = {
+    mapping = {
         "CX": CNOT,
         "x": SigmaX,
         "y": SigmaY,
@@ -816,6 +913,6 @@ def name_to_class_map(name):
         "classical z": ClassicalCZ,
         "classical reset x": MeasurementCNOTandReset,
     }
-    if name in map:
-        return map[name]
+    if name in mapping:
+        return mapping[name]
     return None

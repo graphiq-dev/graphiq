@@ -29,6 +29,7 @@ NOT retroactively apply to the added qubits
 
 
 """
+import copy
 import networkx as nx
 import matplotlib.pyplot as plt
 from abc import ABC, abstractmethod
@@ -39,7 +40,6 @@ import string
 
 import src.ops as ops
 import src.utils.openqasm_lib as oq_lib
-
 from src.visualizers.dag import dag_topology_pos
 from src.visualizers.openqasm_visualization import draw_openqasm
 
@@ -435,6 +435,15 @@ class CircuitBase(ABC):
                 UserWarning(f"No openqasm definitions for operation {type(op)}")
             )
 
+    def copy(self):
+        """
+        Create a copy of itself. Deep copy
+
+        :return: a copy of itself
+        :rtype: CircuitBase
+        """
+        return copy.deepcopy(self)
+
 
 class CircuitDAG(CircuitBase):
     """
@@ -443,7 +452,7 @@ class CircuitDAG(CircuitBase):
     Each node of the graph contains an Operation (it is an input, output, or general Operation).
     The Operations in the topological order of the DAG.
 
-    Each connecting edge of the graph corresponds to a qudit or classical bit of the circuit
+    Each connecting edge of the graph corresponds to a qubit/qudit or classical bit of the circuit
     """
 
     def __init__(
@@ -455,12 +464,12 @@ class CircuitDAG(CircuitBase):
         openqasm_defs=None,
     ):
         """
-        Construct a DAG circuit with n_emitter single-qubit emitter quantum registers, n_photon single-qubit photon
-        quantum registers, and n_classical single-cbit classical registers.
+        Construct a DAG circuit with n_emitter one-qubit emitter quantum registers, n_photon one-qubit photon
+        quantum registers, and n_classical one-cbit classical registers.
 
-        :param n_emitter: the number of emitter qudits in the system
+        :param n_emitter: the number of emitter qubits/qudits in the system
         :type n_emitter: int
-        :param n_photon: the number of photon qudits in the system
+        :param n_photon: the number of photon qubits/qudits in the system
         :type n_photon: int
         :param n_classical: the number of classical bits in the system
         :type n_classical: int
@@ -478,7 +487,7 @@ class CircuitDAG(CircuitBase):
 
     def add(self, operation: ops.OperationBase):
         """
-        Add an operation to the end of the circuit (i.e. to be applied after the pre-existing circuit operations
+        Add an operation to the end of the circuit (i.e. to be applied after the pre-existing circuit operations)
 
         :param operation: Operation (gate and register) to add to the graph
         :type operation: OperationBase type (or a subclass of it)
@@ -550,7 +559,7 @@ class CircuitDAG(CircuitBase):
         :param node: the node where the new operation is placed
         :type node: int
         :param new_operation: the new operation
-        :type new_operation: Operationbase or its subclass
+        :type new_operation: OperationBase or its subclass
         :raises AssertionError: if new_operation acts on different registers from the operation in the node
         :return: nothing
         :rtype: None
@@ -726,7 +735,7 @@ class CircuitDAG(CircuitBase):
 
     def remove_op(self, node):
         """
-        remove an operation from the circuit
+        Remove an operation from the circuit
 
         :param node: the node to be removed
         :type node: int
@@ -737,7 +746,7 @@ class CircuitDAG(CircuitBase):
 
     def validate(self):
         """
-        Asserts that the circuit is valid (is a DAG, all nodes
+        Assert that the circuit is valid (is a DAG, all nodes
         without input edges are input nodes, all nodes without output edges
         are output nodes)
 
@@ -771,7 +780,7 @@ class CircuitDAG(CircuitBase):
 
     def sequence(self, unwrapped=False):
         """
-        Returns the sequence of operations composing this circuit
+        Return the sequence of operations composing this circuit
 
         :param unwrapped: If True, we "unwrap" the operation objects such that the returned sequence has only
                           non-composed gates (i.e. wrapper gates which include multiple non-composed gates are
@@ -865,7 +874,7 @@ class CircuitDAG(CircuitBase):
 
     def draw_dag(self, show=True, fig=None, ax=None):
         """
-        Draws the circuit as a DAG
+        Draw the circuit as a DAG
 
         :param show: if True, the DAG is displayed (shown). If False, the DAG is drawn but not displayed
         :type show: bool
@@ -1175,11 +1184,8 @@ class CircuitDAG(CircuitBase):
         def _check_and_add_register(test_reg, circuit_reg, reg_type: str):
             sorted_reg = list(test_reg)
             sorted_reg.sort()
-            for (
-                i
-            ) in (
-                sorted_reg
-            ):  # we sort such that we can throw an error if we get discontinuous registers
+            for i in sorted_reg:
+                # we sort such that we can throw an error if we get discontinuous registers
                 if i == len(circuit_reg):
                     circuit_reg.append(1)
                 elif i > len(circuit_reg):

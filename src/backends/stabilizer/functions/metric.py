@@ -95,18 +95,3 @@ def inner_product(tableau1, tableau2):
                 # if R = - Q for Q being a generator of the second state
                 return 0
     return 2 ** (-counter / 2)
-
-
-def clifford_from_stabilizer(stabilizer_tableau):
-    """
-    Return the CliffordTableau from the given StabilizerTableau after finding destabilizers
-
-    :param stabilizer_tableau: a stabilizer Tableau
-    :type stabilizer_tableau: StabilizerTableau
-    :return: the Clifford
-    :rtype: CliffordTableau
-    """
-    n_qubits = stabilizer_tableau.n_qubits
-    _, circuit = inverse_circuit(stabilizer_tableau)
-    clifford_tableau = sfc.create_n_ket0_state(n_qubits)
-    return sfc.run_circuit(clifford_tableau, circuit)

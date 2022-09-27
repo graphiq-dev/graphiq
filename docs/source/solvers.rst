@@ -12,5 +12,8 @@ Evolutionary Solver
 .. automodule:: src.solvers.evolutionary_solver
    :members:
 
-
+Deterministic Solver
+------------------------------
+.. automodule:: src.solvers.deterministic_solver
+   :members:
 

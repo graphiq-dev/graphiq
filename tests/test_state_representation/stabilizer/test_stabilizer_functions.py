@@ -1,6 +1,8 @@
 import pytest
 import numpy as np
 import networkx as nx
+
+import src.backends.stabilizer.functions.rep_conversion as conversion
 import src.backends.stabilizer.functions.utils as sfu
 from src.circuit import CircuitDAG
 import src.backends.stabilizer.functions.clifford as sfc
@@ -194,7 +196,7 @@ def test_stabilizer_fidelity2():
 
 def test_clifford_from_stabilizer():
     tableau1 = sfc.create_n_plus_state(4)
-    tableau2 = sfm.clifford_from_stabilizer(tableau1.to_stabilizer())
+    tableau2 = conversion.clifford_from_stabilizer(tableau1.to_stabilizer())
     assert tableau1 == tableau2
     print(tableau1)
     print(tableau2)

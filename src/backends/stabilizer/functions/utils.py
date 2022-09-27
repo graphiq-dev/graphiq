@@ -1,7 +1,6 @@
 """
 Miscellaneous functions
 """
-
 import numpy as np
 
 from src.backends.density_matrix import functions as dmf

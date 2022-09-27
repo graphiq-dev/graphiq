@@ -1,6 +1,7 @@
 import pytest
-
+import numpy as np
 import src.ops as ops
+import src.backends.density_matrix.functions as dmf
 
 
 def test_single_qubit_clifford_combo():
@@ -120,3 +121,31 @@ def test_wrapper_gate_unwrap_2():
         assert op.register == operation.register
         assert op.q_registers == operation.q_registers
         assert op.q_registers_type == operation.q_registers_type
+
+
+def test_get_local_clifford_matrix_by_name():
+    assert np.allclose(ops.local_clifford_to_matrix_map(ops.Hadamard), dmf.hadamard())
+    result = ops.local_clifford_to_matrix_map([ops.Hadamard, ops.Phase, ops.SigmaX])
+    expected = dmf.hadamard() @ dmf.phase() @ dmf.sigmax()
+    assert np.allclose(result, expected)
+    assert ops.find_local_clifford_by_matrix(expected) == [
+        ops.Hadamard,
+        ops.Phase,
+        ops.SigmaX,
+    ]
+    expected2 = dmf.hadamard() @ dmf.phase() @ dmf.phase() @ dmf.hadamard()
+    assert ops.find_local_clifford_by_matrix(expected2) == [ops.Identity, ops.SigmaX]
+    expected3 = dmf.phase() @ dmf.phase() @ dmf.hadamard() @ dmf.hadamard()
+    assert ops.find_local_clifford_by_matrix(expected3) == [ops.Identity, ops.SigmaZ]
+    assert ops.simplify_local_clifford(
+        [ops.Phase, ops.Phase, ops.Hadamard, ops.Hadamard]
+    ) == [ops.Identity, ops.SigmaZ]
+
+
+def test_op():
+    u1 = dmf.phase() @ dmf.hadamard()
+    u2 = dmf.hadamard() @ dmf.phase() @ dmf.hadamard() @ dmf.phase() @ dmf.sigmax()
+    print(f"is u1 equivalent to u2 = {dmf.check_equivalent_unitaries(u1,u2)}")
+    u3 = dmf.hadamard() @ dmf.phase() @ dmf.hadamard() @ dmf.phase()
+    u4 = dmf.phase() @ dmf.hadamard() @ dmf.sigmax()
+    print(f"is u3 equivalent to u4 = {dmf.check_equivalent_unitaries(u3,u4)}")

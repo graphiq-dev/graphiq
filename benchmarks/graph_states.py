@@ -176,9 +176,20 @@ def lc_equivalence_demo():
     print(f"g2, g3 LC equivalent: {equiv23}")
 
 
-if __name__ == "__main__":
-    np.random.seed(0)  # seed for consistent visualization
-    rng = np.random.default_rng(0)  # seed for consistent random graph
-    for _ in range(5):
-        g_test = random_graph_state(20, p_edge=0.02, np_rng=rng)
-        g_test.draw()
+def repeater_graph_states(n_inner_qubits):
+    """
+    Construct a repeater graph state with the emission ordering (leaf qubit -> adjacent inner qubit -> next leaf qubit)
+
+    :param n_inner_qubits: number of qubits in the inner layer.
+    :type n_inner_qubits: int
+    :return: a networkx graph that represents the repeater graph state
+    :rtype: networkx.Graph
+    """
+    edges = []
+    for i in range(n_inner_qubits):
+        edges.append((2 * i, 2 * i + 1))
+
+    for i in range(n_inner_qubits):
+        for j in range(i + 1, n_inner_qubits):
+            edges.append((2 * i + 1, 2 * j + 1))
+    return nx.Graph(edges)

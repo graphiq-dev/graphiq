@@ -4,6 +4,7 @@ scipy
 networkx~=2.7.1
 autograd
 pytest
+pytest-cov
 pandas
 seaborn
 qiskit

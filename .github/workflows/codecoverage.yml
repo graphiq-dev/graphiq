@@ -6,9 +6,6 @@ jobs:
   build:
     runs-on: ubuntu-latest
     name: Test python API
-    defaults:
-      run:
-        working-directory: ./tests
     steps:
     - uses: actions/checkout@v1
     - uses: actions/setup-python@v2

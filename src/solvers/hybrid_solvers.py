@@ -1,10 +1,12 @@
 """
 Contains various hybrid solvers
 """
+import numpy as np
 
 from src.solvers.evolutionary_solver import EvolutionarySolver
 from src.solvers.deterministic_solver import DeterministicSolver
 from src.backends.compiler_base import CompilerBase
+from src.circuit import CircuitDAG
 from src.metrics import MetricBase
 from src.io import IO
 
@@ -34,9 +36,8 @@ class HybridEvolutionarySolver(EvolutionarySolver):
         *args,
         **kwargs,
     ):
-
         """
-
+        Initialize a hybrid solver based on DeterministicSolver and EvolutionarySolver
 
         :param target: target quantum state
         :type target: QuantumState
@@ -78,6 +79,57 @@ class HybridEvolutionarySolver(EvolutionarySolver):
             **kwargs,
         )
 
+    def initialize_transformation_probabilities(self):
+        """
+        Sets the initial probabilities for selecting the circuit transformations.
+
+        :return: the transformation probabilities for possible transformations
+        :rtype: dict
+        """
+        trans_probs = {
+            self.add_emitter_one_qubit_op: 1 / 4,
+            self.add_photon_one_qubit_op: 1 / 4,
+            self.remove_op: 1 / 4,
+            self.add_measurement_cnot_and_reset: 1 / 10,
+        }
+
+        if self.n_emitter > 1:
+            trans_probs[self.add_emitter_cnot] = 1 / 4
+
+        return self._normalize_trans_prob(trans_probs)
+
+    def randomize_circuit(self, circuit):
+        """
+        Perform multiple random operations to a circuit
+
+        :param circuit: a quantum circuit
+        :type circuit: CircuitDAG
+        :return: a new quantum circuit that is perturbed from the input circuit
+        :rtype: CircuitDAG
+        """
+        randomized_circuit = circuit.copy()
+
+        trans_probs = {
+            self.add_emitter_one_qubit_op: 1 / 6,
+            self.add_photon_one_qubit_op: 1 / 6,
+            self.remove_op: 1 / 2,
+        }
+
+        if self.n_emitter > 1:
+            trans_probs[self.add_emitter_cnot] = 1 / 6
+
+        trans_probs = self._normalize_trans_prob(trans_probs)
+
+        n_iter = np.random.randint(0, 10)
+
+        for i in range(n_iter):
+            transformation = np.random.choice(
+                list(trans_probs.keys()), p=list(trans_probs.values())
+            )
+            transformation(randomized_circuit)
+
+        return randomized_circuit
+
     def solve(self):
         """
 
@@ -91,5 +143,51 @@ class HybridEvolutionarySolver(EvolutionarySolver):
         )
         deterministic_solver.noise_simulation = False
         deterministic_solver.solve()
-        _, self.circuit = deterministic_solver.result
-        super().solve()
+        _, ideal_circuit = deterministic_solver.result
+
+        # initialize the population
+        population = []
+        for j in range(self.n_pop):
+            perturbed_circuit = self.randomize_circuit(ideal_circuit)
+            population.append((np.inf, perturbed_circuit))
+
+        self.compiler.noise_simulation = self.noise_simulation
+
+        for i in range(self.n_stop):
+            for j in range(self.n_pop):
+                # choose a random transformation from allowed transformations
+                transformation = np.random.choice(
+                    list(self.trans_probs.keys()), p=list(self.trans_probs.values())
+                )
+                # evolve the chosen circuit
+                circuit = population[j][1]
+                transformation(circuit)
+                circuit.validate()
+
+                # compile the output state of the circuit
+                compiled_state = self.compiler.compile(circuit)
+                # trace out emitter qubits
+                compiled_state.partial_trace(
+                    keep=list(range(self.n_photon)),
+                    dims=(self.n_photon + self.n_emitter) * [2],
+                )
+                # evaluate the metric
+                score = self.metric.evaluate(compiled_state, circuit)
+
+                population[j] = (score, circuit)
+
+            self.update_hof(population)
+            if EvolutionarySolver.use_adapt_probability:
+                self.adapt_probabilities(i)
+
+            # this should be the last thing performed *prior* to selecting a new population (after updating HoF)
+            self.update_logs(population=population, iteration=i)
+            self.save_circuits(population=population, hof=self.hof, iteration=i)
+
+            if self.selection_active:
+                population = self.tournament_selection(population, k=self.tournament_k)
+
+            print(f"Iteration {i} | Best score: {self.hof[0][0]:.6f}")
+
+        self.logs_to_df()  # convert the logs to a DataFrame
+        self.result = (self.hof[0][0], self.hof[0][1])

@@ -333,10 +333,10 @@ def insert_qubit(tableau, new_position):
 
 def remove_qubit(tableau, qubit_position, measurement_determinism="probabilistic"):
     """
-    The action of the function is measure and remove. If isolated, state should not change. Entangled qubits cannot be
-    removed without affecting other parts of the state.
-    Only works correctly for isolated qubits! e.g. after measurement.
-    TODO: Check if a qubit is isolated in general. Only isolated qubits in the Z basis states can be confirmed for now.
+    The action of the function is to measure and remove. If the qubit to be removed is disentangled from the rest,
+    then the rest of state is not changed. However, entangled qubits cannot be removed without affecting other parts
+    of the state. Thus, to remove a qubit, we first measure the qubit in the computational basis to disentangle it
+    from the rest and then remove it.
 
     :param tableau: the input tableau
     :type tableau: CliffordTableau
@@ -370,6 +370,7 @@ def remove_qubit(tableau, qubit_position, measurement_determinism="probabilistic
             i for i in range(n_qubits) if tableau.destabilizer_x[i, qubit_position] != 0
         ]
         if len(non_zero) <= 1:
+            # TODO: fix a bug here
             new_table = np.delete(
                 new_table, [non_zero[0], non_zero[0] + n_qubits], axis=0
             )

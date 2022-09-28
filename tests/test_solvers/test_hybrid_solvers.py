@@ -26,6 +26,7 @@ def test_repeater_graph_state_4():
         metric=metric,
         compiler=compiler,
     )
+    solver.seed(0)
     solver.solve()
     score, circuit = solver.result
     assert np.allclose(score, 0.0)

@@ -5,19 +5,16 @@ One can define these rules via the allowed DAG transformations.
 
 # TODO: evolutionary solvers very often perform better with elitism. Consider adding
 """
-import copy
+
 import numpy as np
-
 import warnings
-
-import src.noise.noise_models as nm
 import pandas as pd
 
+import src.noise.noise_models as nm
 from src.backends.compiler_base import CompilerBase
 from src.solvers import RandomSearchSolver
 from src.circuit import CircuitDAG
 from src.metrics import MetricBase
-
 from src.io import IO
 from src import ops
 
@@ -226,7 +223,7 @@ class EvolutionarySolver(RandomSearchSolver):
 
     @staticmethod
     def initialization(
-        emission_assignment, measurement_assignment, noise_model_mapping={}
+        emission_assignment, measurement_assignment, noise_model_mapping=None
     ):
         """
         Initialize a quantum circuit with photon emission, emitter measurements
@@ -241,6 +238,9 @@ class EvolutionarySolver(RandomSearchSolver):
         :return: a circuit specified by emission and measurement assignments
         :rtype: CircuitDAG
         """
+        if noise_model_mapping is None:
+            noise_model_mapping = dict()
+
         n_photon = len(emission_assignment)
         n_emitter = len(measurement_assignment)
         circuit = CircuitDAG(n_emitter=n_emitter, n_photon=n_photon, n_classical=1)
@@ -332,22 +332,23 @@ class EvolutionarySolver(RandomSearchSolver):
 
         for i in range(self.n_stop):
             for j in range(self.n_pop):
+                # choose a random transformation from allowed transformations
                 transformation = np.random.choice(
                     list(self.trans_probs.keys()), p=list(self.trans_probs.values())
                 )
+                # evolve the chosen circuit
                 circuit = population[j][1]
-
                 transformation(circuit)
-
                 circuit.validate()
 
+                # compile the output state of the circuit
                 compiled_state = self.compiler.compile(circuit)
-
+                # trace out emitter qubits
                 compiled_state.partial_trace(
                     keep=list(range(self.n_photon)),
                     dims=(self.n_photon + self.n_emitter) * [2],
                 )
-
+                # evaluate the metric
                 score = self.metric.evaluate(compiled_state, circuit)
 
                 population[j] = (score, circuit)
@@ -501,7 +502,7 @@ class EvolutionarySolver(RandomSearchSolver):
 
     def replace_photon_one_qubit_op(self, circuit):
         """
-        Replace one one-qubit Clifford gate applied on a photonic qubit to another one.
+        Replace a one-qubit Clifford gate that is applied on a photonic qubit by another one.
 
         :param circuit: a quantum circuit
         :type circuit: CircuitDAG
@@ -512,20 +513,78 @@ class EvolutionarySolver(RandomSearchSolver):
 
         if len(nodes) == 0:
             return
+        # find a random one-qubit operation on a photonic qubit
         ind = np.random.randint(len(nodes))
         node = list(nodes)[ind]
-
         old_op = circuit.dag.nodes[node]["op"]
-
         reg = old_op.register
+
+        # select a random local Clifford gate
         ind = np.random.choice(len(self.one_qubit_ops), p=self.p_dist)
         op = self.one_qubit_ops[ind]
         noise = self._wrap_noise(op, self.noise_model_mapping)
         gate = ops.OneQubitGateWrapper(op, reg_type="p", register=reg, noise=noise)
         gate.add_labels("Fixed")
-        # circuit.replace_op(node, gate)
-        circuit._openqasm_update(gate)
-        circuit.dag.nodes[node]["op"] = gate
+        circuit.replace_op(node, gate)
+
+    def replace_emitter_one_qubit_op(self, circuit):
+        """
+        Replace a one-qubit Clifford gate that is applied on an emitter qubit by another one.
+
+        :param circuit: a quantum circuit
+        :type circuit: CircuitDAG
+        :return: nothing
+        :rtype: None
+        """
+        nodes = circuit.get_node_by_labels(["OneQubitGateWrapper", "Emitter"])
+
+        if len(nodes) == 0:
+            return
+        # find a random one-qubit operation on an emitter qubit
+        ind = np.random.randint(len(nodes))
+        node = list(nodes)[ind]
+        old_op = circuit.dag.nodes[node]["op"]
+        reg = old_op.register
+
+        # select a random local Clifford gate
+        ind = np.random.choice(len(self.one_qubit_ops), p=self.e_dist)
+        op = self.one_qubit_ops[ind]
+        noise = self._wrap_noise(op, self.noise_model_mapping)
+        gate = ops.OneQubitGateWrapper(op, reg_type="e", register=reg, noise=noise)
+        circuit.replace_op(node, gate)
+
+    def add_photon_one_qubit_op(self, circuit):
+        """
+        Add a single-qubit Clifford gate to a photonic qubit
+
+        :param circuit: a quantum circuit
+        :type circuit: CircuitDAG
+        :return: function returns nothing
+        :rtype: None
+        """
+
+        # make sure only selecting a photonic qubit after emission
+        edges = [
+            edge
+            for edge in circuit.edge_dict["p"]
+            if type(circuit.dag.nodes[edge[0]]["op"]) is ops.CNOT
+            and type(circuit.dag.nodes[edge[1]]["op"]) is not ops.OneQubitGateWrapper
+        ]
+
+        if len(edges) == 0:
+            self.replace_photon_one_qubit_op(circuit)
+        else:
+
+            # select relevant register and location of the gate to be inserted
+            ind = np.random.randint(len(edges))
+            edge = list(edges)[ind]
+            reg = circuit.dag.edges[edge]["reg"]
+
+            # select a random local Clifford gate
+            ind = np.random.choice(len(self.one_qubit_ops), p=self.p_dist)
+            op = self.one_qubit_ops[ind]
+            gate = ops.OneQubitGateWrapper(op, reg_type="p", register=reg)
+            circuit.insert_at(gate, [edge])
 
     def add_emitter_one_qubit_op(self, circuit):
         """
@@ -547,26 +606,24 @@ class EvolutionarySolver(RandomSearchSolver):
         ]
 
         if len(edges) == 0:
-            return
+            self.replace_emitter_one_qubit_op(circuit)
+        else:
+            # select relevant register and location of the gate to be inserted
+            ind = np.random.randint(len(edges))
+            edge = list(edges)[ind]
+            reg = circuit.dag.edges[edge]["reg"]
 
-        ind = np.random.randint(len(edges))
-        edge = list(edges)[ind]
-
-        reg = circuit.dag.edges[edge]["reg"]
-        label = edge[2]
-
-        ind = np.random.choice(len(self.one_qubit_ops), p=self.e_dist)
-        op = self.one_qubit_ops[ind]
-        noise = self._wrap_noise(op, self.noise_model_mapping)
-        gate = ops.OneQubitGateWrapper(op, reg_type="e", register=reg, noise=noise)
-
-        circuit.insert_at(gate, [edge])
+            # select a random local Clifford gate
+            ind = np.random.choice(len(self.one_qubit_ops), p=self.e_dist)
+            op = self.one_qubit_ops[ind]
+            noise = self._wrap_noise(op, self.noise_model_mapping)
+            gate = ops.OneQubitGateWrapper(op, reg_type="e", register=reg, noise=noise)
+            circuit.insert_at(gate, [edge])
 
     def add_emitter_cnot(self, circuit):
         """
-        Randomly selects two valid edges on which to add a new two-qubit gate.
-        One edge is selected from all edges, and then the second is selected that maintains proper temporal ordering
-        of the operations.
+        Randomly selects two valid edges on which to add a new two-qubit gate. One edge is selected from all emitter
+        edges, and then the second is selected that maintains proper temporal ordering of the operations.
 
         :param circuit: a quantum circuit
         :type circuit: CircuitDAG
@@ -593,7 +650,8 @@ class EvolutionarySolver(RandomSearchSolver):
 
     def remove_op(self, circuit, node=None):
         """
-        Randomly selects a node in CircuitDAG to remove subject to some restrictions
+        Remove an operation in CircuitDAG.
+        The node to be removed is either selected by a user or chosen randomly subject to some restrictions
 
         :param circuit: a quantum circuit
         :type circuit: CircuitDAG
@@ -602,14 +660,18 @@ class EvolutionarySolver(RandomSearchSolver):
         :return: nothing
         :rtype: None
         """
+
         if node is None:
             nodes = circuit.get_node_exclude_labels(["Fixed", "Input", "Output"])
-
             if len(nodes) == 0:
                 return
-
             ind = np.random.randint(len(nodes))
             node = nodes[ind]
+        else:
+            nodes = circuit.get_node_by_labels(["Fixed"])
+            if node in nodes:
+                return
+
         circuit.remove_op(node)
 
     def add_measurement_cnot_and_reset(self, circuit):

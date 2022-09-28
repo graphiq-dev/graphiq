@@ -17,7 +17,7 @@ jobs:
       run: pytest --cov=./ --cov-report=xml
     - name: Upload coverage reports to Codecov with GitHub Action
       env:
-        CODECOV_TOKEN: ${{6f28461a-0012-4af1-b446-4bf54eccc0cd}}
+        CODECOV_TOKEN: 6f28461a-0012-4af1-b446-4bf54eccc0cd
         run: |
           $ProgressPreference = 'SilentlyContinue' Invoke-WebRequest -Uri https://uploader.codecov.io/latest/windows/codecov.exe -Outfile codecov.exe .\codecov.exe
-      uses: codecov/codecov-action@v3
+      uses: codecov/codecov-action@v1

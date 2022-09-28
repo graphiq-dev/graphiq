@@ -29,8 +29,6 @@ NOT retroactively apply to the added qubits
 
 
 """
-import copy
-import numpy as np
 import networkx as nx
 import matplotlib.pyplot as plt
 from abc import ABC, abstractmethod
@@ -39,8 +37,11 @@ import functools
 import re
 import string
 
+import numpy as np
+
 import src.ops as ops
 import src.utils.openqasm_lib as oq_lib
+
 from src.visualizers.dag import dag_topology_pos
 from src.visualizers.openqasm_visualization import draw_openqasm
 
@@ -436,15 +437,6 @@ class CircuitBase(ABC):
                 UserWarning(f"No openqasm definitions for operation {type(op)}")
             )
 
-    def copy(self):
-        """
-        Create a copy of itself. Deep copy
-
-        :return: a copy of itself
-        :rtype: CircuitBase
-        """
-        return copy.deepcopy(self)
-
 
 class CircuitDAG(CircuitBase):
     """
@@ -453,7 +445,7 @@ class CircuitDAG(CircuitBase):
     Each node of the graph contains an Operation (it is an input, output, or general Operation).
     The Operations in the topological order of the DAG.
 
-    Each connecting edge of the graph corresponds to a qubit/qudit or classical bit of the circuit
+    Each connecting edge of the graph corresponds to a qudit or classical bit of the circuit
     """
 
     def __init__(
@@ -465,12 +457,12 @@ class CircuitDAG(CircuitBase):
         openqasm_defs=None,
     ):
         """
-        Construct a DAG circuit with n_emitter one-qubit emitter quantum registers, n_photon one-qubit photon
-        quantum registers, and n_classical one-cbit classical registers.
+        Construct a DAG circuit with n_emitter single-qubit emitter quantum registers, n_photon single-qubit photon
+        quantum registers, and n_classical single-cbit classical registers.
 
-        :param n_emitter: the number of emitter qubits/qudits in the system
+        :param n_emitter: the number of emitter qudits in the system
         :type n_emitter: int
-        :param n_photon: the number of photon qubits/qudits in the system
+        :param n_photon: the number of photon qudits in the system
         :type n_photon: int
         :param n_classical: the number of classical bits in the system
         :type n_classical: int
@@ -489,7 +481,7 @@ class CircuitDAG(CircuitBase):
 
     def add(self, operation: ops.OperationBase):
         """
-        Add an operation to the end of the circuit (i.e. to be applied after the pre-existing circuit operations)
+        Add an operation to the end of the circuit (i.e. to be applied after the pre-existing circuit operations
 
         :param operation: Operation (gate and register) to add to the graph
         :type operation: OperationBase type (or a subclass of it)
@@ -658,9 +650,6 @@ class CircuitDAG(CircuitBase):
                     self._add_edge(
                         in_edge[0], out_edge[1], label, reg_type=reg_type, reg=reg
                     )
-
-                    # decrease register depth
-                    self._decrease_register_depth(reg_type=reg_type, reg=reg)
 
             self._remove_edge(in_edge)
 
@@ -1200,8 +1189,11 @@ class CircuitDAG(CircuitBase):
         def _check_and_add_register(test_reg, circuit_reg, reg_type: str):
             sorted_reg = list(test_reg)
             sorted_reg.sort()
-            for i in sorted_reg:
-                # we sort such that we can throw an error if we get discontinuous registers
+            for (
+                i
+            ) in (
+                sorted_reg
+            ):  # we sort such that we can throw an error if we get discontinuous registers
                 if i == len(circuit_reg):
                     circuit_reg.append(1)
 
@@ -1312,9 +1304,6 @@ class CircuitDAG(CircuitBase):
 
                 self._remove_edge(edge)  # remove the unnecessary edges
 
-                # increase register depth
-                self._increase_register_depth(reg=reg, reg_type=reg_type)
-
     def _insert_at(self, operation: ops.OperationBase, reg_edges):
         """
         Add an operation to the circuit at a specified position
@@ -1342,9 +1331,6 @@ class CircuitDAG(CircuitBase):
             self._add_edge(new_id, reg_edge[1], label, reg_type=reg_type, reg=reg)
             self._remove_edge(reg_edge)  # remove the edge
 
-            # increase register depth
-            self._increase_register_depth(reg=reg, reg_type=reg_type)
-
     def _unique_node_id(self):
         """
         Internally used to provide a unique ID to each node. Note that this assumes a single thread assigning IDs
@@ -1360,42 +1346,92 @@ class CircuitDAG(CircuitBase):
         Adds a register depth to the register depth dict.
         If register type is new, adds new register type, then adds register depth to that register type
 
-        :param: reg_type: str indicates register type. Can be "e", "p", or "c"
+        :param reg_type: str indicates register type. Can be "e", "p", or "c"
         :type reg_type: str
         :return: function returns nothing
         :rtype: None
         """
         if reg_type in self._register_depth:
-            self._register_depth[reg_type].append(0)
+            self._register_depth[reg_type] = np.append(
+                self._register_depth[reg_type], 0
+            )
         else:
-            self._register_depth[reg_type] = [0]
+            self._register_depth[reg_type] = np.array([0])
 
-    def _increase_register_depth(self, reg: int, reg_type: str):
+    def _max_depth(self, root_node):
         """
-        Increase the register depth of the corresponding register when add a new operation.
-        Register depth will increase by 1.
+        Calculate max depth of a node in the circuit DAG.
+        Using recursion, the function will go to previous nodes connected by in_edges, until reach the Input node.
 
-        :param reg: register index that need to be increased in register depth
-        :type reg: int
-        :param reg_type: type of register, can be "e", "p", or "c"
+        :param root_node: root node that is used as starting point
+        :type root_node: node
+        :return: the max depth of the node
+        :r_type: int
+        """
+        # Check if the node is the Input node
+        # If Input node then return -1
+        if root_node in self.node_dict["Input"]:
+            return -1
+
+        in_edges = self.dag.in_edges(root_node)
+        connected_nodes = [edge[0] for edge in in_edges]
+        depth = []
+
+        for node in connected_nodes:
+            depth.append(self._max_depth(node))
+        return max(depth) + 1
+
+    def sorted_reg_depth_index(self, reg_type: str):
+        """
+        Return the array of register indexes with depth from smallest to largest
+        Useful to find register index with nth smallest depth
+
+        :param reg_type: str indicates register type. Can be "e", "p", or "c"
         :type reg_type: str
-        :return: function returns nothing
-        :rtype: None
+        :return: the array of register indexes with depth from smallest to largest
+        :r_type: numpy.array
         """
+        return np.argsort(self.calculate_reg_depth(reg_type=reg_type))
 
-        self._register_depth[reg_type][reg] += 1
-
-    def _decrease_register_depth(self, reg: int, reg_type: str):
+    def calculate_reg_depth(self, reg_type: str):
         """
-        Decrease the register depth of the corresponding register when remove an operation
-        Register depth will decrease by 1
+        Calculate the register depth of the register type
+        Then return the register depth array
 
-        :param reg: register index that need to be decreased in register depth
-        :type reg: int
-        :param reg_type: type of register, can be "e", "p", or "c"
+        :param reg_type: str indicates register type. Can be "e", "p", or "c"
         :type reg_type: str
-        :return: function returns nothing
-        :rtype: None
+        :return: the array of register depth of all register in the register type
+        :r_type: numpy.array
         """
+        if reg_type not in self._register_depth:
+            raise ValueError(f"register type {reg_type} is not in this circuit")
 
-        self._register_depth[reg_type][reg] -= 1
+        for i in range(len(self._register_depth[reg_type])):
+            output_node = f"{reg_type}{i}_out"
+            self._register_depth[reg_type][i] = self._max_depth(output_node)
+        return self.register_depth[reg_type]
+
+    def min_reg_depth(self, reg_type: str):
+        """
+        Calculate the register depth of the register type
+        Then return the index of the register with minimum depth
+
+        :param reg_type: str indicates register type. Can be "e", "p", or "c"
+        :type reg_type: str
+        :return: the index of register with min depth within register type
+        :r_type: int
+        """
+        return np.argmin(self.calculate_reg_depth(reg_type=reg_type))
+
+    def calculate_all_reg_depth(self):
+        """
+        Calculate all registers depth in the circuit
+        Then return the register depth dict
+
+        :return: register depth dict that has been calculated
+        :r_type: dict
+        """
+        for reg_type in self._register_depth:
+            self.calculate_reg_depth(reg_type=reg_type)
+        return self.register_depth
+

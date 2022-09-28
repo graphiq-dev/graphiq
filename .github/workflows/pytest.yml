@@ -32,6 +32,6 @@ jobs:
           pytest
       - name: Run tests and collect coverage
         run: |
-          pytest --cov=./tests --cov-report=xml
+          pytest --cov=./graph-compiler/tests --cov-report=xml
       - name: Upload coverage reports to Codecov with GitHub Action
         uses: codecov/codecov-action@v3

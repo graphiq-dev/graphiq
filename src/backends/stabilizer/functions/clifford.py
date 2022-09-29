@@ -382,17 +382,21 @@ def remove_qubit(tableau, qubit_position, measurement_determinism="probabilistic
                 tableau.iphase, [non_zero[0], non_zero[0] + n_qubits]
             )
         else:
-            new_phase = tableau.phase
-            new_iphase = tableau.iphase
-            for i in non_zero:
-                if np.array_equal(new_table[i], np.zeros(2 * n_qubits - 2)):
-                    new_table = np.delete(new_table, [i, i + n_qubits], axis=0)
-                    new_phase = np.delete(new_phase, [i, i + n_qubits])
+            omit_index = non_zero[0]
+            # remove first element from the non_zero list
+            non_zero = non_zero[1:]
+            # update tableau
+            for row in non_zero:
+                tableau.table_x, tableau.table_z, tableau.phase, tableau.iphase = row_sum(tableau.table_x, tableau.table_z, tableau.phase, tableau.iphase, omit_index, row)
+            # remove columns and then rows
             new_table = np.delete(
-                new_table, [non_zero[-1], non_zero[-1] + n_qubits], axis=0
+                tableau.table, [qubit_position, qubit_position + n_qubits], axis=1
             )
-            new_phase = np.delete(new_phase, [non_zero[-1], non_zero[-1] + n_qubits])
-            new_iphase = np.delete(new_iphase, [non_zero[-1], non_zero[-1] + n_qubits])
+            new_table = np.delete(
+                new_table, [omit_index, omit_index + n_qubits], axis=0
+            )
+            new_phase = np.delete(tableau.phase, [omit_index, omit_index + n_qubits])
+            new_iphase = np.delete(tableau.iphase, [omit_index, omit_index + n_qubits])
     tableau.shrink(new_table, new_phase, new_iphase)
     return tableau
 

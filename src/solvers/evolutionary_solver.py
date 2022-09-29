@@ -29,8 +29,6 @@ class EvolutionarySolver(RandomSearchSolver):
 
     one_qubit_ops = list(ops.one_qubit_cliffords())
 
-    use_adapt_probability = False
-
     def __init__(
         self,
         target,
@@ -45,15 +43,18 @@ class EvolutionarySolver(RandomSearchSolver):
         n_emitter=1,
         n_photon=1,
         selection_active=False,
+        use_adapt_probability=False,
         save_openqasm: str = "none",
         noise_model_mapping=None,
         *args,
         **kwargs,
     ):
         """
+        Initialize an EvolutionarySolver object. When selection_active and use_adapt_probability are False, this solver
+        reduces to a random search solver.
 
         :param target: target quantum state
-        :type target: QuantumState  # TODO: consolidate everything to use QuantumState
+        :type target: QuantumState
         :param metric: metric (cost) function to minimize
         :type metric: MetricBase
         :param compiler: compiler backend to use when simulating quantum circuits
@@ -70,6 +71,8 @@ class EvolutionarySolver(RandomSearchSolver):
         :type n_photon: int
         :param selection_active: use selection in the evolutionary algorithm
         :type selection_active: bool
+        :param use_adapt_probability: use adapted probability in the evolutionary algorithm
+        :type use_adapt_probability: bool
         :param save_openqasm: save population, hof, or both to openQASM strings (options: None, "hof", "pop", "both")
         :type save_openqasm: str, None
         :param noise_model_mapping: a dictionary that associates each operation type to a noise model
@@ -96,6 +99,7 @@ class EvolutionarySolver(RandomSearchSolver):
         self.selection_active = selection_active
         self.tournament_k = tournament_k
         self.noise_simulation = True
+        self.use_adapt_probability = use_adapt_probability
         if noise_model_mapping is None:
             noise_model_mapping = {}
             self.noise_simulation = False
@@ -295,20 +299,13 @@ class EvolutionarySolver(RandomSearchSolver):
             circuit.add(op)
         return circuit
 
-    """ Main solver algorithm """
-
-    def solve(self):
+    def population_initialization(self):
         """
-        The main function for the solver
+        Initialize population
 
-        :return: function returns nothing
-        :rtype: None
+        :return: an initial population
+        :rtype: list
         """
-
-        self.compiler.noise_simulation = self.noise_simulation
-        # TODO: add some logging to see how well it performed at each epoch (and pick n_stop accordingly)
-
-        # Initialize population
         population = []
         if self.circuit is None:
             for j in range(self.n_pop):
@@ -329,6 +326,23 @@ class EvolutionarySolver(RandomSearchSolver):
         else:
             for j in range(self.n_pop):
                 population.append((np.inf, self.circuit.copy()))
+
+        return population
+
+    """ Main solver algorithm """
+
+    def solve(self):
+        """
+        The main function for the solver
+
+        :return: function returns nothing
+        :rtype: None
+        """
+
+        self.compiler.noise_simulation = self.noise_simulation
+        # TODO: add some logging to see how well it performed at each epoch (and pick n_stop accordingly)
+
+        population = self.population_initialization()
 
         for i in range(self.n_stop):
             for j in range(self.n_pop):
@@ -354,7 +368,7 @@ class EvolutionarySolver(RandomSearchSolver):
                 population[j] = (score, circuit)
 
             self.update_hof(population)
-            if EvolutionarySolver.use_adapt_probability:
+            if self.use_adapt_probability:
                 self.adapt_probabilities(i)
 
             # this should be the last thing performed *prior* to selecting a new population (after updating HoF)

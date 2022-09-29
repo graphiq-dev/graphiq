@@ -26,11 +26,12 @@ class HybridEvolutionarySolver(EvolutionarySolver):
         metric: MetricBase,
         compiler: CompilerBase,
         io: IO = None,
-        n_hof=5,
+        n_hof=10,
         n_stop=50,
         n_pop=50,
         tournament_k=2,
         selection_active=False,
+        use_adapt_probability=False,
         save_openqasm: str = "none",
         noise_model_mapping=None,
         *args,
@@ -51,6 +52,8 @@ class HybridEvolutionarySolver(EvolutionarySolver):
         :type n_hof: int
         :param selection_active: use selection in the evolutionary algorithm
         :type selection_active: bool
+        :param use_adapt_probability: use adapted probability in the evolutionary algorithm
+        :type use_adapt_probability: bool
         :param save_openqasm: save population, hof, or both to openQASM strings (options: None, "hof", "pop", "both")
         :type save_openqasm: str, None
         :param noise_model_mapping: a dictionary that associates each operation type to a noise model
@@ -73,6 +76,7 @@ class HybridEvolutionarySolver(EvolutionarySolver):
             n_emitter=n_emitter,
             n_photon=n_photon,
             selection_active=selection_active,
+            use_adapt_probability=use_adapt_probability,
             save_openqasm=save_openqasm,
             noise_model_mapping=noise_model_mapping,
             *args,
@@ -120,7 +124,7 @@ class HybridEvolutionarySolver(EvolutionarySolver):
 
         trans_probs = self._normalize_trans_prob(trans_probs)
 
-        n_iter = np.random.randint(0, 10)
+        n_iter = np.random.randint(1, 10)
 
         for i in range(n_iter):
             transformation = np.random.choice(
@@ -130,11 +134,12 @@ class HybridEvolutionarySolver(EvolutionarySolver):
 
         return randomized_circuit
 
-    def solve(self):
+    def population_initialization(self):
         """
+        Initialize population
 
-        :return:
-        :rtype:
+        :return: an initial population
+        :rtype: list
         """
         deterministic_solver = DeterministicSolver(
             target=self.target,
@@ -144,50 +149,8 @@ class HybridEvolutionarySolver(EvolutionarySolver):
         deterministic_solver.noise_simulation = False
         deterministic_solver.solve()
         _, ideal_circuit = deterministic_solver.result
-
-        # initialize the population
         population = []
         for j in range(self.n_pop):
             perturbed_circuit = self.randomize_circuit(ideal_circuit)
             population.append((np.inf, perturbed_circuit))
-
-        self.compiler.noise_simulation = self.noise_simulation
-
-        for i in range(self.n_stop):
-            for j in range(self.n_pop):
-                # choose a random transformation from allowed transformations
-                transformation = np.random.choice(
-                    list(self.trans_probs.keys()), p=list(self.trans_probs.values())
-                )
-                # evolve the chosen circuit
-                circuit = population[j][1]
-                transformation(circuit)
-                circuit.validate()
-
-                # compile the output state of the circuit
-                compiled_state = self.compiler.compile(circuit)
-                # trace out emitter qubits
-                compiled_state.partial_trace(
-                    keep=list(range(self.n_photon)),
-                    dims=(self.n_photon + self.n_emitter) * [2],
-                )
-                # evaluate the metric
-                score = self.metric.evaluate(compiled_state, circuit)
-
-                population[j] = (score, circuit)
-
-            self.update_hof(population)
-            if EvolutionarySolver.use_adapt_probability:
-                self.adapt_probabilities(i)
-
-            # this should be the last thing performed *prior* to selecting a new population (after updating HoF)
-            self.update_logs(population=population, iteration=i)
-            self.save_circuits(population=population, hof=self.hof, iteration=i)
-
-            if self.selection_active:
-                population = self.tournament_selection(population, k=self.tournament_k)
-
-            print(f"Iteration {i} | Best score: {self.hof[0][0]:.6f}")
-
-        self.logs_to_df()  # convert the logs to a DataFrame
-        self.result = (self.hof[0][0], self.hof[0][1])
+        return population

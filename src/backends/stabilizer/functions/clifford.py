@@ -373,7 +373,8 @@ def remove_qubit(tableau, qubit_position, measurement_determinism="probabilistic
         non_zero = [
             i for i in range(n_qubits) if tableau.destabilizer_x[i, qubit_position] != 0
         ]
-        if len(non_zero) <= 1:
+        assert len(non_zero) > 0
+        if len(non_zero) == 1:
             new_table = np.delete(
                 new_table, [non_zero[0], non_zero[0] + n_qubits], axis=0
             )

@@ -65,9 +65,8 @@ class CircuitBase(ABC):
         :return: this function returns nothing
         :rtype: None
         """
-        self._photon_registers = []
-        self._emitter_registers = []
-        self._c_registers = []
+        self._registers = dict()
+        self._openqasm_type = {"qreg": [], "creg": []}
 
         if openqasm_imports is None:
             self.openqasm_imports = {}
@@ -83,27 +82,27 @@ class CircuitBase(ABC):
 
     @property
     def emitter_registers(self):
-        return self._emitter_registers
+        return self._registers["e"].copy()
 
     @property
     def photonic_registers(self):
-        return self._photon_registers
+        return self._registers["p"].copy()
 
     @emitter_registers.setter
     def emitter_registers(self, q_reg):
-        self._emitter_registers = q_reg
+        self._registers["e"] = q_reg
 
     @photonic_registers.setter
     def photonic_registers(self, q_reg):
-        self._emitter_registers = q_reg
+        self._registers["p"] = q_reg
 
     @property
     def c_registers(self):
-        return self._c_registers
+        return self._registers["c"].copy()
 
     @c_registers.setter
     def c_registers(self, c_reg):
-        self._c_registers = c_reg
+        self._registers["c"] = c_reg
 
     @abstractmethod
     def add(self, operation: ops.OperationBase):
@@ -180,7 +179,11 @@ class CircuitBase(ABC):
         :return: number of quantum registers in the circuit
         :rtype: int
         """
-        return len(self.emitter_registers) + len(self.photonic_registers)
+        q_sum = 0
+
+        for key in self._openqasm_type["qreg"]:
+            q_sum += len(self._registers[key])
+        return q_sum
 
     @property
     def n_photons(self):
@@ -191,7 +194,7 @@ class CircuitBase(ABC):
         :return: number of photonic quantum registers in the circuit
         :rtype: int
         """
-        return len(self.photonic_registers)
+        return len(self._registers["p"])
 
     @property
     def n_emitters(self):
@@ -202,7 +205,7 @@ class CircuitBase(ABC):
         :return: number of emitter quantum registers in the circuit
         :rtype: int
         """
-        return len(self.emitter_registers)
+        return len(self._registers["e"])
 
     @property
     def n_classical(self):
@@ -212,43 +215,59 @@ class CircuitBase(ABC):
         :return: number of classical registers in the circuit
         :rtype: int
         """
-        return len(self.c_registers)
+        return len(self._registers["c"])
 
     def next_emitter(self, register):
         """
         Provides the index of the next emitter qubit in the provided quantum register. This allows the user to query
         which qubit they should add next, should they decide to expand the register
-
         :param register: the register index {0, ..., N - 1} for N emitter quantum registers
         :type register: int
         :return: the index of the next qubit
         :rtype: int (non-negative)
         """
-        return self.emitter_registers[register]
+        return self._next_register(reg_type="e", register=register)
 
     def next_photon(self, register):
         """
         Provides the index of the next photonic qubit in the provided quantum register. This allows the user to query
         which qubit they should add next, should they decide to expand the register
-
         :param register: the register index {0, ..., N - 1} for N photonic quantum registers
         :type register: int
         :return: the index of the next qubit
         :rtype: int (non-negative)
         """
-        return self.photonic_registers[register]
+        return self._next_register(reg_type="p", register=register)
 
     def next_cbit(self, register):
         """
         Provides the index of the next cbit in the provided classical register. This allows the user to query
         which qubit they should add next, should they decide to expand the register
-
         :param register: the register index {0, ..., M - 1} for M classical registers
         :type register: int
         :return: the index of the next cbit
         :rtype: int (non-negative)
         """
-        return self.c_registers[register]
+        return self._next_register(reg_type="c", register=register)
+
+    def _next_register(self, reg_type, register):
+        """
+        Provides the index of the next emitter qubit in the provided quantum register. This allows the user to query
+        which qubit they should add next, should they decide to expand the register
+
+        :param reg_type
+        :type reg_type: str
+        :param register: the register index {0, ..., N - 1} for N emitter quantum registers
+        :type register: int
+        :return: the index of the next qubit
+        :rtype: int (non-negative)
+        """
+        if reg_type not in self._registers:
+            raise ValueError(
+                "Register type must be 'p' (quantum photonic), 'e' (quantum emitter), or 'c' (classical)"
+            )
+
+        return self._registers[reg_type][register]
 
     def add_emitter_register(self, size=1):
         """
@@ -259,7 +278,7 @@ class CircuitBase(ABC):
         :return: index of added quantum register
         :rtype: int
         """
-        return self._add_register(size, "e")
+        return self._add_register(size=size, reg_type="e")
 
     def add_photonic_register(self, size=1):
         """
@@ -270,7 +289,7 @@ class CircuitBase(ABC):
         :return: index of added quantum register
         :rtype: int
         """
-        return self._add_register(size, "p")
+        return self._add_register(size=size, reg_type="p")
 
     def add_classical_register(self, size=1):
         """
@@ -281,9 +300,9 @@ class CircuitBase(ABC):
         :return: index of added classical register
         :rtype: int
         """
-        return self._add_register(size, "c")
+        return self._add_register(size=size, reg_type="c")
 
-    def _add_register(self, size, reg_type: str):
+    def _add_register(self, reg_type: str, size=1):
         """
         Helper function for adding quantum and classical registers to the circuit
 
@@ -297,25 +316,16 @@ class CircuitBase(ABC):
         :return: the index number of the added register
         :rtype: int
         """
-        if reg_type == "p":
-            curr_reg = self.photonic_registers
-            reg_description = "Quantum photonic"
-        elif reg_type == "e":
-            curr_reg = self.emitter_registers
-            reg_description = "Quantum emitter"
-        elif reg_type == "c":
-            curr_reg = self.c_registers
-            reg_description = "Classical"
-        else:
+        if reg_type not in self._registers:
             raise ValueError(
                 "Register type must be 'p' (quantum photonic), 'e' (quantum emitter), or 'c' (classical)"
             )
 
         if size < 1:
-            raise ValueError(f"{reg_description} register size must be at least one")
+            raise ValueError(f"{reg_type} register size must be at least one")
 
-        curr_reg.append(size)
-        return len(curr_reg) - 1
+        self._registers[reg_type].append(size)
+        return len(self._registers[reg_type]) - 1
 
     def expand_emitter_register(self, register, new_size):
         """
@@ -377,19 +387,14 @@ class CircuitBase(ABC):
         :return: this function returns nothing
         :rtype: None
         """
-        if reg_type == "e":
-            curr_reg = self.emitter_registers
-        elif reg_type == "p":
-            curr_reg = self.photonic_registers
-        elif reg_type == "c":
-            curr_reg = self.c_registers
-        else:
+        if reg_type not in self._registers:
             raise ValueError(
                 "reg_type must be 'e' (emitter register), 'p' (photonic register), "
                 "or 'c' (classical register)"
             )
-
+        curr_reg = self._registers[reg_type]
         curr_size = curr_reg[register]
+
         if new_size <= curr_size:
             raise ValueError(
                 f"New register size {new_size} is not greater than the current size {curr_size}"
@@ -914,7 +919,7 @@ class CircuitDAG(CircuitBase):
         """
         if set(q_reg) != {1}:
             raise ValueError(f"CircuitDAG class only supports single-qubit registers")
-        self._emitter_registers = q_reg
+        self._registers["e"] = q_reg
 
     @CircuitBase.photonic_registers.setter
     def photonic_registers(self, q_reg):
@@ -930,7 +935,7 @@ class CircuitDAG(CircuitBase):
         """
         if set(q_reg) != {1}:
             raise ValueError(f"CircuitDAG class only supports single-qubit registers")
-        self._photon_registers = q_reg
+        self._registers["p"] = q_reg
 
     @CircuitBase.c_registers.setter
     def c_registers(self, c_reg):
@@ -946,7 +951,7 @@ class CircuitDAG(CircuitBase):
         """
         if set(c_reg) != {1}:
             raise ValueError(f"CircuitDAG class only supports single-qubit registers")
-        self._c_registers = c_reg
+        self._registers["c"] = c_reg
 
     @classmethod
     def from_openqasm(cls, qasm_script):
@@ -1134,7 +1139,7 @@ class CircuitDAG(CircuitBase):
 
         return circuit
 
-    def _add_register(self, size, reg_type):
+    def _add_register(self, reg_type: str, size=1):
         """
         Helper function for adding a quantum/classical register of a certain size
 

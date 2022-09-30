@@ -82,11 +82,11 @@ class CircuitBase(ABC):
 
     @property
     def emitter_registers(self):
-        return self._registers["e"].copy()
+        return self._registers["e"]
 
     @property
     def photonic_registers(self):
-        return self._registers["p"].copy()
+        return self._registers["p"]
 
     @emitter_registers.setter
     def emitter_registers(self, q_reg):
@@ -98,7 +98,7 @@ class CircuitBase(ABC):
 
     @property
     def c_registers(self):
-        return self._registers["c"].copy()
+        return self._registers["c"]
 
     @c_registers.setter
     def c_registers(self, c_reg):
@@ -252,8 +252,8 @@ class CircuitBase(ABC):
 
     def _next_register(self, reg_type, register):
         """
-        Provides the index of the next emitter qubit in the provided quantum register. This allows the user to query
-        which qubit they should add next, should they decide to expand the register
+        Provides the index of the next register in the provided register. This allows the user to query
+        which register they should add next, should they decide to expand the register
 
         :param reg_type
         :type reg_type: str
@@ -480,6 +480,10 @@ class CircuitDAG(CircuitBase):
         self.edge_dict = {}
         self.node_dict = {}
         self._register_depth = dict()
+        self._registers = {"e": [], "p": [], "c": []}
+        self._openqasm_type["qreg"] = ["e", "p"]
+        self._openqasm_type["creg"] = ["c"]
+
         self._add_reg_if_absent(
             tuple(range(n_emitter)), tuple(range(n_photon)), tuple(range(n_classical))
         )

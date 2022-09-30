@@ -5,6 +5,7 @@ networkx~=2.7.1
 autograd
 pytest
 genbadge
+coverage
 pandas
 seaborn
 qiskit

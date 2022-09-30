@@ -66,7 +66,6 @@ class CircuitBase(ABC):
         :rtype: None
         """
         self._registers = dict()
-        self._openqasm_type = {"qreg": [], "creg": []}
 
         if openqasm_imports is None:
             self.openqasm_imports = {}
@@ -181,8 +180,9 @@ class CircuitBase(ABC):
         """
         q_sum = 0
 
-        for key in self._openqasm_type["qreg"]:
-            q_sum += len(self._registers[key])
+        for key in self._registers:
+            if key != "c":
+                q_sum += len(self._registers[key])
         return q_sum
 
     @property
@@ -498,8 +498,6 @@ class CircuitDAG(CircuitBase):
         # map the key to the tuple register
         reg_tuple = {"e": tuple(range(n_emitter)), "p": tuple(range(n_photon)), "c": tuple(range(n_classical))}
         self._registers = {"e": [], "p": [], "c": []}
-        self._openqasm_type["qreg"] = ["e", "p"]
-        self._openqasm_type["creg"] = ["c"]
 
         for key in self._registers:
             self._add_reg_if_absent1(register=reg_tuple[key], reg_type=key)

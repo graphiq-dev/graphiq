@@ -454,6 +454,20 @@ class CircuitDAG(CircuitBase):
     """
 
     def __init__(
+            self,
+            qreg,
+            creg,
+            openqasm_imports=None,
+            openqasm_defs=None,
+    ):
+        super().__init__(openqasm_imports=openqasm_imports, openqasm_defs=openqasm_defs)
+        self.dag = nx.MultiDiGraph()
+        self._node_id = 0
+        self.edge_dict = {}
+        self.node_dict = {}
+        self._register_depth = dict()
+
+    def __init__(
         self,
         n_emitter=0,
         n_photon=0,
@@ -480,13 +494,15 @@ class CircuitDAG(CircuitBase):
         self.edge_dict = {}
         self.node_dict = {}
         self._register_depth = dict()
+
+        # map the key to the tuple register
+        reg_tuple = {"e": tuple(range(n_emitter)), "p": tuple(range(n_photon)), "c": tuple(range(n_classical))}
         self._registers = {"e": [], "p": [], "c": []}
         self._openqasm_type["qreg"] = ["e", "p"]
         self._openqasm_type["creg"] = ["c"]
 
-        self._add_reg_if_absent(
-            tuple(range(n_emitter)), tuple(range(n_photon)), tuple(range(n_classical))
-        )
+        for key in self._registers:
+            self._add_reg_if_absent1(register=reg_tuple[key], reg_type=key)
 
     def add(self, operation: ops.OperationBase):
         """
@@ -501,23 +517,15 @@ class CircuitDAG(CircuitBase):
         self._openqasm_update(operation)
 
         # update registers (if the new operation is adding registers to the circuit)
-        e_reg = tuple(
-            [
-                operation.q_registers[i]
-                for i in range(len(operation.q_registers))
-                if operation.q_registers_type[i] == "e"
-            ]
-        )
-        p_reg = tuple(
-            [
-                operation.q_registers[i]
-                for i in range(len(operation.q_registers))
-                if operation.q_registers_type[i] == "p"
-            ]
-        )
+        self._add_reg_if_absent1(register=operation.c_registers, reg_type="c")
 
-        self._add_reg_if_absent(e_reg, p_reg, operation.c_registers)
-        self._add(operation, e_reg, p_reg, operation.c_registers)
+        for i in range(len(operation.q_registers)):
+            self._add_reg_if_absent1(
+                register=tuple([operation.q_registers[i]]),
+                reg_type=operation.q_registers_type[i]
+            )
+
+        self._add(operation)
 
     def insert_at(self, operation: ops.OperationBase, edges):
         """
@@ -1157,23 +1165,56 @@ class CircuitDAG(CircuitBase):
             raise ValueError(
                 f"_add_register for this circuit class must only add registers of size 1"
             )
-
-        if reg_type == "e":
-            self._add_reg_if_absent((len(self.emitter_registers),), tuple(), tuple())
-        elif reg_type == "p":
-            self._add_reg_if_absent(tuple(), (len(self.photonic_registers),), tuple())
-        elif reg_type == "c":
-            self._add_reg_if_absent(tuple(), tuple(), (len(self.c_registers),))
-        else:
+        if reg_type not in self._registers:
             raise ValueError(
                 f"reg_type must be 'e' (emitter qubit), 'p' (photonic qubit), 'c' (classical bit)"
             )
+        self._add_reg_if_absent1(register=(len(self._registers[reg_type]),), reg_type=reg_type)
 
     def _expand_register(self, register, new_size, type_reg):
         raise ValueError(
             f"Register size cannot be expanded in the {self.__class__.__name__} representation"
             f"(they must have a size of 1)"
         )
+
+    def _add_reg_if_absent1(self, register, reg_type):
+        def _check_and_add_register(test_reg, circuit_reg, register_type: str):
+            sorted_reg = list(test_reg)
+            sorted_reg.sort()
+            for (
+                i
+            ) in (
+                sorted_reg
+            ):  # we sort such that we can throw an error if we get discontinuous registers
+                if i == len(circuit_reg):
+                    circuit_reg.append(1)
+
+                    # add new register depth to register depth dict
+                    self._add_register_depth(reg_type=register_type[0].lower())
+                elif i > len(circuit_reg):
+                    raise ValueError(
+                        f"Register numbering must be continuous. {register_type} register {i} cannot be added. "
+                        f"Next register that can be added is {len(circuit_reg)}"
+                    )
+
+        _check_and_add_register(register, self._registers[reg_type], reg_type)
+
+        for r in register:
+            if f"{reg_type}{r}_in" not in self.dag.nodes:
+                self.dag.add_node(
+                    f"{reg_type}{r}_in", op=ops.Input(register=r, reg_type=reg_type), reg=r
+                )
+                self._node_dict_append("Input", f"{reg_type}{r}_in")
+                self.dag.add_node(
+                    f"{reg_type}{r}_out", op=ops.Output(register=r, reg_type=reg_type), reg=r
+                )
+                self._node_dict_append("Output", f"{reg_type}{r}_out")
+                self.dag.add_edge(
+                    f"{reg_type}{r}_in", f"{reg_type}{r}_out", key=f"{reg_type}{r}", reg=r, reg_type=reg_type
+                )
+                self._edge_dict_append(
+                    reg_type, tuple(self.dag.in_edges(nbunch=f"{reg_type}{r}_out", keys=True))[0]
+                )
 
     def _add_reg_if_absent(self, e_reg, p_reg, c_reg):
         """
@@ -1252,6 +1293,7 @@ class CircuitDAG(CircuitBase):
                 self._edge_dict_append(
                     "p", tuple(self.dag.in_edges(nbunch=f"p{p}_out", keys=True))[0]
                 )
+
         for c in c_reg:
             if f"c{c}_in" not in self.dag.nodes:
                 self.dag.add_node(
@@ -1269,7 +1311,7 @@ class CircuitDAG(CircuitBase):
                     "c", tuple(self.dag.in_edges(nbunch=f"c{c}_out", keys=True))[0]
                 )
 
-    def _add(self, operation: ops.OperationBase, e_reg, p_reg, c_reg):
+    def _add(self, operation: ops.OperationBase):
         """
         Add an operation to the circuit
         This function assumes that all registers used by operation are already built
@@ -1285,6 +1327,21 @@ class CircuitDAG(CircuitBase):
         :return: nothing
         :rtype: None
         """
+        e_reg = tuple(
+            [
+                operation.q_registers[i]
+                for i in range(len(operation.q_registers))
+                if operation.q_registers_type[i] == "e"
+            ]
+        )
+        p_reg = tuple(
+            [
+                operation.q_registers[i]
+                for i in range(len(operation.q_registers))
+                if operation.q_registers_type[i] == "p"
+            ]
+        )
+        c_reg = operation.c_registers
 
         new_id = self._unique_node_id()
 
@@ -1369,7 +1426,7 @@ class CircuitDAG(CircuitBase):
 
     def _max_depth(self, root_node):
         """
-        Calculate max depth of a node in the circuit DAG.
+        Helper function that calculate max depth of a node in the circuit DAG.
         Using recursion, the function will go to previous nodes connected by in_edges, until reach the Input node.
 
         :param root_node: root node that is used as starting point

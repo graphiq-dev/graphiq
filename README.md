@@ -1,6 +1,6 @@
 # Ki3-QBT Graph Compiler
 
-![Coverage Status](tests/coverage-badge.svg)
+![Coverage Status](./ tests/coverage-badge.svg)
 
 This project is to create an optimization algorithm to find a resource-efficient scheme for graph state generation.
 This is a collaboration between Ki3 and QBT through US Air Force project.

@@ -4,7 +4,7 @@ scipy
 networkx~=2.7.1
 autograd
 pytest
-pytest-cov
+genbadge
 pandas
 seaborn
 qiskit

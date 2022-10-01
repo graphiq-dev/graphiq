@@ -454,20 +454,6 @@ class CircuitDAG(CircuitBase):
     """
 
     def __init__(
-            self,
-            qreg,
-            creg,
-            openqasm_imports=None,
-            openqasm_defs=None,
-    ):
-        super().__init__(openqasm_imports=openqasm_imports, openqasm_defs=openqasm_defs)
-        self.dag = nx.MultiDiGraph()
-        self._node_id = 0
-        self.edge_dict = {}
-        self.node_dict = {}
-        self._register_depth = dict()
-
-    def __init__(
         self,
         n_emitter=0,
         n_photon=0,
@@ -515,8 +501,11 @@ class CircuitDAG(CircuitBase):
         self._openqasm_update(operation)
 
         # update registers (if the new operation is adding registers to the circuit)
+
+        # Check for classical register
         self._add_reg_if_absent1(register=operation.c_registers, reg_type="c")
 
+        # Check for qubit register
         for i in range(len(operation.q_registers)):
             self._add_reg_if_absent1(
                 register=tuple([operation.q_registers[i]]),
@@ -1325,31 +1314,15 @@ class CircuitDAG(CircuitBase):
         :return: nothing
         :rtype: None
         """
-        e_reg = tuple(
-            [
-                operation.q_registers[i]
-                for i in range(len(operation.q_registers))
-                if operation.q_registers_type[i] == "e"
-            ]
-        )
-        p_reg = tuple(
-            [
-                operation.q_registers[i]
-                for i in range(len(operation.q_registers))
-                if operation.q_registers_type[i] == "p"
-            ]
-        )
-        c_reg = operation.c_registers
-
         new_id = self._unique_node_id()
 
         self._add_node(new_id, operation)
 
         # get all edges that will need to be removed (i.e. the edges on which the Operation is being added)
         relevant_outputs = (
-            [f"e{e}_out" for e in e_reg]
-            + [f"p{p}_out" for p in p_reg]
-            + [f"c{c}_out" for c in c_reg]
+                [f"{operation.q_registers_type[i]}{operation.q_registers[i]}_out"
+                 for i in range(len(operation.q_registers))]
+                + [f"c{c}_out" for c in operation.c_registers]
         )
 
         for output in relevant_outputs:

@@ -486,7 +486,7 @@ class CircuitDAG(CircuitBase):
         self._registers = {"e": [], "p": [], "c": []}
 
         for key in self._registers:
-            self._add_reg_if_absent1(register=reg_tuple[key], reg_type=key)
+            self._add_reg_if_absent(register=reg_tuple[key], reg_type=key)
 
     def add(self, operation: ops.OperationBase):
         """
@@ -501,13 +501,12 @@ class CircuitDAG(CircuitBase):
         self._openqasm_update(operation)
 
         # update registers (if the new operation is adding registers to the circuit)
-
         # Check for classical register
-        self._add_reg_if_absent1(register=operation.c_registers, reg_type="c")
+        self._add_reg_if_absent(register=operation.c_registers, reg_type="c")
 
         # Check for qubit register
         for i in range(len(operation.q_registers)):
-            self._add_reg_if_absent1(
+            self._add_reg_if_absent(
                 register=tuple([operation.q_registers[i]]),
                 reg_type=operation.q_registers_type[i]
             )
@@ -530,22 +529,16 @@ class CircuitDAG(CircuitBase):
         self._openqasm_update(operation)
 
         # update registers (if the new operation is adding registers to the circuit)
-        e_reg = tuple(
-            [
-                operation.q_registers[i]
-                for i in range(len(operation.q_registers))
-                if operation.q_registers_type[i] == "e"
-            ]
-        )
-        p_reg = tuple(
-            [
-                operation.q_registers[i]
-                for i in range(len(operation.q_registers))
-                if operation.q_registers_type[i] == "p"
-            ]
-        )
+        # Check for classical register
+        self._add_reg_if_absent(register=operation.c_registers, reg_type="c")
 
-        self._add_reg_if_absent(e_reg, p_reg, operation.c_registers)
+        # Check for qubit register
+        for i in range(len(operation.q_registers)):
+            self._add_reg_if_absent(
+                register=tuple([operation.q_registers[i]]),
+                reg_type=operation.q_registers_type[i]
+            )
+
         assert len(edges) == len(operation.q_registers)
         # note that we implicitly assume there is only one classical register (bit) so that
         # we only count the quantum registers here. (Also only including quantum registers in edges)
@@ -1156,7 +1149,7 @@ class CircuitDAG(CircuitBase):
             raise ValueError(
                 f"reg_type must be 'e' (emitter qubit), 'p' (photonic qubit), 'c' (classical bit)"
             )
-        self._add_reg_if_absent1(register=(len(self._registers[reg_type]),), reg_type=reg_type)
+        self._add_reg_if_absent(register=(len(self._registers[reg_type]),), reg_type=reg_type)
 
     def _expand_register(self, register, new_size, type_reg):
         raise ValueError(
@@ -1164,7 +1157,7 @@ class CircuitDAG(CircuitBase):
             f"(they must have a size of 1)"
         )
 
-    def _add_reg_if_absent1(self, register, reg_type):
+    def _add_reg_if_absent(self, register, reg_type):
         def _check_and_add_register(test_reg, circuit_reg, register_type: str):
             sorted_reg = list(test_reg)
             sorted_reg.sort()
@@ -1203,101 +1196,6 @@ class CircuitDAG(CircuitBase):
                     reg_type, tuple(self.dag.in_edges(nbunch=f"{reg_type}{r}_out", keys=True))[0]
                 )
 
-    def _add_reg_if_absent(self, e_reg, p_reg, c_reg):
-        """
-        Adds a register to our list of registers and to our graph, if said registers are absent
-
-        :param e_reg: emitter quantum registers used by an operation. Must come in form (a, b, c)
-                      Does not support qubit-specific indexing, since each register is a
-                      single qubit register in this circuit representation
-        :type e_reg: tuple (of ints)
-        :param p_reg: photonic quantum registers used by an operation. Must come in form (a, b, c)
-                      Does not support qubit-specific indexing, since each register is a
-                      single qubit register in this circuit representation
-        :type p_reg: tuple (of ints)
-        :param c_reg: classical register used by operation (same format as q_reg)
-        :type c_reg: tuple (of ints)
-        :return: function returns nothing
-        :rtype: None
-        """
-
-        # add registers as needed
-
-        def _check_and_add_register(test_reg, circuit_reg, reg_type: str):
-            sorted_reg = list(test_reg)
-            sorted_reg.sort()
-            for (
-                i
-            ) in (
-                sorted_reg
-            ):  # we sort such that we can throw an error if we get discontinuous registers
-                if i == len(circuit_reg):
-                    circuit_reg.append(1)
-
-                    # add new register depth to register depth dict
-                    self._add_register_depth(reg_type=reg_type[0].lower())
-                elif i > len(circuit_reg):
-                    raise ValueError(
-                        f"Register numbering must be continuous. {reg_type} register {i} cannot be added. "
-                        f"Next register that can be added is {len(circuit_reg)}"
-                    )
-
-        _check_and_add_register(e_reg, self.emitter_registers, "Emitter qubit")
-        _check_and_add_register(p_reg, self.photonic_registers, "Photonic qubit")
-        _check_and_add_register(c_reg, self.c_registers, "Classical")
-
-        # Update graph to contain necessary registers
-        for e in e_reg:
-            if f"e{e}_in" not in self.dag.nodes:
-                self.dag.add_node(
-                    f"e{e}_in", op=ops.Input(register=e, reg_type="e"), reg=e
-                )
-                self._node_dict_append("Input", f"e{e}_in")
-                self.dag.add_node(
-                    f"e{e}_out", op=ops.Output(register=e, reg_type="e"), reg=e
-                )
-                self._node_dict_append("Output", f"e{e}_out")
-                self.dag.add_edge(
-                    f"e{e}_in", f"e{e}_out", key=f"e{e}", reg=e, reg_type="e"
-                )
-                self._edge_dict_append(
-                    "e", tuple(self.dag.in_edges(nbunch=f"e{e}_out", keys=True))[0]
-                )
-
-        for p in p_reg:
-            if f"p{p}_in" not in self.dag.nodes:
-                self.dag.add_node(
-                    f"p{p}_in", op=ops.Input(register=p, reg_type="p"), reg=p
-                )
-                self._node_dict_append("Input", f"p{p}_in")
-                self.dag.add_node(
-                    f"p{p}_out", op=ops.Output(register=p, reg_type="p"), reg=p
-                )
-                self._node_dict_append("Output", f"p{p}_out")
-                self.dag.add_edge(
-                    f"p{p}_in", f"p{p}_out", key=f"p{p}", reg=p, reg_type="p"
-                )
-                self._edge_dict_append(
-                    "p", tuple(self.dag.in_edges(nbunch=f"p{p}_out", keys=True))[0]
-                )
-
-        for c in c_reg:
-            if f"c{c}_in" not in self.dag.nodes:
-                self.dag.add_node(
-                    f"c{c}_in", op=ops.Input(register=c, reg_type="c"), reg=c
-                )
-                self._node_dict_append("Input", f"c{c}_in")
-                self.dag.add_node(
-                    f"c{c}_out", op=ops.Output(register=c, reg_type="c"), reg=c
-                )
-                self._node_dict_append("Output", f"c{c}_out")
-                self.dag.add_edge(
-                    f"c{c}_in", f"c{c}_out", key=f"c{c}", reg=c, reg_type="c"
-                )
-                self._edge_dict_append(
-                    "c", tuple(self.dag.in_edges(nbunch=f"c{c}_out", keys=True))[0]
-                )
-
     def _add(self, operation: ops.OperationBase):
         """
         Add an operation to the circuit
@@ -1305,12 +1203,6 @@ class CircuitDAG(CircuitBase):
 
         :param operation: Operation (gate and register) to add to the graph
         :type operation: OperationBase (or a subclass thereof)
-        :param e_reg: emitter qubit indexing (ereg0, ereg1, ...) on which the operation must be applied
-        :type e_reg: tuple (of ints)
-        :param p_reg: photonic qubit indexing (preg0, preg1, ...) on which the operation must be applied
-        :type p_reg: tuple (of ints)
-        :param c_reg: cbit indexing (creg0, creg1, ...) on which the operation must be applied
-        :type c_reg: tuple (of ints)
         :return: nothing
         :rtype: None
         """

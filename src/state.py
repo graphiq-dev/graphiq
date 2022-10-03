@@ -233,6 +233,7 @@ class QuantumState:
         :return: function returns nothing
         :rtype: None
         """
+        # TODO: Need to think about how to deal with mutiple state representations at the same time.
         if self._stabilizer is None:
             warnings.warn(
                 UserWarning(
@@ -274,7 +275,7 @@ class QuantumState:
         else:
             self._dm = DensityMatrix(data)
 
-        assert self._dm.data.shape[0] == self._dm.data.shape[1] == 2**self.n_qubits
+        assert self._dm.data.shape[0] == self._dm.data.shape[1] == 2 ** self.n_qubits
 
     def _initialize_graph(self, data):
         """

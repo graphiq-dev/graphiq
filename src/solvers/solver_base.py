@@ -51,8 +51,8 @@ class SolverBase(ABC):
         self.circuit = circuit
 
         self.last_seed = None
-
         self.logs = {}
+        self.result = None
 
     @abstractmethod
     def solve(self, *args):
@@ -111,7 +111,6 @@ class RandomSearchSolver(SolverBase):
         self.trans_probs = {None: None}
         self.transformations = list(self.trans_probs.keys())
         self.logs = {"population": [], "hof": []}
-        self.result = None
 
     @property
     def n_hof(self):

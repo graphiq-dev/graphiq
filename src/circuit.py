@@ -1186,7 +1186,7 @@ class CircuitDAG(CircuitBase):
                     circuit_reg.append(1)
 
                     # add new register depth to register depth dict
-                    self._add_register_depth(reg_type=register_type[0].lower())
+                    self._add_register_depth(reg_type=register_type)
                 elif i > len(circuit_reg):
                     raise ValueError(
                         f"Register numbering must be continuous. {register_type} register {i} cannot be added. "
@@ -1364,7 +1364,7 @@ class CircuitDAG(CircuitBase):
             self._register_depth[reg_type][i] = self._max_depth(output_node)
         return self.register_depth[reg_type]
 
-    def min_reg_depth(self, reg_type: str):
+    def min_reg_depth_index(self, reg_type: str):
         """
         Calculate the register depth of the register type
         Then return the index of the register with minimum depth

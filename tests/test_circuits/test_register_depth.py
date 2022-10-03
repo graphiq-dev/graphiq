@@ -19,7 +19,7 @@ def test_initialization():
         "c": np.array([0]),
     }
 
-    test.assert_equal(expected_depth, circuit.register_depth)
+    test.assert_equal(circuit.register_depth, expected_depth)
 
 
 # Test add operation 1
@@ -31,7 +31,7 @@ def test_add_operation1():
     circuit.add(ops.SigmaX(register=0, reg_type="p"))
     circuit.calculate_all_reg_depth()
 
-    test.assert_equal(expected_depth, circuit.register_depth)
+    test.assert_equal(circuit.register_depth, expected_depth)
 
 
 # Test add operation 2
@@ -46,7 +46,7 @@ def test_add_operation2():
     circuit.add(ops.CNOT(control=0, control_type="e", target_type="p", target=0))
     circuit.calculate_all_reg_depth()
 
-    test.assert_equal(expected_depth, circuit.register_depth)
+    test.assert_equal(circuit.register_depth, expected_depth)
 
 
 # Test insert operation at
@@ -64,7 +64,7 @@ def test_insert_operation_at():
     )
     circuit.calculate_all_reg_depth()
 
-    test.assert_equal(expected_depth, circuit.register_depth)
+    test.assert_equal(circuit.register_depth, expected_depth)
 
 
 # Test replace operation
@@ -77,7 +77,7 @@ def test_replace_operation():
     circuit.replace_op(node=1, new_operation=ops.SigmaY(register=0, reg_type="p"))
     circuit.calculate_all_reg_depth()
 
-    test.assert_equal(expected_depth, circuit.register_depth)
+    test.assert_equal(circuit.register_depth, expected_depth)
 
 
 # Test remove operation
@@ -92,10 +92,10 @@ def test_remove_operation():
     circuit.remove_op(node=3)
     circuit.calculate_all_reg_depth()
 
-    test.assert_equal(expected_depth, circuit.register_depth)
+    test.assert_equal(circuit.register_depth, expected_depth)
 
 
-def test_min_reg_depth():
+def test_min_reg_depth_index():
     circuit = CircuitDAG(n_emitter=1, n_photon=2, n_classical=1)
 
     circuit.add(ops.Hadamard(register=0, reg_type="e"))
@@ -106,10 +106,10 @@ def test_min_reg_depth():
     circuit.add(ops.Hadamard(register=0, reg_type="p"))
 
     expected_output = 1
-    assert expected_output == circuit.min_reg_depth("p")
+    assert circuit.min_reg_depth_index("p") == expected_output
 
 
-def test_sorted_reg_depth():
+def test_sorted_reg_depth_index():
     circuit = CircuitDAG(n_emitter=1, n_photon=2, n_classical=1)
 
     circuit.add(ops.Hadamard(register=0, reg_type="e"))
@@ -120,4 +120,4 @@ def test_sorted_reg_depth():
     circuit.add(ops.Hadamard(register=0, reg_type="p"))
 
     expected_output = np.array([1, 0])
-    test.assert_equal(expected_output, circuit.sorted_reg_depth_index("p"))
+    test.assert_equal(circuit.sorted_reg_depth_index("p"), expected_output)

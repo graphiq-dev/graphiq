@@ -93,3 +93,31 @@ def test_remove_operation():
     circuit.calculate_all_reg_depth()
 
     test.assert_equal(expected_depth, circuit.register_depth)
+
+
+def test_min_reg_depth():
+    circuit = CircuitDAG(n_emitter=1, n_photon=2, n_classical=1)
+
+    circuit.add(ops.Hadamard(register=0, reg_type="e"))
+    circuit.add(ops.CNOT(control=0, control_type="e", target=0, target_type="p"))
+    circuit.add(ops.CNOT(control=0, control_type="e", target=1, target_type="p"))
+
+    circuit.add(ops.SigmaX(register=0, reg_type="p"))
+    circuit.add(ops.Hadamard(register=0, reg_type="p"))
+
+    expected_output = 1
+    assert expected_output == circuit.min_reg_depth("p")
+
+
+def test_sorted_reg_depth():
+    circuit = CircuitDAG(n_emitter=1, n_photon=2, n_classical=1)
+
+    circuit.add(ops.Hadamard(register=0, reg_type="e"))
+    circuit.add(ops.CNOT(control=0, control_type="e", target=0, target_type="p"))
+    circuit.add(ops.CNOT(control=0, control_type="e", target=1, target_type="p"))
+
+    circuit.add(ops.SigmaX(register=0, reg_type="p"))
+    circuit.add(ops.Hadamard(register=0, reg_type="p"))
+
+    expected_output = np.array([1, 0])
+    test.assert_equal(expected_output, circuit.sorted_reg_depth_index("p"))

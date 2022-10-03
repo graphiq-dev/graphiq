@@ -80,6 +80,10 @@ class CircuitBase(ABC):
         self.openqasm_symbols = {}
 
     @property
+    def register(self):
+        return self._registers.copy()
+
+    @property
     def emitter_registers(self):
         return self._registers["e"]
 
@@ -255,11 +259,11 @@ class CircuitBase(ABC):
         Provides the index of the next register in the provided register. This allows the user to query
         which register they should add next, should they decide to expand the register
 
-        :param reg_type
+        :param reg_type: indicate register type, can be "p", "e", or "c"
         :type reg_type: str
         :param register: the register index {0, ..., N - 1} for N emitter quantum registers
         :type register: int
-        :return: the index of the next qubit
+        :return: the index of the next register
         :rtype: int (non-negative)
         """
         if reg_type not in self._registers:
@@ -482,7 +486,11 @@ class CircuitDAG(CircuitBase):
         self._register_depth = dict()
 
         # map the key to the tuple register
-        reg_tuple = {"e": tuple(range(n_emitter)), "p": tuple(range(n_photon)), "c": tuple(range(n_classical))}
+        reg_tuple = {
+            "e": tuple(range(n_emitter)),
+            "p": tuple(range(n_photon)),
+            "c": tuple(range(n_classical)),
+        }
         self._registers = {"e": [], "p": [], "c": []}
 
         for key in self._registers:
@@ -508,7 +516,7 @@ class CircuitDAG(CircuitBase):
         for i in range(len(operation.q_registers)):
             self._add_reg_if_absent(
                 register=tuple([operation.q_registers[i]]),
-                reg_type=operation.q_registers_type[i]
+                reg_type=operation.q_registers_type[i],
             )
 
         self._add(operation)
@@ -536,7 +544,7 @@ class CircuitDAG(CircuitBase):
         for i in range(len(operation.q_registers)):
             self._add_reg_if_absent(
                 register=tuple([operation.q_registers[i]]),
-                reg_type=operation.q_registers_type[i]
+                reg_type=operation.q_registers_type[i],
             )
 
         assert len(edges) == len(operation.q_registers)
@@ -1013,8 +1021,8 @@ class CircuitDAG(CircuitBase):
                 c_str = re.search(r"c(\d)+\[0\]", command).group(0)
 
                 q_type = q_str[0]
-                q_reg = int(re.split("\[", q_str[1:])[0])
-                c_reg = int(re.split("\[", c_str[1:])[0])
+                q_reg = int(re.split(r"\[", q_str[1:])[0])
+                c_reg = int(re.split(r"\[", c_str[1:])[0])
 
                 def _parse_if(command):
                     c_str = re.search(r"c(\d)+==1", command.replace(" ", "")).group(0)
@@ -1149,7 +1157,9 @@ class CircuitDAG(CircuitBase):
             raise ValueError(
                 f"reg_type must be 'e' (emitter qubit), 'p' (photonic qubit), 'c' (classical bit)"
             )
-        self._add_reg_if_absent(register=(len(self._registers[reg_type]),), reg_type=reg_type)
+        self._add_reg_if_absent(
+            register=(len(self._registers[reg_type]),), reg_type=reg_type
+        )
 
     def _expand_register(self, register, new_size, type_reg):
         raise ValueError(
@@ -1182,18 +1192,27 @@ class CircuitDAG(CircuitBase):
         for r in register:
             if f"{reg_type}{r}_in" not in self.dag.nodes:
                 self.dag.add_node(
-                    f"{reg_type}{r}_in", op=ops.Input(register=r, reg_type=reg_type), reg=r
+                    f"{reg_type}{r}_in",
+                    op=ops.Input(register=r, reg_type=reg_type),
+                    reg=r,
                 )
                 self._node_dict_append("Input", f"{reg_type}{r}_in")
                 self.dag.add_node(
-                    f"{reg_type}{r}_out", op=ops.Output(register=r, reg_type=reg_type), reg=r
+                    f"{reg_type}{r}_out",
+                    op=ops.Output(register=r, reg_type=reg_type),
+                    reg=r,
                 )
                 self._node_dict_append("Output", f"{reg_type}{r}_out")
                 self.dag.add_edge(
-                    f"{reg_type}{r}_in", f"{reg_type}{r}_out", key=f"{reg_type}{r}", reg=r, reg_type=reg_type
+                    f"{reg_type}{r}_in",
+                    f"{reg_type}{r}_out",
+                    key=f"{reg_type}{r}",
+                    reg=r,
+                    reg_type=reg_type,
                 )
                 self._edge_dict_append(
-                    reg_type, tuple(self.dag.in_edges(nbunch=f"{reg_type}{r}_out", keys=True))[0]
+                    reg_type,
+                    tuple(self.dag.in_edges(nbunch=f"{reg_type}{r}_out", keys=True))[0],
                 )
 
     def _add(self, operation: ops.OperationBase):
@@ -1211,11 +1230,10 @@ class CircuitDAG(CircuitBase):
         self._add_node(new_id, operation)
 
         # get all edges that will need to be removed (i.e. the edges on which the Operation is being added)
-        relevant_outputs = (
-                [f"{operation.q_registers_type[i]}{operation.q_registers[i]}_out"
-                 for i in range(len(operation.q_registers))]
-                + [f"c{c}_out" for c in operation.c_registers]
-        )
+        relevant_outputs = [
+            f"{operation.q_registers_type[i]}{operation.q_registers[i]}_out"
+            for i in range(len(operation.q_registers))
+        ] + [f"c{c}_out" for c in operation.c_registers]
 
         for output in relevant_outputs:
             edges_to_remove = list(

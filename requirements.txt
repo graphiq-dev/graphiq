@@ -8,6 +8,7 @@ genbadge
 coverage
 pandas
 seaborn
+defusedxml
 qiskit
 qutip
 pylatexenc

@@ -275,7 +275,7 @@ class QuantumState:
         else:
             self._dm = DensityMatrix(data)
 
-        assert self._dm.data.shape[0] == self._dm.data.shape[1] == 2 ** self.n_qubits
+        assert self._dm.data.shape[0] == self._dm.data.shape[1] == 2**self.n_qubits
 
     def _initialize_graph(self, data):
         """

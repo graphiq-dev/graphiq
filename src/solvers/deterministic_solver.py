@@ -226,7 +226,10 @@ class DeterministicSolver(SolverBase):
         for i in range(self.n_emitter):
             # transform this generator so that it has only Z on emitter registers
             gate_list = self._change_pauli_type(
-                tableau, generator_index, self.n_photon + i, "z",
+                tableau,
+                generator_index,
+                self.n_photon + i,
+                "z",
             )
             self._add_one_qubit_gate(circuit, gate_list, self.n_photon + i)
 
@@ -399,7 +402,10 @@ class DeterministicSolver(SolverBase):
                 return
         noise = self._wrap_noise(gate_list, self.noise_model_mapping)
         gate = ops.OneQubitGateWrapper(
-            gate_list, reg_type=reg_type, register=reg, noise=noise,
+            gate_list,
+            reg_type=reg_type,
+            register=reg,
+            noise=noise,
         )
         if isinstance(next_op, ops.OneQubitGateWrapper):
             circuit.replace_op(edge[1], gate)

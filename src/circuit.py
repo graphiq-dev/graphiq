@@ -1328,3 +1328,51 @@ class CircuitDAG(CircuitBase):
         """
         self._node_id += 1
         return self._node_id
+
+    def similarity_full_ged(self, circuit_compare):
+        """
+        Calculate Graph Edit Distance (GED) between two circuits.
+        Further reading on GED:
+        https://networkx.org/documentation/stable/reference/algorithms/similarity.html
+
+        :param circuit_compare: circuit that to be compared
+        :type circuit_compare: CircuitDAG
+        :return: GED between circuits
+        :rtype: int
+        """
+
+        dag_1 = self.remove_out_nodes()
+        dag_2 = circuit_compare.remove_out_nodes()
+        def node_subst_cost(n1, n2):
+            if type(n1["op"]) == type(n2["op"]):
+                if isinstance(n1["op"], ops.Input):
+                    if n1["op"].reg_type != n2["op"].reg_type:
+                        return 1
+                    else:
+                        return 0
+                else:
+                    return 0
+            else:
+                return 1
+
+        sim = nx.algorithms.similarity.graph_edit_distance(dag_1, dag_2,
+                                                        node_subst_cost=node_subst_cost,
+                                                        upper_bound=30.0,
+                                                        timeout=10.0,
+                                                        )
+                                                       
+        return sim
+
+    def remove_out_nodes(self):
+        """
+        Remove the output nodes
+
+        :return: a new, unique node ID
+        :rtype: nx.MultiDiGraph
+        """
+        dag = self.dag.copy()
+
+        n = [f"{out}" for out in dag.nodes.keys() if str(out)[-1]=='t']
+        dag.remove_nodes_from(n)
+
+        return dag

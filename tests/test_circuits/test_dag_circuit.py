@@ -482,3 +482,44 @@ def test_visualization_unwrapped_2():
     except Exception as e:
         print(dag.to_openqasm())
         raise e
+def test_ged_1():
+    #self-comparison should return 0
+    circuit1 = CircuitDAG(n_emitter=0, n_photon=1, n_classical=0)
+    circuit1.add(ops.Hadamard(register=0, reg_type="e"))
+    circuit1.add(ops.CNOT(control=0, control_type="e", target=0, target_type="p"))
+    ged = circuit1.similarity_full_ged(circuit1)
+
+    assert ged == 0
+
+def test_ged_2():
+    """
+    1. Remove ops.Hadamard
+    2. Add ops.Phase
+    3. Link p0 to ops.Phase
+    """
+    circuit1 = CircuitDAG(n_emitter=1, n_photon=1, n_classical=0)
+    circuit1.add(ops.Hadamard(register=0, reg_type="e"))
+    circuit2 = CircuitDAG(n_emitter=1, n_photon=1, n_classical=0)
+    circuit2.add(ops.Phase(register=0, reg_type="p"))
+    ged = circuit2.similarity_full_ged(circuit1)
+
+    assert ged == 3
+
+def test_ged_3():
+    #Replace e0 with p0
+    circuit1 = CircuitDAG(n_emitter=1, n_photon=0, n_classical=0)
+    circuit2 = CircuitDAG(n_emitter=0, n_photon=1, n_classical=0)
+
+    ged = circuit1.similarity_full_ged(circuit2)
+
+    assert ged == 1
+
+def test_ged_4():
+    #Registers in the same type are considered the same
+    circuit1 = CircuitDAG(n_emitter=1, n_photon=2, n_classical=0)
+    circuit1.add(ops.CNOT(control=0, control_type="e", target=0, target_type="p"))
+    circuit2 = CircuitDAG(n_emitter=1, n_photon=2, n_classical=0)
+    circuit2.add(ops.CNOT(control=0, control_type="e", target=1, target_type="p"))
+    ged = circuit1.similarity_full_ged(circuit2)
+
+    assert ged == 0

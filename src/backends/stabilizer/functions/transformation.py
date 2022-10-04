@@ -11,6 +11,10 @@ from src.backends.stabilizer.functions.linalg import (
 """Main gates """
 
 
+def identity(tableau, *args):
+    return tableau
+
+
 def hadamard_gate(tableau, qubit_position):
     """
     Apply Hadamard gate to a single qubit given its position in a stabilizer state.

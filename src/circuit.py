@@ -1329,7 +1329,7 @@ class CircuitDAG(CircuitBase):
         self._node_id += 1
         return self._node_id
 
-    def similarity_full_ged(self, circuit_compare):
+    def similarity_full_ged(self, circuit_compare, full = True):
         """
         Calculate Graph Edit Distance (GED) between two circuits.
         Further reading on GED:
@@ -1337,14 +1337,16 @@ class CircuitDAG(CircuitBase):
 
         :param circuit_compare: circuit that to be compared
         :type circuit_compare: CircuitDAG
-        :return: GED between circuits
+        :param circuit_compare: Determine which GED function to use
+        :type circuit_compare: bool
+        :return: GED between circuits(number of steps needed to transform self.dag to circuit_compare.dag)
         :rtype: int
         """
 
         dag_1 = self.remove_out_nodes()
         dag_2 = circuit_compare.remove_out_nodes()
         def node_subst_cost(n1, n2):
-            if type(n1["op"]) == type(n2["op"]):
+            if isinstance(n1["op"], type(n2["op"])):
                 if isinstance(n1["op"], ops.Input):
                     if n1["op"].reg_type != n2["op"].reg_type:
                         return 1
@@ -1355,19 +1357,26 @@ class CircuitDAG(CircuitBase):
             else:
                 return 1
 
-        sim = nx.algorithms.similarity.graph_edit_distance(dag_1, dag_2,
-                                                        node_subst_cost=node_subst_cost,
-                                                        upper_bound=30.0,
-                                                        timeout=10.0,
-                                                        )
-                                                       
+        if full:
+            sim = nx.algorithms.similarity.graph_edit_distance(dag_1, dag_2,
+                                                            node_subst_cost=node_subst_cost,
+                                                            upper_bound=30.0,
+                                                            timeout=10.0,
+                                                            )
+        else:
+            sim = nx.algorithms.similarity.optimize_graph_edit_distance(dag_1, dag_2,
+                                                                        node_subst_cost=node_subst_cost,
+                                                                        upper_bound=30.0,
+                                                                        )
+            sim = next(sim)
         return sim
+
 
     def remove_out_nodes(self):
         """
         Remove the output nodes
 
-        :return: a new, unique node ID
+        :return: a copy of DAG without output nodes
         :rtype: nx.MultiDiGraph
         """
         dag = self.dag.copy()

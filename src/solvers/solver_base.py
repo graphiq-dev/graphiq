@@ -94,9 +94,6 @@ class RandomSearchSolver(SolverBase):
         compiler: CompilerBase,
         circuit: CircuitBase = None,
         io: IO = None,
-        n_hof=10,
-        n_pop=10,
-        n_stop=10,
         *args,
         **kwargs,
     ):
@@ -104,10 +101,11 @@ class RandomSearchSolver(SolverBase):
         super().__init__(target, metric, compiler, circuit, io)
 
         # hof stores the best circuits and their scores in the form of: (scores, circuits)
-        self._n_hof = n_hof
-        self.n_pop = n_pop
-        self.n_stop = n_stop
-        self.hof = [(np.inf, None) for _ in range(self.n_hof)]
+        self._n_hof = kwargs.get("n_hof", 10)
+        self.n_pop = kwargs.get("n_pop", 10)
+        self.n_stop = kwargs.get("n_stop", 10)
+
+        self.hof = [(np.inf, None) for _ in range(self._n_hof)]
         self.trans_probs = {None: None}
         self.transformations = list(self.trans_probs.keys())
         self.logs = {"population": [], "hof": []}

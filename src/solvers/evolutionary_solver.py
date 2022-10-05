@@ -36,15 +36,6 @@ class EvolutionarySolver(RandomSearchSolver):
         compiler: CompilerBase,
         circuit: CircuitDAG = None,
         io: IO = None,
-        n_hof=5,
-        n_stop=50,
-        n_pop=50,
-        tournament_k=2,
-        n_emitter=1,
-        n_photon=1,
-        selection_active=False,
-        use_adapt_probability=False,
-        save_openqasm: str = "none",
         noise_model_mapping=None,
         *args,
         **kwargs,
@@ -78,28 +69,30 @@ class EvolutionarySolver(RandomSearchSolver):
         :param noise_model_mapping: a dictionary that associates each operation type to a noise model
         :type noise_model_mapping: dict
         """
+        # Set default value for super constructor
+        kwargs["n_hof"] = kwargs.get("n_hof", 5)
+        kwargs["n_pop"] = kwargs.get("n_pop", 50)
+        kwargs["n_stop"] = kwargs.get("n_stop", 50)
+
         super().__init__(
             target,
             metric,
             compiler,
             circuit,
             io,
-            n_hof=n_hof,
-            n_stop=n_stop,
-            n_pop=n_pop,
             *args,
-            **kwargs,
+            **kwargs
         )
 
-        self.n_emitter = n_emitter
-        self.n_photon = n_photon
+        self.n_emitter = kwargs.get("n_emitter", 1)
+        self.n_photon = kwargs.get("n_photon", 1)
 
         # transformation functions and their relative probabilities
         self.trans_probs = self.initialize_transformation_probabilities()
-        self.selection_active = selection_active
-        self.tournament_k = tournament_k
+        self.selection_active = kwargs.get("selection_active", False)
+        self.tournament_k = kwargs.get("tournament_k", 2)
         self.noise_simulation = True
-        self.use_adapt_probability = use_adapt_probability
+        self.use_adapt_probability = kwargs.get("use_adapt_probability", False)
         if noise_model_mapping is None:
             noise_model_mapping = {}
             self.noise_simulation = False
@@ -110,7 +103,7 @@ class EvolutionarySolver(RandomSearchSolver):
             )
         self.noise_model_mapping = noise_model_mapping
 
-        self.save_openqasm = save_openqasm
+        self.save_openqasm = kwargs.get("save_openqasm", "none")
 
         self.p_dist = [0.5] + 11 * [0.1 / 22] + [0.4] + 11 * [0.1 / 22]
         self.e_dist = [0.5] + 11 * [0.02 / 22] + [0.48] + 11 * [0.02 / 22]

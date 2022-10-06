@@ -74,15 +74,7 @@ class EvolutionarySolver(RandomSearchSolver):
         kwargs["n_pop"] = kwargs.get("n_pop", 50)
         kwargs["n_stop"] = kwargs.get("n_stop", 50)
 
-        super().__init__(
-            target,
-            metric,
-            compiler,
-            circuit,
-            io,
-            *args,
-            **kwargs
-        )
+        super().__init__(target, metric, compiler, circuit, io, *args, **kwargs)
 
         self.n_emitter = kwargs.get("n_emitter", 1)
         self.n_photon = kwargs.get("n_photon", 1)

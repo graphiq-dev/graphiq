@@ -47,9 +47,9 @@ from src.visualizers.openqasm_visualization import draw_openqasm
 
 
 class Register:
-    def __init__(self):
-        self._registers = dict()
-        self.max_size = 1
+    def __init__(self, reg_dict = None, max_size: int = 1):
+        self._registers = reg_dict
+        self.max_size = max_size
 
     @property
     def register(self):
@@ -59,6 +59,8 @@ class Register:
         return self._registers[key]
 
     def __setitem__(self, key, value):
+        if set(value) != {1}:
+            raise ValueError(f"CircuitDAG class only supports single-qubit registers")
         self._registers[key] = value
 
     def n_quantum(self):
@@ -400,7 +402,7 @@ class CircuitBase(ABC):
         :return: this function returns nothing
         :rtype: None
         """
-        self._registers = dict()
+        self._registers = Register()
 
         if openqasm_imports is None:
             self.openqasm_imports = {}
@@ -416,7 +418,7 @@ class CircuitBase(ABC):
 
     @property
     def register(self):
-        return self._registers
+        return self._registers.register
 
     @property
     def emitter_registers(self):
@@ -832,9 +834,9 @@ class CircuitDAG(CircuitBase):
             "p": tuple(range(n_photon)),
             "c": tuple(range(n_classical)),
         }
-        self._registers = {"e": [], "p": [], "c": []}
+        self._registers = Register(reg_dict={"e": [], "p": [], "c": []})
 
-        for key in self._registers:
+        for key in reg_tuple:
             self._add_reg_if_absent(register=reg_tuple[key], reg_type=key)
 
     @property
@@ -1107,54 +1109,6 @@ class CircuitDAG(CircuitBase):
             plt.show()
         return fig, ax
 
-    @CircuitBase.emitter_registers.setter
-    def emitter_registers(self, q_reg):
-        """
-        Reset emitter register values. Enforces that registers can only contain single qubits in this
-        circuit object
-
-        :param q_reg: updated emitter register
-        :type q_reg: list
-        :raises ValueError: if we try to set multi-qubit registers
-        :return: function returns nothing
-        :rtype: None
-        """
-        if set(q_reg) != {1}:
-            raise ValueError(f"CircuitDAG class only supports single-qubit registers")
-        self._registers["e"] = q_reg
-
-    @CircuitBase.photonic_registers.setter
-    def photonic_registers(self, q_reg):
-        """
-        Reset photonic qubit register values. Enforces that registers can only contain single qubits in this
-        circuit object
-
-        :param q_reg: updated photonic register
-        :type q_reg: list
-        :raises ValueError: if we try to set multi-qubit registers
-        :return: function returns nothing
-        :rtype: None
-        """
-        if set(q_reg) != {1}:
-            raise ValueError(f"CircuitDAG class only supports single-qubit registers")
-        self._registers["p"] = q_reg
-
-    @CircuitBase.c_registers.setter
-    def c_registers(self, c_reg):
-        """
-        Reset classical register values. Enforces that registers can only contain single cbits in this
-        circuit object
-
-        :param c_reg: updated classical register
-        :type c_reg: list
-        :raises ValueError: if we try to set multi-cbit registers
-        :return: function returns nothing
-        :rtype: None
-        """
-        if set(c_reg) != {1}:
-            raise ValueError(f"CircuitDAG class only supports single-qubit registers")
-        self._registers["c"] = c_reg
-
     @classmethod
     def from_openqasm(cls, qasm_script):
         """
@@ -1376,7 +1330,7 @@ class CircuitDAG(CircuitBase):
             for i in sorted_reg:
                 # we sort such that we can throw an error if we get discontinuous registers
                 if i == len(circuit_reg):
-                    circuit_reg.append(1)
+                    self._registers.add_register(reg_type=register_type)
 
                     # add new register depth to register depth dict
                     self._add_register_depth(reg_type=register_type)

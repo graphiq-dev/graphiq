@@ -26,14 +26,6 @@ class HybridEvolutionarySolver(EvolutionarySolver):
         metric: MetricBase,
         compiler: CompilerBase,
         io: IO = None,
-        n_hof=10,
-        n_stop=50,
-        n_pop=50,
-        tournament_k=2,
-        selection_active=False,
-        use_adapt_probability=False,
-        save_openqasm: str = "none",
-        noise_model_mapping=None,
         *args,
         **kwargs,
     ):
@@ -63,25 +55,29 @@ class HybridEvolutionarySolver(EvolutionarySolver):
         tableau = target.stabilizer.tableau
         n_photon = tableau.n_qubits
         n_emitter = DeterministicSolver.determine_n_emitters(tableau.to_stabilizer())
+
+        # Set default value fr super init constructor
+        kwargs["n_hof"] = kwargs.get("n_hof", 10)
+        kwargs["n_stop"] = kwargs.get("n_stop", 50)
+        kwargs["n_pop"] = kwargs.get("n_pop", 50)
+        kwargs["noise_model_mapping"] = kwargs.get("noise_model_mapping", None)
+
         super().__init__(
             target=target,
             metric=metric,
             compiler=compiler,
             circuit=None,
             io=io,
-            n_hof=n_hof,
-            n_stop=n_stop,
-            n_pop=n_pop,
-            tournament_k=tournament_k,
             n_emitter=n_emitter,
             n_photon=n_photon,
-            selection_active=selection_active,
-            use_adapt_probability=use_adapt_probability,
-            save_openqasm=save_openqasm,
-            noise_model_mapping=noise_model_mapping,
             *args,
             **kwargs,
         )
+
+        self.tournament_k = kwargs.get("tournament_k", 2)
+        self.selection_active = kwargs.get("selection_active", False)
+        self.use_adapt_probability = kwargs.get("use_adapt_probability", False)
+        self.save_openqasm = kwargs.get("save_openqasm", "none")
 
     def initialize_transformation_probabilities(self):
         """

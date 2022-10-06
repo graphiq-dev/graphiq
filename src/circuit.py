@@ -651,9 +651,10 @@ class CircuitDAG(CircuitBase):
                 if in_edge[2] == out_edge[2]:  # i.e. if the keys are the same
                     reg = self.dag.edges[in_edge]["reg"]
                     reg_type = self.dag.edges[in_edge]["reg_type"]
+                    control = self.dag.edges[out_edge]
                     label = out_edge[2]
                     self._add_edge(
-                        in_edge[0], out_edge[1], label, reg_type=reg_type, reg=reg
+                        in_edge[0], out_edge[1], label, reg_type=reg_type, reg=reg, control=control
                     )
 
             self._remove_edge(in_edge)
@@ -670,7 +671,7 @@ class CircuitDAG(CircuitBase):
         self._node_dict_remove(operation.parse_q_reg_types(), node)
         self.dag.remove_node(node)
 
-    def _add_edge(self, in_node, out_node, label, reg_type, reg):
+    def _add_edge(self, in_node, out_node, label, reg_type, reg, control=False):
         """
         Helper function for adding an edge in the DAG representation
 
@@ -684,10 +685,12 @@ class CircuitDAG(CircuitBase):
         :type reg_type: str
         :param reg: the register of the edge
         :type reg: int or str
+        :param control: True if the input is a control register
+        :type control: bool
         :return: nothing
         :rtype: None
         """
-        self.dag.add_edge(in_node, out_node, key=label, reg_type=reg_type, reg=reg)
+        self.dag.add_edge(in_node, out_node, key=label, reg_type=reg_type, reg=reg, control=control)
         self._edge_dict_append(reg_type, (in_node, out_node, label))
 
     def _remove_edge(self, edge_to_remove):
@@ -1265,6 +1268,14 @@ class CircuitDAG(CircuitBase):
         :return: nothing
         :rtype: None
         """
+        if issubclass(type(operation), ops.ControlledPairOperationBase) or \
+                issubclass(type(operation), ops.ClassicalControlledPairOperationBase):
+            control_reg = operation.control
+            control_type = operation.control_type
+        else:
+            control_reg = None
+            control_type = None
+
         new_id = self._unique_node_id()
 
         self._add_node(new_id, operation)
@@ -1285,7 +1296,8 @@ class CircuitDAG(CircuitBase):
                 # Add edge from preceding node to the new operation node
                 reg_type = self.dag.edges[edge]["reg_type"]
                 reg = self.dag.edges[edge]["reg"]
-                self._add_edge(edge[0], new_id, edge[2], reg=reg, reg_type=reg_type)
+                control = (reg == control_reg and reg_type == control_type)
+                self._add_edge(edge[0], new_id, edge[2], reg=reg, reg_type=reg_type, control=control)
 
                 # Add edge from the new operation node to the final node
                 self._add_edge(new_id, edge[1], edge[2], reg=reg, reg_type=reg_type)
@@ -1304,6 +1316,13 @@ class CircuitDAG(CircuitBase):
         :return: nothing
         :rtype: None
         """
+        if issubclass(type(operation), ops.ControlledPairOperationBase) or \
+                issubclass(type(operation), ops.ClassicalControlledPairOperationBase):
+            control_reg_in = operation.control
+            control_type_in = operation.control_type
+        else:
+            control_reg_in = None
+            control_type_in = None
 
         self._openqasm_update(operation)
         new_id = self._unique_node_id()
@@ -1313,10 +1332,12 @@ class CircuitDAG(CircuitBase):
         for reg_edge in reg_edges:
             reg = self.dag.edges[reg_edge]["reg"]
             reg_type = self.dag.edges[reg_edge]["reg_type"]
+            control_in = (reg == control_reg_in and reg_type == control_type_in)
+            control_out = self.dag.edges["control"]
             label = reg_edge[2]
 
-            self._add_edge(reg_edge[0], new_id, label, reg_type=reg_type, reg=reg)
-            self._add_edge(new_id, reg_edge[1], label, reg_type=reg_type, reg=reg)
+            self._add_edge(reg_edge[0], new_id, label, reg_type=reg_type, reg=reg, control=control_in)
+            self._add_edge(new_id, reg_edge[1], label, reg_type=reg_type, reg=reg, control=control_out)
             self._remove_edge(reg_edge)  # remove the edge
 
     def _unique_node_id(self):
@@ -1348,24 +1369,26 @@ class CircuitDAG(CircuitBase):
         def node_subst_cost(n1, n2):
             if isinstance(n1["op"], type(n2["op"])):
                 if isinstance(n1["op"], ops.Input):
-                    if n1["op"].reg_type != n2["op"].reg_type:
-                        return 1
-                    else:
-                        return 0
+                    return int(not (n1["op"].reg_type == n2["op"].reg_type))
                 else:
                     return 0
             else:
                 return 1
 
+        def edge_subst_cost(e1,e2):
+            return int(not e1["control"] == e2["control"])
+
         if full:
             sim = nx.algorithms.similarity.graph_edit_distance(dag_1, dag_2,
                                                             node_subst_cost=node_subst_cost,
+                                                            edge_subst_cost=edge_subst_cost,
                                                             upper_bound=30.0,
                                                             timeout=10.0,
                                                             )
         else:
             sim = nx.algorithms.similarity.optimize_graph_edit_distance(dag_1, dag_2,
                                                                         node_subst_cost=node_subst_cost,
+                                                                        edge_subst_cost=edge_subst_cost,
                                                                         upper_bound=30.0,
                                                                         )
             sim = next(sim)

@@ -493,9 +493,9 @@ def test_ged_1():
 
 def test_ged_2():
     """
-    1. Remove ops.Hadamard
-    2. Add ops.Phase
-    3. Link p0 to ops.Phase
+    1. delete edge between ops.Hadamard and p0
+    2. replace ops.Hadamard ops.phase
+    3. insert edge between ops.phase and p0
     """
     circuit1 = CircuitDAG(n_emitter=1, n_photon=1, n_classical=0)
     circuit1.add(ops.Hadamard(register=0, reg_type="e"))
@@ -523,3 +523,13 @@ def test_ged_4():
     ged = circuit1.similarity_full_ged(circuit2)
 
     assert ged == 0
+
+def test_ged_5():
+    circuit1 = CircuitDAG(n_emitter=1, n_photon=1, n_classical=0)
+    circuit1.add(ops.CNOT(control=0, control_type="e", target=0, target_type="p"))
+    circuit2 = CircuitDAG(n_emitter=1, n_photon=1, n_classical=0)
+    circuit2.add(ops.CNOT(control=0, control_type="p", target=0, target_type="e"))
+    ged = circuit1.similarity_full_ged(circuit2)
+
+    assert ged == 2
+

@@ -521,16 +521,16 @@ class CircuitDAG(CircuitBase):
         # Check for classical register
         for i in range(len(operation.c_registers)):
             self._add_reg_if_absent(
-                register=operation.c_registers[i],
-                reg_type="c",
+                register=operation.c_registers[i], reg_type="c",
             )
 
         # Check for qubit register
-        register, reg_type = zip(*sorted(zip(operation.q_registers, operation.q_registers_type)))
+        register, reg_type = zip(
+            *sorted(zip(operation.q_registers, operation.q_registers_type))
+        )
         for i in range(len(register)):
             self._add_reg_if_absent(
-                register=register[i],
-                reg_type=reg_type[i],
+                register=register[i], reg_type=reg_type[i],
             )
 
         self._add(operation)
@@ -554,16 +554,16 @@ class CircuitDAG(CircuitBase):
         # Check for classical register
         for i in range(len(operation.c_registers)):
             self._add_reg_if_absent(
-                register=operation.c_registers[i],
-                reg_type="c",
+                register=operation.c_registers[i], reg_type="c",
             )
 
         # Check for qubit register
-        register, reg_type = zip(*sorted(zip(operation.q_registers, operation.q_registers_type)))
+        register, reg_type = zip(
+            *sorted(zip(operation.q_registers, operation.q_registers_type))
+        )
         for i in range(len(register)):
             self._add_reg_if_absent(
-                register=register[i],
-                reg_type=reg_type[i],
+                register=register[i], reg_type=reg_type[i],
             )
 
         assert len(edges) == len(operation.q_registers)
@@ -1236,7 +1236,9 @@ class CircuitDAG(CircuitBase):
             )
             self._edge_dict_append(
                 reg_type,
-                tuple(self.dag.in_edges(nbunch=f"{reg_type}{register}_out", keys=True))[0],
+                tuple(self.dag.in_edges(nbunch=f"{reg_type}{register}_out", keys=True))[
+                    0
+                ],
             )
 
     def _add(self, operation: ops.OperationBase):

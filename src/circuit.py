@@ -1329,7 +1329,7 @@ class CircuitDAG(CircuitBase):
         self._node_id += 1
         return self._node_id
 
-    def similarity_full_ged(self, circuit_compare, full = True):
+    def similarity_ged(self, circuit_compare, full = True):
         """
         Calculate Graph Edit Distance (GED) between two circuits.
         Further reading on GED:
@@ -1343,13 +1343,13 @@ class CircuitDAG(CircuitBase):
         :rtype: int
         """
 
-        dag_1 = self.remove_out_nodes()
-        dag_2 = circuit_compare.remove_out_nodes()
+        dag_1 = self.dag
+        dag_2 = circuit_compare.dag
         def node_subst_cost(n1, n2):
             if isinstance(n1["op"], type(n2["op"])):
                 if isinstance(n1["op"], ops.Input):
                     match = n1["op"].reg_type == n2["op"].reg_type
-                    return int(not match)
+                    return 999*int(not match)
                 elif issubclass(type(n1["op"]), ops.ControlledPairOperationBase) or \
                         issubclass(type(n1["op"]), ops.ClassicalControlledPairOperationBase):
                     match = n1["op"].control==n2["op"].control and n1["op"].control_type==n2["op"].control_type
@@ -1359,15 +1359,31 @@ class CircuitDAG(CircuitBase):
             else:
                 return 1
 
+        def edge_subst_cost(e1,e2):
+            match = e1["reg_type"] == e2["reg_type"]
+            return 999*int(not match)
+        def edge_del_cost(e):
+            return 1/3
+
+        def edge_ins_cost(e):
+            return 1/3
+
+
         if full:
             sim = nx.algorithms.similarity.graph_edit_distance(dag_1, dag_2,
                                                             node_subst_cost=node_subst_cost,
+                                                            edge_subst_cost=edge_subst_cost,
+                                                            edge_del_cost=edge_del_cost,
+                                                            edge_ins_cost=edge_ins_cost,
                                                             upper_bound=30.0,
                                                             timeout=10.0,
                                                             )
         else:
             sim = nx.algorithms.similarity.optimize_graph_edit_distance(dag_1, dag_2,
                                                                         node_subst_cost=node_subst_cost,
+                                                                        edge_subst_cost=edge_subst_cost,
+                                                                        edge_del_cost=edge_del_cost,
+                                                                        edge_ins_cost=edge_ins_cost,
                                                                         upper_bound=30.0,
                                                                         )
             sim = next(sim)

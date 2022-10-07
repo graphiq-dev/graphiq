@@ -65,7 +65,7 @@ class CircuitBase(ABC):
         :return: this function returns nothing
         :rtype: None
         """
-        self._registers = dict()
+        self._registers = self._registers = {"e": [], "p": [], "c": []}
 
         if openqasm_imports is None:
             self.openqasm_imports = {}
@@ -495,15 +495,14 @@ class CircuitDAG(CircuitBase):
         self._register_depth = dict()
 
         # map the key to the tuple register
-        reg_tuple = {
-            "e": tuple(range(n_emitter)),
-            "p": tuple(range(n_photon)),
-            "c": tuple(range(n_classical)),
+        reg_map = {
+            "e": n_emitter,
+            "p": n_photon,
+            "c": n_classical,
         }
-        self._registers = {"e": [], "p": [], "c": []}
 
-        for key in self._registers:
-            self._add_reg_if_absent(register=reg_tuple[key], reg_type=key)
+        for key in reg_map:
+            self._add_reg_if_absent(register=tuple(range(reg_map[key])), reg_type=key)
 
     def add(self, operation: ops.OperationBase):
         """

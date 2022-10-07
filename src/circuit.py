@@ -1386,7 +1386,7 @@ class CircuitDAG(CircuitBase):
         for i in range(len(self._register_depth[reg_type])):
             output_node = f"{reg_type}{i}_out"
             self._register_depth[reg_type][i] = self._max_depth(output_node)
-        return self.register_depth[reg_type]
+        return self._register_depth[reg_type]
 
     def min_reg_depth_index(self, reg_type: str):
         """

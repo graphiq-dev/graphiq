@@ -89,7 +89,8 @@ class Infidelity(MetricBase):
             self.target.stabilizer, Stabilizer
         ):
             if isinstance(self.target.stabilizer, MixedStabilizer):
-                assert len(self.target.stabilizer.mixture) == 1.0
+                # make sure it's still a pure state with only one tableau in the list
+                assert len(self.target.stabilizer.mixture) == 1
                 assert self.target.stabilizer.mixture[0][0] == 1.0
                 tableau = self.target.stabilizer.mixture[0][1]
             else:

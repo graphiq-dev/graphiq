@@ -31,7 +31,7 @@ class CompilerBase(ABC):
         :rtype: None
         """
         self._measurement_determinism = "probabilistic"
-        self._noise_simulation = True
+        self._noise_simulation = False
 
     @property
     def noise_simulation(self):

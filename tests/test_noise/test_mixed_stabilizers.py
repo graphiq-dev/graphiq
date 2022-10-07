@@ -81,9 +81,6 @@ def test_mixed_state_3():
     n_emitters, n_photons, d_emitter, lam = 1, 1, 2, 0.0
     circ, circ_ideal = create_circuits(n_emitters, n_photons, d_emitter, lam)
 
-    dm_state = compiler.compile(circ)
-    dm_state_ideal = compiler.compile(circ_ideal)
-
     compiler.noise_simulation = True
 
     nm.REDUCE_STABILIZER_MIXTURE = False

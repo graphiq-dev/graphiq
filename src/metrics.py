@@ -9,7 +9,8 @@ import src.backends.density_matrix.functions as dmf
 from src.backends.density_matrix.state import DensityMatrix
 
 import src.backends.stabilizer.functions.metric as sfm
-from src.backends.stabilizer.state import Stabilizer
+from src.backends.stabilizer.state import Stabilizer, MixedStabilizer
+
 
 class MetricBase(ABC):
     """
@@ -84,10 +85,25 @@ class Infidelity(MetricBase):
         :rtype: float
         """
         # TODO: add check for the representation
-        if isinstance(state.stabilizer, Stabilizer) and isinstance(self.target.stabilizer, Stabilizer):
-            # fid = sfm.fidelity(self.target.stabilizer.data, state.stabilizer.data)
-            fid = sum([pi * sfm.fidelity(self.target.stabilizer.mixture[0][1], ti)
-                       for pi, ti in state.stabilizer.mixture])
+        if isinstance(state.stabilizer, Stabilizer) and isinstance(
+            self.target.stabilizer, Stabilizer
+        ):
+            if isinstance(self.target.stabilizer, MixedStabilizer):
+                assert len(self.target.stabilizer.mixture) == 1.0
+                assert self.target.stabilizer.mixture[0][0] == 1.0
+                tableau = self.target.stabilizer.mixture[0][1]
+            else:
+                tableau = self.target.stabilizer.tableau
+
+            if isinstance(state.stabilizer, MixedStabilizer):
+                fid = sum(
+                    [
+                        pi * sfm.fidelity(tableau, ti)
+                        for pi, ti in state.stabilizer.mixture
+                    ]
+                )
+            elif type(state.stabilizer) == Stabilizer:
+                fid = sfm.fidelity(self.target.stabilizer.data, state.stabilizer.data)
 
         elif state.dm is not None and self.target.dm is not None:
             fid = dmf.fidelity(self.target.dm.data, state.dm.data)

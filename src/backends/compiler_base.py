@@ -33,6 +33,17 @@ class CompilerBase(ABC):
         self._measurement_determinism = "probabilistic"
         self._noise_simulation = True
 
+    @property
+    def noise_simulation(self):
+        return self._noise_simulation
+
+    @noise_simulation.setter
+    def noise_simulation(self, value):
+        if isinstance(value, bool):
+            self._noise_simulation = value
+        else:
+            raise ValueError("Noise simulation should be True or False.")
+
     def compile(self, circuit: CircuitBase):
         """
         Compiles (i.e. produces an output state) circuit, in the appropriate representation.
@@ -47,7 +58,10 @@ class CompilerBase(ABC):
         # TODO: make this more general, but for now we assume all registers are initialized to |0>
 
         state = QuantumState(
-            circuit.n_quantum, circuit.n_quantum, representation=self.__class__.name
+            n_qubits=circuit.n_quantum,
+            data=circuit.n_quantum,  # initialize to |0...0> state
+            representation=self.__class__.name,
+            mixed=True if self._noise_simulation else False,
         )
         classical_registers = np.zeros(circuit.n_classical)
 

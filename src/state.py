@@ -18,12 +18,13 @@ import networkx as nx
 
 from src.backends.graph.state import Graph
 from src.backends.density_matrix.state import DensityMatrix
-from src.backends.stabilizer.state import Stabilizer
+from src.backends.stabilizer.state import Stabilizer, MixedStabilizer
 import src.backends.density_matrix.functions as dmf
 import src.backends.stabilizer.functions.clifford as sfc
 
 # threshold above which density matrix representation is discouraged
 DENSITY_MATRIX_QUBIT_THRESH = 10
+STABILIZER_MIXED_REPRESENTATION = "branch"
 
 
 class QuantumState:
@@ -37,7 +38,7 @@ class QuantumState:
     TODO: add a handle to delete specific representations (may be useful to clear out memory)
     """
 
-    def __init__(self, n_qubits, data, representation=None):
+    def __init__(self, n_qubits, data, representation=None, mixed=False):
         """
         Creates the QuantumState class with certain initial representations
 
@@ -55,6 +56,7 @@ class QuantumState:
         :rtype: None
         """
         self.n_qubits = n_qubits
+        self.mixed = mixed
 
         self._dm = None
         self._graph = None
@@ -303,7 +305,11 @@ class QuantumState:
         :return: nothing
         :rtype: None
         """
-        self._stabilizer = Stabilizer(data)
+        if not self.mixed:
+            self._stabilizer = Stabilizer(data)
+        else:
+            self._stabilizer = MixedStabilizer(data)
+
         assert self._stabilizer.n_qubit == self.n_qubits, (
             f"Expected {self.n_qubits} qubits, "
             f"Stabilizer representation has {self._stabilizer.n_qubit}"

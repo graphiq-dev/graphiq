@@ -521,7 +521,8 @@ class CircuitDAG(CircuitBase):
         # Check for classical register
         for i in range(len(operation.c_registers)):
             self._add_reg_if_absent(
-                register=operation.c_registers[i], reg_type="c",
+                register=operation.c_registers[i],
+                reg_type="c",
             )
 
         # Check for qubit register
@@ -530,7 +531,8 @@ class CircuitDAG(CircuitBase):
         )
         for i in range(len(register)):
             self._add_reg_if_absent(
-                register=register[i], reg_type=reg_type[i],
+                register=register[i],
+                reg_type=reg_type[i],
             )
 
         self._add(operation)
@@ -554,7 +556,8 @@ class CircuitDAG(CircuitBase):
         # Check for classical register
         for i in range(len(operation.c_registers)):
             self._add_reg_if_absent(
-                register=operation.c_registers[i], reg_type="c",
+                register=operation.c_registers[i],
+                reg_type="c",
             )
 
         # Check for qubit register
@@ -563,7 +566,8 @@ class CircuitDAG(CircuitBase):
         )
         for i in range(len(register)):
             self._add_reg_if_absent(
-                register=register[i], reg_type=reg_type[i],
+                register=register[i],
+                reg_type=reg_type[i],
             )
 
         assert len(edges) == len(operation.q_registers)

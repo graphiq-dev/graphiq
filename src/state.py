@@ -52,6 +52,8 @@ class QuantumState:
         :type data: list OR numpy.ndarray OR Graph OR nx.Graph
         :param representation: selected representations to initialize
         :type representation: str OR list of str
+        :param mixed: boolean flag to initialize as a mixed state or not (mainly used for Stabilizer representation)
+        :type mixed: boolean
         :return: function returns nothing
         :rtype: None
         """

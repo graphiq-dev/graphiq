@@ -72,8 +72,19 @@ class Infidelity(MetricBase):
 
     def evaluate(self, state, circuit):
         """
-        Evaluates the infidelity from a given state and circuit
+        Evaluates the infidelity between a state and a target state.
 
+        The infidelity is :math:`1- F(\\rho, \\rho_{t})`
+
+        With the density matrix the fidelity is:
+        :math:`F(\\rho, \\rho_{t}):=Tr[\\sqrt{\\sqrt{\\rho} \\rho_{t} \\sqrt{\\rho}}]^2`
+
+        or if either :math:`\\rho` or :math:`\\rho_{t}` is pure, then it simplifies to:
+        :math:`F(\\rho, \\rho_{t}):=Tr[\\rho \\rho_{t}]`
+
+        Using the branched mixed stabilizer representation, the fidelity is:
+        :math:`F(\\rho, \\mathcal{T}_i) := \\sum_i p_i F(\\mathcal{T}_i, \\mathcal{T}_{t})`
+        which assumes the target state is pure and represented using a single tableau.
 
         :param state: the state to evaluate
         :type state: QuantumState

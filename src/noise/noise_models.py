@@ -502,7 +502,12 @@ class DepolarizingNoise(AdditionNoiseBase):
 
     def apply(self, state: QuantumState, n_quantum, reg_list):
         """
-        Apply the noisy gate to the state representations of state
+        Apply a depolarizing channel to the state, with probability :math:`p`.
+        The form of the channel (as Kraus operators) is,
+
+        :math:`\\rho \\to (1-p) \\rho + \\frac{p}{4^n - 1} \\sum_i P_i \\rho P_i`
+
+        where :math:`P_i` are the Pauli strings.
 
         :param state: the state
         :type state: QuantumState
@@ -568,7 +573,6 @@ class DepolarizingNoise(AdditionNoiseBase):
                                         pauli_j(tableau_i.copy(), qubit_position),
                                     )
                                 )
-                            # todo: check what happens if this was on two qubits (i.e. len(reg_list) was > 1
 
                     if not np.isclose(sum([pi for pi, ti in mixture]), 1.0):
                         raise ValueError(

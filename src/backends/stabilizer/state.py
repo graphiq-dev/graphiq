@@ -271,14 +271,13 @@ class Stabilizer(StateRepresentationBase):
         return tableau1 == tableau2
 
 
-"""
-EXPERIMENTAL: Mixed stabilizer formalism
-"""
-
-
 class MixedStabilizer(Stabilizer):
+    """
+    A mixed state representation using the stabilizer formalism, where the mixture is represented as a list of
+    pure states (tableaus) and an associated mixture probability.
+    """
+
     def __init__(self, data, *args, **kwargs):
-        # todo: check datatypes when initializing
         super().__init__(data, *args, **kwargs)
         if isinstance(data, int):
             self._mixture = [
@@ -288,14 +287,26 @@ class MixedStabilizer(Stabilizer):
             self._mixture = [
                 (1.0, data),
             ]
+        elif isinstance(data, list):
+            assert all(
+                isinstance(pi, float) and isinstance(ti, CliffordTableau)
+                for (pi, ti) in data
+            )
+            self._mixture = data
         else:
             raise TypeError(
                 f"Cannot initialize the stabilizer representation with datatype: {type(data)}"
             )
 
-    # @classmethod
-    # def valid_datatype(cls, data):
-    #     return isinstance(data, (int, CliffordTableau))
+    @classmethod
+    def valid_datatype(cls, data):
+        valid = isinstance(data, (int, CliffordTableau, list))
+        if isinstance(data, list):
+            valid = valid and all(
+                isinstance(pi, float) and isinstance(ti, CliffordTableau)
+                for (pi, ti) in data
+            )
+        return valid
 
     @property
     def n_qubit(self):
@@ -310,16 +321,33 @@ class MixedStabilizer(Stabilizer):
     @property
     def mixture(self):
         """
+        The mixture of pure states, represented as a list of tableaus and associated probabilities.
+
+        :return: the mixture as a list of (probability_i, tableau_i)
+        :rtype: list
         r"""
         return self._mixture
 
     @mixture.setter
     def mixture(self, value):
+        """
+        Sets the mixture of pure states, represented as a list of tableaus and associated probabilities.
+
+        :param value: a new mixture list, pure tableau, or a parameter to initialize a new tableau
+        :type value: list or int or CliffordTableau
+        :return: the mixture as a list of (probability_i, tableau_i)
+        :rtype: list
+        r"""
         if isinstance(value, list):
-            assert all(isinstance(t_i, CliffordTableau) for (p_i, t_i) in value)
+            assert all(
+                isinstance(pi, float) and isinstance(ti, CliffordTableau)
+                for (pi, ti) in value
+            )
             self._mixture = value
         elif isinstance(value, CliffordTableau):
-            self._mixture = [1.0, value]
+            self._mixture = [(1.0, value)]
+        elif isinstance(value, int):
+            self._mixture = [(1.0, CliffordTableau(value))]
         else:
             raise TypeError(
                 "Must use a list of CliffordTableau for the mixed stabilizer"
@@ -328,10 +356,10 @@ class MixedStabilizer(Stabilizer):
     @property
     def data(self):
         """
-        The data that represents the state given by this Stabilizer representation
+        The data that represents the state given by this MixedStabilizer representation
 
-        :return: the tableau that represents this state
-        :rtype: CliffordTableau
+        :return: the mixture that represents this state
+        :rtype: list
         """
         return self.mixture
 
@@ -349,6 +377,11 @@ class MixedStabilizer(Stabilizer):
 
     @property
     def probability(self):
+        """
+        Computes the total probability as the summed probability of all pure states in the mixture
+        :math:`\sum_i p_i \ \forall (p_i, \mathcal{T}_i`.
+        :return:
+        """
         return sum(pi for pi, ti in self.mixture)
 
     @property
@@ -396,6 +429,7 @@ class MixedStabilizer(Stabilizer):
         :return: the measurement outcome
         :rtype: int
         """
+        # TODO: how to best measure?
         self._tableau, outcome, _, = sfc.z_measurement_gate(
             self._tableau, qubit_position, measurement_determinism
         )
@@ -582,6 +616,3 @@ class MixedStabilizer(Stabilizer):
         :rtype: bool
         """
         raise NotImplementedError
-        # tableau1 = canonical_form(self.data.to_stabilizer())
-        # tableau2 = canonical_form(other.data.to_stabilizer())
-        # return tableau1 == tableau2

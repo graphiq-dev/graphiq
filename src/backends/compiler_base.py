@@ -35,10 +35,22 @@ class CompilerBase(ABC):
 
     @property
     def noise_simulation(self):
+        """
+        Flag to run circuit simulation using noise or not.
+
+        :return: boolean flag to run noise
+        :rtype: boolean
+        """
         return self._noise_simulation
 
     @noise_simulation.setter
     def noise_simulation(self, value):
+        """
+        Set the flag for running noise.
+
+        :param value: True or False
+        :return:
+        """
         if isinstance(value, bool):
             self._noise_simulation = value
         else:

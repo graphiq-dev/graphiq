@@ -1,8 +1,5 @@
 import pytest
 
-import copy
-import time
-import pandas as pd
 import numpy as np
 
 import src.noise.noise_models as nm
@@ -22,7 +19,15 @@ def create_circuits(n_emitters, n_photons, d_emitter, lam):
 
         for i in range(n_emitters):
             for j in range(d_emitter):
-                circ.add(ops.Hadamard(register=i, reg_type="e", noise=nm.NoNoise() if s=="ideal" else nm.DepolarizingNoise(depolarizing_prob=lam)))
+                circ.add(
+                    ops.Hadamard(
+                        register=i,
+                        reg_type="e",
+                        noise=nm.NoNoise()
+                        if s == "ideal"
+                        else nm.DepolarizingNoise(depolarizing_prob=lam),
+                    )
+                )
 
         for i in range(n_photons):
             circ.add(ops.Hadamard(register=i, reg_type="p", noise=nm.NoNoise()))
@@ -46,9 +51,7 @@ def test_mixed_state_1():
     assert isinstance(state.stabilizer, MixedStabilizer)
 
 
-@pytest.mark.parametrize(
-    "n_emitters", [1, 2, 3]
-)
+@pytest.mark.parametrize("n_emitters", [1, 2, 3])
 def test_mixed_state_2(n_emitters):
     dm_compiler = DensityMatrixCompiler()
 

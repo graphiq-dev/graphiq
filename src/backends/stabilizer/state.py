@@ -1,6 +1,9 @@
 """
 State representation using the stabilizer formalism
 """
+import copy
+import numpy as np
+
 import src.backends.stabilizer.functions.transformation as transform
 from src.backends.state_base import StateRepresentationBase
 import src.backends.stabilizer.functions.clifford as sfc
@@ -340,6 +343,25 @@ class Stabilizer(StateRepresentationBase):
     @property
     def probability(self):
         return sum(pi for pi, ti in self.mixture)
+
+    def reduce(self):
+        mixture_temp = self.mixture
+        # print("starting len", len(mixture_temp))
+        mixture_reduce = []
+        while len(mixture_temp) != 0:
+            p0, t0 = mixture_temp[0]
+            mixture_temp.pop(0)
+            for i, (pi, ti) in enumerate(mixture_temp):
+                if np.count_nonzero(t0 != ti) == 0:
+                    # print("same")
+                    p0 += pi
+                    mixture_temp.pop(i)
+
+            mixture_reduce.append((p0, t0))
+
+        # print(mixture_reduce)
+        # print("len after reduction", len(mixture_reduce))
+        self.mixture = mixture_reduce
 
     def apply_unitary(self, qubit_position, unitary):
         raise NotImplementedError(

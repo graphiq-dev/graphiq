@@ -219,9 +219,9 @@ class QuantumState:
         if self._stabilizer is not None:
             return self._stabilizer
         # TODO: ATTEMPT TO CONVERT EXISTING REPRESENTATION to stabilizer. This should call on backend functions
-        raise ValueError(
-            "Cannot convert existing representation to stabilizer representation"
-        )
+        # raise ValueError(
+        #     "Cannot convert existing representation to stabilizer representation"
+        # )
 
     @stabilizer.setter
     def stabilizer(self, new_stabilizer):

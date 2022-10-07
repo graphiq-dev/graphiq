@@ -28,6 +28,9 @@ from src.backends.stabilizer.state import Stabilizer
 from src.backends.graph.state import Graph
 from src.backends.state_base import StateRepresentationBase
 
+REDUCE_STABILIZER_MIXTURE = False
+
+
 """ Base classes from which any noise model will inherit """
 
 
@@ -561,9 +564,9 @@ class DepolarizingNoise(AdditionNoiseBase):
 
                 for i, kraus_op in enumerate(kraus_ops_iter):
                     if i == 0:
-                        factor = np.sqrt(1 - (depolarizing_prob * (n_kraus-1) / n_kraus))
+                        factor = np.sqrt(1 - depolarizing_prob)
                     else:
-                        factor = np.sqrt(depolarizing_prob / n_kraus)
+                        factor = np.sqrt(depolarizing_prob / (n_kraus - 1))
 
                     kraus_ops.append(factor * dmf.get_multi_qubit_gate(n_quantum, reg_list, kraus_op)
                     )
@@ -571,23 +574,29 @@ class DepolarizingNoise(AdditionNoiseBase):
 
             elif isinstance(state_rep, Stabilizer):
                 mixture = []
-
-                norm = 4 ** n_quantum
+                norm = (4 ** len(reg_list) - 1)
                 for (p_i, tableau_i) in state_rep.mixture:
                     single_qubit_trans = [transform.identity, transform.x_gate, transform.y_gate, transform.z_gate]
                     trans_iter = combinations(single_qubit_trans, len(reg_list))
                     for i, pauli_string in enumerate(trans_iter):
                         if i == 0:
-                            factor = 1 - (depolarizing_prob * (norm - 1) / norm)
+                            factor = 1 - depolarizing_prob
                         else:
                             factor = depolarizing_prob / norm
 
                         for pauli_j, qubit_position in zip(pauli_string, reg_list):
                             mixture.append(
-                                (factor, pauli_j(tableau_i.copy(), qubit_position))
+                                (p_i * factor, pauli_j(tableau_i.copy(), qubit_position))
                             )
                         # todo: check what happens if this was on two qubits (i.e. len(reg_list) was > 1
+
+                if not np.isclose(sum([pi for pi, ti in mixture]), 1.0):
+                    raise ValueError(f"Probability is not unity. P = {sum([pi for pi, ti in mixture])}, lam={depolarizing_prob} | Reg list {reg_list}")
+
                 state_rep.mixture = mixture
+                # print("REDUCE_STABILIZER_MIXTURE is ", REDUCE_STABILIZER_MIXTURE)
+                if REDUCE_STABILIZER_MIXTURE:
+                    state_rep.reduce()
 
             elif isinstance(state_rep, Graph):
                 # TODO: Implement this for Graph backend

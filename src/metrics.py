@@ -85,7 +85,9 @@ class Infidelity(MetricBase):
         """
         # TODO: add check for the representation
         if isinstance(state.stabilizer, Stabilizer) and isinstance(self.target.stabilizer, Stabilizer):
-            fid = sfm.fidelity(self.target.stabilizer.data, state.stabilizer.data)
+            # fid = sfm.fidelity(self.target.stabilizer.data, state.stabilizer.data)
+            fid = sum([pi * sfm.fidelity(self.target.stabilizer.mixture[0][1], ti)
+                       for pi, ti in state.stabilizer.mixture])
 
         elif state.dm is not None and self.target.dm is not None:
             fid = dmf.fidelity(self.target.dm.data, state.dm.data)

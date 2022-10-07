@@ -1177,7 +1177,7 @@ class CircuitDAG(CircuitBase):
                 f"reg_type must be 'e' (emitter qubit), 'p' (photonic qubit), 'c' (classical bit)"
             )
         self._add_reg_if_absent(
-            register=(len(self._registers[reg_type]),), reg_type=reg_type
+            register=len(self._registers[reg_type]), reg_type=reg_type
         )
 
     def _expand_register(self, register, new_size, type_reg):

@@ -839,7 +839,7 @@ class CircuitDAG(CircuitBase):
         :return: register depth
         :rtype: dict
         """
-        return self._register_depth.copy()
+        return self.calculate_all_reg_depth()
 
     def _node_dict_append(self, key, value):
         """
@@ -1410,4 +1410,4 @@ class CircuitDAG(CircuitBase):
         """
         for reg_type in self._register_depth:
             self.calculate_reg_depth(reg_type=reg_type)
-        return self.register_depth
+        return self._register_depth.copy()

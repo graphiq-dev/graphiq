@@ -175,31 +175,6 @@ class CompilerBase(ABC):
                 'Measurement determinism can only be set to "probabilistic", 0, or 1'
             )
 
-    @property
-    def noise_simulation(self):
-        """
-        Returns the setting for noise simulation
-
-        :return: the setting for noise simulation
-        :rtype: bool
-        """
-        return self._noise_simulation
-
-    @noise_simulation.setter
-    def noise_simulation(self, choice):
-        """
-        Set the setting for noise simulation
-
-        :param choice: True to enable noise simulation; False to disable noise simulation
-        :type choice: bool
-        :return: nothing
-        :rtype: None
-        """
-        if type(choice) is bool:
-            self._noise_simulation = choice
-        else:
-            raise ValueError("Noise simulation choice can only be set to True or False")
-
     @staticmethod
     def reg_to_index_func(n_photon):
         """

@@ -65,7 +65,7 @@ class CircuitBase(ABC):
         :return: this function returns nothing
         :rtype: None
         """
-        self._registers = self._registers = {"e": [], "p": [], "c": []}
+        self._registers = {"e": [], "p": [], "c": []}
 
         if openqasm_imports is None:
             self.openqasm_imports = {}

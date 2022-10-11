@@ -1,0 +1,21 @@
+name: Test Code Coverage
+
+on: [pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    name: Test python API
+    steps:
+    - uses: actions/checkout@v1
+    - uses: actions/setup-python@v2
+      with:
+        python-version: '3.9'
+    - name: Install requirements
+      run: pip install -r requirements.txt
+    - name: Run tests and collect coverage
+      run: coverage run -m pytest ./tests
+    - name: Make coverage xml file
+      run: coverage xml
+    - name: Create coverage svg
+      run: genbadge coverage -i coverage.xml

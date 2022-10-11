@@ -492,7 +492,7 @@ class CircuitDAG(CircuitBase):
         self._node_id = 0
         self.edge_dict = {}
         self.node_dict = {}
-        self._register_depth = dict()
+        self._register_depth = {"e": [], "p": [], "c": []}
 
         # map the key to the tuple register
         reg_map = {
@@ -1191,27 +1191,9 @@ class CircuitDAG(CircuitBase):
         )
 
     def _add_reg_if_absent(self, register, reg_type):
-        # def _check_and_add_register(test_reg, circuit_reg, register_type: str):
-        #     sorted_reg = list(test_reg)
-        #     sorted_reg.sort()
-        #     for i in sorted_reg:
-        #         # we sort such that we can throw an error if we get discontinuous registers
-        #         if i == len(circuit_reg):
-        #             circuit_reg.append(1)
-        #
-        #             # add new register depth to register depth dict
-        #             self._add_register_depth(reg_type=register_type)
-        #         elif i > len(circuit_reg):
-        #             raise ValueError(
-        #                 f"Register numbering must be continuous. {register_type} register {i} cannot be added. "
-        #                 f"Next register that can be added is {len(circuit_reg)}"
-        #             )
-        #
-        # _check_and_add_register(register, self._registers[reg_type], reg_type)
-
         if register == len(self._registers[reg_type]):
             self._registers[reg_type].append(1)
-            self._add_register_depth(reg_type=reg_type)
+            self._register_depth[reg_type].append(0)
         elif register > len(self._registers[reg_type]):
             raise ValueError(
                 f"Register numbering must be continuous. {reg_type} register {register} cannot be added. "
@@ -1317,23 +1299,6 @@ class CircuitDAG(CircuitBase):
         """
         self._node_id += 1
         return self._node_id
-
-    def _add_register_depth(self, reg_type: str):
-        """
-        Adds a register depth to the register depth dict.
-        If register type is new, adds new register type, then adds register depth to that register type
-
-        :param reg_type: str indicates register type. Can be "e", "p", or "c"
-        :type reg_type: str
-        :return: function returns nothing
-        :rtype: None
-        """
-        if reg_type in self._register_depth:
-            self._register_depth[reg_type] = np.append(
-                self._register_depth[reg_type], 0
-            )
-        else:
-            self._register_depth[reg_type] = np.array([0])
 
     def _max_depth(self, root_node):
         """

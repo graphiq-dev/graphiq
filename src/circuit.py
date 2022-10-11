@@ -1191,6 +1191,16 @@ class CircuitDAG(CircuitBase):
         )
 
     def _add_reg_if_absent(self, register, reg_type):
+        """
+        Adds a register to our list of registers and to our graph, if said registers are absent
+        :param register: Index of the new register
+        :type register: int
+        :param reg_type: str indicates register type. Can be "e", "p", or "c"
+        :type reg_type: str
+        :return: function returns nothing
+        :rtype: None
+        """
+
         if register == len(self._registers[reg_type]):
             self._registers[reg_type].append(1)
             self._register_depth[reg_type].append(0)

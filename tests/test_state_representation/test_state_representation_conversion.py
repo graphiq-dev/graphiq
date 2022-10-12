@@ -1,13 +1,12 @@
 import numpy as np
 import networkx as nx
-
 from functools import reduce
+
 from src.backends.density_matrix.state import DensityMatrix
 from src.backends.graph.state import Graph
 import src.backends.density_matrix.functions as dmf
 import src.backends.graph.functions as gf
 import src.backends.stabilizer.functions.utils as sfu
-
 import src.backends.state_representation_conversion as rep_converter
 
 

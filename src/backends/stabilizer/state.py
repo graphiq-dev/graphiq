@@ -88,6 +88,19 @@ class Stabilizer(StateRepresentationBase):
             "Stabilizer backend does not support general unitary operation."
         )
 
+    def apply_circuit(self, gate_list_str, reverse=False):
+        """
+        Apply a quantum circuit to the tableau
+
+        :param gate_list_str: a list of gates in the circuit
+        :type gate_list_str: list[tuple]
+        :param reverse: a parameter to indicate whether running the inverse circuit
+        :type reverse: bool
+        :return: nothing
+        :rtype: None
+        """
+        transform.run_circuit(self._tableau, gate_list_str, reverse=reverse)
+
     def apply_measurement(
         self, qubit_position, measurement_determinism="probabilistic"
     ):

@@ -5,6 +5,7 @@ import networkx as nx
 import numpy as np
 
 import src.backends.stabilizer.functions.clifford as sfc
+import src.backends.stabilizer.functions.transformation as transform
 from src.backends.stabilizer.functions.stabilizer import inverse_circuit
 from src.backends.stabilizer.tableau import StabilizerTableau
 
@@ -21,7 +22,7 @@ def clifford_from_stabilizer(stabilizer_tableau):
     n_qubits = stabilizer_tableau.n_qubits
     _, circuit = inverse_circuit(stabilizer_tableau)
     clifford_tableau = sfc.create_n_ket0_state(n_qubits)
-    return sfc.run_circuit(clifford_tableau, circuit, reverse=True)
+    return transform.run_circuit(clifford_tableau, circuit, reverse=True)
 
 
 def get_stabilizer_tableau_from_graph(graph):

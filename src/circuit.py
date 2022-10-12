@@ -37,6 +37,7 @@ import functools
 import re
 import string
 import numpy as np
+
 import src.ops as ops
 import src.utils.openqasm_lib as oq_lib
 from src.visualizers.dag import dag_topology_pos
@@ -452,11 +453,11 @@ class CircuitBase(ABC):
 
     @property
     def emitter_registers(self):
-        return self._registers["e"].copy()
+        return self._registers["e"]
 
     @property
     def photonic_registers(self):
-        return self._registers["p"].copy()
+        return self._registers["p"]
 
     @emitter_registers.setter
     def emitter_registers(self, q_reg):
@@ -468,7 +469,7 @@ class CircuitBase(ABC):
 
     @property
     def c_registers(self):
-        return self._registers["c"].copy()
+        return self._registers["c"]
 
     @c_registers.setter
     def c_registers(self, c_reg):
@@ -550,6 +551,7 @@ class CircuitBase(ABC):
         :rtype: int
         """
         return self._registers.n_quantum()
+
 
     @property
     def n_photons(self):
@@ -794,18 +796,18 @@ class CircuitDAG(CircuitBase):
         """
         super().__init__(openqasm_imports=openqasm_imports, openqasm_defs=openqasm_defs)
         self._DAG = DAG()
-        self._register_depth = dict()
+        self._register_depth = {"e": [], "p": [], "c": []}
 
         # map the key to the tuple register
         reg_map = {
-            "e": range(n_emitter),
-            "p": range(n_photon),
-            "c": range(n_classical),
+            "e": n_emitter,
+            "p": n_photon,
+            "c": n_classical,
         }
 
         for key in reg_map:
-            for i in reg_map[key]:
-                self._add_reg_if_absent(register=reg_map[key][i], reg_type=key)
+            for i in range(reg_map[key]):
+                self._add_reg_if_absent(register=i, reg_type=key)
 
     @property
     def dag(self):
@@ -818,28 +820,6 @@ class CircuitDAG(CircuitBase):
     @property
     def node_dict(self):
         return self._DAG.node_dict
-
-    @property
-    def depth(self):
-        """
-        Returns the circuit depth (NOT including input and output nodes)
-
-        :return: circuit depth
-        :rtype: int
-        """
-        # TODO: check efficiency of this method
-        # assert len(list(nx.topological_generations(self.dag)))-2 == nx.dag_longest_path_length(self.dag)-1
-        return nx.dag_longest_path_length(self.dag) - 1
-
-    @property
-    def register_depth(self):
-        """
-        Returns the copy of register depth for each register
-
-        :return: register depth
-        :rtype: dict
-        """
-        return self._register_depth.copy()
 
     def add(self, operation: ops.OperationBase):
         """
@@ -862,10 +842,13 @@ class CircuitDAG(CircuitBase):
             )
 
         # Check for qubit register
-        for i in range(len(operation.q_registers)):
+        register, reg_type = zip(
+            *sorted(zip(operation.q_registers, operation.q_registers_type))
+        )
+        for i in range(len(register)):
             self._add_reg_if_absent(
-                register=operation.q_registers[i],
-                reg_type=operation.q_registers_type[i],
+                register=register[i],
+                reg_type=reg_type[i],
             )
 
         self._DAG.add(operation)
@@ -894,10 +877,13 @@ class CircuitDAG(CircuitBase):
             )
 
         # Check for qubit register
-        for i in range(len(operation.q_registers)):
+        register, reg_type = zip(
+            *sorted(zip(operation.q_registers, operation.q_registers_type))
+        )
+        for i in range(len(register)):
             self._add_reg_if_absent(
-                register=operation.q_registers[i],
-                reg_type=operation.q_registers_type[i],
+                register=register[i],
+                reg_type=reg_type[i],
             )
 
         assert len(edges) == len(operation.q_registers)
@@ -1061,6 +1047,28 @@ class CircuitDAG(CircuitBase):
             return op_list
 
         return functools.reduce(lambda x, y: x + y.unwrap(), op_list, [])
+
+    @property
+    def depth(self):
+        """
+        Returns the circuit depth (NOT including input and output nodes)
+
+        :return: circuit depth
+        :rtype: int
+        """
+        # TODO: check efficiency of this method
+        # assert len(list(nx.topological_generations(self.dag)))-2 == nx.dag_longest_path_length(self.dag)-1
+        return nx.dag_longest_path_length(self.dag) - 1
+
+    @property
+    def register_depth(self):
+        """
+        Returns the copy of register depth for each register
+
+        :return: register depth
+        :rtype: dict
+        """
+        return self.calculate_all_reg_depth()
 
     def draw_dag(self, show=True, fig=None, ax=None):
         """
@@ -1292,41 +1300,23 @@ class CircuitDAG(CircuitBase):
     def _add_reg_if_absent(self, register, reg_type):
         """
         Adds a register to our list of registers and to our graph, if said registers are absent
-
-        :param register: the index of register we want to add
+        :param register: Index of the new register
         :type register: int
-        :param reg_type: indicate the register type. Can be "e", "p", or "c"
+        :param reg_type: str indicates register type. Can be "e", "p", or "c"
         :type reg_type: str
         :return: function returns nothing
         :rtype: None
         """
 
         if register == len(self._registers[reg_type]):
-            self._registers.add_register(reg_type=reg_type)
-            self._add_register_depth(reg_type=reg_type)
+            self._registers[reg_type].append(1)
+            self._register_depth[reg_type].append(0)
         elif register > len(self._registers[reg_type]):
             raise ValueError(
                 f"Register numbering must be continuous. {reg_type} register {register} cannot be added. "
                 f"Next register that can be added is {len(self._registers[reg_type])}"
             )
         self._DAG.add_input_output_node(register, reg_type)
-
-    def _add_register_depth(self, reg_type: str):
-        """
-        Adds a register depth to the register depth dict.
-        If register type is new, adds new register type, then adds register depth to that register type
-
-        :param reg_type: str indicates register type. Can be "e", "p", or "c"
-        :type reg_type: str
-        :return: function returns nothing
-        :rtype: None
-        """
-        if reg_type in self._register_depth:
-            self._register_depth[reg_type] = np.append(
-                self._register_depth[reg_type], 0
-            )
-        else:
-            self._register_depth[reg_type] = np.array([0])
 
     def sorted_reg_depth_index(self, reg_type: str):
         """
@@ -1356,7 +1346,7 @@ class CircuitDAG(CircuitBase):
         for i in range(len(self._register_depth[reg_type])):
             output_node = f"{reg_type}{i}_out"
             self._register_depth[reg_type][i] = self._DAG.max_depth(output_node)
-        return self.register_depth[reg_type]
+        return self._register_depth[reg_type]
 
     def min_reg_depth_index(self, reg_type: str):
         """
@@ -1380,5 +1370,5 @@ class CircuitDAG(CircuitBase):
         """
         for reg_type in self._register_depth:
             self.calculate_reg_depth(reg_type=reg_type)
-        return self.register_depth
+        return self._register_depth.copy()
 

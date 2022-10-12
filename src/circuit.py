@@ -414,7 +414,9 @@ class DAG:
             )
             self.edge_dict_append(
                 reg_type,
-                tuple(self.dag.in_edges(nbunch=f"{reg_type}{register}_out", keys=True))[0],
+                tuple(self.dag.in_edges(nbunch=f"{reg_type}{register}_out", keys=True))[
+                    0
+                ],
             )
 
 
@@ -552,7 +554,6 @@ class CircuitBase(ABC):
         """
         return self._registers.n_quantum()
 
-
     @property
     def n_photons(self):
         """
@@ -680,7 +681,9 @@ class CircuitBase(ABC):
         :return: this function returns nothing
         :rtype: None
         """
-        self._registers.expand_register(reg_type="e", register=register, new_size=new_size)
+        self._registers.expand_register(
+            reg_type="e", register=register, new_size=new_size
+        )
 
     def expand_photonic_register(self, register, new_size):
         """
@@ -695,7 +698,9 @@ class CircuitBase(ABC):
         :return: this function returns nothing
         :rtype: None
         """
-        self._registers.expand_register(reg_type="p", register=register, new_size=new_size)
+        self._registers.expand_register(
+            reg_type="p", register=register, new_size=new_size
+        )
 
     def expand_classical_register(self, register, new_size):
         """
@@ -710,7 +715,9 @@ class CircuitBase(ABC):
         :return: this function returns nothing
         :rtype: None
         """
-        self._registers.expand_register(reg_type="c", register=register, new_size=new_size)
+        self._registers.expand_register(
+            reg_type="c", register=register, new_size=new_size
+        )
 
     def draw_circuit(self, show=True, ax=None):
         """
@@ -967,7 +974,9 @@ class CircuitDAG(CircuitBase):
         """
         remaining_nodes = set(self.dag.nodes)
         for label in labels:
-            remaining_nodes = remaining_nodes.intersection(set(self._DAG.node_dict[label]))
+            remaining_nodes = remaining_nodes.intersection(
+                set(self._DAG.node_dict[label])
+            )
         return list(remaining_nodes)
 
     def get_node_exclude_labels(self, labels):
@@ -1371,4 +1380,3 @@ class CircuitDAG(CircuitBase):
         for reg_type in self._register_depth:
             self.calculate_reg_depth(reg_type=reg_type)
         return self._register_depth.copy()
-

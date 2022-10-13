@@ -22,8 +22,8 @@ jobs:
       run: genbadge coverage -i coverage.xml
     - name: Commit files and Push Changes
       run: |
-       git config --local user.email "github-actions[bot]@users.noreply.github.com"
-       git config --local user.name "github-actions[bot]"
+       git config user.email "github-actions[bot]@users.noreply.github.com"
+       git config user.name "github-actions[bot]"
        git add coverage-badge.svg
        git commit -m "Updated coverage.svg"
        git push

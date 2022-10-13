@@ -9,6 +9,26 @@ from src.backends.stabilizer.functions.stabilizer import rref
 from src.backends.stabilizer.tableau import StabilizerTableau
 
 
+def leftmost_nontrivial_index(tableau, generator_index):
+    """
+    Find the index of the leftmost nontrivial site of the generator
+
+    :param tableau: an input stabilizer tableau
+    :type tableau: StabilizerTableau
+    :param generator_index: the index of the generator
+    :type generator_index: int
+    :return: the index of the leftmost nontrivial site of the generator
+    :rtype: int
+    """
+    row_sum = tableau.x_matrix[generator_index] + tableau.z_matrix[generator_index]
+    nonzero = np.nonzero(row_sum)[0]
+    if len(nonzero) == 0:
+        raise ValueError(
+            "The input tableau contains a generator of all identities. This is invalid."
+        )
+    return nonzero[0]
+
+
 def height_func_list(x_matrix, z_matrix):
     """
     Calculates the height_function for all qubit in the graph given the stabilizer tableau of a graph state with ordered
@@ -26,25 +46,18 @@ def height_func_list(x_matrix, z_matrix):
     height_list = []
     tableau = StabilizerTableau([x_matrix, z_matrix])
     tableau = rref(tableau)
-    x_matrix = tableau.x_matrix
-    z_matrix = tableau.z_matrix
 
     for qubit_position in range(n_qubits):
-        left_most_nontrivial = []
+        leftmost_nontrivial_list = []
         for row_i in range(n_qubits):
-            for column_j in range(n_qubits):
-                if not (
-                    x_matrix[row_i, column_j] == 0 and z_matrix[row_i, column_j] == 0
-                ):
-                    left_most_nontrivial.append(column_j)
-                    break
-        assert len(left_most_nontrivial) == n_qubits, (
+            leftmost_nontrivial_list.append(leftmost_nontrivial_index(tableau, row_i))
+        assert len(leftmost_nontrivial_list) == n_qubits, (
             "Invalid input. One of the stabilizers is identity on " "all qubits!"
         )
-        n_non_trivial_generators = len(
-            [x for x in left_most_nontrivial if x - qubit_position > 0]
+        n_nontrivial_generators = len(
+            [x for x in leftmost_nontrivial_list if x - qubit_position > 0]
         )
-        height = n_qubits - (qubit_position + 1) - n_non_trivial_generators
+        height = n_qubits - (qubit_position + 1) - n_nontrivial_generators
         height_list.append(height)
     return height_list
 

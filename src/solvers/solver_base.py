@@ -23,6 +23,18 @@ class SolverBase(ABC):
     target quantum state.
     """
 
+    name = "base"
+
+    fixed_ops = [ops.Input, ops.Output]  # ops that should never be removed/swapped
+
+    one_qubit_ops = [
+        ops.Hadamard,
+    ]
+
+    two_qubit_ops = [
+        ops.CNOT,
+    ]
+
     def __init__(
         self,
         target,
@@ -31,20 +43,16 @@ class SolverBase(ABC):
         circuit: CircuitBase = None,
         io: IO = None,
     ):
-        self.name = "base"
         self.target = target
         self.metric = metric
         self.compiler = compiler
         self.io = io
 
-        if circuit is None:
-            warnings.warn(f"Initial circuit for {self.__class__.__name__} is 'None'. ")
         self.circuit = circuit
 
         self.last_seed = None
-
-        # TODO: I would remove the population/hof specifications, since they may not apply to all solvers
-        self.logs = {"population": [], "hof": []}
+        self.logs = {}
+        self.result = None
 
     @abstractmethod
     def solve(self, *args):
@@ -79,16 +87,6 @@ class RandomSearchSolver(SolverBase):
 
     name = "random-search"
 
-    fixed_ops = [ops.Input, ops.Output]  # ops that should never be removed/swapped
-
-    one_qubit_ops = [
-        ops.Hadamard,
-    ]
-
-    two_qubit_ops = [
-        ops.CNOT,
-    ]
-
     def __init__(
         self,
         target,
@@ -110,10 +108,9 @@ class RandomSearchSolver(SolverBase):
         self.n_pop = n_pop
         self.n_stop = n_stop
         self.hof = [(np.inf, None) for _ in range(self.n_hof)]
-
         self.trans_probs = {None: None}
-
         self.transformations = list(self.trans_probs.keys())
+        self.logs = {"population": [], "hof": []}
 
     @property
     def n_hof(self):
@@ -131,12 +128,12 @@ class RandomSearchSolver(SolverBase):
             for i in range(self.n_hof):
                 if np.isclose(score, self.hof[i][0]):
                     if len(circuit.dag.nodes) < len(self.hof[i][1].dag.nodes):
-                        self.hof.insert(i, (score, copy.deepcopy(circuit)))
+                        self.hof.insert(i, (score, circuit.copy()))
                         self.hof.pop()
                         break
 
                 elif score < self.hof[i][0]:
-                    self.hof.insert(i, (score, copy.deepcopy(circuit)))
+                    self.hof.insert(i, (score, circuit.copy()))
                     self.hof.pop()
                     break
 
@@ -163,10 +160,8 @@ class RandomSearchSolver(SolverBase):
             # tourn_pop.sort(key=lambda x: x[0], reverse=False)
             best = min(tourn_pop, key=lambda x: x[0])
 
-            population_new.append(
-                copy.deepcopy(best)
-            )  # add the best performing circuit in the tournament
-
+            # add the best performing circuit in the tournament
+            population_new.append(copy.deepcopy(best))
         return population_new
 
     def solve(self, *args):

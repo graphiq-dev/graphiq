@@ -26,4 +26,4 @@ jobs:
        git add coverage-badge.svg
        git commit -m "Updated coverage.svg"
     - name: Push Changes
-    - uses: stefanzweifel/git-auto-commit-action@v4
+      uses: stefanzweifel/git-auto-commit-action@v4

@@ -25,4 +25,4 @@ jobs:
        git config --local user.name "github-actions[bot]"
        git add coverage-badge.svg
        git commit -m "Updated coverage.svg"
-    uses: stefanzweifel/git-auto-commit-action@v4
+    - uses: stefanzweifel/git-auto-commit-action@v4

@@ -20,10 +20,12 @@ jobs:
       run: coverage xml
     - name: Create coverage svg
       run: genbadge coverage -i coverage.xml
-    - name: Commit files and Push Changes
+    - name: Commit files
       run: |
        git config user.email "github-actions[bot]@users.noreply.github.com"
        git config user.name "github-actions[bot]"
        git add coverage-badge.svg
        git commit -m "Updated coverage.svg"
-       git push
+    - name: Push Changes
+      if: steps.changed_files.outputs.files_changed == 'true'
+      run: git push

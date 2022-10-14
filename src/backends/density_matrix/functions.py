@@ -468,7 +468,6 @@ def partial_trace(rho, keep, dims, optimize=False):
     :return: the (2D) matrix after partial trace
     :rtype: numpy.ndarray
     """
-    import numpy as np
 
     keep = np.asarray(keep)
     dims = np.asarray(dims)

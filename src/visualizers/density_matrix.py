@@ -46,11 +46,20 @@ def density_matrix_bars(rho):
 
     def bar_plot(deltaz, ax):
         if np.max(np.abs(deltaz)) < 0.25:
-            max_height, min_height = 0.25, -0.25  # get range of colorbars so we can normalize
+            max_height, min_height = (
+                0.25,
+                -0.25,
+            )  # get range of colorbars so we can normalize
         elif np.max(np.abs(deltaz)) < 0.5:
-            max_height, min_height = 0.5, -0.5  # get range of colorbars so we can normalize
+            max_height, min_height = (
+                0.5,
+                -0.5,
+            )  # get range of colorbars so we can normalize
         else:
-            max_height, min_height = 1.0, -1.0  # get range of colorbars so we can normalize
+            max_height, min_height = (
+                1.0,
+                -1.0,
+            )  # get range of colorbars so we can normalize
         n = deltaz.shape[0]
         n_qubits = int(np.log2(n))
         X, Y = np.meshgrid(np.arange(n), np.arange(n))
@@ -60,15 +69,21 @@ def density_matrix_bars(rho):
         dx, dy = 0.8, 0.8
         deltaz = deltaz.flatten()
 
-        colors = cmap_div(deltaz.ravel() * 0.8, alpha=1 - 0.5 * (np.abs(deltaz.ravel()) / max_height))
+        colors = cmap_div(
+            deltaz.ravel() * 0.8, alpha=1 - 0.5 * (np.abs(deltaz.ravel()) / max_height)
+        )
         ax.bar3d(x, y, z, dx, dy, deltaz, color=colors)
         ax.set(zlim=zlim)
 
         ticks = [i for i in range(n)]
         labels = ["" for tick in ticks]
         if n_qubits < 3:
-            labels[0] = r"$\vert" + "".join(["0" for i in range(n_qubits)]) + r"\rangle$"
-            labels[-1] = r"$\vert" + "".join(["1" for i in range(n_qubits)]) + r"\rangle$"
+            labels[0] = (
+                r"$\vert" + "".join(["0" for i in range(n_qubits)]) + r"\rangle$"
+            )
+            labels[-1] = (
+                r"$\vert" + "".join(["1" for i in range(n_qubits)]) + r"\rangle$"
+            )
         else:
             labels[0] = r"$\vert 00...0\rangle$"
             labels[-1] = r"$\vert 1...1\rangle$"
@@ -77,7 +92,7 @@ def density_matrix_bars(rho):
             xticklabels=labels,
             yticks=ticks,
             yticklabels=labels,
-            zticks=[min_height, max_height]
+            zticks=[min_height, max_height],
         )
         ax.set_xticklabels(labels, ha="right", va="center")
         ax.set_yticklabels(labels, ha="left", va="center")

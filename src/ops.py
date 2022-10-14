@@ -649,7 +649,9 @@ class ParameterizedControlledRotationQubit(ControlledPairOperationBase):
     Parameterized two qubit controlled gate,
     """
 
-    _openqasm_info = oq_lib.cparameterized_info()  # todo, change to appropriate openQASM info
+    _openqasm_info = (
+        oq_lib.cparameterized_info()
+    )  # todo, change to appropriate openQASM info
 
     def __init__(
         self,

@@ -1,4 +1,5 @@
 import src
+
 src.DENSITY_MATRIX_ARRAY_LIBRARY = "jax"
 
 import matplotlib.pyplot as plt
@@ -27,11 +28,14 @@ metric = Infidelity(target=target)
 target.dm.draw()
 
 
-
 circuit = CircuitDAG(n_emitter=target.n_qubits, n_photon=0, n_classical=0)
 
 circuit.add(ops.ParameterizedOneQubitRotation(register=0, reg_type="e"))
-circuit.add(ops.ParameterizedControlledRotationQubit(control=0, control_type="e", target=1, target_type="e"))
+circuit.add(
+    ops.ParameterizedControlledRotationQubit(
+        control=0, control_type="e", target=1, target_type="e"
+    )
+)
 # circuit.add(ops.ParameterizedControlledRotationQubit(control=1, control_type="e", target=2, target_type="e"))
 # circuit.add(ops.ParameterizedControlledRotationQubit(control=2, control_type="e", target=3, target_type="e"))
 
@@ -71,6 +75,8 @@ def compute_loss(params: dict, circuit: CircuitDAG):
     output_state = compiler.compile(circuit)
     loss = metric.evaluate(output_state, circuit)
     return loss
+
+
 loss = compute_loss(params, circuit)
 print(loss)
 

@@ -1329,7 +1329,23 @@ class CircuitDAG(CircuitBase):
         self._node_id += 1
         return self._node_id
 
-    def similarity_ged(self, circuit_compare, full = True):
+    def similarity_ged_adaptive(self, circuit_compare, threshold: int):
+        """
+        switch between exact and approximate GED calculation adaptively
+
+        :param circuit_compare: circuit that to be compared
+        :type circuit_compare: CircuitDAG
+        :param circuit_compare: threshold
+        :type circuit_compare: int
+        :return: exact/approximated GED between circuits(cost needed to transform self.dag to circuit_compare.dag)
+        :rtype: float
+        """
+
+        full = max(self.dag.number_of_nodes(), circuit_compare.dag.number_of_nodes()) < threshold
+        sim = self.similarity_ged(circuit_compare, full=full)
+        return sim
+
+    def similarity_ged(self, circuit_compare, full=True):
         """
         Calculate Graph Edit Distance (GED) between two circuits.
         Further reading on GED:
@@ -1339,48 +1355,63 @@ class CircuitDAG(CircuitBase):
         :type circuit_compare: CircuitDAG
         :param circuit_compare: Determine which GED function to use
         :type circuit_compare: bool
-        :return: GED between circuits(number of steps needed to transform self.dag to circuit_compare.dag)
-        :rtype: int
+        :return: GED between circuits(cost needed to transform self.dag to circuit_compare.dag)
+        :rtype: float
         """
 
-        dag_1 = self.dag
-        dag_2 = circuit_compare.dag
+        dag_1 = self.add_in_out_ged(circuit_compare)
+        dag_2 = circuit_compare.add_in_out_ged(self)
+
         def node_subst_cost(n1, n2):
-            if isinstance(n1["op"], type(n2["op"])):
-                if isinstance(n1["op"], ops.Input):
-                    match = n1["op"].reg_type == n2["op"].reg_type
-                    return 999*int(not match)
-                elif issubclass(type(n1["op"]), ops.ControlledPairOperationBase) or \
-                        issubclass(type(n1["op"]), ops.ClassicalControlledPairOperationBase):
-                    match = n1["op"].control==n2["op"].control and n1["op"].control_type==n2["op"].control_type
-                    return int(not match)
-                else:
-                    return 0
+            reg_match = n1["op"].q_registers == n2["op"].q_registers and \
+                        n1["op"].q_registers_type == n2["op"].q_registers_type and \
+                        n1["op"].c_registers == n2["op"].c_registers
+            ops_match = isinstance(n1["op"], type(n2["op"]))
+            in_out = issubclass(type(n1['op']), ops.InputOutputOperationBase) or \
+                     issubclass(type(n2['op']), ops.InputOutputOperationBase)
+
+            if reg_match and ops_match:
+                return 0
+            else:
+                return 1 + 999*int(in_out)
+
+        def node_ins_cost(n):
+            if issubclass(type(n['op']), ops.InputOutputOperationBase):
+                return 1000
             else:
                 return 1
 
-        def edge_subst_cost(e1,e2):
-            match = e1["reg_type"] == e2["reg_type"]
-            return 999*int(not match)
+        def node_del_cost(n):
+            if issubclass(type(n['op']), ops.InputOutputOperationBase):
+                return 1000
+            else:
+                return 1
+
+        def edge_subst_cost(e1, e2):
+            return 0
+
         def edge_del_cost(e):
-            return 1/3
+            return 0.5
 
         def edge_ins_cost(e):
-            return 1/3
-
+            return 0.5
 
         if full:
             sim = nx.algorithms.similarity.graph_edit_distance(dag_1, dag_2,
-                                                            node_subst_cost=node_subst_cost,
-                                                            edge_subst_cost=edge_subst_cost,
-                                                            edge_del_cost=edge_del_cost,
-                                                            edge_ins_cost=edge_ins_cost,
-                                                            upper_bound=30.0,
-                                                            timeout=10.0,
-                                                            )
+                                                               node_subst_cost=node_subst_cost,
+                                                               node_ins_cost=node_ins_cost,
+                                                               node_del_cost=node_del_cost,
+                                                               edge_subst_cost=edge_subst_cost,
+                                                               edge_del_cost=edge_del_cost,
+                                                               edge_ins_cost=edge_ins_cost,
+                                                               # upper_bound=30.0,
+                                                               timeout=10.0,
+                                                               )
         else:
             sim = nx.algorithms.similarity.optimize_graph_edit_distance(dag_1, dag_2,
                                                                         node_subst_cost=node_subst_cost,
+                                                                        node_ins_cost=node_ins_cost,
+                                                                        node_del_cost=node_del_cost,
                                                                         edge_subst_cost=edge_subst_cost,
                                                                         edge_del_cost=edge_del_cost,
                                                                         edge_ins_cost=edge_ins_cost,
@@ -1389,17 +1420,13 @@ class CircuitDAG(CircuitBase):
             sim = next(sim)
         return sim
 
+    def add_in_out_ged(self, circuit_compare):
+        circuit = self.copy()
+        while circuit.n_photons < circuit_compare.n_photons:
+            circuit.add_photonic_register()
+        while circuit.n_emitters < circuit_compare.n_emitters:
+            circuit.add_emitter_register()
+        while circuit.n_classical < circuit_compare.n_classical:
+            circuit.add_classical_register()
 
-    def remove_out_nodes(self):
-        """
-        Remove the output nodes
-
-        :return: a copy of DAG without output nodes
-        :rtype: nx.MultiDiGraph
-        """
-        dag = self.dag.copy()
-
-        n = [f"{out}" for out in dag.nodes.keys() if str(out)[-1]=='t']
-        dag.remove_nodes_from(n)
-
-        return dag
+        return circuit.dag

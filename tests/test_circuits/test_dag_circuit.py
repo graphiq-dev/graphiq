@@ -506,11 +506,17 @@ def test_ged_2():
     ged34 = circuit3.similarity_ged(circuit4)
     ged43 = circuit4.similarity_ged(circuit3)
 
-    assert round(ged12) == 2
-    assert round(ged21) == 2
-    assert round(ged34) == 3
-    assert round(ged43) == 3
+    circuit5 = CircuitDAG(n_emitter=1, n_photon=0, n_classical=0)
+    circuit6 = CircuitDAG(n_emitter=0, n_photon=1, n_classical=0)
+    ged56 = circuit5.similarity_ged(circuit6)
+    ged65 = circuit6.similarity_ged(circuit5)
 
+    assert ged12 == 2.5
+    assert ged21 == 2.5
+    assert ged34 == 4
+    assert ged43 == 4
+    assert ged56 == 0
+    assert ged65 == 0
 
 def test_ged_3():
     #Node replacement
@@ -526,25 +532,55 @@ def test_ged_3():
     circuit4.add(ops.CNOT(control=1, control_type="p", target=0, target_type="p"))
     ged34 = circuit3.similarity_ged(circuit4)
 
+    circuit5 = CircuitDAG(n_emitter=1, n_photon=1, n_classical=0)
+    circuit5.add(ops.Phase(register=0, reg_type="e"))
+    circuit6 = CircuitDAG(n_emitter=1, n_photon=1, n_classical=0)
+    circuit6.add(ops.CNOT(control=0, control_type="e", target=0, target_type="p"))
+    ged56 = circuit5.similarity_ged(circuit6)
+
     assert ged12 == 1
     assert ged34 == 1
+    assert ged56 == 2.5
 
 
 def test_ged_4():
-    #Registers in the same type are considered the same
+    #Registers in the same type are not considered the same
     circuit1 = CircuitDAG(n_emitter=1, n_photon=2, n_classical=0)
     circuit1.add(ops.CNOT(control=0, control_type="e", target=0, target_type="p"))
     circuit2 = CircuitDAG(n_emitter=1, n_photon=2, n_classical=0)
     circuit2.add(ops.CNOT(control=0, control_type="e", target=1, target_type="p"))
-    ged = circuit1.similarity_ged(circuit2)
+    ged12 = circuit1.similarity_ged(circuit2)
 
-    assert ged == 0
+    circuit3 = CircuitDAG(n_emitter=1, n_photon=1, n_classical=0)
+    circuit3.add(ops.Phase(register=0, reg_type="e"))
+    circuit4 = CircuitDAG(n_emitter=1, n_photon=1, n_classical=0)
+    circuit4.add(ops.Phase(register=0, reg_type="p"))
+    ged34 = circuit1.similarity_ged(circuit2)
+
+    assert ged12 == 4
+    assert ged34 == 4
 
 def test_ged_5():
-    circuit1 = CircuitDAG(n_emitter=1, n_photon=1, n_classical=0)
+    circuit1 = CircuitDAG(n_emitter=1, n_photon=0, n_classical=0)
     circuit1.add(ops.Phase(register=0, reg_type="e"))
-    circuit2 = CircuitDAG(n_emitter=1, n_photon=1, n_classical=0)
-    circuit2.add(ops.Phase(register=0, reg_type="p"))
+    circuit1.add(ops.Phase(register=0, reg_type="e"))
+    circuit1.add(ops.Phase(register=0, reg_type="e"))
+    circuit1.add(ops.Phase(register=0, reg_type="e"))
+    circuit1.add(ops.Hadamard(register=0, reg_type="e"))
+    circuit1.add(ops.Hadamard(register=0, reg_type="e"))
+    circuit1.add(ops.Hadamard(register=0, reg_type="e"))
+    circuit1.add(ops.Hadamard(register=0, reg_type="e"))
+
+    circuit2 = CircuitDAG(n_emitter=1, n_photon=0, n_classical=0)
+    circuit2.add(ops.Hadamard(register=0, reg_type="e"))
+    circuit2.add(ops.Hadamard(register=0, reg_type="e"))
+    circuit2.add(ops.Hadamard(register=0, reg_type="e"))
+    circuit2.add(ops.Hadamard(register=0, reg_type="e"))
+    circuit2.add(ops.Phase(register=0, reg_type="e"))
+    circuit2.add(ops.Phase(register=0, reg_type="e"))
+    circuit2.add(ops.Phase(register=0, reg_type="e"))
+    circuit2.add(ops.Phase(register=0, reg_type="e"))
+
     ged = circuit1.similarity_ged(circuit2)
 
-    assert ged == 2
+    assert ged == 3

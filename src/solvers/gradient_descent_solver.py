@@ -1,5 +1,5 @@
 """
-
+Wrapper for performing gradient descent algorithms on parameterized circuits.
 """
 import tqdm
 
@@ -13,9 +13,15 @@ from src.io import IO
 import optax
 import jax
 
+from optax import adam, adagrad, rmsprop, adamw, adabelief
+
 
 class GradientDescentSolver(SolverBase):
-    """ """
+    """
+    A solver class based on gradient descent algorithms.
+    Requires the use of `jax` as the numerical backend.
+    The optimizer routine is provided by the `optax` package.
+    """
 
     name = "gradient-descent-solver"
 
@@ -27,7 +33,7 @@ class GradientDescentSolver(SolverBase):
         circuit: CircuitDAG = None,
         io: IO = None,
         optimizer=None,
-        n_step=300,
+        n_step=30,
         progress=True,
         *args,
         **kwargs,
@@ -49,15 +55,36 @@ class GradientDescentSolver(SolverBase):
     def compute_loss(
         params: dict, circuit: CircuitBase, compiler: CompilerBase, metric: MetricBase
     ):
-        # sets parameter, compiles and simulates circuit, evaluates and then returns the loss
-        circuit.set_params(params)
+        """
+        Wrapper for simulating and evaluating parameter values.
+
+        :param params: parameter dictionary
+        :type params: dict
+        :param circuit: parameterized circuit object
+        :type circuit: CircuitBase
+        :param compiler: density matrix compiler
+        :param metric: metric to evaluate performance of circuit parameters
+        :return:
+        """
+        # sets parameter, simulates circuit, evaluates and then returns the loss
+        circuit.parameters = params
         output_state = compiler.compile(circuit)
         loss = metric.evaluate(output_state, circuit)
         return loss
 
-    def solve(self):
+    def solve(self, initial_params=None):
+        """
+        Main gradient descent algorithm, performing `n_steps` updates with the provided optimizer.
+        :param initial_params: initial parameter dictionary
+        :type initial_params: dict
+        :return:
+        """
         # updates the `params` iteratively for `n_steps`
-        params = self.circuit.collect_params()
+        if initial_params is not None:
+            params = initial_params
+        else:
+            params = self.circuit.initialize_parameters()
+
         opt_state = self.optimizer.init(params)
 
         loss_curve = []
@@ -76,15 +103,3 @@ class GradientDescentSolver(SolverBase):
             else:
                 print(step, loss, params)
         return loss_curve, params
-
-    @staticmethod
-    def adam(
-        learning_rate: float = 0.5,
-        b1: float = 0.9,
-        b2: float = 0.999,
-        eps: float = 1e-8,
-        eps_root: float = 0.0,
-    ):
-        return optax.adam(
-            learning_rate=learning_rate, b1=b1, b2=b2, eps=eps, eps_root=eps_root
-        )

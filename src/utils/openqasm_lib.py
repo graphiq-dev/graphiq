@@ -203,6 +203,7 @@ def phase_info():
 
 
 def parameterized_info():
+    # todo: plot and show parameters
     imports = []
     definition = "gate s a { U(0, pi/2, 0) a; }"
 

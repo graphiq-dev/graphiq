@@ -1,17 +1,12 @@
 """
 Density matrix representation for states.
-
-It supports applications of unitary operations, quantum channels and measurements on the state.
-
+Supports unitary operations, quantum channels, and state measurements.
 """
-import networkx as nx
-
-# import numpy as np
 import numpy
-import jax.numpy as np
 import matplotlib.pyplot as plt
 import src.backends.density_matrix.functions as dmf
 
+from src.backends.density_matrix import numpy as np
 from src.backends.state_base import StateRepresentationBase
 from src.backends.graph.state import Graph
 from src.visualizers.density_matrix import density_matrix_heatmap, density_matrix_bars

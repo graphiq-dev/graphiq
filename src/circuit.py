@@ -464,11 +464,15 @@ class CircuitBase(ABC):
 
     @property
     def parameters(self):
+        """
+        A dictionary of all parameters associated to the quantum circuit.
+
+        :return: a dictionary, of the form {parameter_key: [list of parameters values]}
+        """
         return self._parameters
 
     @parameters.setter
     def parameters(self, parameters: dict):
-
         self._parameters = parameters
 
         for op in self.sequence(unwrapped=True):
@@ -476,6 +480,12 @@ class CircuitBase(ABC):
 
     @property
     def fmap(self):
+        """
+        Provides a mapping *function* between an operation (Op) and its parameter list.
+
+        :return: function which returns a mapping dictionary (see `self.map`)
+        :rtype: func
+        """
         return self._fmap
 
     @fmap.setter
@@ -485,13 +495,29 @@ class CircuitBase(ABC):
 
     @property
     def map(self):
+        """
+        Dictionary which maps from an operation (Op) to a parameter list.
+        Each dictionary key:value pair is of the form `id(op): parameter_key`,
+        where `parameter_key` is the associated key for indexing into the `parameters` dictionary.
+
+        :return: op to parameter key mapping dictionary
+        :rtype: dict
+        """
         return self._map
 
     def _default_map(self):
+        """Default map, in which each op is mapped to itself (no parameter sharing, except for copied ops)"""
         _map = {id(op): id(op) for op in self.sequence(unwrapped=True)}
         return _map
 
     def initialize_parameters(self):
+        """
+        Randomly initializes all parameter lists from a uniform distribution between the parameter bounds
+        defined by the operation.
+
+        :return: parameter dictionary
+        :rtype: dict
+        """
         self._map = self._fmap()
         self._parameters = {}
         for op in self.sequence(unwrapped=True):

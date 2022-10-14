@@ -7,18 +7,8 @@ Includes functions to generate commonly used matrices, apply certain gates, etc.
 from functools import reduce
 import string
 
-import src
-
-if src.DENSITY_MATRIX_ARRAY_LIBRARY == "jax":
-    import jax.numpy as np
-    from jax.scipy.linalg import eigh
-
-elif src.DENSITY_MATRIX_ARRAY_LIBRARY == "numpy":
-    import numpy as np
-    from scipy.linalg import eigh
-
-else:
-    raise ImportError("")
+from src.backends.density_matrix import numpy as np
+from src.backends.density_matrix import eigh
 
 
 def sigmax():
@@ -485,8 +475,6 @@ def partial_trace(rho, keep, dims, optimize=False):
     ndim = dims.size
     nkeep = np.prod(dims[keep])
 
-    # idx1 = [*range(ndim)]
-
     ssleft = "".join([string.ascii_lowercase[i] for i in range(ndim)]) + "".join(
         [string.ascii_uppercase[i] for i in range(ndim)]
     )
@@ -494,9 +482,7 @@ def partial_trace(rho, keep, dims, optimize=False):
         [string.ascii_lowercase[i] for i in range(ndim) if i in keep]
     ) + "".join([string.ascii_uppercase[i] for i in range(ndim) if i in keep])
     superscript = ssleft + "->" + ssright
-    # print(keep)
-    # print(dims)
-    # print(superscript)
+
     rho_a = rho.reshape(np.tile(dims, 2))
     rho_a = np.einsum(superscript, rho_a)
     return rho_a.reshape(nkeep, nkeep)

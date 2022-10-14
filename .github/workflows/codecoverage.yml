@@ -7,7 +7,7 @@ jobs:
     runs-on: ubuntu-latest
     name: Python Code Coverage
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v2
     - uses: actions/setup-python@v2
       with:
         python-version: '3.9'
@@ -19,10 +19,17 @@ jobs:
       run: coverage xml
     - name: Create coverage svg
       run: genbadge coverage -i coverage.xml
+
+    - name: Verify Changed files
+      uses: tj-actions/verify-changed-files@v9
+      id: changed_files
+      with:
+        files: coverage-badge.svg
     - name: Commit files
+      if: steps.changed_files.outputs.files_changed == 'true'
       run: |
-       git config user.email "github-actions[bot]@users.noreply.github.com"
-       git config user.name "github-actions[bot]"
+       git config --global user.email "github-actions[bot]@users.noreply.github.com"
+       git config  --global user.name "github-actions[bot]"
        git add coverage-badge.svg
        git commit -m "Updated coverage.svg"
        git push

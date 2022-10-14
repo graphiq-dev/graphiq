@@ -30,6 +30,7 @@ NOT retroactively apply to the added qubits
 
 """
 import copy
+import random
 import networkx as nx
 import matplotlib.pyplot as plt
 from abc import ABC, abstractmethod
@@ -66,6 +67,7 @@ class CircuitBase(ABC):
         :rtype: None
         """
         self._registers = {"e": [], "p": [], "c": []}
+        self.parameters = _Parameters(self)
 
         if openqasm_imports is None:
             self.openqasm_imports = {}
@@ -449,12 +451,6 @@ class CircuitBase(ABC):
     def copy(self):
         """
         Create a copy of itself. Deep copy
-    def collect_params(self):
-        # todo docstrings
-        params = {}
-        for op in self.sequence(unwrapped=True):
-            params[id(op)] = op.params
-        return params
 
         :return: a copy of itself
         :rtype: CircuitBase
@@ -462,23 +458,76 @@ class CircuitBase(ABC):
         return copy.deepcopy(self)
 
 
-    def set_params(self, params):
-        # todo docstrings
-        for op in self.sequence(unwrapped=True):
-            op.params = params[id(op)]
+class _Parameters(object):
 
-    def init_params(self):
-        import random  # todo, better random initialization
+    def __init__(self, _circuit):
 
-        # todo docstrings
+        super().__init__()
+        self.mapping = {}
+        self._circuit = _circuit
+        self._params = {}
 
-        for op in self.sequence(unwrapped=True):
-            if op.params and op.param_info:
-                params = []
-                for p, (lb, ub) in zip(op.params, op.param_info["bounds"]):
-                    params.append(random.uniform(lb, ub))
-                op.params = params
+    @property
+    def parameters(self):
+        return self._params
+
+    @parameters.setter
+    def parameters(self, params):
         return
+
+    # def op_to_parameters_mapping(self, op):
+
+    # def collect(self):
+    #     # todo docstrings
+    #     params = {}
+    #     for op in self._circuit.sequence(unwrapped=True):
+    #         params[id(op)] = op.params
+    #     self._params = params
+    #     return params
+
+    def distribute(self):
+        # todo docstrings
+        # todo: add mapping from the op to the parameter (maybe stored in the Op, so we can do parameter-sharing)
+
+        for op in self._circuit.sequence(unwrapped=True):
+            key = self.mapping[id(op)]
+            if key:
+                op.params = self._params[key]
+
+    def param_key(self, op):
+        # todo, consider shared weights
+        if op.params and op.param_info:
+            key = id(op)
+        else:
+            key = None
+        return key
+
+    def map(self):
+        self.mapping = {}
+        for op in self._circuit.sequence(unwrapped=True):
+            self.mapping[id(op)] = self.param_key(op)
+
+    def initialize(self):
+        # todo, initialize with different distibutions
+        # todo, better random initialization
+        self.map()
+        # todo docstrings
+        params = {}
+        for op in self._circuit.sequence(unwrapped=True):
+            key = self.mapping[id(op)]
+            if key:
+                pi = []
+                for p, (lb, ub) in zip(op.params, op.param_info["bounds"]):
+                    pi.append(random.uniform(lb, ub))
+
+                op.params = pi
+                params[key] = pi
+
+        self._params = params
+        return self
+
+    def __str__(self):
+        return self._params.__str__()
 
 
 class CircuitDAG(CircuitBase):

@@ -5,13 +5,20 @@ Includes functions to generate commonly used matrices, apply certain gates, etc.
 
 """
 from functools import reduce
-
-import jax.numpy as np
-from jax.scipy.linalg import eigh
 import string
 
-# import numpy as np
-# from scipy.linalg import eigh
+import src
+
+if src.DENSITY_MATRIX_ARRAY_LIBRARY == "jax":
+    import jax.numpy as np
+    from jax.scipy.linalg import eigh
+
+elif src.DENSITY_MATRIX_ARRAY_LIBRARY == "numpy":
+    import numpy as np
+    from scipy.linalg import eigh
+
+else:
+    raise ImportError("")
 
 
 def sigmax():

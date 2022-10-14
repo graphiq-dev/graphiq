@@ -67,7 +67,10 @@ class CircuitBase(ABC):
         :rtype: None
         """
         self._registers = {"e": [], "p": [], "c": []}
-        self.parameters = _Parameters(self)
+        self._parameters = {}
+
+        self._fmap = self._default_map
+        self._map = self._fmap()
 
         if openqasm_imports is None:
             self.openqasm_imports = {}
@@ -457,77 +460,59 @@ class CircuitBase(ABC):
         """
         return copy.deepcopy(self)
 
-
-class _Parameters(object):
-
-    def __init__(self, _circuit):
-
-        super().__init__()
-        self.mapping = {}
-        self._circuit = _circuit
-        self._params = {}
+    """ Mapping between each operation and parameter values """
 
     @property
     def parameters(self):
-        return self._params
+        return self._parameters
 
     @parameters.setter
-    def parameters(self, params):
-        return
+    def parameters(self, parameters: dict):
 
-    # def op_to_parameters_mapping(self, op):
+        self._parameters = parameters
 
-    # def collect(self):
-    #     # todo docstrings
-    #     params = {}
-    #     for op in self._circuit.sequence(unwrapped=True):
-    #         params[id(op)] = op.params
-    #     self._params = params
-    #     return params
+        for op in self.sequence(unwrapped=True):
+            op.params = self._parameters.get(self.map[id(op)], None)
 
-    def distribute(self):
-        # todo docstrings
-        # todo: add mapping from the op to the parameter (maybe stored in the Op, so we can do parameter-sharing)
+    @property
+    def fmap(self):
+        return self._fmap
 
-        for op in self._circuit.sequence(unwrapped=True):
-            key = self.mapping[id(op)]
-            if key:
-                op.params = self._params[key]
+    @fmap.setter
+    def fmap(self, func):
+        # todo, check function
+        self._fmap = func
 
-    def param_key(self, op):
-        # todo, consider shared weights
-        if op.params and op.param_info:
-            key = id(op)
-        else:
-            key = None
-        return key
-
+    @property
     def map(self):
-        self.mapping = {}
-        for op in self._circuit.sequence(unwrapped=True):
-            self.mapping[id(op)] = self.param_key(op)
+        return self._map
 
-    def initialize(self):
-        # todo, initialize with different distibutions
-        # todo, better random initialization
-        self.map()
-        # todo docstrings
-        params = {}
-        for op in self._circuit.sequence(unwrapped=True):
-            key = self.mapping[id(op)]
-            if key:
-                pi = []
-                for p, (lb, ub) in zip(op.params, op.param_info["bounds"]):
-                    pi.append(random.uniform(lb, ub))
+    def _default_map(self):
+        _map = {id(op): id(op) for op in self.sequence(unwrapped=True)}
+        return _map
 
-                op.params = pi
-                params[key] = pi
+    def initialize_parameters(self):
+        self._map = self._fmap()
+        self._parameters = {}
+        for op in self.sequence(unwrapped=True):
+            if op.params:
+                key = self._map[id(op)]
+                if key is None:
+                    continue
 
-        self._params = params
-        return self
+                elif key in self._parameters.keys():
+                    # parameter already added from previous operation (i.e. shared-weight)
+                    continue
 
-    def __str__(self):
-        return self._params.__str__()
+                else:
+                    pi = []
+                    for p, (lb, ub) in zip(op.params, op.param_info["bounds"]):
+                        pi.append(random.uniform(lb, ub))
+
+                    op.params = pi
+                    self._parameters[key] = pi
+
+        return self._parameters
 
 
 class CircuitDAG(CircuitBase):
@@ -561,8 +546,9 @@ class CircuitDAG(CircuitBase):
         :return: nothing
         :rtype: None
         """
-        super().__init__(openqasm_imports=openqasm_imports, openqasm_defs=openqasm_defs)
         self.dag = nx.MultiDiGraph()
+        super().__init__(openqasm_imports=openqasm_imports, openqasm_defs=openqasm_defs)
+
         self._node_id = 0
         self.edge_dict = {}
         self.node_dict = {}

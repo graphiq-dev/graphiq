@@ -20,7 +20,6 @@ jobs:
     - name: Create coverage svg
       run: genbadge coverage -i coverage.xml
     - name: Commit files
-      if: steps.changed_files.outputs.files_changed == 'true'
       run: |
        git config user.email "github-actions[bot]@users.noreply.github.com"
        git config user.name "github-actions[bot]"

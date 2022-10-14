@@ -1,5 +1,6 @@
-DENSITY_MATRIX_ARRAY_LIBRARY = "jax"
+from src import DENSITY_MATRIX_ARRAY_LIBRARY
 
+# todo, reload numpy/jax if needed? possible package conflicts
 if DENSITY_MATRIX_ARRAY_LIBRARY == "jax":
     import jax.numpy as numpy
     from jax.scipy.linalg import eigh

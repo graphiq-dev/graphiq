@@ -78,16 +78,16 @@ optimizer = adagrad(learning_rate=0.5)
 opt_state = optimizer.init(circuit.parameters)
 
 solver = GradientDescentSolver(target, metric, compiler, circuit, optimizer=optimizer)
-solver.solve(initial_params=params)
+loss_curve, params = solver.solve(initial_params=params)
 
-loss_curve = []
-for i in range(50):
-    loss = compute_loss(params, circuit)
-    grads = jax.grad(compute_loss)(params, circuit)
-    updates, opt_state = optimizer.update(grads, opt_state)
-    params = optax.apply_updates(params, updates)
-    loss_curve.append(loss)
-    print(i, loss, params)
+# loss_curve = []
+# for i in range(50):
+#     loss = compute_loss(params, circuit)
+#     grads = jax.grad(compute_loss)(params, circuit)
+#     updates, opt_state = optimizer.update(grads, opt_state)
+#     params = optax.apply_updates(params, updates)
+#     loss_curve.append(loss)
+#     print(i, loss, params)
 
 circuit.parameters = params
 output_state = compiler.compile(circuit)

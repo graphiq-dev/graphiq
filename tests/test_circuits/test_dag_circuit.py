@@ -555,3 +555,18 @@ def test_ged_4():
     assert match12 == True
     assert match34 == False
     assert match56 == False
+
+def test_ged_5():
+    #lager circuit comparison
+    from benchmarks.circuits import ghz3_state_circuit
+    from benchmarks.circuits import ghz4_state_circuit
+    circuit1, _ = ghz3_state_circuit()
+    circuit2, _ = ghz4_state_circuit()
+
+    match1 = circuit1.similarity_ged(circuit1)
+    match2 = circuit2.similarity_ged(circuit2)
+    match12 = circuit1.similarity_ged(circuit2)
+
+    assert match1 == True
+    assert match2 == True
+    assert match12 == False

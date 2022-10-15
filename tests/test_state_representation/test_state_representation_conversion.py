@@ -16,7 +16,6 @@ def test_negativity():
     st1 = dmf.state_ketx0()
 
     st1 = dmf.reduce(np.kron, n_qubits * [st1 @ np.conjugate(st1.T)])
-
     assert dmf.negativity(st1, 4, 4) < 0.1
 
     graph1 = nx.Graph([(0, 1), (1, 2)])

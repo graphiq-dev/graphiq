@@ -10,10 +10,20 @@ import os
 import inspect
 
 from src.backends.density_matrix import numpy as np
-from src.backends.density_matrix import eigh
+from src.backends.density_matrix import eig, eigh
 
 print(os.path.abspath(inspect.getfile(eigh)))
 print(os.path.abspath(inspect.getfile(np)))
+
+
+def dagger(matrix):
+    """
+    Returns the hermitian conjugate of an input matrix.
+    :param matrix: input matrix
+    :type matrix: np.ndarray
+    :return:
+    """
+    return matrix.conjugate().T
 
 
 def sigmax():
@@ -505,9 +515,8 @@ def apply_cz(state_matrix, control_qubit, target_qubit):
     :return: the density matrix output after applying controlled-Z gate
     :rtype: numpy.ndarray
     """
-    n_qubits = int(np.log2(np.sqrt(state_matrix.size)))
+    n_qubits = int(np.round(np.log2(state_matrix.shape[0])))
     cz = get_two_qubit_controlled_gate(n_qubits, control_qubit, target_qubit, sigmaz())
-
     return cz @ state_matrix @ np.transpose(np.conjugate(cz))
 
 
@@ -611,7 +620,12 @@ def fidelity(rho, sigma):
 
 def trace_distance(rho, sigma):
     """
-    Return the trace distance between two states rho and sigma
+    Return the trace distance between two hermitian matrices, :math:`\\rho` and :math:`\\sigma`
+    The trace distance is computed as:
+
+    :math:`T(\\rho, \\sigma) = \\frac{1}{2} Tr\\left( \\sqrt{ (\\rho - \\sigma)^2 } \\right)
+     = \\frac{1}{2} \\sum_i | \\lambda_i |
+     `
 
     :param rho: the first state
     :type rho: numpy.ndarray
@@ -620,7 +634,12 @@ def trace_distance(rho, sigma):
     :return: the trace distance between 0 and 1
     :rtype: float
     """
-    return np.real(np.linalg.norm(rho - sigma, "nuc") / 2)
+    # error in jax.numpy.linalg.norm when computing nucleus norm
+    # return np.real(np.linalg.norm(rho - sigma, "nuc") / 2)
+
+    # assuming rho & sigma are hermitian, compute trace distance as mod sum of eigenvalues
+    eigvals, _ = eigh(rho - sigma)
+    return 0.5 * np.sum(np.abs(eigvals))
 
 
 def bipartite_partial_transpose(rho, dim1, dim2, subsys):
@@ -654,10 +673,11 @@ def bipartite_partial_transpose(rho, dim1, dim2, subsys):
     pt_dims = np.arange(4).reshape(2, 2).T
     pt_index = np.concatenate(
         [
-            [pt_dims[n, mask[n]] for n in range(2)],
-            [pt_dims[n, 1 - mask[n]] for n in range(2)],
+            np.array([pt_dims[n, mask[n]] for n in range(2)]),
+            np.array([pt_dims[n, 1 - mask[n]] for n in range(2)]),
         ]
     )
+
     rho_pt = (
         rho.reshape(np.array([dim1, dim1, dim2, dim2]))
         .transpose(pt_index)
@@ -670,6 +690,8 @@ def negativity(rho, dim1, dim2):
     """
     Return the negativity of the matrix rho.
 
+    :math:`\\mathcal{N}(\\rho) = \\frac{|| \\rho^{\\Lambda_A} - 1}{2}`
+
     :param rho: the density matrix to evaluate the negativity
     :type rho: numpy.ndarray
     :param dim1: dimension of the first system
@@ -680,10 +702,9 @@ def negativity(rho, dim1, dim2):
     :rtype: float
     """
     rho_pt = bipartite_partial_transpose(rho, dim1, dim2, 0)
-
-    eig_vals, _ = np.linalg.eig(rho_pt)
+    # eig_vals = np.real(np.linalg.eigvals(rho_pt))
+    eig_vals, _ = eigh(rho_pt)
     eig_vals = np.real(eig_vals)
-
     return np.sum(np.abs(eig_vals) - eig_vals) / 2
 
 
@@ -817,7 +838,7 @@ def is_unitary(input_matrix):
     if input_matrix.shape[0] != input_matrix.shape[1]:
         return False
     identity = np.eye(input_matrix.shape[0])
-    adjoint = np.conjugate(input_matrix.T)
+    adjoint = dagger(input_matrix)
     return np.allclose(input_matrix @ adjoint, identity) and np.allclose(
         adjoint @ input_matrix, identity
     )

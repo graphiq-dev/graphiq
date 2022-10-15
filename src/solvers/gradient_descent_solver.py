@@ -27,7 +27,6 @@ class GradientDescentSolver(SolverBase):
 
     def __init__(
         self,
-        target,
         metric: MetricBase,
         compiler: CompilerBase,
         circuit: CircuitDAG = None,
@@ -40,7 +39,7 @@ class GradientDescentSolver(SolverBase):
     ):
         """ """
         super().__init__(
-            target,
+            None,
             metric,
             compiler,
             circuit,
@@ -50,6 +49,7 @@ class GradientDescentSolver(SolverBase):
         self.optimizer = optimizer
         self.n_step = n_step
         self.progress = progress
+        self.loss_curve = []
 
     @staticmethod
     def compute_loss(
@@ -79,7 +79,6 @@ class GradientDescentSolver(SolverBase):
         :type initial_params: dict
         :return:
         """
-        # updates the `params` iteratively for `n_steps`
         if initial_params is not None:
             params = initial_params
         else:
@@ -102,4 +101,6 @@ class GradientDescentSolver(SolverBase):
                 pbar.set_description(f"Cost: {loss:.10f}")
             else:
                 print(step, loss, params)
+
+        self.loss_curve = loss_curve
         return loss_curve, params

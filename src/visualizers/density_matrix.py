@@ -40,6 +40,8 @@ def density_matrix_bars(rho):
 
     :param rho: a complex numpy array representing the density matrix
     :type rho: numpy.dnarray
+    :param ax: axis to plot on
+    :type ax: mpl.Axis
     :return: fig (figure handle), axs (list of axes handles)
     :rtype: matplotlib.figure, matplotlib.axes
     """

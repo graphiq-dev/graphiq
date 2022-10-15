@@ -35,7 +35,7 @@ def generate_run_noise(
         n_emitter=n_emitter,
         n_photon=n_photon,
         noise_model_mapping=noise_model_mapping,
-        n_stop=100,
+        n_stop=4,
     )
     solver.seed(seed)
     solver.solve()
@@ -55,7 +55,7 @@ def generate_run_no_noise(n_photon, n_emitter, expected_triple, compiler, seed):
         compiler=compiler,
         n_emitter=n_emitter,
         n_photon=n_photon,
-        n_stop=100,
+        n_stop=4,
     )
     solver.seed(seed)
     solver.solve()

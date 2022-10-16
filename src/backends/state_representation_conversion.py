@@ -79,7 +79,9 @@ def density_to_graph(input_matrix, threshold=0.1):
     :return: an adjacency matrix representation
     :rtype: numpy.ndarray
     """
-    if isinstance(input_matrix, (np.ndarray, dmnp.ndarray)):  # check if numpy array or numpy/jax array
+    if isinstance(
+        input_matrix, (np.ndarray, dmnp.ndarray)
+    ):  # check if numpy array or numpy/jax array
         rho = input_matrix
     else:
         raise TypeError("Input density matrix must be a numpy.ndarray")

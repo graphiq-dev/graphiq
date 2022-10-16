@@ -1,8 +1,9 @@
 """
-Wrapper for performing gradient descent algorithms on parameterized circuits.
+Gradient descent algorithms on parameterized circuits.
 """
 import tqdm
 
+import src
 from src.backends.compiler_base import CompilerBase
 from src.solvers import SolverBase
 from src.circuit import CircuitBase, CircuitDAG
@@ -13,6 +14,7 @@ from src.io import IO
 import optax
 import jax
 
+# standard optimizers
 from optax import adam, adagrad, rmsprop, adamw, adabelief
 
 
@@ -45,6 +47,8 @@ class GradientDescentSolver(SolverBase):
             circuit,
             io,
         )
+        if src.DENSITY_MATRIX_ARRAY_LIBRARY is not "jax":
+            raise RuntimeError("JAX not being used as array backend.")
 
         self.optimizer = optimizer
         self.n_step = n_step

@@ -4,20 +4,17 @@ import jax
 import optax
 import jax.numpy as np
 
-import benchmarks.circuits
 import src
-src.DENSITY_MATRIX_ARRAY_LIBRARY = "jax"
+
+# src.DENSITY_MATRIX_ARRAY_LIBRARY = "jax"
 
 from tests.test_flags import visualization, jax_library, VISUAL_TEST, JAX_TEST
 
-from src import ops
-from src.circuit import CircuitDAG
+import benchmarks.circuits
+
 from src.solvers.gradient_descent_solver import GradientDescentSolver, adagrad
-import src.backends.density_matrix.functions as dmf
 from src.backends.density_matrix.compiler import DensityMatrixCompiler
-from src.backends.density_matrix.state import DensityMatrix
 from src.metrics import Infidelity
-from src.state import QuantumState
 
 from src.visualizers.density_matrix import density_matrix_bars
 
@@ -52,6 +49,7 @@ def visualize(circuit, compiler, solver):
     plt.show()
 
 
+@jax_library
 def test_loss_function():
     circuit, compiler, metric = run(3)
     params = circuit.initialize_parameters()
@@ -85,14 +83,16 @@ def test_one_layer_variational_circuit():
 
 
 @jax_library
-def test_one_layer_shared_weights():
-    circuit, compiler, metric = run(3)
+@pytest.mark.parametrize("n_qubits", [2, 3, 4])
+def test_one_layer_shared_weights(n_qubits):
+    circuit, compiler, metric = run(n_qubits)
 
-    fmap = lambda: {id(op): op.__class__.__name__ for op in circuit.sequence(unwrapped=True)}
+    fmap = lambda: {
+        id(op): op.__class__.__name__ for op in circuit.sequence(unwrapped=True)
+    }
     circuit.fmap = fmap
 
     params = circuit.initialize_parameters()
-
     optimizer = adagrad(learning_rate=0.5)
 
     solver = GradientDescentSolver(metric, compiler, circuit, optimizer=optimizer)
@@ -104,4 +104,3 @@ def test_one_layer_shared_weights():
 
 if __name__ == "__main__":
     test_one_layer_variational_circuit()
-

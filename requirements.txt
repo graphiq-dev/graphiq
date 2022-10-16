@@ -16,3 +16,4 @@ ray[default]
 psutil
 jax
 optax
+tqdm

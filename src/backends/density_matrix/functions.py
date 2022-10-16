@@ -12,9 +12,6 @@ import inspect
 from src.backends.density_matrix import numpy as np
 from src.backends.density_matrix import eig, eigh
 
-print(os.path.abspath(inspect.getfile(eigh)))
-print(os.path.abspath(inspect.getfile(np)))
-
 
 def dagger(matrix):
     """

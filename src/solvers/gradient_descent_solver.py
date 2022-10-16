@@ -47,7 +47,7 @@ class GradientDescentSolver(SolverBase):
             circuit,
             io,
         )
-        if src.DENSITY_MATRIX_ARRAY_LIBRARY is not "jax":
+        if src.DENSITY_MATRIX_ARRAY_LIBRARY != "jax":
             raise RuntimeError("JAX not being used as array backend.")
 
         self.optimizer = optimizer

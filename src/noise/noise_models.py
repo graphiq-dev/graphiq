@@ -77,8 +77,11 @@ class NoiseBase(ABC):
                 )
                 state_rep.apply_unitary(noisy_gate)
             elif isinstance(state_rep, Stabilizer):
-                # TODO: Find the correct representation for Stabilizer backend
-                pass
+                gate_list = self.get_backend_dependent_noise(
+                    state_rep, n_quantum, reg_list
+                )
+                state_rep.apply_circuit(gate_list)
+
             elif isinstance(state_rep, Graph):
                 # TODO: Implement this for Graph backend
                 pass
@@ -156,8 +159,7 @@ class NoNoise(AdditionNoiseBase):
         if isinstance(state_rep, DensityMatrix):
             return np.eye(state_rep.data.shape[0])
         elif isinstance(state_rep, Stabilizer):
-            # TODO: Find the correct representation for Stabilizer backend
-            return n_quantum * "I"
+            return []
         elif isinstance(state_rep, Graph):
             # simply return None
             return
@@ -386,11 +388,21 @@ class PauliError(AdditionNoiseBase):
                 return np.eye(2**n_quantum)
             else:
                 raise ValueError("Wrong description of a Pauli matrix.")
+
         elif isinstance(state_rep, Stabilizer):
-            # TODO: Find the correct representation for Stabilizer backend
-            raise NotImplementedError(
-                "PauliError not implemented for stabilizer representation"
-            )
+            gate_list = []
+            if pauli_error == "X":
+                gate_list.append(("X", reg_list[0]))
+            elif pauli_error == "Y":
+                gate_list.append(("Y", reg_list[0]))
+            elif pauli_error == "Z":
+                gate_list.append(("Z", reg_list[0]))
+            elif pauli_error == "I":
+                pass
+            else:
+                raise ValueError("Wrong description of a Pauli matrix.")
+            return gate_list
+
         elif isinstance(state_rep, Graph):
             # TODO: Implement this for Graph backend
             raise NotImplementedError(

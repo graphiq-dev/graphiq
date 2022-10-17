@@ -482,8 +482,10 @@ def test_visualization_unwrapped_2():
     except Exception as e:
         print(dag.to_openqasm())
         raise e
+
+
 def test_ged_1():
-    #self-comparison should return True
+    # self-comparison should return True
     circuit1 = CircuitDAG(n_emitter=0, n_photon=1, n_classical=0)
     circuit1.add(ops.Hadamard(register=0, reg_type="e"))
     circuit1.add(ops.CNOT(control=0, control_type="e", target=0, target_type="p"))
@@ -491,8 +493,9 @@ def test_ged_1():
 
     assert match == True
 
+
 def test_ged_2():
-    #one-qubit
+    # one-qubit
     circuit1 = CircuitDAG(n_emitter=0, n_photon=1, n_classical=0)
     circuit2 = CircuitDAG(n_emitter=0, n_photon=1, n_classical=0)
     circuit2.add(ops.Phase(register=0, reg_type="p"))
@@ -505,12 +508,17 @@ def test_ged_2():
     assert match12 == False
     assert match34 == False
 
+
 def test_ged_3():
-    #two-qubit
+    # two-qubit
     circuit1 = CircuitDAG(n_emitter=1, n_photon=1, n_classical=1)
     circuit1.add(ops.CNOT(control=0, control_type="p", target=1, target_type="p"))
     circuit2 = CircuitDAG(n_emitter=1, n_photon=1, n_classical=1)
-    circuit2.add(ops.ClassicalCNOT(control=0, control_type="p", target=1, target_type="p",c_register=0))
+    circuit2.add(
+        ops.ClassicalCNOT(
+            control=0, control_type="p", target=1, target_type="p", c_register=0
+        )
+    )
     match12 = circuit1.similarity_ged(circuit2)
 
     circuit3 = CircuitDAG(n_emitter=0, n_photon=2, n_classical=0)
@@ -531,7 +539,7 @@ def test_ged_3():
 
 
 def test_ged_4():
-    #Quantum registers in the same type are considered the same
+    # Quantum registers in the same type are considered the same
     circuit1 = CircuitDAG(n_emitter=0, n_photon=2, n_classical=0)
     circuit1.add(ops.CNOT(control=1, control_type="p", target=0, target_type="p"))
     circuit2 = CircuitDAG(n_emitter=0, n_photon=2, n_classical=0)
@@ -556,10 +564,12 @@ def test_ged_4():
     assert match34 == False
     assert match56 == False
 
+
 def test_ged_5():
-    #lager circuit comparison
+    # lager circuit comparison
     from benchmarks.circuits import ghz3_state_circuit
     from benchmarks.circuits import ghz4_state_circuit
+
     circuit1, _ = ghz3_state_circuit()
     circuit2, _ = ghz4_state_circuit()
 

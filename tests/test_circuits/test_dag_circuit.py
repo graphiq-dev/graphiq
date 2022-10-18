@@ -580,3 +580,16 @@ def test_ged_5():
     assert match1 == True
     assert match2 == True
     assert match12 == False
+
+def test_ged_6():
+    gate1 = [ops.SigmaX, ops.SigmaY]
+    gate2 = [ops.Phase, ops.SigmaX]
+    circuit1 = CircuitDAG(n_emitter=1, n_photon=0, n_classical=0)
+    circuit1.add(ops.Phase(register=0, reg_type="e"))
+    circuit1.add(ops.OneQubitGateWrapper(gate1, register=0, reg_type="e"))
+    circuit2 = CircuitDAG(n_emitter=1, n_photon=0, n_classical=0)
+    circuit2.add(ops.OneQubitGateWrapper(gate2, register=0, reg_type="e"))
+    circuit2.add(ops.SigmaY(register=0, reg_type="e"))
+    match12 = circuit1.similarity_ged(circuit2)
+
+    assert match12 == True

@@ -1409,9 +1409,9 @@ class CircuitDAG(CircuitBase):
         return dag
 
     def unwrap_nodes(self):
-        if 'OneQubitGateWrapper' in self.node_dict:
-            for node in self.node_dict['OneQubitGateWrapper']:
-                op_list = self.dag.nodes[node]['op'].unwrap()
+        if "OneQubitGateWrapper" in self.node_dict:
+            for node in self.node_dict["OneQubitGateWrapper"]:
+                op_list = self.dag.nodes[node]["op"].unwrap()
                 for op in op_list:
                     out_edge = list(self.dag.out_edges(node, keys=True))
                     self.insert_at(op, out_edge)

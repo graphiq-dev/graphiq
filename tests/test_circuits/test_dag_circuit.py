@@ -581,6 +581,7 @@ def test_ged_5():
     assert match2 == True
     assert match12 == False
 
+
 def test_ged_6():
     gate1 = [ops.SigmaX, ops.SigmaY]
     gate2 = [ops.Phase, ops.SigmaX]

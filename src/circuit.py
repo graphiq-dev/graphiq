@@ -45,9 +45,9 @@ from src.visualizers.openqasm_visualization import draw_openqasm
 
 
 class Register:
-    def __init__(self, reg_dict=None, max_size: int = 1):
+    def __init__(self, reg_dict=None, multi_qubit_register: bool = False):
         self._registers = reg_dict
-        self.max_size = max_size
+        self.multi_qubit_register = multi_qubit_register
 
     @property
     def register(self):
@@ -57,8 +57,8 @@ class Register:
         return self._registers[key]
 
     def __setitem__(self, key, value):
-        if set(value) != {1}:
-            raise ValueError(f"CircuitDAG class only supports single-qubit registers")
+        if set(value) != {1} and not self.multi_qubit_register:
+            raise ValueError(f"The register only supports single-qubit registers")
         self._registers[key] = value
 
     def n_quantum(self):
@@ -70,15 +70,15 @@ class Register:
         return q_sum
 
     def add_register(self, reg_type, size: int = 1):
-        if size < 1:
-            raise ValueError(f"{reg_type} register size must be at least one")
-        if size > self.max_size:
-            raise ValueError(
-                f"_add_register for this circuit class must only add registers of size {self.max_size}"
-            )
         if reg_type not in self._registers:
             raise ValueError(
                 f"reg_type must be 'e' (emitter qubit), 'p' (photonic qubit), 'c' (classical bit)"
+            )
+        if size < 1:
+            raise ValueError(f"{reg_type} register size must be at least one")
+        if size > 1 and not self.multi_qubit_register:
+            raise ValueError(
+                f"Can not add register of size {size}, multiple qubit register is not supported"
             )
         self._registers[reg_type].append(size)
         return len(self._registers[reg_type]) - 1
@@ -103,10 +103,10 @@ class Register:
                 "reg_type must be 'e' (emitter register), 'p' (photonic register), "
                 "or 'c' (classical register)"
             )
-        if new_size > self.max_size:
+        if new_size > 1 and not self.multi_qubit_register:
             raise ValueError(
-                f"Register size cannot be expanded in the {self.__class__.__name__} representation"
-                f"(they must have a size of {self.max_size})"
+                f"Can not expand register to size {new_size}, multiple qubit register is not supported"
+                f"(they must have a size of 1)"
             )
         curr_reg = self._registers[reg_type]
         curr_size = curr_reg[register]
@@ -133,7 +133,6 @@ class Register:
             raise ValueError(
                 "Register type must be 'p' (quantum photonic), 'e' (quantum emitter), or 'c' (classical)"
             )
-
         return self._registers[reg_type][register]
 
 

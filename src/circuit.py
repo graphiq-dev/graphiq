@@ -1409,6 +1409,13 @@ class CircuitDAG(CircuitBase):
         return dag
 
     def unwrap_nodes(self):
+        """
+        Unwrap the nodes with more than 1 ops in it
+
+        :return: nothing
+        :rtype: None
+        """
+
         if "OneQubitGateWrapper" in self.node_dict:
             for node in self.node_dict["OneQubitGateWrapper"]:
                 op_list = self.dag.nodes[node]["op"].unwrap()

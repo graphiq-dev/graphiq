@@ -1409,12 +1409,13 @@ class CircuitDAG(CircuitBase):
         return dag
 
     def unwrap_nodes(self):
-        for node in self.node_dict['OneQubitGateWrapper']:
-            op_list = self.dag.nodes[node]['op'].unwrap()
-            for op in op_list:
-                out_edge = list(self.dag.out_edges(node, keys=True))
-                self.insert_at(op, out_edge)
-            self.remove_op(node)
+        if 'OneQubitGateWrapper' in self.node_dict:
+            for node in self.node_dict['OneQubitGateWrapper']:
+                op_list = self.dag.nodes[node]['op'].unwrap()
+                for op in op_list:
+                    out_edge = list(self.dag.out_edges(node, keys=True))
+                    self.insert_at(op, out_edge)
+                self.remove_op(node)
 
     def _max_depth(self, root_node):
         """

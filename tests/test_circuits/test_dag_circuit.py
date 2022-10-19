@@ -601,4 +601,4 @@ def test_circuit_comparison_6():
     match = circuit1.circuit_comparison(circuit2)
 
     assert ged == True
-    assert match ==True
+    assert match == True

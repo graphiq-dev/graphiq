@@ -551,7 +551,6 @@ def test_ged_4():
     assert match12 == True
 
 
-
 def test_ged_5():
     # lager circuit comparison
     from benchmarks.circuits import ghz3_state_circuit

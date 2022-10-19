@@ -1355,7 +1355,7 @@ class CircuitDAG(CircuitBase):
 
             if reg_match and ops_match:
                 if isinstance(n1["op"], ops.Input) and n1["op"].reg_type == "p":
-                    p_reg_match = (n1["op"].register == n2["op"].register)
+                    p_reg_match = n1["op"].register == n2["op"].register
                     return int(not p_reg_match)
                 else:
                     return 0

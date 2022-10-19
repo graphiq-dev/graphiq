@@ -19,8 +19,11 @@ def m_emissions_depolarizing_noise(circ, depolarizing_time, depolarizing_prob):
 
     for edge in edges_to_add:
         reg, reg_type = circ.dag.edges[edge]["reg"], circ.dag.edges[edge]["reg_type"]
-        noisy_id = ops.Identity(register=reg, reg_type=reg_type,
-                                noise=nm.DepolarizingNoise(depolarizing_prob=depolarizing_prob))
+        noisy_id = ops.Identity(
+            register=reg,
+            reg_type=reg_type,
+            noise=nm.DepolarizingNoise(depolarizing_prob=depolarizing_prob),
+        )
 
         circ.insert_at(noisy_id, [edge])
 

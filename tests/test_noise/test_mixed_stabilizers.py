@@ -98,8 +98,22 @@ def test_mixed_state_3():
     assert no_len_reduction > len_reduction
 
 
+def test_mixed_state_4():
+    compiler = StabilizerCompiler()
+    compiler.measurement_determinism = "probabilistic"
+    compiler.noise_simulation = True
+
+    n_emitters, n_photons, d_emitter, lam = 1, 1, 2, 0.2
+    circ, circ_ideal = create_circuits(n_emitters, n_photons, d_emitter, lam)
+    circ.add(ops.MeasurementZ(register=0, reg_type="e"))
+
+    nm.REDUCE_STABILIZER_MIXTURE = False
+    state = compiler.compile(circ)
+
+
 if __name__ == "__main__":
     test_mixed_state_1()
-    test_mixed_state_2(1)
+    test_mixed_state_2(4)
     test_mixed_state_3()
-    print("tests finished successfully")
+    test_mixed_state_4()
+    print("Tests successful")

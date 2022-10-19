@@ -343,11 +343,15 @@ class MixedStabilizer(Stabilizer):
                 isinstance(pi, float) and isinstance(ti, CliffordTableau)
                 for (pi, ti) in value
             )
+            assert len(set([ti.n_qubits for pi, ti in value])) == 1  # all tableaux are same number of qubits
             self._mixture = value
+
         elif isinstance(value, CliffordTableau):
             self._mixture = [(1.0, value)]
+
         elif isinstance(value, int):
             self._mixture = [(1.0, CliffordTableau(value))]
+
         else:
             raise TypeError(
                 "Must use a list of CliffordTableau for the mixed stabilizer"
@@ -391,23 +395,23 @@ class MixedStabilizer(Stabilizer):
         )
 
     def reduce(self):
-        mixture_temp = self.mixture
-        # print("starting len", len(mixture_temp))
+        """
+        Reduce the number of tableaux store in the mixture by comparing the Hamming distance between them.
+        Probabilities are summed and one tableau removed if they are the same.
+        :return:
+        """
+        mixture_temp = self._mixture
         mixture_reduce = []
         while len(mixture_temp) != 0:
             p0, t0 = mixture_temp[0]
             mixture_temp.pop(0)
             for i, (pi, ti) in enumerate(mixture_temp):
                 if np.count_nonzero(t0 != ti) == 0:
-                    # print("same")
                     p0 += pi
                     mixture_temp.pop(i)
 
             mixture_reduce.append((p0, t0))
-
-        # print(mixture_reduce)
-        # print("len after reduction", len(mixture_reduce))
-        self.mixture = mixture_reduce
+        self._mixture = mixture_reduce
 
     def apply_unitary(self, qubit_position, unitary):
         raise NotImplementedError(
@@ -429,10 +433,20 @@ class MixedStabilizer(Stabilizer):
         :return: the measurement outcome
         :rtype: int
         """
-        # TODO: how to best measure?
-        self._tableau, outcome, _, = sfc.z_measurement_gate(
-            self._tableau, qubit_position, measurement_determinism
-        )
+        if measurement_determinism == "probabilistic":
+            outcome = np.random.randint(0, 2)
+        elif measurement_determinism == 1:
+            outcome = 1
+        elif measurement_determinism == 0:
+            outcome = 0
+        else:
+            raise ValueError(
+                "measurement_determinism must be 0, 1, or 'probabilistic'."
+            )
+        self._mixture = [
+            (pi, sfc.z_measurement_gate(tableau_i, qubit_position, measurement_determinism=outcome))
+            for (pi, tableau_i) in self._mixture
+        ]
         return outcome
 
     def apply_hadamard(self, qubit_position):
@@ -568,10 +582,10 @@ class MixedStabilizer(Stabilizer):
         :return: nothing
         :rtype: None
         """
-        raise NotImplementedError
-        # self._tableau = sfc.remove_qubit(
-        #     self._tableau, qubit_position, measurement_determinism
-        # )
+        self._mixture = [
+            (pi, sfc.remove_qubit(tableau_i, qubit_position, measurement_determinism))
+            for (pi, tableau_i) in self._mixture
+        ]
 
     def trace_out_qubits(
         self, qubit_positions, measurement_determinism="probabilistic"
@@ -588,14 +602,18 @@ class MixedStabilizer(Stabilizer):
         :return: nothing
         :rtype: None
         """
-        raise NotImplementedError
-
-        # self._tableau = sfc.partial_trace(
-        #     self._tableau,
-        #     keep=qubit_positions,
-        #     dims=self.n_qubit * [2],
-        #     measurement_determinism=measurement_determinism,
-        # )
+        self._mixture = [
+            (
+                pi,
+                sfc.partial_trace(
+                    tableau_i,
+                    keep=qubit_positions,
+                    dims=self.n_qubit * [2],
+                    measurement_determinism=measurement_determinism,
+                ),
+            )
+            for (pi, tableau_i) in self._mixture
+        ]
 
     def __str__(self):
         """
@@ -604,7 +622,8 @@ class MixedStabilizer(Stabilizer):
         :return: a string representation of this state representation
         :rtype: str
         """
-        return "".join(f"{pi}: {ti.__str__()}\n\n" for (pi, ti) in self._mixture)
+        s = f"{self.__class__.__name__} | {len(self._mixture)} tableaux in mixture"
+        return s
 
     def __eq__(self, other):
         """

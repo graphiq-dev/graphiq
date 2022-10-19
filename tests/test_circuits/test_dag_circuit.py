@@ -539,30 +539,17 @@ def test_ged_3():
 
 
 def test_ged_4():
-    # Quantum registers in the same type are considered the same
-    circuit1 = CircuitDAG(n_emitter=0, n_photon=2, n_classical=0)
-    circuit1.add(ops.CNOT(control=1, control_type="p", target=0, target_type="p"))
-    circuit2 = CircuitDAG(n_emitter=0, n_photon=2, n_classical=0)
-    circuit2.add(ops.CNOT(control=0, control_type="p", target=1, target_type="p"))
+    # All emitters are considered the same
+    circuit1 = CircuitDAG(n_emitter=2, n_photon=2, n_classical=0)
+    circuit1.add(ops.CNOT(control=0, control_type="e", target=0, target_type="p"))
+    circuit1.add(ops.CNOT(control=1, control_type="e", target=1, target_type="p"))
+    circuit2 = CircuitDAG(n_emitter=2, n_photon=2, n_classical=0)
+    circuit2.add(ops.CNOT(control=0, control_type="e", target=1, target_type="p"))
+    circuit2.add(ops.CNOT(control=1, control_type="e", target=0, target_type="p"))
     match12 = circuit1.similarity_ged(circuit2)
 
-    circuit3 = CircuitDAG(n_emitter=1, n_photon=1, n_classical=0)
-    circuit3.add(ops.CNOT(control=0, control_type="e", target=0, target_type="p"))
-    circuit4 = CircuitDAG(n_emitter=1, n_photon=1, n_classical=0)
-    circuit4.add(ops.CNOT(control=0, control_type="p", target=0, target_type="e"))
-    match34 = circuit3.similarity_ged(circuit4)
-
-    circuit5 = CircuitDAG(n_emitter=0, n_photon=2, n_classical=0)
-    circuit5.add(ops.Phase(register=0, reg_type="p"))
-    circuit5.add(ops.CNOT(control=0, control_type="p", target=1, target_type="p"))
-    circuit6 = CircuitDAG(n_emitter=0, n_photon=2, n_classical=0)
-    circuit6.add(ops.Phase(register=0, reg_type="p"))
-    circuit6.add(ops.CNOT(control=1, control_type="p", target=0, target_type="p"))
-    match56 = circuit5.similarity_ged(circuit6)
-
     assert match12 == True
-    assert match34 == False
-    assert match56 == False
+
 
 
 def test_ged_5():
@@ -583,8 +570,8 @@ def test_ged_5():
 
 
 def test_ged_6():
-    gate1 = [ops.SigmaX, ops.SigmaY]
-    gate2 = [ops.Phase, ops.SigmaX]
+    gate1 = [ops.SigmaY, ops.SigmaX]
+    gate2 = [ops.SigmaX, ops.Phase]
     circuit1 = CircuitDAG(n_emitter=1, n_photon=0, n_classical=0)
     circuit1.add(ops.Phase(register=0, reg_type="e"))
     circuit1.add(ops.OneQubitGateWrapper(gate1, register=0, reg_type="e"))

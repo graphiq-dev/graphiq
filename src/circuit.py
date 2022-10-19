@@ -1354,7 +1354,11 @@ class CircuitDAG(CircuitBase):
             ops_match = isinstance(n1["op"], type(n2["op"]))
 
             if reg_match and ops_match:
-                return 0
+                if isinstance(n1["op"], ops.Input) and n1["op"].reg_type == "p":
+                    p_reg_match = (n1["op"].register == n2["op"].register)
+                    return int(not p_reg_match)
+                else:
+                    return 0
             else:
                 return 1
 
@@ -1420,8 +1424,8 @@ class CircuitDAG(CircuitBase):
             for node in self.node_dict["OneQubitGateWrapper"]:
                 op_list = self.dag.nodes[node]["op"].unwrap()
                 for op in op_list:
-                    out_edge = list(self.dag.out_edges(node, keys=True))
-                    self.insert_at(op, out_edge)
+                    in_edge = list(self.dag.in_edges(node, keys=True))
+                    self.insert_at(op, in_edge)
                 self.remove_op(node)
 
     def _max_depth(self, root_node):

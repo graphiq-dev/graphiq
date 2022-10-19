@@ -1310,7 +1310,67 @@ class CircuitDAG(CircuitBase):
         self._node_id += 1
         return self._node_id
 
-    def similarity_ged_adaptive(self, circuit_compare, threshold: int):
+    def circuit_comparison(self, circuit_compare, method="direct"):
+        """
+        Comparing two circuits by using GED or direct loop method
+
+        :param circuit_compare: circuit that to be compared
+        :type circuit_compare: CircuitDAG
+        :param circuit_compare: Determine which comparison function to use
+        :type circuit_compare: bool
+        :return: whether two circuits are the same
+        :rtype: bool
+        """
+        if method == "direct":
+            return self.direct_comparison(circuit_compare)
+        elif method == "GED_full":
+            return self.similarity_ged(circuit_compare, full=True)
+        elif method == "GED_approximate":
+            return self.similarity_ged(circuit_compare, full=False)
+        elif method == "GED_adaptive":
+            return self.similarity_ged_adaptive(circuit_compare)
+
+
+    def direct_comparison(self, circuit_compare):
+        """
+        Directly compare two circuits by iterating from input nodes to output nodes
+
+        :param circuit_compare: circuit that to be compared
+        :type circuit_compare: CircuitDAG
+        :return: whether two circuits are the same
+        :rtype: bool
+        """
+        circuit = self.copy()
+        circuit.unwrap_nodes()
+        circuit_compare = circuit_compare.copy()
+        circuit_compare.unwrap_nodes()
+
+        if circuit.register_depth == circuit_compare.register_depth:
+            for i in circuit.node_dict["Input"]:
+                node = i
+                node_compare = i
+                reg = i[0:2]
+                while node not in circuit.node_dict["Output"]:
+                    out_edge = [edge for edge in list(circuit.dag.out_edges(node, keys=True)) if edge[2] == reg]
+                    node = out_edge[0][1]
+                    out_edge_compare = [edge for edge in list(circuit_compare.dag.out_edges(node_compare, keys=True))
+                                        if edge[2] == reg]
+                    node_compare = out_edge_compare[0][1]
+                    op = circuit.dag.nodes[node]["op"]
+                    op_compare = circuit_compare.dag.nodes[node_compare]["op"]
+                    control_match = (
+                            op.q_registers_type == op_compare.q_registers_type
+                            and op.q_registers == op_compare.q_registers
+                    )
+                    if isinstance(op, type(op_compare)) and control_match:
+                        pass
+                    else:
+                        return False
+            return True
+        else:
+            return False
+
+    def similarity_ged_adaptive(self, circuit_compare, threshold=30):
         """
         switch between exact and approximate GED calculation adaptively
 

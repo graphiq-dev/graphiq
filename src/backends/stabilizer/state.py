@@ -343,7 +343,9 @@ class MixedStabilizer(Stabilizer):
                 isinstance(pi, float) and isinstance(ti, CliffordTableau)
                 for (pi, ti) in value
             )
-            assert len(set([ti.n_qubits for pi, ti in value])) == 1  # all tableaux are same number of qubits
+            assert (
+                len(set([ti.n_qubits for pi, ti in value])) == 1
+            )  # all tableaux are same number of qubits
             self._mixture = value
 
         elif isinstance(value, CliffordTableau):
@@ -444,7 +446,12 @@ class MixedStabilizer(Stabilizer):
                 "measurement_determinism must be 0, 1, or 'probabilistic'."
             )
         self._mixture = [
-            (pi, sfc.z_measurement_gate(tableau_i, qubit_position, measurement_determinism=outcome))
+            (
+                pi,
+                sfc.z_measurement_gate(
+                    tableau_i, qubit_position, measurement_determinism=outcome
+                ),
+            )
             for (pi, tableau_i) in self._mixture
         ]
         return outcome

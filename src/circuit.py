@@ -1330,7 +1330,6 @@ class CircuitDAG(CircuitBase):
         elif method == "GED_adaptive":
             return self.similarity_ged_adaptive(circuit_compare)
 
-
     def direct_comparison(self, circuit_compare):
         """
         Directly compare two circuits by iterating from input nodes to output nodes
@@ -1351,16 +1350,27 @@ class CircuitDAG(CircuitBase):
                 node_compare = i
                 reg = i[0:2]
                 while node not in circuit.node_dict["Output"]:
-                    out_edge = [edge for edge in list(circuit.dag.out_edges(node, keys=True)) if edge[2] == reg]
+                    out_edge = [
+                        edge
+                        for edge in list(circuit.dag.out_edges(node, keys=True))
+                        if edge[2] == reg
+                    ]
                     node = out_edge[0][1]
-                    out_edge_compare = [edge for edge in list(circuit_compare.dag.out_edges(node_compare, keys=True))
-                                        if edge[2] == reg]
+
+                    out_edge_compare = [
+                        edge
+                        for edge in list(
+                            circuit_compare.dag.out_edges(node_compare, keys=True)
+                        )
+                        if edge[2] == reg
+                    ]
                     node_compare = out_edge_compare[0][1]
+
                     op = circuit.dag.nodes[node]["op"]
                     op_compare = circuit_compare.dag.nodes[node_compare]["op"]
                     control_match = (
-                            op.q_registers_type == op_compare.q_registers_type
-                            and op.q_registers == op_compare.q_registers
+                        op.q_registers_type == op_compare.q_registers_type
+                        and op.q_registers == op_compare.q_registers
                     )
                     if isinstance(op, type(op_compare)) and control_match:
                         pass

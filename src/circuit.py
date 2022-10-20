@@ -1345,12 +1345,14 @@ class CircuitDAG(CircuitBase):
         circuit.unwrap_nodes()
         circuit_compare = circuit_compare.copy()
         circuit_compare.unwrap_nodes()
+        n_reg_match = circuit.register == circuit_compare.register
+        n_nodes_match = circuit.dag.number_of_nodes() == circuit_compare.dag.number_of_nodes()
 
-        if circuit.register_depth == circuit_compare.register_depth:
+        if n_reg_match and n_nodes_match:
             for i in circuit.node_dict["Input"]:
                 node = i
                 node_compare = i
-                reg = i[0:2]
+                reg = i[0:-3]
                 while node not in circuit.node_dict["Output"]:
                     out_edge = [
                         edge

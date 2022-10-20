@@ -1329,6 +1329,8 @@ class CircuitDAG(CircuitBase):
             return self.similarity_ged(circuit_compare, full=False)
         elif method == "GED_adaptive":
             return self.similarity_ged_adaptive(circuit_compare)
+        else:
+            raise ValueError(f"Method {method} is not supported.")
 
     def direct_comparison(self, circuit_compare):
         """

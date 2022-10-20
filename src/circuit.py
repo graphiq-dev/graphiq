@@ -1375,6 +1375,7 @@ class CircuitDAG(CircuitBase):
                     control_match = (
                         op.q_registers_type == op_compare.q_registers_type
                         and op.q_registers == op_compare.q_registers
+                        and op.c_registers == op_compare.c_registers
                     )
                     if isinstance(op, type(op_compare)) and control_match:
                         pass

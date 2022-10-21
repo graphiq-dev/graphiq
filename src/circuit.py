@@ -1310,74 +1310,74 @@ class CircuitDAG(CircuitBase):
         self._node_id += 1
         return self._node_id
 
-    def circuit_comparison(self, circuit_compare, method="direct"):
+    def compare(self, circuit, method="direct"):
         """
         Comparing two circuits by using GED or direct loop method
 
-        :param circuit_compare: circuit that to be compared
-        :type circuit_compare: CircuitDAG
-        :param circuit_compare: Determine which comparison function to use
-        :type circuit_compare: bool
+        :param circuit: circuit that to be compared
+        :type circuit: CircuitDAG
+        :param method: Determine which comparison function to use
+        :type method: str
         :return: whether two circuits are the same
         :rtype: bool
         """
         if method == "direct":
-            return self.direct_comparison(circuit_compare)
+            return self.direct_comparison(circuit)
         elif method == "GED_full":
-            return self.similarity_ged(circuit_compare, full=True)
+            return self.ged(circuit, full=True)
         elif method == "GED_approximate":
-            return self.similarity_ged(circuit_compare, full=False)
+            return self.ged(circuit, full=False)
         elif method == "GED_adaptive":
-            return self.similarity_ged_adaptive(circuit_compare)
+            return self.ged_adaptive(circuit)
         else:
             raise ValueError(f"Method {method} is not supported.")
 
-    def direct_comparison(self, circuit_compare):
+    def direct_comparison(self, circuit):
         """
         Directly compare two circuits by iterating from input nodes to output nodes
 
-        :param circuit_compare: circuit that to be compared
-        :type circuit_compare: CircuitDAG
+        :param circuit: circuit that to be compared
+        :type circuit: CircuitDAG
         :return: whether two circuits are the same
         :rtype: bool
         """
-        circuit = self.copy()
-        circuit.unwrap_nodes()
-        circuit_compare = circuit_compare.copy()
-        circuit_compare.unwrap_nodes()
-        n_reg_match = circuit.register == circuit_compare.register
-        n_nodes_match = circuit.dag.number_of_nodes() == circuit_compare.dag.number_of_nodes()
+        circuit_1 = self.copy()
+        circuit_1.unwrap_nodes()
+        circuit_2 = circuit.copy()
+        circuit_2.unwrap_nodes()
+        n_reg_match = circuit_1.register == circuit_2.register
+        n_nodes_match = circuit_1.dag.number_of_nodes() == circuit_2.dag.number_of_nodes()
 
         if n_reg_match and n_nodes_match:
-            for i in circuit.node_dict["Input"]:
-                node = i
-                node_compare = i
-                reg = i[0:-3]
-                while node not in circuit.node_dict["Output"]:
+            for i in circuit_1.node_dict["Input"]:
+                node_1 = i
+                node_2 = i
+                reg = list(circuit.dag.out_edges(i, keys=True))[0][2]
+                while node_1 not in circuit_1.node_dict["Output"]:
                     out_edge = [
                         edge
-                        for edge in list(circuit.dag.out_edges(node, keys=True))
+                        for edge in list(circuit_1.dag.out_edges(node_1, keys=True))
                         if edge[2] == reg
                     ]
-                    node = out_edge[0][1]
+                    node_1 = out_edge[0][1]
 
                     out_edge_compare = [
                         edge
                         for edge in list(
-                            circuit_compare.dag.out_edges(node_compare, keys=True)
+                            circuit_2.dag.out_edges(node_2, keys=True)
                         )
                         if edge[2] == reg
                     ]
-                    node_compare = out_edge_compare[0][1]
+                    node_2 = out_edge_compare[0][1]
 
-                    op = circuit.dag.nodes[node]["op"]
-                    op_compare = circuit_compare.dag.nodes[node_compare]["op"]
+                    op_1 = circuit_1.dag.nodes[node_1]["op"]
+                    op_2 = circuit_2.dag.nodes[node_2]["op"]
                     control_match = (
-                        op.q_registers_type == op_compare.q_registers_type
-                        and op.q_registers == op_compare.q_registers
-                        and op.c_registers == op_compare.c_registers
+                        op_1.q_registers_type == op_2.q_registers_type
+                        and op_1.q_registers == op_2.q_registers
+                        and op_1.c_registers == op_2.c_registers
                     )
-                    if isinstance(op, type(op_compare)) and control_match:
+                    if isinstance(op_1, type(op_2)) and control_match:
                         pass
                     else:
                         return False
@@ -1385,41 +1385,41 @@ class CircuitDAG(CircuitBase):
         else:
             return False
 
-    def similarity_ged_adaptive(self, circuit_compare, threshold=30):
+    def ged_adaptive(self, circuit, threshold=30):
         """
         switch between exact and approximate GED calculation adaptively
 
-        :param circuit_compare: circuit that to be compared
-        :type circuit_compare: CircuitDAG
-        :param circuit_compare: threshold
-        :type circuit_compare: int
+        :param circuit: circuit that to be compared
+        :type circuit: CircuitDAG
+        :param threshold: threshold
+        :type threshold: int
         :return: exact/approximated GED between circuits(cost needed to transform self.dag to circuit_compare.dag)
         :rtype: bool
         """
 
         full = (
-            max(self.dag.number_of_nodes(), circuit_compare.dag.number_of_nodes())
+            max(self.dag.number_of_nodes(), circuit.dag.number_of_nodes())
             < threshold
         )
-        sim = self.similarity_ged(circuit_compare, full=full)
+        sim = self.similarity_ged(circuit, full=full)
         return sim
 
-    def similarity_ged(self, circuit_compare, full=True):
+    def ged(self, circuit, full=True):
         """
         Calculate Graph Edit Distance (GED) between two circuits.
         Further reading on GED:
         https://networkx.org/documentation/stable/reference/algorithms/similarity.html
 
-        :param circuit_compare: circuit that to be compared
-        :type circuit_compare: CircuitDAG
-        :param circuit_compare: Determine which GED function to use
-        :type circuit_compare: bool
+        :param circuit: circuit that to be compared
+        :type circuit: CircuitDAG
+        :param full: Determine which GED function to use
+        :type full: bool
         :return: whether two circuits are the same
         :rtype: bool
         """
 
         dag_1 = self.modify_dag_for_ged()
-        dag_2 = circuit_compare.modify_dag_for_ged()
+        dag_2 = circuit.modify_dag_for_ged()
 
         def node_subst_cost(n1, n2):
             reg_match = (

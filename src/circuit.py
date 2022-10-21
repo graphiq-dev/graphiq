@@ -153,23 +153,23 @@ class DAG:
         self._node_id += 1
         return self._node_id
 
-    def add_node(self, node_id, operation: ops.OperationBase):
+    def add_node(self, node_id, op: ops.OperationBase):
         """
         Helper function for adding a node to the DAG representation
 
         :param node_id: the node to be added
         :type node_id: int
-        :param operation: the operation for the node
-        :type operation: OperationBase or subclass
+        :param op: the operation for the node
+        :type op: OperationBase or subclass
         :return: nothing
         :rtype: None
         """
-        self.dag.add_node(node_id, op=operation)
+        self.dag.add_node(node_id, op=op)
 
-        for attribute in operation.labels:
+        for attribute in op.labels:
             self.node_dict_append(attribute, node_id)
-        self.node_dict_append(type(operation).__name__, node_id)
-        self.node_dict_append(operation.parse_q_reg_types(), node_id)
+        self.node_dict_append(type(op).__name__, node_id)
+        self.node_dict_append(op.parse_q_reg_types(), node_id)
 
     def remove_node(self, node):
         """
@@ -328,25 +328,25 @@ class DAG:
             depth.append(self.max_depth(node))
         return max(depth) + 1
 
-    def add(self, operation: ops.OperationBase):
+    def add(self, op: ops.OperationBase):
         """
         Add an operation to the circuit
         This function assumes that all registers used by operation are already built
 
-        :param operation: Operation (gate and register) to add to the graph
-        :type operation: OperationBase (or a subclass thereof)
+        :param op: Operation (gate and register) to add to the graph
+        :type op: OperationBase (or a subclass thereof)
         :return: nothing
         :rtype: None
         """
         new_id = self.unique_node_id()
 
-        self.add_node(new_id, operation)
+        self.add_node(new_id, op)
 
         # get all edges that will need to be removed (i.e. the edges on which the Operation is being added)
         relevant_outputs = [
-            f"{operation.q_registers_type[i]}{operation.q_registers[i]}_out"
-            for i in range(len(operation.q_registers))
-        ] + [f"c{c}_out" for c in operation.c_registers]
+            f"{op.q_registers_type[i]}{op.q_registers[i]}_out"
+            for i in range(len(op.q_registers))
+        ] + [f"c{c}_out" for c in op.c_registers]
 
         for output in relevant_outputs:
             edges_to_remove = list(
@@ -364,13 +364,13 @@ class DAG:
 
                 self.remove_edge(edge)  # remove the unnecessary edges
 
-    def insert_at(self, operation: ops.OperationBase, reg_edges):
+    def insert_at(self, op: ops.OperationBase, reg_edges):
         """
         Add an operation to the circuit at a specified position
         This function assumes that all registers used by operation are already built
 
-        :param operation: Operation (gate and register) to add to the graph
-        :type operation: OperationBase (or a subclass thereof)
+        :param op: Operation (gate and register) to add to the graph
+        :type op: OperationBase (or a subclass thereof)
         :param reg_edges: a list of edges relevant for the operation
         :type reg_edges: list[tuple]
         :return: nothing
@@ -379,7 +379,7 @@ class DAG:
 
         new_id = self.unique_node_id()
 
-        self.add_node(new_id, operation)
+        self.add_node(new_id, op)
 
         for reg_edge in reg_edges:
             reg = self.dag.edges[reg_edge]["reg"]
@@ -477,7 +477,7 @@ class CircuitBase(ABC):
         self._registers["c"] = c_reg
 
     @abstractmethod
-    def add(self, operation: ops.OperationBase):
+    def add(self, op: ops.OperationBase):
         raise ValueError(
             "Base class circuit is abstract: it does not support function calls"
         )
@@ -801,7 +801,7 @@ class CircuitDAG(CircuitBase):
         :rtype: None
         """
         super().__init__(openqasm_imports=openqasm_imports, openqasm_defs=openqasm_defs)
-        self._DAG = DAG()
+        self._dag = DAG()
         self._register_depth = {"e": [], "p": [], "c": []}
 
         # map the key to the tuple register
@@ -817,54 +817,52 @@ class CircuitDAG(CircuitBase):
 
     @property
     def dag(self):
-        return self._DAG.dag
+        return self._dag.dag
 
     @property
     def edge_dict(self):
-        return self._DAG.edge_dict
+        return self._dag.edge_dict
 
     @property
     def node_dict(self):
-        return self._DAG.node_dict
+        return self._dag.node_dict
 
-    def add(self, operation: ops.OperationBase):
+    def add(self, op: ops.OperationBase):
         """
         Add an operation to the end of the circuit (i.e. to be applied after the pre-existing circuit operations)
 
-        :param operation: Operation (gate and register) to add to the graph
-        :type operation: OperationBase type (or a subclass of it)
+        :param op: Operation (gate and register) to add to the graph
+        :type op: OperationBase type (or a subclass of it)
         :raises UserWarning: if no openqasm definitions exists for operation
         :return: nothing
         :rtype: None
         """
-        self._openqasm_update(operation)
+        self._openqasm_update(op)
 
         # update registers (if the new operation is adding registers to the circuit)
         # Check for classical register
-        for i in range(len(operation.c_registers)):
+        for i in range(len(op.c_registers)):
             self._add_reg_if_absent(
-                register=operation.c_registers[i],
+                register=op.c_registers[i],
                 reg_type="c",
             )
 
         # Check for qubit register
-        register, reg_type = zip(
-            *sorted(zip(operation.q_registers, operation.q_registers_type))
-        )
+        register, reg_type = zip(*sorted(zip(op.q_registers, op.q_registers_type)))
         for i in range(len(register)):
             self._add_reg_if_absent(
                 register=register[i],
                 reg_type=reg_type[i],
             )
 
-        self._DAG.add(operation)
+        self._dag.add(op)
 
-    def insert_at(self, operation: ops.OperationBase, edges):
+    def insert_at(self, op: ops.OperationBase, edges):
         """
         Insert an operation among specified edges
 
-        :param operation: Operation (gate and register) to add to the graph
-        :type operation: OperationBase type (or a subclass of it)
+        :param op: Operation (gate and register) to add to the graph
+        :type op: OperationBase type (or a subclass of it)
         :param edges: a list of edges relevant for this operation
         :type edges: list[tuple]
         :raises UserWarning: if no openqasm definitions exists for operation
@@ -872,31 +870,29 @@ class CircuitDAG(CircuitBase):
         :return: nothing
         :rtype: None
         """
-        self._openqasm_update(operation)
+        self._openqasm_update(op)
 
         # update registers (if the new operation is adding registers to the circuit)
         # Check for classical register
-        for i in range(len(operation.c_registers)):
+        for i in range(len(op.c_registers)):
             self._add_reg_if_absent(
-                register=operation.c_registers[i],
+                register=op.c_registers[i],
                 reg_type="c",
             )
 
         # Check for qubit register
-        register, reg_type = zip(
-            *sorted(zip(operation.q_registers, operation.q_registers_type))
-        )
+        register, reg_type = zip(*sorted(zip(op.q_registers, op.q_registers_type)))
         for i in range(len(register)):
             self._add_reg_if_absent(
                 register=register[i],
                 reg_type=reg_type[i],
             )
 
-        assert len(edges) == len(operation.q_registers)
+        assert len(edges) == len(op.q_registers)
         # note that we implicitly assume there is only one classical register (bit) so that
         # we only count the quantum registers here. (Also only including quantum registers in edges)
-        self._openqasm_update(operation)
-        self._DAG.insert_at(operation, edges)
+        self._openqasm_update(op)
+        self._dag.insert_at(op, edges)
 
     def replace_op(self, node, new_operation: ops.OperationBase):
         """
@@ -918,15 +914,15 @@ class CircuitDAG(CircuitBase):
 
         # remove entries related to old_operation
         for label in old_operation.labels:
-            self._DAG.node_dict_remove(label, node)
-        self._DAG.node_dict_remove(type(old_operation).__name__, node)
-        self._DAG.node_dict_remove(old_operation.parse_q_reg_types(), node)
+            self._dag.node_dict_remove(label, node)
+        self._dag.node_dict_remove(type(old_operation).__name__, node)
+        self._dag.node_dict_remove(old_operation.parse_q_reg_types(), node)
 
         # add entries related to new_operation
         for label in new_operation.labels:
-            self._DAG.node_dict_append(label, node)
-        self._DAG.node_dict_append(type(new_operation).__name__, node)
-        self._DAG.node_dict_append(new_operation.parse_q_reg_types(), node)
+            self._dag.node_dict_append(label, node)
+        self._dag.node_dict_append(type(new_operation).__name__, node)
+        self._dag.node_dict_append(new_operation.parse_q_reg_types(), node)
 
         # replace the operation in the node
         self._openqasm_update(new_operation)
@@ -974,7 +970,7 @@ class CircuitDAG(CircuitBase):
         remaining_nodes = set(self.dag.nodes)
         for label in labels:
             remaining_nodes = remaining_nodes.intersection(
-                set(self._DAG.node_dict[label])
+                set(self._dag.node_dict[label])
             )
         return list(remaining_nodes)
 
@@ -990,7 +986,7 @@ class CircuitDAG(CircuitBase):
         all_nodes = set(self.dag.nodes)
         exclusion_nodes = set()
         for label in labels:
-            exclusion_nodes = exclusion_nodes.union(set(self._DAG.node_dict[label]))
+            exclusion_nodes = exclusion_nodes.union(set(self._dag.node_dict[label]))
         return list(all_nodes - exclusion_nodes)
 
     def remove_op(self, node):
@@ -1002,7 +998,7 @@ class CircuitDAG(CircuitBase):
         :return: nothing
         :rtype: None
         """
-        self._DAG.remove_node(node)
+        self._dag.remove_node(node)
 
     def validate(self):
         """
@@ -1324,7 +1320,7 @@ class CircuitDAG(CircuitBase):
                 f"Register numbering must be continuous. {reg_type} register {register} cannot be added. "
                 f"Next register that can be added is {len(self._registers[reg_type])}"
             )
-        self._DAG.add_input_output_node(register, reg_type)
+        self._dag.add_input_output_node(register, reg_type)
 
     def sorted_reg_depth_index(self, reg_type: str):
         """
@@ -1353,7 +1349,7 @@ class CircuitDAG(CircuitBase):
 
         for i in range(len(self._register_depth[reg_type])):
             output_node = f"{reg_type}{i}_out"
-            self._register_depth[reg_type][i] = self._DAG.max_depth(output_node)
+            self._register_depth[reg_type][i] = self._dag.max_depth(output_node)
         return self._register_depth[reg_type]
 
     def min_reg_depth_index(self, reg_type: str):

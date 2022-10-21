@@ -8,7 +8,7 @@ from benchmarks.circuits import (
     bell_state_circuit,
     ghz4_state_circuit,
 )
-from src.visualizers.density_matrix import density_matrix_bars
+from src.visualizers.density_matrix import density_matrix_bars, density_matrix_heatmap
 from tests.test_flags import visualization
 from src.circuit import CircuitDAG
 import src.ops as ops
@@ -146,7 +146,87 @@ def test_ghz4_circuit_visualization():
     plt.show()
 
 
+# improve code coverage by testing the density matrix compiler with a circuit that has some classical registers
+def test_ghz4_circuit_with_classical_registers():
+    circuit, ideal_state = ghz4_state_circuit()
+
+    compiler = DensityMatrixCompiler()
+    state = compiler.compile(circuit)
+
+    state = partial_trace(
+        state.dm.data, keep=(0, 1, 2, 3), dims=5 * [2]
+    )  # trace out the ancilla qubit
+
+    f = fidelity(state, ideal_state.dm.data)
+
+    assert np.isclose(1.0, f)
+
+
+@visualization
+def test_ghz4_circuit_with_classical_registers_visualization():
+    circuit, ideal_state = ghz4_state_circuit()
+
+    compiler = DensityMatrixCompiler()
+    state = compiler.compile(circuit)
+
+    state = partial_trace(
+        state.dm.data, keep=(0, 1, 2, 3), dims=5 * [2]
+    )  # trace out the ancilla qubit
+
+    fig, ax = density_matrix_bars(state)
+    fig.suptitle("Simulated circuit density matrix")
+    plt.show()
+
+    fig, ax = density_matrix_bars(ideal_state.dm.data)
+    fig.suptitle("Ideal density matrix")
+    plt.show()
+
+
+# add tests for the density matrix_heatmap function
+@visualization
+def test_density_matrix_heatmap():
+    circuit, ideal_state = ghz4_state_circuit()
+
+    compiler = DensityMatrixCompiler()
+    state = compiler.compile(circuit)
+
+    state = partial_trace(
+        state.dm.data, keep=(0, 1, 2, 3), dims=5 * [2]
+    )
+
+    fig, ax = density_matrix_heatmap(state)
+    fig.suptitle("Simulated circuit density matrix")
+    plt.show()
+
+    fig, ax = density_matrix_heatmap(ideal_state.dm.data)
+    fig.suptitle("Ideal density matrix")
+    plt.show()
+
+
+# add tests for the density_matrix_bars function
+@visualization
+def test_density_matrix_bars():
+    circuit, ideal_state = ghz4_state_circuit()
+
+    compiler = DensityMatrixCompiler()
+    state = compiler.compile(circuit)
+
+    state = partial_trace(
+        state.dm.data, keep=(0, 1, 2, 3), dims=5 * [2]
+    )
+
+    fig, ax = density_matrix_bars(state)
+    fig.suptitle("Simulated circuit density matrix")
+    plt.show()
+
+    fig, ax = density_matrix_bars(ideal_state.dm.data)
+    fig.suptitle("Ideal density matrix")
+    plt.show()
+
+
 if __name__ == "__main__":
     test_bell_circuit()
     test_ghz3_circuit()
     test_ghz4_circuit()
+    test_ghz4_circuit_with_classical_registers()
+

@@ -767,9 +767,9 @@ def full_two_qubit_controlled_unitary(
     Define a generic 4-parameter two-qubit gate that is a controlled unitary gate.
     :math:`|0\\rangle \\langle 0|\\otimes I +
     e^{i \\gamma} |1\\rangle \\langle 1| \\otimes U(\\theta, \\phi, \\lambda)`,
-    where :math:`U(\\theta,\\phi, \\lambda) =
-    \\begin{bmatrix} \\cos(\\frac{\\theta}{2}) & -e^{i \\lambda} \\sin(\\frac{\\theta}{2}) \\\
-    e^{i \\phi}\\sin(\\frac{\\theta}{2}) & e^{i (\\phi+\\lambda)}\\cos(\\frac{\\theta}{2})\\end{bmatrix}`
+    where :math:`U(\\theta,\\phi, \\lambda) =\\begin{bmatrix} \\cos(\\frac{\\theta}{2}) & -e^{i \\lambda}
+    \\sin(\\frac{\\theta}{2})\\\ e^{i \\phi}\\sin(\\frac{\\theta}{2}) &
+    e^{i (\\phi+\\lambda)}\\cos(\\frac{\\theta}{2})\\end{bmatrix}`
 
     :param n_qubits: number of qubits
     :type n_qubits: int

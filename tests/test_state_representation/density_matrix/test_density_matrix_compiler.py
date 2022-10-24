@@ -145,6 +145,7 @@ def test_ghz4_circuit_visualization():
     fig.suptitle("Ideal density matrix")
     plt.show()
 
+
 # add tests for the density matrix_heatmap function
 @visualization
 def test_density_matrix_heatmap():
@@ -153,9 +154,7 @@ def test_density_matrix_heatmap():
     compiler = DensityMatrixCompiler()
     state = compiler.compile(circuit)
 
-    state = partial_trace(
-        state.dm.data, keep=(0, 1, 2, 3), dims=5 * [2]
-    )
+    state = partial_trace(state.dm.data, keep=(0, 1, 2, 3), dims=5 * [2])
 
     fig, ax = density_matrix_heatmap(state)
     fig.suptitle("Simulated circuit density matrix")
@@ -166,9 +165,7 @@ def test_density_matrix_heatmap():
     plt.show()
 
 
-
 if __name__ == "__main__":
     test_bell_circuit()
     test_ghz3_circuit()
     test_ghz4_circuit()
-

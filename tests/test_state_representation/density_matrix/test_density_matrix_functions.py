@@ -91,12 +91,3 @@ def test_fidelity_multiqubit(n_qubits):
     )
     # works only for even number of qubits
     assert np.allclose(fidelity(rho, sigma), 0.5 ** n_qubits)
-
-
-def test_fidelity_multiqubit2():
-    rho = create_n_product_state(2, state_ketx0())
-    sigma = (
-            create_n_product_state(2, state_kety0()) / 2
-            + create_n_product_state(2, state_kety1()) / 2
-    )
-    assert np.allclose(fidelity(rho, sigma), 0.25)

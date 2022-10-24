@@ -490,10 +490,14 @@ def test_circuit_comparison_1():
     circuit1.add(ops.Hadamard(register=0, reg_type="e"))
     circuit1.add(ops.CNOT(control=0, control_type="e", target=0, target_type="p"))
     ged = circuit1.compare(circuit1, method="GED_full")
-    match = circuit1.compare(circuit1)
+    ged_approximate = circuit1.compare(circuit1, method="GED_approximate")
+    ged_adaptive = circuit1.compare(circuit1, method="GED_adaptive")
+    direct = circuit1.compare(circuit1)
 
-    assert ged == True
-    assert match == True
+    assert ged
+    assert ged_approximate
+    assert ged_adaptive
+    assert direct
 
 
 def test_circuit_comparison_2():
@@ -509,10 +513,10 @@ def test_circuit_comparison_2():
     ged34 = circuit3.compare(circuit4, method="GED_full")
     match34 = circuit3.compare(circuit4)
 
-    assert ged12 == False
-    assert ged34 == False
-    assert match12 == False
-    assert match34 == False
+    assert not ged12
+    assert not ged34
+    assert not match12
+    assert not match34
 
 
 def test_circuit_comparison_3():
@@ -542,16 +546,15 @@ def test_circuit_comparison_3():
     ged56 = circuit5.compare(circuit6, method="GED_full")
     match56 = circuit5.compare(circuit6)
 
-    assert ged12 == False
-    assert ged34 == False
-    assert ged56 == False
-    assert match12 == False
-    assert match34 == False
-    assert match56 == False
+    assert not ged12
+    assert not ged34
+    assert not ged56
+    assert not match12
+    assert not match34
+    assert not match56
 
 
 def test_circuit_comparison_4():
-    # All emitters are considered the same
     circuit1 = CircuitDAG(n_emitter=2, n_photon=2, n_classical=0)
     circuit1.add(ops.CNOT(control=0, control_type="e", target=0, target_type="p"))
     circuit1.add(ops.CNOT(control=1, control_type="e", target=1, target_type="p"))
@@ -561,8 +564,8 @@ def test_circuit_comparison_4():
     ged = circuit1.compare(circuit2, method="GED_full")
     match = circuit1.compare(circuit2)
 
-    assert ged == True
-    assert match == False
+    assert not ged
+    assert not match
 
 
 def test_circuit_comparison_5():
@@ -580,12 +583,12 @@ def test_circuit_comparison_5():
     match2 = circuit2.compare(circuit2)
     match12 = circuit1.compare(circuit2)
 
-    assert ged1 == True
-    assert ged2 == True
-    assert ged12 == False
-    assert match1 == True
-    assert match2 == True
-    assert match12 == False
+    assert ged1
+    assert ged2
+    assert not ged12
+    assert match1
+    assert match2
+    assert not match12
 
 
 def test_circuit_comparison_6():
@@ -600,5 +603,5 @@ def test_circuit_comparison_6():
     ged = circuit1.compare(circuit2, method="GED_full")
     match = circuit1.compare(circuit2)
 
-    assert ged == True
-    assert match == True
+    assert ged
+    assert match

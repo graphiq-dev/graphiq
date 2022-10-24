@@ -44,7 +44,7 @@ import src.ops as ops
 import src.utils.openqasm_lib as oq_lib
 from src.visualizers.dag import dag_topology_pos
 from src.visualizers.openqasm_visualization import draw_openqasm
-from src.utils.circuit_comparison import compare
+from src.utils.circuit_comparison import compare_circuits
 
 
 class CircuitBase(ABC):
@@ -1322,30 +1322,8 @@ class CircuitDAG(CircuitBase):
         :return: whether two circuits are the same
         :rtype: bool
         """
-        return compare(self, circuit, method=method)
+        return compare_circuits(self, circuit, method=method)
 
-    def modify_dag_for_ged(self):
-        """
-        Remove the output nodes and add control attribute to edges
-        :return: a copy of modified DAG
-        :rtype: nx.MultiDiGraph
-        """
-        circuit = self.copy()
-        circuit.unwrap_nodes()
-        dag = circuit.dag
-
-        n = [f"{out}" for out in dag.nodes.keys() if str(out)[-1] == "t"]
-        dag.remove_nodes_from(n)
-
-        nx.set_edge_attributes(dag, False, "control")
-        if "two-qubit" in self.node_dict:
-            for node in self.node_dict["two-qubit"]:
-                control_reg = f"{dag.nodes[node]['op'].control_type}{dag.nodes[node]['op'].control}"
-                in_edges = dag.in_edges(node, keys=True)
-                control_node = [edge[0] for edge in in_edges if edge[2] == control_reg]
-                dag[control_node[0]][node][control_reg]["control"] = True
-
-        return dag
     def unwrap_nodes(self):
         """
         Unwrap the nodes with more than 1 ops in it

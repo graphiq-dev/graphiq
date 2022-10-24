@@ -594,7 +594,7 @@ class CircuitBase(ABC):
         :return: the index of the next qubit
         :rtype: int (non-negative)
         """
-        return self._registers.next_register(reg_type="c", register=register)
+        return self._registers.next_register(reg_type="e", register=register)
 
     def next_photon(self, register):
         """
@@ -605,7 +605,7 @@ class CircuitBase(ABC):
         :return: the index of the next qubit
         :rtype: int (non-negative)
         """
-        return self._registers.next_register(reg_type="c", register=register)
+        return self._registers.next_register(reg_type="p", register=register)
 
     def next_cbit(self, register):
         """

@@ -118,7 +118,7 @@ def is_symplectic_self_orthogonal(input_matrix):
 
 
 def binary_symplectic_product(matrix1, matrix2):
-    r"""
+    """
     Compute the binary symplectic product of two matrices matrix1 (:math:`M_1`) and matrix2 (:math:`M_2`)
 
     The symplectic inner product between :math:`M_1` and :math:`M_2` is :math:`M_1 P M_2^T`,

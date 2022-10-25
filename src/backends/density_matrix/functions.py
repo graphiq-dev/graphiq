@@ -32,7 +32,7 @@ def sigmay():
 
 def sigmaz():
     """
-    Return :math:`\\sigma_z`matrix
+    Return :math:`\\sigma_z` matrix
 
     :return: sigma Z matrix
     :rtype: numpy.ndarray

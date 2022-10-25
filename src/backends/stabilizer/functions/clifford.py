@@ -196,7 +196,6 @@ def reset_z(
     :rtype:CliffordTableau
     """
     # reset qubit to computational basis states
-
     n_qubits = tableau.n_qubits  # number of qubits
     assert qubit_position < n_qubits
     assert intended_state == 0 or intended_state == 1

@@ -192,9 +192,9 @@ class Graph(StateRepresentationBase):
         :type other_graph: Graph
         :param mode: the chosen mode for finding solutions. It can be either 'deterministic' (default) or 'random'.
         :type mode: str
-        :raises AssertionError: if the number of rows in the row reduced matrix is less than the rank of coefficient matrix
-        or if the number of linearly dependent columns is not equal to :math:`4n - rank`
-        (for :math:`n` being the number of nodes in the graph)
+
+        :raises AssertionError: if the number of rows in the row reduced matrix is less than the rank of coefficient
+            matrix or if the number of linearly dependent columns is not equal to :math:`4n - rank` (for :math:`n` being the number of nodes in the graph)
         :return: If a solution is found, returns True and an array of single-qubit Clifford :math:`2 \\times 2` matrices
         in the symplectic formalism. If not, graphs are not LC equivalent and returns False, None.
         :rtype: bool, numpy.ndarray or None
@@ -471,14 +471,15 @@ class Graph(StateRepresentationBase):
     def merge(self, id1, id2):
         """
         Merges two nodes in the graph by:
+
         1. Creating a new node, new_node, where the node_id is union(node1_id, node2_id) --> union of the frozen sets
         2. For any edges of the form (a, node1) or (a, node2) with a in V (the set of nodes of the graph),
-           add the edge (a, new_node) to the graph
+            add the edge (a, new_node) to the graph
         3. Remove node1, node2 and all their associated edges
 
         Note that this is NOT the fusion gate function, as it doesn't take into account possibility of
         failure. We also DO NOT check whether there is an existing edge between node1, node2 prior to merging.
-         It is merely a function that deterministically merges nodes.
+        It is merely a function that deterministically merges nodes.
 
         :param id1: the ID of the first node in the graph to merge
         :type id1: int or frozenset

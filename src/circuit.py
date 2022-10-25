@@ -45,9 +45,11 @@ from src.visualizers.openqasm_visualization import draw_openqasm
 
 
 class Register:
-    def __init__(self, reg_dict=None, multi_qubit_register: bool = False):
+    def __init__(self, reg_dict, is_multi_qubit: bool = False):
+        if not reg_dict:
+            raise ValueError("Register dict can not be None")
         self._registers = reg_dict
-        self.multi_qubit_register = multi_qubit_register
+        self.is_multi_qubit = is_multi_qubit
 
     @property
     def register(self):
@@ -57,7 +59,7 @@ class Register:
         return self._registers[key]
 
     def __setitem__(self, key, value):
-        if set(value) != {1} and not self.multi_qubit_register:
+        if set(value) != {1} and not self.is_multi_qubit:
             raise ValueError(f"The register only supports single-qubit registers")
         self._registers[key] = value
 
@@ -76,7 +78,7 @@ class Register:
             )
         if size < 1:
             raise ValueError(f"{reg_type} register size must be at least one")
-        if size > 1 and not self.multi_qubit_register:
+        if size > 1 and not self.is_multi_qubit:
             raise ValueError(
                 f"Can not add register of size {size}, multiple qubit register is not supported"
             )
@@ -103,7 +105,7 @@ class Register:
                 "reg_type must be 'e' (emitter register), 'p' (photonic register), "
                 "or 'c' (classical register)"
             )
-        if new_size > 1 and not self.multi_qubit_register:
+        if new_size > 1 and not self.is_multi_qubit:
             raise ValueError(
                 f"Can not expand register to size {new_size}, multiple qubit register is not supported"
                 f"(they must have a size of 1)"

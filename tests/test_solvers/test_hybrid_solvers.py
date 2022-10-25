@@ -11,6 +11,7 @@ from src.solvers.hybrid_solvers import HybridEvolutionarySolver
 from benchmarks.circuits import *
 from src.metrics import Infidelity
 from src.state import QuantumState
+from benchmarks.alternate_circuits import run_one_repeater_graph_state
 
 
 def graph_stabilizer_setup(graph, solver_class, random_seed):
@@ -56,3 +57,19 @@ def test_square4():
     score, circuit = solver.result
     assert np.allclose(score, 0.0)
     # circuit.draw_circuit()
+
+
+def test_alternate_circuits_1():
+    results = run_one_repeater_graph_state(3, 0)
+    if len(results) > 1:
+        print(f"Find {len(results)} circuits that produce the same state.")
+        for i in range(len(results)):
+            results[i].draw_circuit()
+
+
+def test_alternate_circuits_2():
+    results = run_one_repeater_graph_state(4, 1)
+    if len(results) > 1:
+        print(f"Find {len(results)} circuits that produce the same state.")
+        for i in range(len(results)):
+            results[i].draw_circuit()

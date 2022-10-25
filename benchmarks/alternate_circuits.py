@@ -14,9 +14,11 @@ from src.backends.stabilizer.compiler import StabilizerCompiler
 from src.utils.circuit_comparison import compare_circuits
 
 
-def search_for_alternative_circuits(graph, noise_model_mapping, metric_class, random_seed):
+def search_for_alternative_circuits(
+    graph, noise_model_mapping, metric_class, random_seed
+):
     """
-     Run arbitrary input graph state with noise simulation using metric
+    Run arbitrary input graph state with noise simulation using metric
 
     :param graph:
     :type graph:
@@ -57,7 +59,9 @@ def search_for_alternative_circuits(graph, noise_model_mapping, metric_class, ra
     for i in range(hybrid_solver.n_hof):
         alternate_score = hybrid_solver.hof[i][0]
         alternate_circuit = hybrid_solver.hof[i][1]
-        if alternate_score >= benchmark_score and not compare_circuits(benchmark_circuit, alternate_circuit):
+        if alternate_score <= benchmark_score and not compare_circuits(
+            benchmark_circuit, alternate_circuit
+        ):
             results.append(alternate_circuit)
     return results
 
@@ -75,7 +79,5 @@ def run_one_repeater_graph_state(n_inner_qubits, random_seed):
     :return:
     :rtype:
     """
-    results = []
     graph = repeater_graph_states(n_inner_qubits)
     return search_for_alternative_circuits(graph, None, Infidelity, random_seed)
-

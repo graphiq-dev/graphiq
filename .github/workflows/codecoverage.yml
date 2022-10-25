@@ -35,4 +35,4 @@ jobs:
        git config  --global user.name "github-actions[bot]"
        git add coverage-badge.svg
        git commit -m "Updated coverage.svg"
-       git push
+       git push origin HEAD: main

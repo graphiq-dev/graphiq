@@ -47,7 +47,7 @@ from src.visualizers.openqasm_visualization import draw_openqasm
 class Register:
     def __init__(self, reg_dict, is_multi_qubit: bool = False):
         if not reg_dict:
-            raise ValueError("Register dict can not be None")
+            raise ValueError("Register dict can not be None or empty")
         self._registers = reg_dict
         self.is_multi_qubit = is_multi_qubit
 

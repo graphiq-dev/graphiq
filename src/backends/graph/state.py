@@ -474,7 +474,7 @@ class Graph(StateRepresentationBase):
 
         1. Creating a new node, new_node, where the node_id is union(node1_id, node2_id) --> union of the frozen sets
         2. For any edges of the form (a, node1) or (a, node2) with a in V (the set of nodes of the graph),
-            add the edge (a, new_node) to the graph
+           add the edge (a, new_node) to the graph
         3. Remove node1, node2 and all their associated edges
 
         Note that this is NOT the fusion gate function, as it doesn't take into account possibility of

@@ -2,8 +2,9 @@
 The Operation objects are objects which tell the compiler what gate to apply on which registers / qubits
 
 They serve two purposes:
+
 1. They are used to build our circuit: circuit.add(OperationObj). The circuit constructs the DAG structure from the
-connectivity information in OperationObj
+   connectivity information in OperationObj
 2. They are passed as an iterable to the compiler, such that the compiler can perform the correct series of information
 
 REGISTERS VS QUDITS/CBITS: following qiskit/openQASM and other softwares, we allow a distinction between registers

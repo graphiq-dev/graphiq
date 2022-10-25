@@ -192,11 +192,11 @@ class Graph(StateRepresentationBase):
         :type other_graph: Graph
         :param mode: the chosen mode for finding solutions. It can be either 'deterministic' (default) or 'random'.
         :type mode: str
-
         :raises AssertionError: if the number of rows in the row reduced matrix is less than the rank of coefficient
-            matrix or if the number of linearly dependent columns is not equal to :math:`4n - rank` (for :math:`n` being the number of nodes in the graph)
+            matrix or if the number of linearly dependent columns is not equal to :math:`4n - rank`
+            (for :math:`n` being the number of nodes in the graph)
         :return: If a solution is found, returns True and an array of single-qubit Clifford :math:`2 \\times 2` matrices
-        in the symplectic formalism. If not, graphs are not LC equivalent and returns False, None.
+            in the symplectic formalism. If not, graphs are not LC equivalent and returns False, None.
         :rtype: bool, numpy.ndarray or None
         """
         g1 = nx.to_numpy_array(self.data).astype(int)

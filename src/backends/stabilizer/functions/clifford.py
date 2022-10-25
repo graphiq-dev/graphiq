@@ -187,13 +187,13 @@ def reset_z(
     :type tableau: CliffordTableau
     :param qubit_position: index of the qubit to be reset
     :type qubit_position: int
-    :param intended_state: either 0 for :math:`|0 \\rangle` state or 1 for :math:`|1 \\rangle`  state
+    :param intended_state: either 0 for :math:`|0 \\rangle` state or 1 for :math:`|1 \\rangle` state
     :type intended_state: int
     :param measurement_determinism: if the outcome is probabilistic from the simulation, we have the option to
         select a specific outcome
     :type measurement_determinism: int or str
     :return: updated tableau
-    :rtype:CliffordTableau
+    :rtype: CliffordTableau
     """
     # reset qubit to computational basis states
     n_qubits = tableau.n_qubits  # number of qubits

@@ -18,6 +18,7 @@ Contents
    circuits
    backends
    metrics
+   state
    io
    noise
    solvers

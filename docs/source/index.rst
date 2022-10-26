@@ -22,6 +22,7 @@ Contents
    io
    noise
    solvers
+   utils
    visualizers
    benchmarks
 

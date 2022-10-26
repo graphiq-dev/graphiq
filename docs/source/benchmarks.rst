@@ -1,8 +1,6 @@
 Benchmarks
 =========================
 
-Benchmarks description
-
 Benchmark Utilities
 ------------------------------
 .. automodule:: benchmarks.benchmark_utils

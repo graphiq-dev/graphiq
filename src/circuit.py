@@ -3,31 +3,31 @@ Circuit class, which defines the sequence of operations and gates.
 Once a compiler is defined, the resulting quantum state can be simulated.
 
 The Circuit class can be:
-
-1. manually constructed, with new operations added to the end of the circuit or inserted at a specified location for CircuitDAG
-2. evaluated into a sequence of Operations, based on the topological ordering
-    Purpose (example): use at compilation step, use for compatibility with other software (e.g. openQASM)
-3. visualized or saved using, for example, openQASM
-    Purpose: method of saving circuit (ideal), compatibility with other software, visualizers
+    1. manually constructed, with new operations added to the end of the circuit or inserted at a specified location
+       for CircuitDAG
+    2. evaluated into a sequence of Operations, based on the topological ordering
+        Purpose (example): use at compilation step, use for compatibility with other software (e.g. openQASM)
+    3. visualized or saved using, for example, openQASM
+        Purpose: method of saving circuit (ideal), compatibility with other software, visualizers
 
 Further reading on DAG circuit representation:
 https://qiskit.org/documentation/stubs/qiskit.converters.circuit_to_dag.html
 
 
 Experimental:
+
 REGISTER HANDLING (only for RegisterCircuitDAG):
 
 In qiskit and openQASM, for example, you can apply operations on either a specific qubit in a specific register OR
 on the full register (see ops.py for an explanation of how registers are applied).
 
-1. Each operation received (whether or not it applies to full registers) is broken down into a set of operations that
-   apply between a specific number of qubits (i.e. an operation for each qubit of the register).
-2. Registers can be added/expanded via provided methods.
+    1. Each operation received (whether or not it applies to full registers) is broken down into a set of operations that
+       apply between a specific number of qubits (i.e. an operation for each qubit of the register).
+    2. Registers can be added/expanded via provided methods.
 
 USER WARNINGS:
-
-1. if you expand a register AFTER using an Operation which applied to the full register, the Operation will
-   NOT retroactively apply to the added qubits
+    1. if you expand a register AFTER using an Operation which applied to the full register, the Operation will
+       NOT retroactively apply to the added qubits
 
 
 """

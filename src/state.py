@@ -2,11 +2,11 @@
 The QuantumState/GraphState classes mediates the interactions between different graph representations
 
 State representations that we support are:
-1. Density matrix
-2. Stabilizer
+    1. Density matrix
+    2. Stabilizer
 
 State representations that we intend to support in the near future are:
-1. Graph representation
+    1. Graph representation
 
 """
 # TODO: once we can convert more easily between different representations,

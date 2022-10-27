@@ -6,7 +6,10 @@ from abc import ABC, abstractmethod
 import numpy as np
 
 import src.backends.density_matrix.functions as dmf
+from src.backends.density_matrix.state import DensityMatrix
+
 import src.backends.stabilizer.functions.metric as sfm
+from src.backends.stabilizer.state import Stabilizer, MixedStabilizer
 
 
 class MetricBase(ABC):
@@ -69,8 +72,19 @@ class Infidelity(MetricBase):
 
     def evaluate(self, state, circuit):
         """
-        Evaluates the infidelity from a given state and circuit
+        Evaluates the infidelity between a state and a target state.
 
+        The infidelity is :math:`1- F(\\rho, \\rho_{t})`
+
+        With the density matrix the fidelity is:
+        :math:`F(\\rho, \\rho_{t}):=Tr[\\sqrt{\\sqrt{\\rho} \\rho_{t} \\sqrt{\\rho}}]^2`
+
+        or if either :math:`\\rho` or :math:`\\rho_{t}` is pure, then it simplifies to:
+        :math:`F(\\rho, \\rho_{t}):=Tr[\\rho \\rho_{t}]`
+
+        Using the branched mixed stabilizer representation, the fidelity is:
+        :math:`F(\\rho, \\mathcal{T}_i) := \\sum_i p_i F(\\mathcal{T}_i, \\mathcal{T}_{t})`
+        which assumes the target state is pure and represented using a single tableau.
 
         :param state: the state to evaluate
         :type state: QuantumState
@@ -82,12 +96,36 @@ class Infidelity(MetricBase):
         :rtype: float
         """
         # TODO: add check for the representation
-        if state._stabilizer is not None and self.target._stabilizer is not None:
-            fid = sfm.fidelity(self.target.stabilizer.data, state.stabilizer.data)
-        elif state._dm is not None and self.target._dm is not None:
+        if isinstance(state.stabilizer, Stabilizer) and isinstance(
+            self.target.stabilizer, Stabilizer
+        ):
+            if isinstance(self.target.stabilizer, MixedStabilizer):
+                # make sure it's still a pure state with only one tableau in the list
+                assert len(self.target.stabilizer.mixture) == 1
+                assert self.target.stabilizer.mixture[0][0] == 1.0
+                tableau = self.target.stabilizer.mixture[0][1]
+            else:
+                tableau = self.target.stabilizer.tableau
+
+            if isinstance(state.stabilizer, MixedStabilizer):
+                fid = sum(
+                    [
+                        pi * sfm.fidelity(tableau, ti)
+                        for pi, ti in state.stabilizer.mixture
+                    ]
+                )
+            elif type(state.stabilizer) == Stabilizer:
+                fid = sfm.fidelity(self.target.stabilizer.data, state.stabilizer.data)
+
+        elif state.dm is not None and self.target.dm is not None:
+            # dmf.is_density_matrix(self.target.dm.data)
+            # dmf.is_density_matrix(state.dm.data)
+
             fid = dmf.fidelity(self.target.dm.data, state.dm.data)
+
         else:
             raise ValueError("Cannot compute the infidelity.")
+
         self.increment()
 
         if self._inc % self.log_steps == 0:

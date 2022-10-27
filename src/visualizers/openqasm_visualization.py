@@ -19,9 +19,10 @@ def draw_openqasm(qasm, show=False, ax=None, display_text=None):
     :return: fig, ax (fig might be None)
     :rtype: matplotlib.figure, matplotlib.axis
 
+    """
     # https://qiskit.org/documentation/tutorials/circuits_advanced/03_advanced_circuit_visualization.html
     # TODO: double check that qc.draw returns a figure
-    """
+
     # display_text_full = DefaultStyle().style['disptex']
     # for key, val in display_text.items():
     #     display_text_full[key] = val

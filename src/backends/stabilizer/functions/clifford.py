@@ -111,7 +111,6 @@ def z_measurement_gate(
 def measure_x(tableau, qubit_position, measurement_determinism="probabilistic"):
     """
     Returns the outcome 0 or 1 if one measures the given qubit in the X basis.
-    # TODO: be able to handle mixed states in the future
 
     :param tableau: the input tableau to be measured
     :type tableau: CliffordTableau
@@ -123,6 +122,7 @@ def measure_x(tableau, qubit_position, measurement_determinism="probabilistic"):
     :return: the classical outcome of measuring given qubit in the X basis.
     :rtype: int
     """
+    # TODO: be able to handle mixed states in the future
     stabilizer_state_new = hadamard_gate(tableau, qubit_position)
     _, outcome, _ = z_measurement_gate(
         stabilizer_state_new, qubit_position, measurement_determinism
@@ -133,7 +133,6 @@ def measure_x(tableau, qubit_position, measurement_determinism="probabilistic"):
 def measure_y(tableau, qubit_position, measurement_determinism="probabilistic"):
     """
     Returns the outcome 0 or 1 if one measures the given qubit in the Y basis.
-     # TODO: be able to handle mixed states in the future
 
     :param tableau: the input tableau to be measured
     :type tableau: CliffordTableau
@@ -145,6 +144,7 @@ def measure_y(tableau, qubit_position, measurement_determinism="probabilistic"):
     :return: the classical outcome of measuring given qubit in the Y basis.
     :rtype: int
     """
+    # TODO: be able to handle mixed states in the future
     new_tableau = tableau
     # apply P dagger gate
     new_tableau = phase_dagger_gate(new_tableau, qubit_position)
@@ -160,7 +160,6 @@ def measure_y(tableau, qubit_position, measurement_determinism="probabilistic"):
 def measure_z(tableau, qubit_position, measurement_determinism="probabilistic"):
     """
     Returns the outcome 0 or 1 if one measures the given qubit in the Z basis.
-
 
     :param tableau: the input tableau to be measured
     :type tableau: CliffordTableau

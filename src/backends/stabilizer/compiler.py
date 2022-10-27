@@ -11,9 +11,8 @@ class StabilizerCompiler(CompilerBase):
     Compiler which deals exclusively with the state representation of Stabilizer.
     Currently creates a Stabilizer object and applies the circuit Operations to it in order
 
-
-    # TODO: [longer term] refactor to take a QuantumState object input instead of creating its own initial state?
     """
+    # TODO: [longer term] refactor to take a QuantumState object input instead of creating its own initial state?
 
     name = "stabilizer"
     ops = [  # the accepted operations for a given compiler
@@ -156,7 +155,6 @@ class StabilizerCompiler(CompilerBase):
     ):
         """
         Compile one noisy gate
-        TODO: consolidate compile_one_gate and compile_one_noisy_gate to one function
 
         :param state: the QuantumState representation of the state to be evolved,
             where a stabilizer representation can be accessed
@@ -172,6 +170,7 @@ class StabilizerCompiler(CompilerBase):
         :return: nothing
         :rtype: None
         """
+        # TODO: consolidate compile_one_gate and compile_one_noisy_gate to one function
         if isinstance(op, ops.InputOutputOperationBase):
             pass
 

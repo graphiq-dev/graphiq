@@ -19,8 +19,8 @@ and qubit d of register c.
 We can also use a mixture of registers an qubits: q_registers=(a, (b, c)) means that the operation will be applied
 between EACH QUBIT of register a, and qubit c of register b
 
-TODO: consider refactoring register notation to not use tuples (which can be confusing).
 """
+# TODO: consider refactoring register notation to not use tuples (which can be confusing).
 from abc import ABC
 import itertools
 import numpy as np
@@ -691,8 +691,8 @@ class MeasurementCNOTandReset(ClassicalControlledPairOperationBase):
 class MeasurementZ(OperationBase):
     """
     Z Measurement Operation
-    TODO: maybe create a base class for measurements in the future IFF we also want to support other measurements
     """
+    # TODO: maybe create a base class for measurements in the future IFF we also want to support other measurements
 
     _openqasm_info = oq_lib.z_measurement_info()
 

@@ -197,8 +197,8 @@ class DensityMatrix(StateRepresentationBase):
         :return: fig, axes on which the state is drawn
         :rtype: matplotlib.figure, matplotlib.axes
 
-        TODO: add a "ax" parameter to match the other viewing utils
         """
+        # TODO: add a "ax" parameter to match the other viewing utils
         if style == "bar":
             fig, axs = density_matrix_bars(self.data)
         else:

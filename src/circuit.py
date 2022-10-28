@@ -50,6 +50,7 @@ class Register:
     Register class object, the class includes a dictionary which map the register type as the key and the register array
     as the value.
     """
+
     def __init__(self, reg_dict, is_multi_qubit: bool = False):
         """
         Constructor for the register class
@@ -583,7 +584,9 @@ class CircuitDAG(CircuitBase):
             )
 
         # Check for qubit register
-        register, reg_type = zip(*sorted(zip(operation.q_registers, operation.q_registers_type)))
+        register, reg_type = zip(
+            *sorted(zip(operation.q_registers, operation.q_registers_type))
+        )
         for i in range(len(register)):
             self._add_reg_if_absent(
                 register=register[i],
@@ -616,7 +619,9 @@ class CircuitDAG(CircuitBase):
             )
 
         # Check for qubit register
-        register, reg_type = zip(*sorted(zip(operation.q_registers, operation.q_registers_type)))
+        register, reg_type = zip(
+            *sorted(zip(operation.q_registers, operation.q_registers_type))
+        )
         for i in range(len(register)):
             self._add_reg_if_absent(
                 register=register[i],
@@ -1238,9 +1243,9 @@ class CircuitDAG(CircuitBase):
 
         # get all edges that will need to be removed (i.e. the edges on which the Operation is being added)
         relevant_outputs = [
-                               f"{operation.q_registers_type[i]}{operation.q_registers[i]}_out"
-                               for i in range(len(operation.q_registers))
-                           ] + [f"c{c}_out" for c in operation.c_registers]
+            f"{operation.q_registers_type[i]}{operation.q_registers[i]}_out"
+            for i in range(len(operation.q_registers))
+        ] + [f"c{c}_out" for c in operation.c_registers]
 
         for output in relevant_outputs:
             edges_to_remove = list(

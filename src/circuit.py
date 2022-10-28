@@ -198,6 +198,10 @@ class CircuitBase(ABC):
         self.openqasm_symbols = {}
 
     @property
+    def register(self):
+        return self._registers.register
+
+    @property
     def emitter_registers(self):
         return self._registers["e"]
 

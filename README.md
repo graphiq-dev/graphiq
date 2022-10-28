@@ -33,15 +33,14 @@
 
 ## What's Here
 
-This Repo is ogranized by folder as follows:
+THis project includes the following folders:
 
-* [`benchmark`](https://github.com/ki3-qbt/graph-compiler/tree/main/benchmarks) - a set of benchmark circuits that will be used to assess the performance of our solvers, currently only works for EvolutionarySolver.
-* [`tests`](https://github.com/ki3-qbt/graph-compiler/tree/main/benchmarks) - automated testing framework using pytest to ensure that new changes are tested and don't break existing code. 
-* [`backends`](https://github.com/ki3-qbt/graph-compiler/tree/main/src/backends) - simulate the operation of a quantum circuit using an underlying representation of the propagating quantum state.
-* [`noise`](https://github.com/ki3-qbt/graph-compiler/tree/main/src/noise) - noise objects are objects that tell the compiler the noise model of each gate.
+* [`backends`](https://github.com/ki3-qbt/graph-compiler/tree/main/src/backends) - simulate a quantum circuit using different underlying representations, including the density matrix, stabilizer, and graph formalisms.
+* [`noise`](https://github.com/ki3-qbt/graph-compiler/tree/main/src/noise) - suite of noise models to study performance of quantum devices in realistic environments.
 * [`solvers`](https://github.com/ki3-qbt/graph-compiler/tree/main/src/solvers) - implementations of search algorithms to find quantum circuits which produce a target state.
-* [`utils`](https://github.com/ki3-qbt/graph-compiler/tree/main/src/utils) - idk what to write for this lol 
+* [`benchmarks`](https://github.com/ki3-qbt/graph-compiler/tree/main/benchmarks) - a set of benchmark circuits that will be used to assess the performance of our solvers.
 * [`visualizers`](https://github.com/ki3-qbt/graph-compiler/tree/main/src/visualizers) - various functions that allow us to plot the different backends and compare quantum circuits.
+* [`tests`](https://github.com/ki3-qbt/graph-compiler/tree/main/benchmarks) - automated testing framework using pytest to ensure that new changes are tested and don't break existing code. 
 
 
 ## Getting Started
@@ -51,17 +50,16 @@ To get started with understanding our codebase, please begin by reading our [sta
 ![image](https://user-images.githubusercontent.com/87783633/198317628-e4eb845f-4e0d-4f4b-a03f-273d933b49b5.png)
 
 
-
 ## Contributors
 
 This project is a collaboration between [Ki3 Photonics Technologies](https://www.ki3photonics.com/) and [Quantum Bridge Technologies](https://qubridge.io/).
 
-We welcome developers to make contributions to our projects, simply fork our project and submit pull-requests and we will review them asap! Please use the [PEP8 style](https://peps.python.org/pep-0008/) for code-style consistency.
+We welcome developers to make contributions to this project by raising an issue or submitting a pull-request.Please use the [PEP8 style](https://peps.python.org/pep-0008/) for code-style consistency.
 
 
 ## Acknowledgements
 
-We acknowledge funding support from the Air Force Office of Scientific Research (AFOSR) under Grant FA9550-22-1-0062, as well as support from the MITACS and Vanier CGS (NSERC).
+We acknowledge funding support from the Air Force Office of Scientific Research (AFOSR) under Grant FA9550-22-1-0062, as well as support from the Mitacs and the Vanier CGS (NSERC).
 
 
 

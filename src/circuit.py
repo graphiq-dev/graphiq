@@ -45,7 +45,19 @@ from src.visualizers.openqasm_visualization import draw_openqasm
 
 
 class Register:
+    """
+    Register class object, the class includes a dictionary which map the register type as the key and the register array
+    as the value.
+    """
     def __init__(self, reg_dict, is_multi_qubit: bool = False):
+        """
+        Constructor for the register class
+
+        :param reg_dict:
+        :type reg_dict:
+        :param is_multi_qubit:
+        :type is_multi_qubit:
+        """
         if not reg_dict:
             raise ValueError("Register dict can not be None or empty")
         self._registers = reg_dict
@@ -72,6 +84,18 @@ class Register:
         return q_sum
 
     def add_register(self, reg_type, size: int = 1):
+        """
+        Function that add a quantum/classical register to the register dict
+
+        :param reg_type: 'p' for a photonic quantum register, 'e' for an emitter quantum register,
+                         'c' for a classical register
+        :type reg_type: str
+        :param size: the new register size
+        :type size: int
+        :raises ValueError: if new_size is not greater than the current register size
+        :return: the index number of the added register
+        :rtype: int
+        """
         if reg_type not in self._registers:
             raise ValueError(
                 f"reg_type must be 'e' (emitter qubit), 'p' (photonic qubit), 'c' (classical bit)"
@@ -87,7 +111,7 @@ class Register:
 
     def expand_register(self, reg_type, register, new_size: int = 1):
         """
-        Helper function to expand quantum/classical registers
+        Function to expand quantum/classical registers
 
         :param register: the register index of the register to expand
         :type register: int
@@ -136,6 +160,7 @@ class Register:
                 "Register type must be 'p' (quantum photonic), 'e' (quantum emitter), or 'c' (classical)"
             )
         return self._registers[reg_type][register]
+
 
 class CircuitBase(ABC):
     """
@@ -383,7 +408,7 @@ class CircuitBase(ABC):
         :return: the index number of the added register
         :rtype: int
         """
-        return self._registers.add_register(reg_type, size)
+        self._registers.add_register(reg_type, size)
 
     def expand_emitter_register(self, register, new_size):
         """

@@ -55,10 +55,12 @@ class Register:
         """
         Constructor for the register class
 
-        :param reg_dict:
-        :type reg_dict:
-        :param is_multi_qubit:
-        :type is_multi_qubit:
+        :param reg_dict: register dictionary
+        :type reg_dict: dict
+        :param is_multi_qubit: variable that indicate support for multi-qubit register
+        :type is_multi_qubit: bool
+        :return: this function returns nothing
+        :rtype: None
         """
         if not reg_dict:
             raise ValueError("Register dict can not be None or empty")

@@ -15,6 +15,7 @@ class DensityMatrixCompiler(CompilerBase):
     Currently creates a DensityMatrix state object and applies the circuit Operations to it in order
 
     """
+
     # TODO: [longer term] refactor to take a QuantumState object input instead of creating its own initial state?
 
     name = "density matrix"

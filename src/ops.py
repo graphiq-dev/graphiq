@@ -692,6 +692,7 @@ class MeasurementZ(OperationBase):
     """
     Z Measurement Operation
     """
+
     # TODO: maybe create a base class for measurements in the future IFF we also want to support other measurements
 
     _openqasm_info = oq_lib.z_measurement_info()

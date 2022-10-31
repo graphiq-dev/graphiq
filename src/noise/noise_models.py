@@ -183,6 +183,7 @@ class OneQubitGateReplacement(ReplacementNoiseBase):
     A replacement type of noise for one-qubit gates
 
     """
+
     # TODO: add a backend-independent description of unitary gates and update this class
 
     def __init__(self, one_qubit_unitary):
@@ -230,6 +231,7 @@ class TwoQubitControlledGateReplacement(ReplacementNoiseBase):
     before the gate and after the gate, and the gate applied on the target qubit can be a generic one-qubit gate.
 
     """
+
     # TODO: add a backend-independent description of unitary gates and update this class
 
     def __init__(
@@ -681,6 +683,7 @@ class MixedUnitaryError(AdditionNoiseBase):
     Mixed unitary error, described by an ensemble of unitary operations
 
     """
+
     # TODO: implement this error model
 
     def __init__(self, unitaries_list, prob_list):
@@ -758,6 +761,7 @@ class CoherentUnitaryError(AdditionNoiseBase):
     Coherent unitary error described by a single unitary
 
     """
+
     # TODO: implement this error model
 
     def __init__(self, unitary):
@@ -809,6 +813,7 @@ class MeasurementError(NoiseBase):
     a measurement error described by a conditional probability distribution
 
     """
+
     # TODO: implement this error model
 
     def __init__(self, prob_dist):
@@ -888,6 +893,7 @@ class GeneralKrausError(AdditionNoiseBase):
     This error may only work for the DensityMatrix backend.
 
     """
+
     # TODO: Implement this noise model by figuring out how to pass parameters
 
     def __init__(self, kraus_ops):
@@ -960,6 +966,7 @@ class ResetError(NoiseBase):
     Reset error
 
     """
+
     # TODO: implement this error model
 
     def __init__(self, noise_parameters={}):
@@ -1027,6 +1034,7 @@ class PhotonLoss(NoiseBase):
     Photon loss
 
     """
+
     # TODO: implement this error model
 
     def __init__(self, loss_rate):

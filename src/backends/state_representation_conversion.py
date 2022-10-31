@@ -136,7 +136,7 @@ def graph_to_density(input_graph):
 def graph_to_stabilizer(input_graph):
     """
     Convert a graph to stabilizer
-    
+
     :param input_graph: the input graph to be converted to the stabilizer
     :type input_graph: networkX.Graph or numpy.ndarray
     :raise TypeError: if input_graph is not of the type of networkx.Graph or a src.backends.graph.state.Graph

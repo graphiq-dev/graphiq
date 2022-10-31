@@ -24,6 +24,7 @@ class Graph(StateRepresentationBase):
 
     # We should figure out how to handle cases where the root node is not obvious
     """
+
     # TODO: set default root_node_id if the user doesn't specify one?
     def __init__(self, data, root_node_id, *args, **kwargs):
         """

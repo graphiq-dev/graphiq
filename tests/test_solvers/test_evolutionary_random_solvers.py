@@ -122,12 +122,12 @@ def linear4_run(density_matrix_compiler, linear4_expected):
     Since we want to apply 2 separate tests on the same run (one visual, one non-visual), it makes sense to have a
     common fixture that only gets called once per module
     """
-    return generate_run(4, 1, linear4_expected, density_matrix_compiler, 1)
+    return generate_run(4, 1, linear4_expected, density_matrix_compiler, 27)
 
 
 @pytest.fixture(scope="module")
 def linear4_run_stabilizer(stabilizer_compiler, linear4_expected):
-    return generate_run(4, 1, linear4_expected, stabilizer_compiler, 1)
+    return generate_run(4, 1, linear4_expected, stabilizer_compiler, 27)
 
 
 @pytest.fixture(scope="module")
@@ -141,12 +141,12 @@ def linear4_expected():
 
 @pytest.fixture(scope="module")
 def ghz3_run(density_matrix_compiler, ghz3_expected):
-    return generate_run(3, 1, ghz3_expected, density_matrix_compiler, 0)
+    return generate_run(3, 1, ghz3_expected, density_matrix_compiler, 25)
 
 
 @pytest.fixture(scope="module")
 def ghz3_run_stabilizer(stabilizer_compiler, ghz3_expected):
-    return generate_run(3, 1, ghz3_expected, stabilizer_compiler, 0)
+    return generate_run(3, 1, ghz3_expected, stabilizer_compiler, 1)
 
 
 @pytest.fixture(scope="module")
@@ -184,9 +184,7 @@ def test_solver_linear4_visualized(linear4_run, linear4_expected):
     check_run_visual(linear4_run, linear4_expected)
 
 
-@pytest.mark.xfail(
-    reason="Took too long to find a good seed (given that we will be updating the code a lot)"
-)
+
 def test_solver_ghz3(ghz3_run, ghz3_expected, density_matrix_compiler):
     check_run(ghz3_run, ghz3_expected)
 
@@ -304,35 +302,3 @@ def test_stabilizer_linear3():
         print(f"the target stabilizer in the canonical form is {target_s_tableau}")
         assert output_s_tableau == target_s_tableau
         assert state.stabilizer == target_state.stabilizer
-
-
-"""
-# Next target
-
-@visualization
-def test_square_4qubit():
-    graph = nx.Graph([(1, 2), (1, 3), (3, 4), (2, 4), (2, 3)])
-    state = DensityMatrix.from_graph(graph)
-    n_emitter = 2
-    n_photon = 4
- 
-    target_state = QuantumState(n_photon, state.data)
-    compiler = DensityMatrixCompiler()
-    metric = Infidelity(target=target_state)
-    solver = EvolutionarySolver(target=target_state, metric=metric, compiler=compiler,
-                                         n_emitter=n_emitter, n_photon=n_photon)
-    solver.seed(2)
-#   EvolutionarySolver.n_stop = 300
-    solver.trans_probs = {
-        solver.remove_op: 1 / 4 + 1 / 20,
-        solver.add_measurement_cnot_and_reset: 1 / 20,
-        solver.replace_photon_one_qubit_op: 1 / 4,
-        solver.add_emitter_one_qubit_op: 1 / 4 + 1 / 20,
-        solver.add_emitter_cnot: 1 / 10
-    }
-    solver.p_dist = [0.4] + 11 * [0.2 / 22] + [0.4] + 11 * [0.2 / 22]
-    solver.e_dist = [0.2] + 11 * [0.4 / 22] + [0.4] + 11 * [0.4 / 22]
-    solver.solve()
-    circuit = solver.hof[0][1]
-    circuit.draw_circuit()
-"""

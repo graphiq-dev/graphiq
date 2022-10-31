@@ -79,6 +79,48 @@ class SolverBase(ABC):
         return {}
 
 
+class RandomSolverSetting(ABC):
+    def __init__(
+        self,
+        n_hof=5,
+        n_stop=50,
+        n_pop=50,
+    ):
+        self._n_hof = n_hof
+        self._n_stop = n_stop
+        self._n_pop = n_pop
+
+    @property
+    def n_hof(self):
+        return self._n_hof
+
+    @n_hof.setter
+    def n_hof(self, value):
+        assert type(value) == int
+        self._n_hof = value
+
+    @property
+    def n_stop(self):
+        return self._n_stop
+
+    @n_stop.setter
+    def n_stop(self, value):
+        assert type(value) == int
+        self._n_stop = value
+
+    @property
+    def n_pop(self):
+        return self._n_hof
+
+    @n_pop.setter
+    def n_pop(self, value):
+        assert type(value) == int
+        self._n_pop = value
+
+    def __str__(self):
+        pass
+
+
 class RandomSearchSolver(SolverBase):
     """
     Implements a random search solver.
@@ -94,9 +136,7 @@ class RandomSearchSolver(SolverBase):
         compiler: CompilerBase,
         circuit: CircuitBase = None,
         io: IO = None,
-        n_hof=10,
-        n_pop=10,
-        n_stop=10,
+        solver_setting=RandomSolverSetting(),
         *args,
         **kwargs,
     ):
@@ -104,17 +144,11 @@ class RandomSearchSolver(SolverBase):
         super().__init__(target, metric, compiler, circuit, io)
 
         # hof stores the best circuits and their scores in the form of: (scores, circuits)
-        self._n_hof = n_hof
-        self.n_pop = n_pop
-        self.n_stop = n_stop
-        self.hof = [(np.inf, None) for _ in range(self.n_hof)]
+        self.setting = solver_setting
+        self.hof = [(np.inf, None) for _ in range(self.setting.n_hof)]
         self.trans_probs = {None: None}
         self.transformations = list(self.trans_probs.keys())
         self.logs = {"population": [], "hof": []}
-
-    @property
-    def n_hof(self):
-        return self._n_hof
 
     def update_hof(self, population):
         """
@@ -125,7 +159,7 @@ class RandomSearchSolver(SolverBase):
         :return: nothing
         """
         for score, circuit in population:
-            for i in range(self.n_hof):
+            for i in range(self.setting.n_hof):
                 if np.isclose(score, self.hof[i][0]):
                     if len(circuit.dag.nodes) < len(self.hof[i][1].dag.nodes):
                         self.hof.insert(i, (score, circuit.copy()))
@@ -152,7 +186,7 @@ class RandomSearchSolver(SolverBase):
             return population
 
         population_new = []
-        for i in range(self.n_pop):
+        for i in range(self.setting.n_pop):
             # select the sub-population for the tournament with uniform random
             tourn_pop = random.choices(population, k=k)
 

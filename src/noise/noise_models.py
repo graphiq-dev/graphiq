@@ -1097,16 +1097,20 @@ class PhotonLoss(NoiseBase):
         :return: nothing
         :rtype: None
         """
+        loss_rate = self.noise_parameters["loss rate"]
         if isinstance(state_rep, DensityMatrix):
             # TODO: Implement this for DensityMatrix backend
             raise NotImplementedError(
                 "PhotonLoss not implemented for density matrix representation"
             )
         elif isinstance(state_rep, Stabilizer):
-            # TODO: Find the correct representation for Stabilizer backend
-            raise NotImplementedError(
-                "PhotonLoss not implemented for stabilizer representation"
-            )
+            if isinstance(state_rep, MixedStabilizer):
+                mixture = state_rep.mixture
+                mixture[0][0] = (1 - loss_rate) * mixture[0][0]
+            else:
+                state_rep = MixedStabilizer([(1 - loss_rate), state_rep])
+            return state_rep
+
         elif isinstance(state_rep, Graph):
             # TODO: Implement this for Graph backend
             raise NotImplementedError(

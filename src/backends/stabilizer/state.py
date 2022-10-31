@@ -338,7 +338,7 @@ class MixedStabilizer(Stabilizer):
 
         :return: the mixture as a list of (probability_i, tableau_i)
         :rtype: list
-        r"""
+        """
         return self._mixture
 
     @mixture.setter
@@ -350,7 +350,7 @@ class MixedStabilizer(Stabilizer):
         :type value: list or int or CliffordTableau
         :return: the mixture as a list of (probability_i, tableau_i)
         :rtype: list
-        r"""
+        """
         if isinstance(value, list):
             assert all(
                 isinstance(pi, float) and isinstance(ti, CliffordTableau)

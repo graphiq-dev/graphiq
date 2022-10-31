@@ -7,6 +7,7 @@ from src.backends.stabilizer.compiler import StabilizerCompiler
 from src.backends.stabilizer.functions.rep_conversion import (
     get_clifford_tableau_from_graph,
 )
+from src.solvers.evolutionary_solver import EvolutionarySolverSetting
 from src.solvers.hybrid_solvers import HybridEvolutionarySolver
 from benchmarks.circuits import *
 from src.metrics import Infidelity
@@ -14,7 +15,7 @@ from src.state import QuantumState
 from benchmarks.alternate_circuits import run_one_repeater_graph_state
 
 
-def graph_stabilizer_setup(graph, solver_class, random_seed):
+def graph_stabilizer_setup(graph, solver_class, solver_setting, random_seed):
     """
     A common piece of code to run a graph state with the stabilizer backend
 
@@ -37,6 +38,7 @@ def graph_stabilizer_setup(graph, solver_class, random_seed):
         target=target,
         metric=metric,
         compiler=compiler,
+        solver_setting=solver_setting,
     )
     solver.seed(random_seed)
     solver.solve()
@@ -45,7 +47,8 @@ def graph_stabilizer_setup(graph, solver_class, random_seed):
 
 def test_repeater_graph_state_4():
     graph = repeater_graph_states(4)
-    solver = graph_stabilizer_setup(graph, HybridEvolutionarySolver, 1)
+    solver_setting = EvolutionarySolverSetting()
+    solver = graph_stabilizer_setup(graph, HybridEvolutionarySolver, solver_setting, 1000)
     score, circuit = solver.result
     assert np.allclose(score, 0.0)
     # circuit.draw_circuit()
@@ -53,7 +56,8 @@ def test_repeater_graph_state_4():
 
 def test_square4():
     graph = nx.Graph([(1, 2), (2, 3), (2, 4), (4, 3), (1, 3)])
-    solver = graph_stabilizer_setup(graph, HybridEvolutionarySolver, 1)
+    solver_setting = EvolutionarySolverSetting()
+    solver = graph_stabilizer_setup(graph, HybridEvolutionarySolver, solver_setting, 2)
     score, circuit = solver.result
     assert np.allclose(score, 0.0)
     # circuit.draw_circuit()

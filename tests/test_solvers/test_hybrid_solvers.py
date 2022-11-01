@@ -12,7 +12,7 @@ from src.solvers.hybrid_solvers import HybridEvolutionarySolver
 from benchmarks.circuits import *
 from src.metrics import Infidelity
 from src.state import QuantumState
-from benchmarks.alternate_circuits import run_one_repeater_graph_state
+from benchmarks.alternate_circuits import *
 
 
 def graph_stabilizer_setup(graph, solver_class, solver_setting, random_seed):
@@ -48,7 +48,9 @@ def graph_stabilizer_setup(graph, solver_class, solver_setting, random_seed):
 def test_repeater_graph_state_4():
     graph = repeater_graph_states(4)
     solver_setting = EvolutionarySolverSetting()
-    solver = graph_stabilizer_setup(graph, HybridEvolutionarySolver, solver_setting, 1000)
+    solver = graph_stabilizer_setup(
+        graph, HybridEvolutionarySolver, solver_setting, 1000
+    )
     score, circuit = solver.result
     assert np.allclose(score, 0.0)
     # circuit.draw_circuit()

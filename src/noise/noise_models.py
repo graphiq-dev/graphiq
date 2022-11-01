@@ -173,12 +173,12 @@ class NoNoise(AdditionNoiseBase):
         else:
             raise TypeError("Backend type is not supported.")
 
-    def apply(self, state_rep: StateRepresentationBase, *args):
+    def apply(self, state: QuantumState, *args):
         """
         No action is needed
 
-        :param state_rep: a state representation
-        :type state_rep: StateRepresentationBase
+        :param state: a quantum state
+        :type state: QuantumState
         :return: nothing
         :rtype: None
         """
@@ -692,6 +692,79 @@ class SigmaXPerturbedError(OneQubitGateReplacement):
         self.noise_parameters["Original parameters"] = (np.pi, 0, np.pi)
 
 
+class PhotonLoss(NoiseBase):
+    """
+    Photon loss
+
+    TODO: implement this error model
+    """
+
+    def __init__(self, loss_rate):
+        noise_parameters = {"loss rate": loss_rate}
+        super().__init__(noise_parameters)
+
+    def get_backend_dependent_noise(self, state_rep, n_quantum, reg_list):
+        """
+        Return a backend-dependent noise representation of this noise model
+
+        :param state_rep: a state representation
+        :type state_rep: StateRepresentationBase
+        :param n_quantum: the number of qubits
+        :type n_quantum: int
+        :param reg_list: a list of register numbers
+        :type reg_list: list[int]
+        :return: the backend-dependent noise representation
+        :rtype: list[numpy.ndarray] for DensityMatrix backend
+        """
+        if isinstance(state_rep, DensityMatrix):
+            # TODO: Implement this for DensityMatrix backend
+            return
+        elif isinstance(state_rep, Stabilizer):
+            # TODO: Find the correct representation for Stabilizer backend
+            return
+        elif isinstance(state_rep, Graph):
+            # TODO: Implement this for Graph backend
+            return
+        else:
+            raise TypeError("Backend type is not supported.")
+
+    def apply(self, state: QuantumState, n_quantum, reg_list):
+        """
+        Apply the noise to the state representation state_rep
+
+        :param state: a quantum state
+        :type state: QuantumState
+        :param n_quantum: number of qubits
+        :type n_quantum: int
+        :param reg_list: a list of registers where the noise is applied
+        :type reg_list: list[int]
+        :return: nothing
+        :rtype: None
+        """
+        loss_rate = self.noise_parameters["loss rate"]
+        for state_rep in state.all_representations:
+            if isinstance(state_rep, DensityMatrix):
+                # TODO: Implement this for DensityMatrix backend
+                raise NotImplementedError(
+                    "PhotonLoss not implemented for density matrix representation"
+                )
+            elif isinstance(state_rep, Stabilizer):
+                if isinstance(state_rep, MixedStabilizer):
+                    mixture = state_rep.mixture
+                    mixture[0][0] = (1 - loss_rate) * mixture[0][0]
+                else:
+                    state_rep = MixedStabilizer([(1 - loss_rate, state_rep.data)])
+
+                state.stabilizer = state_rep
+            elif isinstance(state_rep, Graph):
+                # TODO: Implement this for Graph backend
+                raise NotImplementedError(
+                    "PhotonLoss not implemented for graph representation"
+                )
+            else:
+                raise TypeError("Backend type is not supported.")
+
+
 """ 
 Noise models to be implemented in the future. 
 The following classes are not implemented yet. 
@@ -875,12 +948,12 @@ class MeasurementError(NoiseBase):
         else:
             raise TypeError("Backend type is not supported.")
 
-    def apply(self, state_rep: StateRepresentationBase, n_quantum, reg_list):
+    def apply(self, state: QuantumState, n_quantum, reg_list):
         """
         Apply the noise to the state representation state_rep
 
-        :param state_rep: the state representation
-        :type state_rep: subclass of StateRepresentationBase
+        :param state: the quantum state
+        :type state: QuantumState
         :param n_quantum: number of qubits
         :type n_quantum: int
         :param reg_list: a list of registers where the noise is applied
@@ -888,23 +961,24 @@ class MeasurementError(NoiseBase):
         :return: nothing
         :rtype: None
         """
-        if isinstance(state_rep, DensityMatrix):
-            # TODO: Implement this for DensityMatrix backend
-            raise NotImplementedError(
-                "MeasurementError not implemented for density matrix representation"
-            )
-        elif isinstance(state_rep, Stabilizer):
-            # TODO: Find the correct representation for Stabilizer backend
-            raise NotImplementedError(
-                "MeasurementError not implemented for stabilizer representation"
-            )
-        elif isinstance(state_rep, Graph):
-            # TODO: Implement this for Graph backend
-            raise NotImplementedError(
-                "MeasurementError not implemented for graph representation"
-            )
-        else:
-            raise TypeError("Backend type is not supported.")
+        for state_rep in state.all_representations:
+            if isinstance(state_rep, DensityMatrix):
+                # TODO: Implement this for DensityMatrix backend
+                raise NotImplementedError(
+                    "MeasurementError not implemented for density matrix representation"
+                )
+            elif isinstance(state_rep, Stabilizer):
+                # TODO: Find the correct representation for Stabilizer backend
+                raise NotImplementedError(
+                    "MeasurementError not implemented for stabilizer representation"
+                )
+            elif isinstance(state_rep, Graph):
+                # TODO: Implement this for Graph backend
+                raise NotImplementedError(
+                    "MeasurementError not implemented for graph representation"
+                )
+            else:
+                raise TypeError("Backend type is not supported.")
 
 
 class GeneralKrausError(AdditionNoiseBase):
@@ -954,31 +1028,34 @@ class GeneralKrausError(AdditionNoiseBase):
         else:
             raise TypeError("Backend type is not supported.")
 
-    def apply(self, state_rep: StateRepresentationBase, n_quantum, reg_list):
+    def apply(self, state: QuantumState, n_quantum, reg_list):
         """
         Apply the noise model to the state representation state_rep
 
-        :param state_rep: a state representation
-        :type state_rep: StateRepresentationBase
+        :param state: a quantum state
+        :type state: QuantumState
         :param n_quantum: the number of qubits
         :type n_quantum: int
         :param reg_list: a list of registers where non-identity gates are applied
         :type reg_list: list[int]
         :return: nothing
         """
-        if isinstance(state_rep, DensityMatrix):
-            kraus_ops = self.get_backend_dependent_noise(state_rep, n_quantum, reg_list)
-            state_rep.apply_channel(kraus_ops)
-        elif isinstance(state_rep, Stabilizer):
-            raise NotImplementedError(
-                "GeneralKrausError not implemented (and not compatible) for stabilizer representation"
-            )
-        elif isinstance(state_rep, Graph):
-            raise NotImplementedError(
-                "GeneralKrausError not implemented (and not compatible) for graph representation"
-            )
-        else:
-            raise TypeError("Backend type is not supported.")
+        for state_rep in state.all_representations:
+            if isinstance(state_rep, DensityMatrix):
+                kraus_ops = self.get_backend_dependent_noise(
+                    state_rep, n_quantum, reg_list
+                )
+                state_rep.apply_channel(kraus_ops)
+            elif isinstance(state_rep, Stabilizer):
+                raise NotImplementedError(
+                    "GeneralKrausError not implemented (and not compatible) for stabilizer representation"
+                )
+            elif isinstance(state_rep, Graph):
+                raise NotImplementedError(
+                    "GeneralKrausError not implemented (and not compatible) for graph representation"
+                )
+            else:
+                raise TypeError("Backend type is not supported.")
 
 
 class ResetError(NoiseBase):
@@ -1016,12 +1093,12 @@ class ResetError(NoiseBase):
         else:
             raise TypeError("Backend type is not supported.")
 
-    def apply(self, state_rep: StateRepresentationBase, n_quantum, reg_list):
+    def apply(self, state: QuantumState, n_quantum, reg_list):
         """
         Apply the noise to the state representation state_rep
 
-        :param state_rep: the state representation
-        :type state_rep: subclass of StateRepresentationBase
+        :param state: a quantum state
+        :type state: QuantumState
         :param n_quantum: number of qubits
         :type n_quantum: int
         :param reg_list: a list of registers where the noise is applied
@@ -1029,92 +1106,21 @@ class ResetError(NoiseBase):
         :return: nothing
         :rtype: None
         """
-        if isinstance(state_rep, DensityMatrix):
-            # TODO: Implement this for DensityMatrix backend
-            raise NotImplementedError(
-                "ResetError not implemented for density matrix representation"
-            )
-        elif isinstance(state_rep, Stabilizer):
-            # TODO: Find the correct representation for Stabilizer backend
-            raise NotImplementedError(
-                "ResetError not implemented for stabilizer representation"
-            )
-        elif isinstance(state_rep, Graph):
-            # TODO: Implement this for Graph backend
-            raise NotImplementedError(
-                "ResetError not implemented for graph representation"
-            )
-        else:
-            raise TypeError("Backend type is not supported.")
-
-
-class PhotonLoss(NoiseBase):
-    """
-    Photon loss
-
-    TODO: implement this error model
-    """
-
-    def __init__(self, loss_rate):
-        noise_parameters = {"loss rate": loss_rate}
-        super().__init__(noise_parameters)
-
-    def get_backend_dependent_noise(self, state_rep, n_quantum, reg_list):
-        """
-        Return a backend-dependent noise representation of this noise model
-
-        :param state_rep: a state representation
-        :type state_rep: StateRepresentationBase
-        :param n_quantum: the number of qubits
-        :type n_quantum: int
-        :param reg_list: a list of register numbers
-        :type reg_list: list[int]
-        :return: the backend-dependent noise representation
-        :rtype: list[numpy.ndarray] for DensityMatrix backend
-        """
-        if isinstance(state_rep, DensityMatrix):
-            # TODO: Implement this for DensityMatrix backend
-            return
-        elif isinstance(state_rep, Stabilizer):
-            # TODO: Find the correct representation for Stabilizer backend
-            return
-        elif isinstance(state_rep, Graph):
-            # TODO: Implement this for Graph backend
-            return
-        else:
-            raise TypeError("Backend type is not supported.")
-
-    def apply(self, state_rep: StateRepresentationBase, n_quantum, reg_list):
-        """
-        Apply the noise to the state representation state_rep
-
-        :param state_rep: the state representation
-        :type state_rep: subclass of StateRepresentationBase
-        :param n_quantum: number of qubits
-        :type n_quantum: int
-        :param reg_list: a list of registers where the noise is applied
-        :type reg_list: list[int]
-        :return: nothing
-        :rtype: None
-        """
-        loss_rate = self.noise_parameters["loss rate"]
-        if isinstance(state_rep, DensityMatrix):
-            # TODO: Implement this for DensityMatrix backend
-            raise NotImplementedError(
-                "PhotonLoss not implemented for density matrix representation"
-            )
-        elif isinstance(state_rep, Stabilizer):
-            if isinstance(state_rep, MixedStabilizer):
-                mixture = state_rep.mixture
-                mixture[0][0] = (1 - loss_rate) * mixture[0][0]
+        for state_rep in state.all_representations:
+            if isinstance(state_rep, DensityMatrix):
+                # TODO: Implement this for DensityMatrix backend
+                raise NotImplementedError(
+                    "ResetError not implemented for density matrix representation"
+                )
+            elif isinstance(state_rep, Stabilizer):
+                # TODO: Find the correct representation for Stabilizer backend
+                raise NotImplementedError(
+                    "ResetError not implemented for stabilizer representation"
+                )
+            elif isinstance(state_rep, Graph):
+                # TODO: Implement this for Graph backend
+                raise NotImplementedError(
+                    "ResetError not implemented for graph representation"
+                )
             else:
-                state_rep = MixedStabilizer([(1 - loss_rate), state_rep])
-            return state_rep
-
-        elif isinstance(state_rep, Graph):
-            # TODO: Implement this for Graph backend
-            raise NotImplementedError(
-                "PhotonLoss not implemented for graph representation"
-            )
-        else:
-            raise TypeError("Backend type is not supported.")
+                raise TypeError("Backend type is not supported.")

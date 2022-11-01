@@ -2,6 +2,7 @@ import numpy as np
 from src import ops
 
 import src.backends.density_matrix.functions as dmf
+import src.backends.stabilizer.functions.clifford as sfc
 import src.noise.noise_models as nm
 from src.state import QuantumState
 
@@ -11,6 +12,14 @@ def _state_initialization(n_quantum, state=dmf.state_ketz0()):
         n_quantum,
         dmf.create_n_product_state(n_quantum, state),
         representation="density matrix",
+    )
+
+
+def _state_initialization_stabilizer(n_quantum):
+    return QuantumState(
+        n_quantum,
+        sfc.create_n_ket0_state(n_quantum),
+        representation="stabilizer",
     )
 
 
@@ -119,3 +128,11 @@ def test_pauli_error():
 
     state2.dm.apply_unitary(x_gate)
     assert np.allclose(state1.dm.data, state2.dm.data)
+
+
+def test_photon_loss():
+    n_quantum = 2
+    state1 = _state_initialization_stabilizer(n_quantum)
+    noise = nm.PhotonLoss(0.1)
+    noise.apply(state1, n_quantum, 1)
+    print(state1.stabilizer)

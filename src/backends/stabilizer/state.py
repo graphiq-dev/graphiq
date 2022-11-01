@@ -291,7 +291,7 @@ class MixedStabilizer(Stabilizer):
     """
 
     def __init__(self, data, *args, **kwargs):
-        super().__init__(data, *args, **kwargs)
+
         if isinstance(data, int):
             self._mixture = [
                 (1.0, CliffordTableau(data)),
@@ -398,7 +398,8 @@ class MixedStabilizer(Stabilizer):
     def probability(self):
         """
         Computes the total probability as the summed probability of all pure states in the mixture
-        :math:`\sum_i p_i \ \forall (p_i, \mathcal{T}_i`.
+        :math:`\\sum_i p_i \\ \\forall (p_i, \\mathcal{T}_i`.
+
         :return:
         """
         return sum(pi for pi, ti in self.mixture)
@@ -413,6 +414,7 @@ class MixedStabilizer(Stabilizer):
         """
         Reduce the number of tableaux store in the mixture by comparing the Hamming distance between them.
         Probabilities are summed and one tableau removed if they are the same.
+
         :return:
         """
         mixture_temp = self._mixture

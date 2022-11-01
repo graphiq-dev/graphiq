@@ -184,7 +184,6 @@ def test_solver_linear4_visualized(linear4_run, linear4_expected):
     check_run_visual(linear4_run, linear4_expected)
 
 
-
 def test_solver_ghz3(ghz3_run, ghz3_expected, density_matrix_compiler):
     check_run(ghz3_run, ghz3_expected)
 

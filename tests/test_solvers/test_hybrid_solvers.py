@@ -23,6 +23,8 @@ def graph_stabilizer_setup(graph, solver_class, solver_setting, random_seed):
     :type graph: networkX.Graph
     :param solver_class: a solver class to run
     :type solver_class: a subclass of SolverBase
+    :param solver_setting:
+    :type solver_setting:
     :param random_seed: a random seed
     :type random_seed: int
     :return: the solver instance
@@ -75,6 +77,14 @@ def test_alternate_circuits_1():
 
 def test_alternate_circuits_2():
     results = run_one_repeater_graph_state(4, 1)
+    if len(results) > 1:
+        print(f"Find {len(results)} circuits that produce the same state.")
+        for i in range(len(results)):
+            results[i].draw_circuit()
+
+
+def test_alternate_circuits_w_noise():
+    results = run_one_repeater_graph_state_w_loss(4, 0, 0, 1)
     if len(results) > 1:
         print(f"Find {len(results)} circuits that produce the same state.")
         for i in range(len(results)):

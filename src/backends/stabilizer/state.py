@@ -465,7 +465,7 @@ class MixedStabilizer(Stabilizer):
                 pi,
                 sfc.z_measurement_gate(
                     tableau_i, qubit_position, measurement_determinism=outcome
-                ),
+                )[0],
             )
             for (pi, tableau_i) in self._mixture
         ]

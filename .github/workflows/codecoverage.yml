@@ -33,4 +33,4 @@ jobs:
        git config  --global user.name "github-actions[bot]"
        git add coverage-badge.svg
        git commit -m "Updated coverage.svg"
-       git push ${{ github.head_ref }}
+         git push HEAD:${{ github.head_ref }}

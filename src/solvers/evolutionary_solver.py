@@ -73,7 +73,12 @@ class EvolutionarySolverSetting(RandomSolverSetting):
         self._save_openqasm = value
 
     def __str__(self):
-        pass
+        s = super().__str__()
+        s += f"selection_active = {self.selection_active} \n"
+        s += f"use_adapt_probability = {self.use_adapt_probability} \n"
+        s += f"tournament_k = {self.tournament_k} \n"
+        s += f"save_openqasm = {self.save_openqasm}\n"
+        return s
 
 
 class EvolutionarySolver(RandomSearchSolver):
@@ -510,7 +515,7 @@ class EvolutionarySolver(RandomSearchSolver):
     @staticmethod
     def _wrap_noise(op, noise_model_mapping):
         """
-        A helper function to consolidate noise models for OneQubitWrapper operation
+        A helper function to consolidate noise models for OneQubitGateWrapper operation
 
         :param op: a list of operations
         :type op: list[ops.OperationBase]
@@ -520,13 +525,17 @@ class EvolutionarySolver(RandomSearchSolver):
         :return: a list of noise models
         :rtype: list[nm.NoiseBase]
         """
-        noise = []
-        for each_op in op:
-            noise.append(
-                EvolutionarySolver._identify_noise(
-                    each_op.__name__, noise_model_mapping
+
+        if "OneQubitGateWrapper" in noise_model_mapping:
+            noise = noise_model_mapping["OneQubitGateWrapper"]
+        else:
+            noise = []
+            for each_op in op:
+                noise.append(
+                    EvolutionarySolver._identify_noise(
+                        each_op.__name__, noise_model_mapping
+                    )
                 )
-            )
         return noise
 
     @staticmethod

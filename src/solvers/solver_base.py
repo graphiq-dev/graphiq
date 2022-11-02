@@ -118,7 +118,10 @@ class RandomSolverSetting(ABC):
         self._n_pop = value
 
     def __str__(self):
-        pass
+        s = f"n_hof = {self.n_hof}\n"
+        s += f"n_pop = {self.n_pop}\n"
+        s += f"n_stop = {self.n_stop}\n"
+        return s
 
 
 class RandomSearchSolver(SolverBase):

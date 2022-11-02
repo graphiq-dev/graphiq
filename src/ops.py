@@ -547,13 +547,30 @@ class OneQubitGateWrapper(OneQubitOperationBase):
         :return: a sequence of base operations (i.e. operations which are not compositions of other operations)
         :rtype: list
         """
+        if type(self.noise) == list:
+            assert len(self.noise) == len(self.operations)
 
-        gates = [
-            self.operations[i](
-                register=self.register, reg_type=self.reg_type, noise=self.noise[i]
+            gates = [
+                self.operations[i](
+                    register=self.register, reg_type=self.reg_type, noise=self.noise[i]
+                )
+                for i in range(len(self.operations))
+            ]
+        else:
+
+            gates = [
+                self.operations[i](
+                    register=self.register, reg_type=self.reg_type, noise=nm.NoNoise()
+                )
+                for i in range(len(self.operations))
+            ]
+            noise = Identity(
+                register=self.register, reg_type=self.reg_type, noise=self.noise
             )
-            for i in range(len(self.operations))
-        ]
+            if self.noise.noise_parameters["After gate"]:
+                gates.insert(0, noise)
+            else:
+                gates.append(noise)
         return gates[::-1]
 
     def openqasm_info(self):

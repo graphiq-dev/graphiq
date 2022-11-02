@@ -84,7 +84,7 @@ def test_alternate_circuits_2():
 
 
 def test_alternate_circuits_w_noise():
-    results = run_one_repeater_graph_state_w_loss(4, 0, 0, 1)
+    results = run_one_repeater_graph_state_w_loss(4, 0, 0, 10)
     if len(results) > 1:
         print(f"Find {len(results)} circuits that produce the same state.")
         for i in range(len(results)):

@@ -692,7 +692,7 @@ class SigmaXPerturbedError(OneQubitGateReplacement):
         self.noise_parameters["Original parameters"] = (np.pi, 0, np.pi)
 
 
-class PhotonLoss(NoiseBase):
+class PhotonLoss(AdditionNoiseBase):
     """
     Photon loss
 

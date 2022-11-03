@@ -593,8 +593,11 @@ def fidelity(rho, sigma):
         rho_sigma = hermitianize(rho_sigma)
 
         rho_final = sqrtm_psd(rho_sigma)
-        # return np.maximum(np.minimum(np.real(np.trace(rho_final)) ** 2, 1.0), 0.0)
-        return np.real(np.trace(rho_final)) ** 2
+        f = np.real(np.trace(rho_final)) ** 2
+        if not np.isclose(f, 1.0):
+            raise Warning(f"Fidelity should be between 0 and 1. Value if {f}.")
+        f = np.maximum(np.minimum(f, 1.0), 0.0)
+        return f
 
 
 def trace_distance(rho, sigma):

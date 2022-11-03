@@ -544,44 +544,51 @@ class DepolarizingNoise(AdditionNoiseBase):
                 state_rep.apply_channel(kraus_ops)
 
             elif isinstance(state_rep, Stabilizer):
-                if not isinstance(state_rep, MixedStabilizer):
-                    raise TypeError(
-                        "Cannot run the depolarizing channel on a pure stabilizer state."
+
+                raise TypeError(
+                    "Cannot run the depolarizing channel on a pure stabilizer state."
+                )
+
+            elif isinstance(state_rep, MixedStabilizer):
+                mixture = []
+                norm = 4 ** len(reg_list) - 1
+
+                single_qubit_trans = [
+                    transform.identity,
+                    transform.x_gate,
+                    transform.y_gate,
+                    transform.z_gate,
+                ]
+                trans_iter = combinations(single_qubit_trans, len(reg_list))
+
+                for (p_i, tableau_i) in state_rep.mixture:
+                    for i, pauli_string in enumerate(trans_iter):
+                        if i == 0:
+                            factor = 1 - depolarizing_prob
+                        else:
+                            factor = depolarizing_prob / norm
+
+                        for pauli_j, qubit_position in zip(pauli_string, reg_list):
+                            tableau_i = pauli_j(tableau_i, qubit_position)
+
+                        if p_i * factor != 0:
+                            mixture.append(
+                                (
+                                    p_i * factor,
+                                    tableau_i,
+                                )
+                            )
+
+                if not np.isclose(sum([p_i for p_i, t_i in mixture]), 1.0):
+                    raise ValueError(
+                        f"Probability is not unity. Pr = {sum([p_i for p_i, t_i in mixture])} | "
+                        f"Depolarizing coefficient = {depolarizing_prob} | "
+                        f"Reg list {reg_list}"
                     )
 
-                else:
-                    mixture = []
-                    norm = 4 ** len(reg_list) - 1
-                    for (p_i, tableau_i) in state_rep.mixture:
-                        single_qubit_trans = [
-                            transform.identity,
-                            transform.x_gate,
-                            transform.y_gate,
-                            transform.z_gate,
-                        ]
-                        trans_iter = combinations(single_qubit_trans, len(reg_list))
-                        for i, pauli_string in enumerate(trans_iter):
-                            if i == 0:
-                                factor = 1 - depolarizing_prob
-                            else:
-                                factor = depolarizing_prob / norm
-
-                            for pauli_j, qubit_position in zip(pauli_string, reg_list):
-                                mixture.append(
-                                    (
-                                        p_i * factor,
-                                        pauli_j(tableau_i.copy(), qubit_position),
-                                    )
-                                )
-
-                    if not np.isclose(sum([pi for pi, ti in mixture]), 1.0):
-                        raise ValueError(
-                            f"Probability is not unity. P = {sum([pi for pi, ti in mixture])}, lam={depolarizing_prob} | Reg list {reg_list}"
-                        )
-
-                    state_rep.mixture = mixture
-                    if REDUCE_STABILIZER_MIXTURE:
-                        state_rep.reduce()
+                state_rep.mixture = mixture
+                if REDUCE_STABILIZER_MIXTURE:
+                    state_rep.reduce()
 
             elif isinstance(state_rep, Graph):
                 # TODO: Implement this for Graph backend
@@ -589,7 +596,7 @@ class DepolarizingNoise(AdditionNoiseBase):
                     "DepolarizingNoise not implemented for graph representation"
                 )
             else:
-                raise TypeError("Backend type is not supported.")
+                raise TypeError(f"Backend type {type(state_rep)} is not supported.")
 
 
 class HadamardPerturbedError(OneQubitGateReplacement):

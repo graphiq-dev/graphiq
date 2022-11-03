@@ -6,6 +6,14 @@ import benchmarks.circuits as examples
 
 
 def m_emissions_depolarizing_noise(circ, depolarizing_time, depolarizing_prob):
+    """
+    #TODO test and finish noise model
+    Experimental implementation of a time-dependent emission noise model.
+    :param circ:
+    :param depolarizing_time:
+    :param depolarizing_prob:
+    :return:
+    """
     emission_counts = {reg: 0 for reg in range(circ.n_emitters)}
     edges_to_add = []
     for edge in circ.edge_dict["e"]:

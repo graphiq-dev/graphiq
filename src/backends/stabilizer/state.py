@@ -271,7 +271,7 @@ class Stabilizer(StateRepresentationBase):
         return tableau1 == tableau2
 
 
-class MixedStabilizer(Stabilizer):
+class MixedStabilizer(StateRepresentationBase):
     """
     A mixed state representation using the stabilizer formalism, where the mixture is represented as a list of
     pure states (tableaus) and an associated mixture probability.
@@ -289,9 +289,10 @@ class MixedStabilizer(Stabilizer):
             ]
         elif isinstance(data, list):
             assert all(
-                isinstance(pi, float) and isinstance(ti, CliffordTableau)
-                for (pi, ti) in data
+                isinstance(p_i, float) and isinstance(t_i, CliffordTableau)
+                for (p_i, t_i) in data
             )
+            assert all
             self._mixture = data
         else:
             raise TypeError(
@@ -303,8 +304,8 @@ class MixedStabilizer(Stabilizer):
         valid = isinstance(data, (int, CliffordTableau, list))
         if isinstance(data, list):
             valid = valid and all(
-                isinstance(pi, float) and isinstance(ti, CliffordTableau)
-                for (pi, ti) in data
+                isinstance(p_i, float) and isinstance(t_i, CliffordTableau)
+                for (p_i, t_i) in data
             )
         return valid
 
@@ -340,11 +341,11 @@ class MixedStabilizer(Stabilizer):
         r"""
         if isinstance(value, list):
             assert all(
-                isinstance(pi, float) and isinstance(ti, CliffordTableau)
-                for (pi, ti) in value
+                isinstance(p_i, float) and isinstance(t_i, CliffordTableau)
+                for (p_i, t_i) in value
             )
             assert (
-                len(set([ti.n_qubits for pi, ti in value])) == 1
+                len(set([t_i.n_qubits for p_i, t_i in value])) == 1
             )  # all tableaux are same number of qubits
             self._mixture = value
 
@@ -362,7 +363,7 @@ class MixedStabilizer(Stabilizer):
     @property
     def data(self):
         """
-        The data that represents the state given by this MixedStabilizer representation
+        The data that represents the state given by the MixedStabilizer representation
 
         :return: the mixture that represents this state
         :rtype: list
@@ -372,7 +373,7 @@ class MixedStabilizer(Stabilizer):
     @data.setter
     def data(self, value):
         """
-        Set the data that represents the state given by this Stabilizer representation
+        Set the data that represents the state given by the MixedStabilizer representation
 
         :param value: a new tableau or a parameter to initialize a new tableau
         :type value: CliffordTableau or int
@@ -388,7 +389,7 @@ class MixedStabilizer(Stabilizer):
         :math:`\sum_i p_i \ \forall (p_i, \mathcal{T}_i`.
         :return:
         """
-        return sum(pi for pi, ti in self.mixture)
+        return sum(p_i for p_i, t_i in self.mixture)
 
     @property
     def tableau(self):
@@ -400,6 +401,9 @@ class MixedStabilizer(Stabilizer):
         """
         Reduce the number of tableaux store in the mixture by comparing the Hamming distance between them.
         Probabilities are summed and one tableau removed if they are the same.
+
+        # TODO: explore other ways of reduction and further simplification using a standard form.
+
         :return:
         """
         mixture_temp = self._mixture
@@ -407,9 +411,9 @@ class MixedStabilizer(Stabilizer):
         while len(mixture_temp) != 0:
             p0, t0 = mixture_temp[0]
             mixture_temp.pop(0)
-            for i, (pi, ti) in enumerate(mixture_temp):
-                if np.count_nonzero(t0 != ti) == 0:
-                    p0 += pi
+            for i, (p_i, t_i) in enumerate(mixture_temp):
+                if np.count_nonzero(t0 != t_i) == 0:
+                    p0 += p_i
                     mixture_temp.pop(i)
 
             mixture_reduce.append((p0, t0))
@@ -420,11 +424,43 @@ class MixedStabilizer(Stabilizer):
             "Stabilizer backend does not support general unitary operation."
         )
 
+    def apply_conditioned_gate(self, qubit_position, outcomes, gate=None):
+        """
+        Apply a single-qubit gate, conditioned on a classical measurement outcome.
+
+        :param qubit_position: int
+        :param outcomes: list of measurement outcomes for each tableau in the mixture
+        :param gate: str, one of 'x', 'y', 'z', or 'h'
+        :return:
+        """
+        assert isinstance(outcomes, list)
+        assert len(outcomes) == len(self._mixture)
+
+        if gate == "x":
+            trans = transform.x_gate
+        elif gate == "y":
+            trans = transform.y_gate
+        elif gate == "z":
+            trans = transform.z_gate
+        elif gate == "h":
+            trans = transform.hadamard_gate
+        else:
+            raise NotImplementedError(
+                "Gate must be provided for conditioning measurement outcomes."
+            )
+
+        self._mixture = [
+            (p_i, trans(t_i, qubit_position)) for (p_i, t_i) in self._mixture
+        ]
+
     def apply_measurement(
         self, qubit_position, measurement_determinism="probabilistic"
     ):
         """
-        Apply the measurement in the computational basis to a given qubit
+        Apply the measurement in the computational basis to a given qubit. For the MixedStabilizer state,
+        we measure the outcome for each tableau in the mixture, returning a list of outcomes.
+
+        # todo think of classical probabilities being stored on the c-registers?
 
         :param qubit_position: the qubit position where the measurement is applied
         :type qubit_position: int
@@ -433,28 +469,17 @@ class MixedStabilizer(Stabilizer):
                 if 0, measurement results default to 0 unless the probability of measuring p(0) = 0
         :type measurement_determinism: str/int
         :return: the measurement outcome
-        :rtype: int
+        :rtype: list
         """
-        if measurement_determinism == "probabilistic":
-            outcome = np.random.randint(0, 2)
-        elif measurement_determinism == 1:
-            outcome = 1
-        elif measurement_determinism == 0:
-            outcome = 0
-        else:
-            raise ValueError(
-                "measurement_determinism must be 0, 1, or 'probabilistic'."
+        outcomes = []
+        for i, (p_i, t_i) in enumerate(self._mixture):
+            tableau, outcome, x_p = sfc.z_measurement_gate(
+                t_i, qubit_position, measurement_determinism=measurement_determinism
             )
-        self._mixture = [
-            (
-                pi,
-                sfc.z_measurement_gate(
-                    tableau_i, qubit_position, measurement_determinism=outcome
-                ),
-            )
-            for (pi, tableau_i) in self._mixture
-        ]
-        return outcome
+            outcomes.append(outcome)
+            self._mixture[i] = (p_i, tableau)
+
+        return outcomes
 
     def apply_hadamard(self, qubit_position):
         """
@@ -466,8 +491,8 @@ class MixedStabilizer(Stabilizer):
         :rtype: None
         """
         self._mixture = [
-            (pi, transform.hadamard_gate(tableau_i, qubit_position))
-            for (pi, tableau_i) in self._mixture
+            (p_i, transform.hadamard_gate(t_i, qubit_position))
+            for (p_i, t_i) in self._mixture
         ]
 
     def apply_cnot(self, control, target):
@@ -482,8 +507,8 @@ class MixedStabilizer(Stabilizer):
         :rtype: None
         """
         self._mixture = [
-            (pi, transform.cnot_gate(tableau_i, control, target))
-            for (pi, tableau_i) in self._mixture
+            (p_i, transform.cnot_gate(t_i, control, target))
+            for (p_i, t_i) in self._mixture
         ]
 
     def apply_cz(self, control, target):
@@ -498,8 +523,8 @@ class MixedStabilizer(Stabilizer):
         :rtype: None
         """
         self._mixture = [
-            (pi, transform.control_z_gate(tableau_i, control, target))
-            for (pi, tableau_i) in self._mixture
+            (p_i, transform.control_z_gate(t_i, control, target))
+            for (p_i, t_i) in self._mixture
         ]
 
     def apply_phase(self, qubit_position):
@@ -512,8 +537,8 @@ class MixedStabilizer(Stabilizer):
         :rtype: None
         """
         self._mixture = [
-            (pi, transform.phase_gate(tableau_i, qubit_position))
-            for (pi, tableau_i) in self._mixture
+            (p_i, transform.phase_gate(t_i, qubit_position))
+            for (p_i, t_i) in self._mixture
         ]
 
     def apply_sigmax(self, qubit_position):
@@ -526,8 +551,7 @@ class MixedStabilizer(Stabilizer):
         :rtype: None
         """
         self._mixture = [
-            (pi, transform.x_gate(tableau_i, qubit_position))
-            for (pi, tableau_i) in self._mixture
+            (p_i, transform.x_gate(t_i, qubit_position)) for (p_i, t_i) in self._mixture
         ]
 
     def apply_sigmay(self, qubit_position):
@@ -540,8 +564,7 @@ class MixedStabilizer(Stabilizer):
         :rtype: None
         """
         self._mixture = [
-            (pi, transform.y_gate(tableau_i, qubit_position))
-            for (pi, tableau_i) in self._mixture
+            (p_i, transform.y_gate(t_i, qubit_position)) for (p_i, t_i) in self._mixture
         ]
 
     def apply_sigmaz(self, qubit_position):
@@ -554,8 +577,7 @@ class MixedStabilizer(Stabilizer):
         :rtype: None
         """
         self._mixture = [
-            (pi, transform.z_gate(tableau_i, qubit_position))
-            for (pi, tableau_i) in self._mixture
+            (p_i, transform.z_gate(t_i, qubit_position)) for (p_i, t_i) in self._mixture
         ]
 
     def reset_qubit(self, qubit_position, measurement_determinism="probabilistic"):
@@ -572,8 +594,8 @@ class MixedStabilizer(Stabilizer):
         :rtype: None
         """
         self._mixture = [
-            (pi, sfc.reset_z(tableau_i, qubit_position, 0, measurement_determinism))
-            for (pi, tableau_i) in self._mixture
+            (p_i, sfc.reset_z(t_i, qubit_position, 0, measurement_determinism))
+            for (p_i, t_i) in self._mixture
         ]
 
     def remove_qubit(self, qubit_position, measurement_determinism="probabilistic"):
@@ -590,8 +612,8 @@ class MixedStabilizer(Stabilizer):
         :rtype: None
         """
         self._mixture = [
-            (pi, sfc.remove_qubit(tableau_i, qubit_position, measurement_determinism))
-            for (pi, tableau_i) in self._mixture
+            (p_i, sfc.remove_qubit(t_i, qubit_position, measurement_determinism))
+            for (p_i, t_i) in self._mixture
         ]
 
     def trace_out_qubits(
@@ -611,15 +633,15 @@ class MixedStabilizer(Stabilizer):
         """
         self._mixture = [
             (
-                pi,
+                p_i,
                 sfc.partial_trace(
-                    tableau_i,
+                    t_i,
                     keep=qubit_positions,
                     dims=self.n_qubit * [2],
                     measurement_determinism=measurement_determinism,
                 ),
             )
-            for (pi, tableau_i) in self._mixture
+            for (p_i, t_i) in self._mixture
         ]
 
     def __str__(self):

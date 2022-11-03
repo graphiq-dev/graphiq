@@ -64,6 +64,13 @@ class Register:
         """
         if not reg_dict:
             raise ValueError("Register dict can not be None or empty")
+        for key in reg_dict:
+            if not all([isinstance(item, int) for item in reg_dict[key]]):
+                raise ValueError("The Register input can only be number")
+        for key in reg_dict:
+            if reg_dict[key] and set(reg_dict[key]) != {1} and not is_multi_qubit:
+                raise ValueError(f"Register {key} is not multi-qubit register but has value more than 1")
+
         self._registers = reg_dict
         self.is_multi_qubit = is_multi_qubit
 

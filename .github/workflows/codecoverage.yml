@@ -33,7 +33,7 @@ jobs:
        git config --global user.email "github-actions[bot]@users.noreply.github.com"
        git config  --global user.name "github-actions[bot]"
        git checkout -b ${{ github.head_ref }}
-       git pull origin main
+       git pull --ff-only
        git add coverage-badge.svg
        git commit -m "Updated coverage.svg"
        git push origin ${{ github.head_ref }}

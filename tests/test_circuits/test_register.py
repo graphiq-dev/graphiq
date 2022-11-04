@@ -3,9 +3,12 @@ from src.circuit import Register
 
 
 @pytest.mark.parametrize(
-    "reg_dict, is_multi_qubit", [({"e": [], "p": []}, False),
-                                 ({"e": [1, 1], "p": [1, 1, 1]}, False),
-                                 ({"e": [1, 1], "p": [1, 2, 3]}, True)]
+    "reg_dict, is_multi_qubit",
+    [
+        ({"e": [], "p": []}, False),
+        ({"e": [1, 1], "p": [1, 1, 1]}, False),
+        ({"e": [1, 1], "p": [1, 2, 3]}, True),
+    ],
 )
 def test_register_initialization(reg_dict, is_multi_qubit):
     register = Register(reg_dict=reg_dict, is_multi_qubit=is_multi_qubit)
@@ -15,12 +18,21 @@ def test_register_initialization(reg_dict, is_multi_qubit):
 
 
 @pytest.mark.parametrize(
-    "reg_dict, is_multi_qubit, error_message", [
+    "reg_dict, is_multi_qubit, error_message",
+    [
         (None, False, "Register dict can not be None or empty"),
         ({}, False, "Register dict can not be None or empty"),
-        ({"e": [1, "test"], "p": [1, 1, 1]}, False, "The input data contains non-numerical value"),
-        ({"e": [1, 2], "p": [1, 2, 3]}, False, "Register is not multi-qubit register but has value more than 1"),
-    ]
+        (
+            {"e": [1, "test"], "p": [1, 1, 1]},
+            False,
+            "The input data contains non-numerical value",
+        ),
+        (
+            {"e": [1, 2], "p": [1, 2, 3]},
+            False,
+            "Register is not multi-qubit register but has value more than 1",
+        ),
+    ],
 )
 def test_register_initialization_wrong_input(reg_dict, is_multi_qubit, error_message):
     with pytest.raises(ValueError, match=error_message):
@@ -45,10 +57,17 @@ def test_get_set_item():
 
 
 @pytest.mark.parametrize(
-    "reg_dict, error_message", [
-        ({"e": [1, "test"], "p": [1, 1, 1]}, "The input data contains non-numerical value"),
-        ({"e": [1, 2], "p": [1, 1, 1]}, "The register only supports single-qubit registers"),
-    ]
+    "reg_dict, error_message",
+    [
+        (
+            {"e": [1, "test"], "p": [1, 1, 1]},
+            "The input data contains non-numerical value",
+        ),
+        (
+            {"e": [1, 2], "p": [1, 1, 1]},
+            "The register only supports single-qubit registers",
+        ),
+    ],
 )
 def test_set_item_wrong_input(reg_dict, error_message):
     register = Register(reg_dict={"e": [1, 1], "p": [1, 1, 1]})
@@ -75,7 +94,9 @@ def test_add_register():
         register.add_register(reg_type="e", size=2)
 
     # test add with multi-qubit register
-    register = Register(reg_dict={"e": [1, 1], "p": [1, 1, 1], "c": [1]}, is_multi_qubit=True)
+    register = Register(
+        reg_dict={"e": [1, 1], "p": [1, 1, 1], "c": [1]}, is_multi_qubit=True
+    )
     register.add_register(reg_type="e", size=2)
     assert register["e"] == [1, 1, 2]
 
@@ -89,7 +110,9 @@ def test_expand_register():
         register.expand_register(reg_type="e", register=0, new_size=2)
 
     # test expand with multi-qubit register
-    register = Register(reg_dict={"e": [1, 1], "p": [1, 1, 1], "c": [1]}, is_multi_qubit=True)
+    register = Register(
+        reg_dict={"e": [1, 1], "p": [1, 1, 1], "c": [1]}, is_multi_qubit=True
+    )
     register.expand_register(reg_type="e", register=0, new_size=3)
     assert register["e"] == [3, 1]
     with pytest.raises(ValueError):
@@ -102,4 +125,3 @@ def test_next_register():
 
     with pytest.raises(ValueError):
         register.next_register(reg_type="test", register=0)
-

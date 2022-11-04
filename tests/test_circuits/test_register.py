@@ -1,10 +1,5 @@
-import numpy as np
-import numpy.testing as test
 import pytest
-import random
-
 from src.circuit import Register
-from tests.test_flags import visualization
 
 
 @pytest.mark.parametrize(

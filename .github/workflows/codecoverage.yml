@@ -1,8 +1,6 @@
 name: Test Code Coverage
-
 on:
   pull_request
-
 jobs:
   build:
     runs-on: ubuntu-latest

@@ -36,7 +36,7 @@ class DensityMatrixCompiler(CompilerBase):
         ops.CZ: lambda: dm.sigmaz(),
         ops.ClassicalCNOT: lambda: dm.sigmax(),
         ops.ClassicalCZ: lambda: dm.sigmaz(),
-        ops.MeasurementZ: lambda: None,
+        ops.MeasurementZ: lambda: dm.sigmaz(),
         ops.MeasurementCNOTandReset: lambda: dm.sigmax(),
         ops.Output: lambda: None,
     }

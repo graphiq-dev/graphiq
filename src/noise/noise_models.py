@@ -489,6 +489,64 @@ class LocalCliffordError(AdditionNoiseBase):
             raise TypeError("Backend type is not supported.")
 
 
+class AmplitudeDampingNoise(AdditionNoiseBase):
+    """
+    Amplitude damping noise described by a depolarizing probability
+
+    """
+
+    def __init__(self, damping_probability):
+        """
+        Construct an amplitude damping noise model
+
+        :param damping_probability: the dampening probability between 0 and 1
+        :type damping_probability: float
+        """
+        noise_parameters = {"damping_probability": damping_probability}
+        super().__init__(noise_parameters)
+
+    def apply(self, state: QuantumState, n_quantum, reg_list):
+        """
+        Apply the noisy gate to the state representations of state
+
+        :param state: the state
+        :type state: QuantumState
+        :param n_quantum: number of qubits
+        :type n_quantum: int
+        :param reg_list: a list of registers where the noise is applied
+        :type reg_list: list[int]
+        :return: nothing
+        :rtype: None
+        """
+        for state_rep in state.all_representations:
+            if isinstance(state_rep, DensityMatrix):
+                damping_prob = self.noise_parameters["damping_probability"]
+                if damping_prob == 0.0:
+                    return
+                single_qubit_kraus = dmf.amplitude_damping_operators(damping_prob)
+                kraus_ops_iter = combinations(single_qubit_kraus, len(reg_list))
+                kraus_ops = []
+                for kraus_op in kraus_ops_iter:
+                    kraus_ops.append(
+                        dmf.get_multi_qubit_gate(n_quantum, reg_list, kraus_op)
+                    )
+
+                state_rep.apply_channel(kraus_ops)
+
+            elif isinstance(state_rep, Stabilizer):
+                # TODO: Find the correct representation for Stabilizer backend
+                raise NotImplementedError(
+                    "AmplitudeDamping not implemented for stabilizer representation"
+                )
+            elif isinstance(state_rep, Graph):
+                # TODO: Implement this for Graph backend
+                raise NotImplementedError(
+                    "AmplitudeDamping not implemented for graph representation"
+                )
+            else:
+                raise TypeError("Backend type is not supported.")
+
+
 class DepolarizingNoise(AdditionNoiseBase):
     """
     Depolarizing noise described by a depolarizing probability
@@ -520,22 +578,7 @@ class DepolarizingNoise(AdditionNoiseBase):
         """
         depolarizing_prob = self.noise_parameters["Depolarizing probability"]
         if isinstance(state_rep, DensityMatrix):
-            single_qubit_kraus = [np.eye(2), dmf.sigmax(), dmf.sigmay(), dmf.sigmaz()]
-            kraus_ops_iter = combinations(single_qubit_kraus, len(reg_list))
-            n_kraus = 4 ** len(reg_list)
-            all_kraus_ops = []
-            for kraus_op in kraus_ops_iter:
-                all_kraus_ops.append(
-                    np.sqrt(depolarizing_prob / (n_kraus - 1))
-                    * dmf.get_multi_qubit_gate(n_quantum, reg_list, kraus_op)
-                )
-
-            all_kraus_ops[0] = (
-                all_kraus_ops[0]
-                / np.sqrt(depolarizing_prob / (n_kraus - 1))
-                * np.sqrt(1 - depolarizing_prob)
-            )
-            return all_kraus_ops
+            return
         elif isinstance(state_rep, Stabilizer):
             # TODO: Find the correct representation for Stabilizer backend
             return
@@ -560,10 +603,31 @@ class DepolarizingNoise(AdditionNoiseBase):
         """
         for state_rep in state.all_representations:
             if isinstance(state_rep, DensityMatrix):
-                kraus_ops = self.get_backend_dependent_noise(
-                    state_rep, n_quantum, reg_list
+                depolarizing_prob = self.noise_parameters["Depolarizing probability"]
+                if depolarizing_prob == 0.0:
+                    return
+                single_qubit_kraus = [
+                    np.eye(2),
+                    dmf.sigmax(),
+                    dmf.sigmay(),
+                    dmf.sigmaz(),
+                ]
+                kraus_ops_iter = combinations(single_qubit_kraus, len(reg_list))
+                n_kraus = 4 ** len(reg_list)
+                kraus_ops = []
+                for kraus_op in kraus_ops_iter:
+                    kraus_ops.append(
+                        np.sqrt(depolarizing_prob / (n_kraus - 1))
+                        * dmf.get_multi_qubit_gate(n_quantum, reg_list, kraus_op)
+                    )
+
+                kraus_ops[0] = (
+                    kraus_ops[0]
+                    / np.sqrt(depolarizing_prob / (n_kraus - 1))
+                    * np.sqrt(1 - depolarizing_prob)
                 )
                 state_rep.apply_channel(kraus_ops)
+
             elif isinstance(state_rep, Stabilizer):
                 # TODO: Find the correct representation for Stabilizer backend
                 raise NotImplementedError(

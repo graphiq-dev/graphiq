@@ -634,10 +634,10 @@ class ParameterizedOneQubitRotation(OneQubitOperationBase):
         super().__init__(register, reg_type, noise)
 
         if params is None:
-            params = (1.0, 1.0, 1.0)
+            params = (0.0, 0.0, 0.0)
         if param_info is None:
             param_info = {
-                "bounds": ((0.0, 1.0), (0.0, 1.0), (0.0, 1.0)),
+                "bounds": ((-np.pi, np.pi), (-np.pi, np.pi), (-np.pi, np.pi)),
                 "labels": ("theta", "phi", "lambda"),
             }
         self.params = params
@@ -666,10 +666,10 @@ class ParameterizedControlledRotationQubit(ControlledPairOperationBase):
         super().__init__(control, control_type, target, target_type, noise)
 
         if params is None:
-            params = (1.0, 1.0, 1.0)
+            params = (0.0, 0.0, 0.0)
         if param_info is None:
             param_info = {
-                "bounds": ((0.0, 1.0), (0.0, 1.0), (0.0, 1.0)),
+                "bounds": ((-np.pi, np.pi), (-np.pi, np.pi), (-np.pi, np.pi)),
                 "labels": ("theta", "phi", "lambda"),
             }
         self.params = params

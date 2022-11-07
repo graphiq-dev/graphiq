@@ -91,14 +91,13 @@ class GradientDescentSolver(SolverBase):
         opt_state = self.optimizer.init(params)
 
         loss_curve = []
+        grad = jax.grad(self.compute_loss)
         for step in (
             pbar := tqdm.tqdm(range(self.n_step), disable=(not self.progress))
         ):
             loss = self.compute_loss(params, self.circuit, self.compiler, self.metric)
-            grads = jax.grad(self.compute_loss)(
-                params, self.circuit, self.compiler, self.metric
-            )
-            updates, opt_state = self.optimizer.update(grads, opt_state)
+            gradient = grad(params, self.circuit, self.compiler, self.metric)
+            updates, opt_state = self.optimizer.update(gradient, opt_state)
             params = optax.apply_updates(params, updates)
             loss_curve.append(loss)
             if self.progress:

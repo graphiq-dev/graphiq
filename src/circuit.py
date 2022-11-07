@@ -476,7 +476,7 @@ class CircuitBase(ABC):
         self._parameters = parameters
 
         for op in self.sequence(unwrapped=True):
-            op.params = self._parameters.get(self.map[id(op)], None)
+            op.params = self._parameters.get(self.map[id(op)], tuple())
 
     @property
     def fmap(self):

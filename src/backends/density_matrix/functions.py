@@ -597,7 +597,6 @@ def fidelity(rho, sigma):
     :return: the fidelity between 0 and 1
     :rtype: float
     """
-
     assert is_density_matrix(rho)
     assert is_density_matrix(sigma)
 
@@ -867,3 +866,17 @@ def check_equivalent_unitaries(unitary_op1, unitary_op2):
         return True
     else:
         return False
+
+
+def amplitude_damping_operators(damping_prob):
+    """
+    Return two channel operators corresponding to the single-qubit amplitude damping channel.
+
+    :return: channel operator
+    :rtype: (numpy.ndarray, numpy.ndarray)
+    """
+    assert 0.0 <= damping_prob <= 1.0
+    return (
+        np.array([[1.0, 0.0], [0.0, np.sqrt(1.0 - damping_prob)]]),
+        np.array([[0.0, np.sqrt(damping_prob)], [0.0, 0.0]]),
+    )

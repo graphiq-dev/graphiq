@@ -6,7 +6,7 @@ import networkx as nx
 
 from src.circuit import CircuitDAG
 from src.ops import *
-
+from src import ops
 from src.backends.density_matrix.functions import (
     state_ketz0,
     state_ketz1,
@@ -184,7 +184,7 @@ def variational_entangling_layer_2qubit():
     return circuit, ideal_state
 
 
-def variational_entangling_layer_nqubit(n_qubits=3):
+def variational_entangling_layer_nqubits(n_qubits=3, layers=1):
     """
     Variational circuit composed of a single entangling layer
     """
@@ -201,18 +201,54 @@ def variational_entangling_layer_nqubit(n_qubits=3):
     ideal_state = QuantumState(n_qubits, state.data, representation="density matrix")
 
     circuit = CircuitDAG(n_emitter=n_qubits, n_photon=0, n_classical=0)
-    circuit.add(
-        ParameterizedOneQubitRotation(
-            register=0,
-            reg_type="e",
-            params=(0.0, 1.0, 1.0),  # set the parameters explicitly, if desired
-        )
-    )
-    for i in range(1, n_qubits):
+    for i in range(n_qubits):
         circuit.add(
-            ParameterizedControlledRotationQubit(
-                control=i - 1, control_type="e", target=i, target_type="e"
+            ParameterizedOneQubitRotation(
+                register=0,
+                reg_type="e",
+                params=(0.0, 1.0, 1.0),  # set the parameters explicitly, if desired
             )
         )
+        circuit.add(
+            CNOT(
+                control=i, control_type="e", target=(i+1) % n_qubits, target_type="e"
+            )
+        )
+
+    return circuit, ideal_state
+
+
+def strongly_entangling_layer(n_qubits=3, layers=1):
+    """
+    Variational circuit composed of a single entangling layer
+    """
+
+    ket = (
+        1
+        / np.sqrt(2**n_qubits)
+        * (
+            dmf.tensor(n_qubits * [dmf.state_ketz0()])
+            + dmf.tensor(n_qubits * [dmf.state_ketz1()])
+        )
+    )
+    state = DensityMatrix(dmf.ket2dm(ket))
+    ideal_state = QuantumState(n_qubits, state.data, representation="density matrix")
+
+    circuit = CircuitDAG(n_emitter=n_qubits, n_photon=0, n_classical=0)
+    for layer in range(layers):
+        for i in range(n_qubits):
+            circuit.add(
+                ops.ParameterizedOneQubitRotation(
+                    register=i,
+                    reg_type="e",
+                    params=(0.0, 1.0, 1.0),  # set the parameters explicitly, if desired
+                )
+            )
+        for i in range(n_qubits):
+            circuit.add(
+                ops.CNOT(
+                    control=i, control_type="e", target=(i+1) % n_qubits, target_type="e"
+                )
+            )
 
     return circuit, ideal_state

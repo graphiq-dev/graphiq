@@ -1324,7 +1324,7 @@ class CircuitDAG(CircuitBase):
         :return: whether two circuits are the same
         :rtype: bool
         """
-        return compare_circuits(self, circuit, method=method,noise=noise)
+        return compare_circuits(self, circuit, method=method, noise=noise)
 
     def unwrap_nodes(self):
         """

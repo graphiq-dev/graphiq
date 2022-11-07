@@ -14,7 +14,7 @@ TODO: Check incompatibility between noise models and operations, between noise m
 """
 
 import numpy as np
-from itertools import combinations
+import itertools
 from abc import ABC
 
 import src.backends.density_matrix.functions as dmf
@@ -28,7 +28,7 @@ from src.backends.stabilizer.state import Stabilizer, MixedStabilizer
 from src.backends.graph.state import Graph
 from src.backends.state_base import StateRepresentationBase
 
-REDUCE_STABILIZER_MIXTURE = False
+REDUCE_STABILIZER_MIXTURE = True
 
 
 """ Base classes from which any noise model will inherit """
@@ -523,13 +523,18 @@ class DepolarizingNoise(AdditionNoiseBase):
         for state_rep in state.all_representations:
             if isinstance(state_rep, DensityMatrix):
                 single_qubit_kraus = [
-                    np.eye(2),
+                    dmf.identity(),
                     dmf.sigmax(),
                     dmf.sigmay(),
                     dmf.sigmaz(),
                 ]
-                kraus_ops_iter = combinations(single_qubit_kraus, len(reg_list))
+
+                kraus_ops_iter = list(
+                    itertools.product(single_qubit_kraus, repeat=len(reg_list))
+                )
                 n_kraus = 4 ** len(reg_list)
+                assert len(kraus_ops_iter) == n_kraus
+
                 kraus_ops = []
 
                 for i, kraus_op in enumerate(kraus_ops_iter):
@@ -559,23 +564,28 @@ class DepolarizingNoise(AdditionNoiseBase):
                     transform.y_gate,
                     transform.z_gate,
                 ]
-                trans_iter = combinations(single_qubit_trans, len(reg_list))
+                trans_iter = list(
+                    itertools.product(single_qubit_trans, repeat=len(reg_list))
+                )
 
-                for (p_i, tableau_i) in state_rep.mixture:
-                    for i, pauli_string in enumerate(trans_iter):
-                        if i == 0:
+                for i, (p_i, tableau_i) in enumerate(state_rep.mixture):
+                    for j, pauli_string in enumerate(trans_iter):
+                        print(i, j)
+                        tableau_j = tableau_i.copy()
+
+                        if j == 0:
                             factor = 1 - depolarizing_prob
                         else:
                             factor = depolarizing_prob / norm
 
-                        for pauli_j, qubit_position in zip(pauli_string, reg_list):
-                            tableau_i = pauli_j(tableau_i, qubit_position)
+                        for pauli_k, qubit_position in zip(pauli_string, reg_list):
+                            tableau_j = pauli_k(tableau_j, qubit_position)
 
                         if p_i * factor != 0:
                             mixture.append(
                                 (
                                     p_i * factor,
-                                    tableau_i,
+                                    tableau_j,
                                 )
                             )
 

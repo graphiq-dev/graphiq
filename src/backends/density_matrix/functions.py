@@ -10,6 +10,16 @@ import numpy as np
 from scipy.linalg import eigh
 
 
+def identity():
+    """
+    Return :math:`I` qubit matrix
+
+    :return: 2x2 identity matrix
+    :rtype: numpy.ndarray
+    """
+    return np.array([[1.0, 0.0], [0.0, 1.0]])
+
+
 def sigmax():
     """
     Return :math:`\\sigma_x` matrix
@@ -242,7 +252,7 @@ def get_multi_qubit_gate(n_qubits, qubit_positions, target_gates):
     :param qubit_positions: a list of positions for non-identity gates
     :type qubit_positions: list[int]
     :param target_gates: a list of gates
-    :type target_gates: list[numpy.ndarray]
+    :type target_gates: list[numpy.ndarray] or tuple(numpy.ndarray)
     :raises AssertionError: if the number of qubit positions to apply gates is not equal to the number of gates
     :return: the resulting matrix that acts on the whole state
     :rtype: numpy.ndarray

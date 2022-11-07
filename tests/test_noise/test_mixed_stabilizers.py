@@ -36,7 +36,7 @@ def create_circuits(n_emitters, n_photons, d_emitter, lam):
     return circs
 
 
-def test_mixed_state_1():
+def test_mixed_state_class_types():
     compiler = StabilizerCompiler()
     compiler.noise_simulation = False
     n_emitters, n_photons, d_emitter, lam = 1, 1, 1, 0.0
@@ -47,12 +47,11 @@ def test_mixed_state_1():
 
     compiler.noise_simulation = True
     state = compiler.compile(circ)
-    assert isinstance(state.stabilizer, Stabilizer)
     assert isinstance(state.stabilizer, MixedStabilizer)
 
 
 @pytest.mark.parametrize("n_emitters", [1, 2, 3])
-def test_mixed_state_2(n_emitters):
+def test_mixed_state_compare_with_dm(n_emitters):
     dm_compiler = DensityMatrixCompiler()
 
     compiler = StabilizerCompiler()
@@ -74,31 +73,32 @@ def test_mixed_state_2(n_emitters):
     assert np.allclose(dm_infidelity, stab_infidelity)
 
 
-def test_mixed_state_3():
+@pytest.mark.parametrize("lam", [0.0, 0.1, 0.5])
+def test_mixed_state_tableaux_reduction(lam):
     compiler = StabilizerCompiler()
     compiler.measurement_determinism = 1
-
-    n_emitters, n_photons, d_emitter, lam = 1, 1, 2, 0.0
+    n_emitters = 2
+    n_photons, d_emitter = 1, 2
     circ, circ_ideal = create_circuits(n_emitters, n_photons, d_emitter, lam)
 
     compiler.noise_simulation = True
 
     nm.REDUCE_STABILIZER_MIXTURE = False
     state = compiler.compile(circ)
-    assert isinstance(state.stabilizer, Stabilizer)
     assert isinstance(state.stabilizer, MixedStabilizer)
     no_len_reduction = len(state.stabilizer.mixture)
 
     nm.REDUCE_STABILIZER_MIXTURE = True
     state = compiler.compile(circ)
-    assert isinstance(state.stabilizer, Stabilizer)
     assert isinstance(state.stabilizer, MixedStabilizer)
     len_reduction = len(state.stabilizer.mixture)
+    if lam == 0.0:
+        assert no_len_reduction == len_reduction
+    else:
+        assert no_len_reduction > len_reduction
 
-    assert no_len_reduction > len_reduction
 
-
-def test_mixed_state_4():
+def test_mixed_state_measurement():
     compiler = StabilizerCompiler()
     compiler.measurement_determinism = "probabilistic"
     compiler.noise_simulation = True
@@ -112,8 +112,8 @@ def test_mixed_state_4():
 
 
 if __name__ == "__main__":
-    test_mixed_state_1()
-    test_mixed_state_2(4)
-    test_mixed_state_3()
-    test_mixed_state_4()
+    test_mixed_state_class_types()
+    test_mixed_state_compare_with_dm(4)
+    test_mixed_state_tableaux_reduction()
+    test_mixed_state_measurement()
     print("Tests successful")

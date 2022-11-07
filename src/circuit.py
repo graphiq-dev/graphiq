@@ -1311,7 +1311,7 @@ class CircuitDAG(CircuitBase):
         self._node_id += 1
         return self._node_id
 
-    def compare(self, circuit, method="direct"):
+    def compare(self, circuit, method="direct", noise=False):
         """
         Comparing two circuits by using GED or direct loop method
 
@@ -1319,10 +1319,12 @@ class CircuitDAG(CircuitBase):
         :type circuit: CircuitDAG
         :param method: Determine which comparison function to use
         :type method: str
+        :param noise: compare the noise if True
+        :type noise: bool
         :return: whether two circuits are the same
         :rtype: bool
         """
-        return compare_circuits(self, circuit, method=method)
+        return compare_circuits(self, circuit, method=method,noise=noise)
 
     def unwrap_nodes(self):
         """
@@ -1338,6 +1340,18 @@ class CircuitDAG(CircuitBase):
                 for op in op_list:
                     in_edge = list(self.dag.in_edges(node, keys=True))
                     self.insert_at(op, in_edge)
+                self.remove_op(node)
+
+    def remove_identity(self):
+        """
+        Remove all identity gates
+
+        :return: nothing
+        :rtype: None
+        """
+
+        if "Identity" in self.node_dict:
+            for node in self.node_dict["Identity"]:
                 self.remove_op(node)
 
     def _max_depth(self, root_node):

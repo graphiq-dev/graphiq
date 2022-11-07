@@ -605,3 +605,20 @@ def test_circuit_comparison_6():
 
     assert ged
     assert match
+
+
+def test_circuit_comparison_7():
+    circuit1 = CircuitDAG(n_emitter=1, n_photon=0, n_classical=0)
+    circuit1.add(ops.Phase(register=0, reg_type="e"))
+    circuit1.add(ops.Identity(register=0, reg_type="e"))
+    circuit2 = CircuitDAG(n_emitter=1, n_photon=0, n_classical=0)
+    circuit2.add(ops.Phase(register=0, reg_type="e"))
+    ged = circuit1.compare(circuit2, method="GED_full")
+    match = circuit1.compare(circuit2)
+    ged_noise = circuit1.compare(circuit2, method="GED_full", noise=True)
+    match_noise = circuit1.compare(circuit2, noise=True)
+
+    assert ged
+    assert match
+    assert not ged_noise
+    assert not match_noise

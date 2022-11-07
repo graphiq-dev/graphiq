@@ -101,6 +101,7 @@ class CompilerBase(ABC):
                         self.compile_one_gate(
                             state, op, circuit.n_quantum, q_index, classical_registers
                         )
+
                         self._apply_additional_noise(
                             state, op, circuit.n_quantum, q_index
                         )

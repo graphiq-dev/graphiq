@@ -15,6 +15,7 @@ from src.circuit import CircuitBase
 from src.backends.compiler_base import CompilerBase
 from src import ops
 from src.io import IO
+import src.noise.noise_models as nm
 
 
 class SolverBase(ABC):
@@ -77,6 +78,50 @@ class SolverBase(ABC):
     @property
     def solver_info(self):
         return {}
+
+    def _wrap_noise(self, op, noise_model_mapping):
+        """
+        A helper function to consolidate noise models for OneQubitGateWrapper operation
+
+        :param op: a list of operations
+        :type op: list[ops.OperationBase]
+        :param noise_model_mapping: a dictionary that stores the mapping between an operation
+            and its associated noise model
+        :type noise_model_mapping: dict
+        :return: a list of noise models
+        :rtype: list[nm.NoiseBase]
+        """
+
+        if "OneQubitGateWrapper" in noise_model_mapping:
+            noise = noise_model_mapping["OneQubitGateWrapper"]
+        else:
+            noise = []
+            for each_op in op:
+                noise.append(
+                    self._identify_noise(each_op.__name__, noise_model_mapping)
+                )
+        return noise
+
+    def _identify_noise(self, op, noise_model_mapping):
+        """
+        A helper function to identify the noise model for an operation
+
+        :param op: an operation or its name
+        :type op: ops.OperationBase or str
+        :param noise_model_mapping: a dictionary that stores the mapping between an operation
+            and its associated noise model
+        :type noise_model_mapping: dict
+        :return: a noise model
+        :rtype: nm.NoiseBase
+        """
+        if type(op) != str:
+            op_name = type(op).__name__
+        else:
+            op_name = op
+        if op_name in noise_model_mapping.keys():
+            return noise_model_mapping[op_name]
+        else:
+            return nm.NoNoise()
 
 
 class RandomSolverSetting(ABC):

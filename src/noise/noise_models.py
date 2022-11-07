@@ -14,7 +14,7 @@ TODO: Check incompatibility between noise models and operations, between noise m
 """
 
 import numpy as np
-from itertools import combinations
+import itertools
 from abc import ABC
 
 import src.backends.density_matrix.functions as dmf
@@ -531,7 +531,11 @@ class DepolarizingNoise(AdditionNoiseBase):
         :rtype: None
         """
         depolarizing_prob = self.noise_parameters["Depolarizing probability"]
-
+        n_kraus = 4 ** len(reg_list)
+        factors = np.array(
+            [1 - depolarizing_prob]
+            + (n_kraus - 1) * [depolarizing_prob / (n_kraus - 1)]
+        )
         for state_rep in state.all_representations:
             if isinstance(state_rep, DensityMatrix):
                 single_qubit_kraus = [
@@ -540,60 +544,54 @@ class DepolarizingNoise(AdditionNoiseBase):
                     dmf.sigmay(),
                     dmf.sigmaz(),
                 ]
-                kraus_ops_iter = combinations(single_qubit_kraus, len(reg_list))
-                n_kraus = 4 ** len(reg_list)
+                kraus_ops_iter = itertools.product(
+                    single_qubit_kraus, repeat=len(reg_list)
+                )
+
                 kraus_ops = []
 
                 for i, kraus_op in enumerate(kraus_ops_iter):
-                    if i == 0:
-                        factor = np.sqrt(1 - depolarizing_prob)
-                    else:
-                        factor = np.sqrt(depolarizing_prob / (n_kraus - 1))
-
                     kraus_ops.append(
-                        factor * dmf.get_multi_qubit_gate(n_quantum, reg_list, kraus_op)
+                        np.sqrt(factors[i])
+                        * dmf.get_multi_qubit_gate(n_quantum, reg_list, kraus_op)
                     )
                 state_rep.apply_channel(kraus_ops)
 
             elif isinstance(state_rep, Stabilizer):
                 if not isinstance(state_rep, MixedStabilizer):
-                    raise TypeError(
-                        "Cannot run the depolarizing channel on a pure stabilizer state."
+                    state.stabilizer = MixedStabilizer([(1.0, state_rep.data)])
+                    state_rep = state.stabilizer
+
+                original_prob = state_rep.probability
+                mixture = []
+                single_qubit_trans = [
+                    transform.identity,
+                    transform.x_gate,
+                    transform.y_gate,
+                    transform.z_gate,
+                ]
+
+                trans_iter = itertools.product(single_qubit_trans, repeat=len(reg_list))
+                trans_iter = list(trans_iter)
+
+                for (p_i, tableau_i) in state_rep.mixture:
+                    for k in range(len(trans_iter)):
+                        if p_i * factors[k] > 0:
+                            new_tableau_i = tableau_i.copy()
+                            for pauli_j, qubit_position in zip(trans_iter[k], reg_list):
+                                new_tableau_i = pauli_j(new_tableau_i, qubit_position)
+                            mixture.append((p_i * factors[k], new_tableau_i))
+
+                if not np.isclose(sum([pi for pi, ti in mixture]), original_prob):
+                    raise ValueError(
+                        f"Probability is not the same as the original probability of the mixture, \
+                        which is {original_prob}. P = {sum([pi for pi, ti in mixture])}, \
+                        lam={depolarizing_prob} | Reg list {reg_list}"
                     )
 
-                else:
-                    mixture = []
-                    norm = 4 ** len(reg_list) - 1
-                    for (p_i, tableau_i) in state_rep.mixture:
-                        single_qubit_trans = [
-                            transform.identity,
-                            transform.x_gate,
-                            transform.y_gate,
-                            transform.z_gate,
-                        ]
-                        trans_iter = combinations(single_qubit_trans, len(reg_list))
-                        for i, pauli_string in enumerate(trans_iter):
-                            if i == 0:
-                                factor = 1 - depolarizing_prob
-                            else:
-                                factor = depolarizing_prob / norm
-
-                            for pauli_j, qubit_position in zip(pauli_string, reg_list):
-                                mixture.append(
-                                    (
-                                        p_i * factor,
-                                        pauli_j(tableau_i.copy(), qubit_position),
-                                    )
-                                )
-
-                    if not np.isclose(sum([pi for pi, ti in mixture]), 1.0):
-                        raise ValueError(
-                            f"Probability is not unity. P = {sum([pi for pi, ti in mixture])}, lam={depolarizing_prob} | Reg list {reg_list}"
-                        )
-
-                    state_rep.mixture = mixture
-                    if REDUCE_STABILIZER_MIXTURE:
-                        state_rep.reduce()
+                state_rep.mixture = mixture
+                if REDUCE_STABILIZER_MIXTURE:
+                    state_rep.reduce()
 
             elif isinstance(state_rep, Graph):
                 # TODO: Implement this for Graph backend
@@ -703,31 +701,6 @@ class PhotonLoss(AdditionNoiseBase):
         noise_parameters = {"loss rate": loss_rate}
         super().__init__(noise_parameters)
 
-    def get_backend_dependent_noise(self, state_rep, n_quantum, reg_list):
-        """
-        Return a backend-dependent noise representation of this noise model
-
-        :param state_rep: a state representation
-        :type state_rep: StateRepresentationBase
-        :param n_quantum: the number of qubits
-        :type n_quantum: int
-        :param reg_list: a list of register numbers
-        :type reg_list: list[int]
-        :return: the backend-dependent noise representation
-        :rtype: list[numpy.ndarray] for DensityMatrix backend
-        """
-        if isinstance(state_rep, DensityMatrix):
-            # TODO: Implement this for DensityMatrix backend
-            return
-        elif isinstance(state_rep, Stabilizer):
-            # TODO: Find the correct representation for Stabilizer backend
-            return
-        elif isinstance(state_rep, Graph):
-            # TODO: Implement this for Graph backend
-            return
-        else:
-            raise TypeError("Backend type is not supported.")
-
     def apply(self, state: QuantumState, n_quantum, reg_list):
         """
         Apply the noise to the state representation state_rep
@@ -751,7 +724,8 @@ class PhotonLoss(AdditionNoiseBase):
             elif isinstance(state_rep, Stabilizer):
                 if isinstance(state_rep, MixedStabilizer):
                     mixture = state_rep.mixture
-                    mixture[0][0] = (1 - loss_rate) * mixture[0][0]
+                    for i in range(len(mixture)):
+                        mixture[i] = ((1 - loss_rate) * mixture[i][0], mixture[i][1])
                 else:
                     state_rep = MixedStabilizer([(1 - loss_rate, state_rep.data)])
 

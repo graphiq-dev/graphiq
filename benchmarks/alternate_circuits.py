@@ -46,6 +46,7 @@ def search_for_alternative_circuits(
         noise_model_mapping=noise_model_mapping,
     )
     det_solver.solve()
+
     benchmark_score, benchmark_circuit = det_solver.result
     results.append(benchmark_circuit)
     hybrid_solver = HybridEvolutionarySolver(
@@ -106,9 +107,9 @@ def run_one_repeater_graph_state_w_loss(
     emitter_noise = noise.DepolarizingNoise(error_rate)
     photon_loss = noise.PhotonLoss(loss_rate)
     noise_model_mapping = {
-        "e": {"OneQubitGateWrapper": emitter_noise},
+        "e": {},
         "p": {"OneQubitGateWrapper": photon_loss},
-        "ee": {"CNOT": emitter_noise},
+        "ee": {},
         "ep": {},
     }
     return search_for_alternative_circuits(

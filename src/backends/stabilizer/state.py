@@ -402,7 +402,7 @@ class MixedStabilizer(Stabilizer):
 
         :return:
         """
-        return sum(pi for pi, ti in self.mixture)
+        return sum([pi for pi, ti in self.mixture])
 
     @property
     def tableau(self):
@@ -469,6 +469,7 @@ class MixedStabilizer(Stabilizer):
             )
             for (pi, tableau_i) in self._mixture
         ]
+
         return outcome
 
     def apply_hadamard(self, qubit_position):

@@ -267,9 +267,8 @@ class EvolutionarySolver(RandomSearchSolver):
         for key in self.trans_probs.keys():
             self.trans_probs[key] *= 1 / total
 
-    @staticmethod
     def initialization(
-        emission_assignment, measurement_assignment, noise_model_mapping=None
+        self, emission_assignment, measurement_assignment, noise_model_mapping=None
     ):
         """
         Initialize a quantum circuit with photon emission, emitter measurements
@@ -298,7 +297,7 @@ class EvolutionarySolver(RandomSearchSolver):
                 control_type="e",
                 target=i,
                 target_type="p",
-                noise=EvolutionarySolver._identify_noise(
+                noise=self._identify_noise(
                     ops.CNOT.__name__, noise_model_mapping["ep"]
                 ),
             )
@@ -319,7 +318,7 @@ class EvolutionarySolver(RandomSearchSolver):
                 op_list,
                 register=i,
                 reg_type="p",
-                noise=EvolutionarySolver._wrap_noise(op_list, noise_model_mapping["p"]),
+                noise=self._wrap_noise(op_list, noise_model_mapping["p"]),
             )
             op.add_labels("Fixed")
 
@@ -333,7 +332,7 @@ class EvolutionarySolver(RandomSearchSolver):
                 control_type="e",
                 target=measurement_assignment[j],
                 target_type="p",
-                noise=EvolutionarySolver._identify_noise(
+                noise=self._identify_noise(
                     ops.MeasurementCNOTandReset.__name__, noise_model_mapping["ep"]
                 ),
             )
@@ -511,54 +510,6 @@ class EvolutionarySolver(RandomSearchSolver):
         """Converts each logs (population, hof, etc.) to a pandas DataFrame for easier visualization/saving"""
         for key, val in self.logs.items():
             self.logs[key] = pd.DataFrame(val)
-
-    @staticmethod
-    def _wrap_noise(op, noise_model_mapping):
-        """
-        A helper function to consolidate noise models for OneQubitGateWrapper operation
-
-        :param op: a list of operations
-        :type op: list[ops.OperationBase]
-        :param noise_model_mapping: a dictionary that stores the mapping between an operation
-            and its associated noise model
-        :type noise_model_mapping: dict
-        :return: a list of noise models
-        :rtype: list[nm.NoiseBase]
-        """
-
-        if "OneQubitGateWrapper" in noise_model_mapping:
-            noise = noise_model_mapping["OneQubitGateWrapper"]
-        else:
-            noise = []
-            for each_op in op:
-                noise.append(
-                    EvolutionarySolver._identify_noise(
-                        each_op.__name__, noise_model_mapping
-                    )
-                )
-        return noise
-
-    @staticmethod
-    def _identify_noise(op, noise_model_mapping):
-        """
-        A helper function to identify the noise model for an operation
-
-        :param op: an operation or its name
-        :type op: ops.OperationBase or str
-        :param noise_model_mapping: a dictionary that stores the mapping between an operation
-            and its associated noise model
-        :type noise_model_mapping: dict
-        :return: a noise model
-        :rtype: nm.NoiseBase
-        """
-        if type(op) != str:
-            op_name = type(op).__name__
-        else:
-            op_name = op
-        if op_name in noise_model_mapping.keys():
-            return noise_model_mapping[op_name]
-        else:
-            return nm.NoNoise()
 
     """ Circuit transformations """
 

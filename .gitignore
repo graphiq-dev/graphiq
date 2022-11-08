@@ -141,3 +141,4 @@ jobs/
 
 # benchmark data directory
 benchmarks/save_benchmarks/*
+experiments/

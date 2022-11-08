@@ -12,14 +12,14 @@ import pandas as pd
 
 import src.noise.noise_models as nm
 from src.backends.compiler_base import CompilerBase
-from src.solvers.solver_base import RandomSearchSolver, RandomSolverSetting
+from src.solvers.solver_base import RandomSearchSolver, RandomSearchSolverSetting
 from src.circuit import CircuitDAG
 from src.metrics import MetricBase
 from src.io import IO
 from src import ops
 
 
-class EvolutionarySolverSetting(RandomSolverSetting):
+class EvolutionarySearchSolverSetting(RandomSearchSolverSetting):
     def __init__(
         self,
         n_hof=5,
@@ -100,7 +100,7 @@ class EvolutionarySolver(RandomSearchSolver):
         io: IO = None,
         n_emitter=1,
         n_photon=1,
-        solver_setting=EvolutionarySolverSetting(),
+        solver_setting=EvolutionarySearchSolverSetting(),
         noise_model_mapping=None,
         *args,
         **kwargs,

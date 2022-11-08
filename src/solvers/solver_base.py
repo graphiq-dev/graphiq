@@ -124,7 +124,7 @@ class SolverBase(ABC):
             return nm.NoNoise()
 
 
-class RandomSolverSetting(ABC):
+class RandomSearchSolverSetting(ABC):
     def __init__(
         self,
         n_hof=5,
@@ -184,7 +184,7 @@ class RandomSearchSolver(SolverBase):
         compiler: CompilerBase,
         circuit: CircuitBase = None,
         io: IO = None,
-        solver_setting=RandomSolverSetting(),
+        solver_setting=RandomSearchSolverSetting(),
         *args,
         **kwargs,
     ):

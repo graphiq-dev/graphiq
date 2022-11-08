@@ -5,7 +5,7 @@ import numpy as np
 
 from src.solvers.evolutionary_solver import (
     EvolutionarySolver,
-    EvolutionarySolverSetting,
+    EvolutionarySearchSolverSetting,
 )
 from src.solvers.deterministic_solver import DeterministicSolver
 from src.backends.compiler_base import CompilerBase
@@ -29,7 +29,7 @@ class HybridEvolutionarySolver(EvolutionarySolver):
         metric: MetricBase,
         compiler: CompilerBase,
         io: IO = None,
-        solver_setting=EvolutionarySolverSetting(),
+        solver_setting=EvolutionarySearchSolverSetting(),
         noise_model_mapping=None,
         *args,
         **kwargs,

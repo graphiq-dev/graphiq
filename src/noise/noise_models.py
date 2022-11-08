@@ -110,13 +110,6 @@ class AdditionNoiseBase(NoiseBase):
 
         super().__init__(noise_parameters)
 
-    def get_backend_dependent_noise(self, *args):
-        """
-        An abstract method to obtain a backend-dependent noise representation
-
-        """
-        raise NotImplementedError("Base class is abstract.")
-
 
 class ReplacementNoiseBase(NoiseBase):
     """
@@ -125,13 +118,6 @@ class ReplacementNoiseBase(NoiseBase):
 
     def __init__(self, noise_parameters=None):
         super().__init__(noise_parameters)
-
-    def get_backend_dependent_noise(self, *args):
-        """
-        An abstract method to obtain a backend-dependent noise representation
-
-        """
-        raise NotImplementedError("Base class is abstract.")
 
 
 """ Noise models implemented for DensityMatrix backend"""
@@ -149,29 +135,6 @@ class NoNoise(AdditionNoiseBase):
 
         """
         super().__init__()
-
-    def get_backend_dependent_noise(
-        self, state_rep: StateRepresentationBase, n_quantum, *args
-    ):
-        """
-        Return a backend-dependent noise representation
-
-        :param state_rep: a state representation
-        :type state_rep: StateRepresentationBase
-        :param n_quantum: the number of qubits
-        :type n_quantum: int
-        :return: a backend-dependent noise representation for no noise (identity)
-        :rtype: numpy.ndarray for DensityMatrix backend, str for Stabilizer backend
-        """
-        if isinstance(state_rep, DensityMatrix):
-            return np.eye(state_rep.data.shape[0])
-        elif isinstance(state_rep, Stabilizer):
-            return []
-        elif isinstance(state_rep, Graph):
-            # simply return None
-            return
-        else:
-            raise TypeError("Backend type is not supported.")
 
     def apply(self, state: QuantumState, *args):
         """
@@ -694,7 +657,6 @@ class PhotonLoss(AdditionNoiseBase):
     """
     Photon loss
 
-    TODO: implement this error model
     """
 
     def __init__(self, loss_rate):
@@ -703,7 +665,7 @@ class PhotonLoss(AdditionNoiseBase):
 
     def apply(self, state: QuantumState, n_quantum, reg_list):
         """
-        Apply the noise to the state representation state_rep
+        Apply the photon loss to a quantum state
 
         :param state: a quantum state
         :type state: QuantumState

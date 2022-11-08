@@ -48,7 +48,7 @@ def search_for_alternative_circuits(
     det_solver.solve()
 
     benchmark_score, benchmark_circuit = det_solver.result
-    results.append(benchmark_circuit)
+    results.append((benchmark_score, benchmark_circuit))
     hybrid_solver = HybridEvolutionarySolver(
         target=target,
         metric=metric,
@@ -64,54 +64,37 @@ def search_for_alternative_circuits(
         if alternate_score <= benchmark_score and not compare_circuits(
             benchmark_circuit, alternate_circuit
         ):
-            results.append(alternate_circuit)
+            results.append((alternate_score, alternate_circuit))
     return results
 
 
-def run_one_repeater_graph_state(n_inner_qubits, random_seed):
-    """
-    Run deterministic solver to get a benchmark circuit and then run the hybrid solver. Check if any alternate circuits
-    are found.
-    No noise simulation
-
-    :param n_inner_qubits:
-    :type n_inner_qubits:
-    :param random_seed:
-    :type random_seed:
-    :return:
-    :rtype:
-    """
-    graph = repeater_graph_states(n_inner_qubits)
-    return search_for_alternative_circuits(graph, None, Infidelity, random_seed)
-
-
-def run_one_repeater_graph_state_w_loss(
-    n_inner_qubits, error_rate, loss_rate, random_seed
-):
+def run_one_repeater_graph_state(n_inner_qubits, noise_model_mapping, random_seed):
     """
     Run deterministic solver to get a benchmark circuit and then run the hybrid solver. Check if any alternate circuits
     are found.
 
     :param n_inner_qubits:
     :type n_inner_qubits:
-    :param error_rate:
-    :type error_rate:
-    :param loss_rate:
-    :type loss_rate:
+    :param noise_model_mapping:
+    :type noise_model_mapping:
     :param random_seed:
     :type random_seed:
     :return:
     :rtype:
     """
     graph = repeater_graph_states(n_inner_qubits)
-    emitter_noise = noise.DepolarizingNoise(error_rate)
-    photon_loss = noise.PhotonLoss(loss_rate)
-    noise_model_mapping = {
-        "e": {},
-        "p": {"OneQubitGateWrapper": photon_loss},
-        "ee": {},
-        "ep": {},
-    }
     return search_for_alternative_circuits(
         graph, noise_model_mapping, Infidelity, random_seed
     )
+
+
+def report_alternate_circuits(results):
+    if len(results) > 1:
+        print(f"Find {len(results)} circuits that produce the same state.")
+        print(
+            f"The circuit (first one drawn) returned by the deterministic solver has a score of {results[1][0]}"
+        )
+        results[0][1].draw_circuit()
+        for i in range(1, len(results)):
+            print(f"Circuit {i} has a score of {results[i][0]}")
+            results[i][1].draw_circuit()

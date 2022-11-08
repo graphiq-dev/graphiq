@@ -7,7 +7,7 @@ from src.backends.stabilizer.compiler import StabilizerCompiler
 from src.backends.stabilizer.functions.rep_conversion import (
     get_clifford_tableau_from_graph,
 )
-from src.solvers.evolutionary_solver import EvolutionarySolverSetting
+from src.solvers.evolutionary_solver import EvolutionarySearchSolverSetting
 from src.solvers.hybrid_solvers import HybridEvolutionarySolver
 from benchmarks.circuits import *
 from src.metrics import Infidelity
@@ -49,7 +49,7 @@ def graph_stabilizer_setup(graph, solver_class, solver_setting, random_seed):
 
 def test_repeater_graph_state_4():
     graph = repeater_graph_states(4)
-    solver_setting = EvolutionarySolverSetting()
+    solver_setting = EvolutionarySearchSolverSetting()
     solver = graph_stabilizer_setup(
         graph, HybridEvolutionarySolver, solver_setting, 1000
     )
@@ -60,7 +60,7 @@ def test_repeater_graph_state_4():
 
 def test_square4():
     graph = nx.Graph([(1, 2), (2, 3), (2, 4), (4, 3), (1, 3)])
-    solver_setting = EvolutionarySolverSetting()
+    solver_setting = EvolutionarySearchSolverSetting()
     solver = graph_stabilizer_setup(graph, HybridEvolutionarySolver, solver_setting, 2)
     score, circuit = solver.result
     assert np.allclose(score, 0.0)
@@ -68,34 +68,55 @@ def test_square4():
 
 
 def test_alternate_circuits_1():
-    results = run_one_repeater_graph_state(3, 0)
-    if len(results) > 1:
-        print(f"Find {len(results)} circuits that produce the same state.")
-        for i in range(len(results)):
-            results[i].draw_circuit()
+    results = run_one_repeater_graph_state(3, None, 0)
+    report_alternate_circuits(results)
 
 
 def test_alternate_circuits_2():
-    results = run_one_repeater_graph_state(4, 1)
-    if len(results) > 1:
-        print(f"Find {len(results)} circuits that produce the same state.")
-        for i in range(len(results)):
-            results[i].draw_circuit()
+    results = run_one_repeater_graph_state(4, None, 1)
+    report_alternate_circuits(results)
 
 
 def test_alternate_circuits_w_noise():
-    results = run_one_repeater_graph_state_w_loss(4, 0, 0, 1000)
-    if len(results) > 1:
-        print(f"Find {len(results)} circuits that produce the same state.")
-        for i in range(len(results)):
-            results[i].draw_circuit()
+    error_rate = 0
+    loss_rate = 0.01
+    emitter_noise = noise.DepolarizingNoise(error_rate)
+    photon_loss = noise.PhotonLoss(loss_rate)
+    noise_model_mapping = {
+        "e": {},
+        "p": {"OneQubitGateWrapper": photon_loss},
+        "ee": {},
+        "ep": {},
+    }
+    results = run_one_repeater_graph_state(4, noise_model_mapping, random_seed=1000)
+    report_alternate_circuits(results)
+
+
+def test_alternate_circuits_w_noise():
+    error_rate = 0
+    loss_rate = 0.01
+    emitter_noise = noise.DepolarizingNoise(error_rate)
+    photon_loss = noise.PhotonLoss(loss_rate)
+    noise_model_mapping = {
+        "e": {},
+        "p": {"OneQubitGateWrapper": photon_loss},
+        "ee": {},
+        "ep": {},
+    }
+    results = run_one_repeater_graph_state(4, noise_model_mapping, random_seed=1000)
+    report_alternate_circuits(results)
 
 
 def test_alternate_circuits_w_noise2():
-    results = run_one_repeater_graph_state_w_loss(
-        4, loss_rate=0.01, error_rate=0.01, random_seed=1000
-    )
-    if len(results) > 1:
-        print(f"Find {len(results)} circuits that produce the same state.")
-        for i in range(len(results)):
-            results[i].draw_circuit()
+    error_rate = 0.01
+    loss_rate = 0.01
+    emitter_noise = noise.DepolarizingNoise(error_rate)
+    photon_loss = noise.PhotonLoss(loss_rate)
+    noise_model_mapping = {
+        "e": {},
+        "p": {"OneQubitGateWrapper": photon_loss},
+        "ee": {},
+        "ep": {"CNOT": emitter_noise},
+    }
+    results = run_one_repeater_graph_state(2, noise_model_mapping, random_seed=1000)
+    report_alternate_circuits(results)

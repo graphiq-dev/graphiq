@@ -479,25 +479,6 @@ def partial_trace(rho, keep, dims, optimize=False):
     return rho_a.reshape(nkeep, nkeep)
 
 
-def apply_cz(state_matrix, control_qubit, target_qubit):
-    """
-    Compute the density matrix after applying the controlled-Z gate.
-
-    :param state_matrix: original density matrix (before application of CZ)
-    :type state_matrix: numpy.ndarray
-    :param control_qubit: index of the control qubit in state_matrix
-    :type control_qubit: int
-    :param target_qubit: index of the target qubit in state_matrix
-    :type target_qubit: int
-    :return: the density matrix output after applying controlled-Z gate
-    :rtype: numpy.ndarray
-    """
-    n_qubits = int(np.log2(np.sqrt(state_matrix.size)))
-    cz = get_two_qubit_controlled_gate(n_qubits, control_qubit, target_qubit, sigmaz())
-
-    return cz @ state_matrix @ np.transpose(np.conjugate(cz))
-
-
 def projectors_zbasis(n_qubits, measure_register):
     """
     Get the z projector basis for a state of number_qubits size, where the "measure_register" qubit

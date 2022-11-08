@@ -211,7 +211,7 @@ def variational_entangling_layer_nqubits(n_qubits=3, layers=1):
         )
         circuit.add(
             CNOT(
-                control=i, control_type="e", target=(i+1) % n_qubits, target_type="e"
+                control=i, control_type="e", target=(i + 1) % n_qubits, target_type="e"
             )
         )
 
@@ -247,7 +247,10 @@ def strongly_entangling_layer(n_qubits=3, layers=1):
         for i in range(n_qubits):
             circuit.add(
                 ops.CNOT(
-                    control=i, control_type="e", target=(i+1) % n_qubits, target_type="e"
+                    control=i,
+                    control_type="e",
+                    target=(i + 1) % n_qubits,
+                    target_type="e",
                 )
             )
 

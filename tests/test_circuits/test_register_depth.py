@@ -59,9 +59,7 @@ def test_insert_operation_at():
     circuit.add(ops.Hadamard(register=0, reg_type="p"))
     circuit.add(ops.SigmaX(register=0, reg_type="p"))
     circuit.add(ops.CNOT(control=0, control_type="e", target_type="p", target=0))
-    circuit.insert_at(
-        operation=ops.SigmaY(register=0, reg_type="p"), edges=[("p0_in", 1, "p0")]
-    )
+    circuit.insert_at(ops.SigmaY(register=0, reg_type="p"), edges=[("p0_in", 1, "p0")])
     circuit.calculate_all_reg_depth()
 
     test.assert_equal(circuit.register_depth, expected_depth)

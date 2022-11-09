@@ -1,11 +1,6 @@
 name: Test Code Coverage
-
 on:
-  push:
-    branches:
-      - main
-
-
+  pull_request
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -15,6 +10,7 @@ jobs:
     - uses: actions/setup-python@v2
       with:
         python-version: '3.9'
+        ref: ${{ github.head_ref }}
     - name: Install requirements
       run: pip install -r requirements.txt
     - name: Run tests and collect coverage
@@ -33,7 +29,10 @@ jobs:
       if: steps.changed_files.outputs.files_changed == 'true'
       run: |
        git config --global user.email "github-actions[bot]@users.noreply.github.com"
-       git config  --global user.name "github-actions[bot]"
+       git config --global user.name "github-actions[bot]"
+       git fetch
+       git checkout ${{ github.head_ref }}
        git add coverage-badge.svg
        git commit -m "Updated coverage.svg"
-       git push
+       git pull origin ${{ github.head_ref }}
+       git push origin ${{ github.head_ref }}

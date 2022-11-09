@@ -128,7 +128,9 @@ def graph_to_density(input_graph):
     final_state = dmf.create_n_plus_state(number_qubits)
 
     for edge in edge_list:
-        cz = dmf.get_two_qubit_controlled_gate(number_qubits, mapping[edge[0]], mapping[edge[1]], dmf.sigmaz())
+        cz = dmf.get_two_qubit_controlled_gate(
+            number_qubits, mapping[edge[0]], mapping[edge[1]], dmf.sigmaz()
+        )
         final_state = cz @ final_state @ np.conjugate(cz.T)
 
     return final_state

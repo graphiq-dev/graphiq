@@ -111,3 +111,5 @@ def report_alternate_circuits(results):
                 f"Circuit {i} has a score of {results[i][0]}, and a probability of not losing any photon: {results[i][1]}"
             )
             results[i][2].draw_circuit()
+    else:
+        print("There is no alternative circuit found.")

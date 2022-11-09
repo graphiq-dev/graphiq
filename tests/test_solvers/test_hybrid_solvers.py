@@ -48,6 +48,22 @@ def graph_stabilizer_setup(graph, solver_class, solver_setting, random_seed):
     return solver
 
 
+def exemplary_test(graph, error_rate, loss_rate, solver_setting, random_seed):
+    emitter_noise = noise.DepolarizingNoise(error_rate)
+    photon_loss = noise.PhotonLoss(loss_rate)
+    noise_model_mapping = {
+        "e": {},
+        "p": {"Hadamard": photon_loss},
+        "ee": {},
+        "ep": {"CNOT": emitter_noise},
+    }
+
+    results = search_for_alternative_circuits(
+        graph, noise_model_mapping, Infidelity, solver_setting, random_seed
+    )
+    report_alternate_circuits(results)
+
+
 def test_repeater_graph_state_4():
     graph = repeater_graph_states(4)
     solver_setting = EvolutionarySearchSolverSetting()
@@ -71,8 +87,11 @@ def test_square4():
 def test_alternate_circuits_1():
     graph = repeater_graph_states(3)
     solver_setting = EvolutionarySearchSolverSetting()
+    solver_setting.n_hof = 10
+    solver_setting.n_pop = 60
+    solver_setting.n_stop = 60
     results = search_for_alternative_circuits(
-        graph, None, Infidelity, solver_setting, random_seed=2000
+        graph, None, Infidelity, solver_setting, random_seed=1000
     )
     report_alternate_circuits(results)
 
@@ -89,56 +108,14 @@ def test_alternate_circuits_2():
 def test_alternate_circuits_w_noise():
     error_rate = 0
     loss_rate = 0.01
-    emitter_noise = noise.DepolarizingNoise(error_rate)
-    photon_loss = noise.PhotonLoss(loss_rate)
-    noise_model_mapping = {
-        "e": {},
-        "p": {"OneQubitGateWrapper": photon_loss},
-        "ee": {},
-        "ep": {},
-    }
-
     graph = repeater_graph_states(4)
     solver_setting = EvolutionarySearchSolverSetting()
-    results = search_for_alternative_circuits(
-        graph, noise_model_mapping, Infidelity, solver_setting, random_seed=1000
-    )
-    report_alternate_circuits(results)
-
-
-def test_alternate_circuits_w_noise():
-    error_rate = 0
-    loss_rate = 0.01
-    emitter_noise = noise.DepolarizingNoise(error_rate)
-    photon_loss = noise.PhotonLoss(loss_rate)
-    noise_model_mapping = {
-        "e": {},
-        "p": {"Hadamard": photon_loss},
-        "ee": {},
-        "ep": {},
-    }
-    graph = repeater_graph_states(4)
-    solver_setting = EvolutionarySearchSolverSetting()
-    results = search_for_alternative_circuits(
-        graph, noise_model_mapping, Infidelity, solver_setting, random_seed=1000
-    )
-    report_alternate_circuits(results)
+    exemplary_test(graph, error_rate, loss_rate, solver_setting, 1000)
 
 
 def test_alternate_circuits_w_noise2():
     error_rate = 0.01
     loss_rate = 0.01
-    emitter_noise = noise.DepolarizingNoise(error_rate)
-    photon_loss = noise.PhotonLoss(loss_rate)
-    noise_model_mapping = {
-        "e": {},
-        "p": {"Hadamard": photon_loss},
-        "ee": {},
-        "ep": {"CNOT": emitter_noise},
-    }
-    graph = repeater_graph_states(4)
+    graph = repeater_graph_states(3)
     solver_setting = EvolutionarySearchSolverSetting()
-    results = search_for_alternative_circuits(
-        graph, noise_model_mapping, Infidelity, solver_setting, random_seed=1000
-    )
-    report_alternate_circuits(results)
+    exemplary_test(graph, error_rate, loss_rate, solver_setting, 1000)

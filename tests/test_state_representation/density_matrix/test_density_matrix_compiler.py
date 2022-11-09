@@ -10,7 +10,7 @@ from benchmarks.circuits import (
     bell_state_circuit,
     ghz4_state_circuit,
 )
-from src.visualizers.density_matrix import density_matrix_bars
+from src.visualizers.density_matrix import density_matrix_bars, density_matrix_heatmap
 from src.circuit import CircuitDAG
 import src.ops as ops
 

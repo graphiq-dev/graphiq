@@ -136,12 +136,15 @@ class HybridEvolutionarySolver(EvolutionarySolver):
             target=self.target,
             metric=self.metric,
             compiler=self.compiler,
+            noise_model_mapping=self.noise_model_mapping,
         )
         deterministic_solver.noise_simulation = False
         deterministic_solver.solve()
+        self.compiler.noise_simulation = True
         _, ideal_circuit = deterministic_solver.result
         population = []
         for j in range(self.setting.n_pop):
             perturbed_circuit = self.randomize_circuit(ideal_circuit)
             population.append((np.inf, perturbed_circuit))
+        print("population initialization is done")
         return population

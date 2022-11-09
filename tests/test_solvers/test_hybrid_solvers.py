@@ -13,6 +13,7 @@ from benchmarks.circuits import *
 from src.metrics import Infidelity
 from src.state import QuantumState
 from benchmarks.alternate_circuits import *
+import src.noise.noise_models as noise
 
 
 def graph_stabilizer_setup(graph, solver_class, solver_setting, random_seed):
@@ -99,7 +100,7 @@ def test_alternate_circuits_w_noise():
     photon_loss = noise.PhotonLoss(loss_rate)
     noise_model_mapping = {
         "e": {},
-        "p": {"OneQubitGateWrapper": photon_loss},
+        "p": {"Hadamard": photon_loss},
         "ee": {},
         "ep": {},
     }
@@ -114,7 +115,7 @@ def test_alternate_circuits_w_noise2():
     photon_loss = noise.PhotonLoss(loss_rate)
     noise_model_mapping = {
         "e": {},
-        "p": {"OneQubitGateWrapper": photon_loss},
+        "p": {"Hadamard": photon_loss},
         "ee": {},
         "ep": {"CNOT": emitter_noise},
     }

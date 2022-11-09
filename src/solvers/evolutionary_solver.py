@@ -142,7 +142,7 @@ class EvolutionarySolver(RandomSearchSolver):
 
         # transformation functions and their relative probabilities
         self.trans_probs = self.initialize_transformation_probabilities()
-        self.noise_simulation = True
+
         if noise_model_mapping is None:
             noise_model_mapping = {"e": dict(), "p": dict(), "ee": dict(), "ep": dict()}
             self.noise_simulation = False
@@ -151,6 +151,9 @@ class EvolutionarySolver(RandomSearchSolver):
                 f"Datatype {type(noise_model_mapping)} is not a valid noise_model_mapping. "
                 f"noise_model_mapping should be a dict or None"
             )
+        else:
+            self.noise_simulation = True
+
         self.noise_model_mapping = noise_model_mapping
         self.setting = solver_setting
 
@@ -381,6 +384,7 @@ class EvolutionarySolver(RandomSearchSolver):
         """
 
         self.compiler.noise_simulation = self.noise_simulation
+        print(f"solver simulation is {self.noise_simulation}")
         # TODO: add some logging to see how well it performed at each epoch (and pick n_stop accordingly)
 
         population = self.population_initialization()
@@ -537,6 +541,7 @@ class EvolutionarySolver(RandomSearchSolver):
         op = self.one_qubit_ops[ind]
         noise = self._wrap_noise(op, self.noise_model_mapping["p"])
         gate = ops.OneQubitGateWrapper(op, reg_type="p", register=reg, noise=noise)
+        print(f"the noise for photonic qubit is {noise}")
         gate.add_labels("Fixed")
         circuit.replace_op(node, gate)
 

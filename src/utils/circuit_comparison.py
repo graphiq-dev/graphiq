@@ -84,7 +84,6 @@ def direct(circuit1, circuit2, noise=False):
                 control_match = (
                     op1.q_registers_type == op2.q_registers_type
                     and op1.q_registers == op2.q_registers
-                    and op1.c_registers == op2.c_registers
                 )
                 if isinstance(op1, type(op2)) and control_match:
                     pass
@@ -149,7 +148,6 @@ def ged(circuit1, circuit2, full=True, noise=False):
         reg_match = (
             n1["op"].q_registers_type == n2["op"].q_registers_type
             and n1["op"].q_registers == n2["op"].q_registers
-            and n1["op"].c_registers == n2["op"].c_registers
         )
         ops_match = isinstance(n1["op"], type(n2["op"]))
 

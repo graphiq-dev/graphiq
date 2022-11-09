@@ -384,7 +384,6 @@ class EvolutionarySolver(RandomSearchSolver):
         """
 
         self.compiler.noise_simulation = self.noise_simulation
-        print(f"solver simulation is {self.noise_simulation}")
         # TODO: add some logging to see how well it performed at each epoch (and pick n_stop accordingly)
 
         population = self.population_initialization()
@@ -541,7 +540,6 @@ class EvolutionarySolver(RandomSearchSolver):
         op = self.one_qubit_ops[ind]
         noise = self._wrap_noise(op, self.noise_model_mapping["p"])
         gate = ops.OneQubitGateWrapper(op, reg_type="p", register=reg, noise=noise)
-        print(f"the noise for photonic qubit is {noise}")
         gate.add_labels("Fixed")
         circuit.replace_op(node, gate)
 

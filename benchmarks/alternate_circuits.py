@@ -16,7 +16,7 @@ from src.utils.circuit_comparison import compare_circuits
 
 
 def search_for_alternative_circuits(
-    graph, noise_model_mapping, metric_class, solver_setting=None, random_seed=1
+    graph, noise_model_mapping, metric_class, solver_setting, random_seed=1
 ):
     """
     Run arbitrary input graph state with noise simulation using the given metric. It first calls the deterministic
@@ -96,26 +96,6 @@ def search_for_alternative_circuits(
                 prob = 1
             results.append((alternate_score, prob, alternate_circuit))
     return results
-
-
-def run_one_repeater_graph_state(n_inner_qubits, noise_model_mapping, random_seed):
-    """
-    Run deterministic solver to get a benchmark circuit and then run the hybrid solver. Check if any alternate circuits
-    are found.
-
-    :param n_inner_qubits:
-    :type n_inner_qubits:
-    :param noise_model_mapping:
-    :type noise_model_mapping:
-    :param random_seed:
-    :type random_seed:
-    :return:
-    :rtype:
-    """
-    graph = repeater_graph_states(n_inner_qubits)
-    return search_for_alternative_circuits(
-        graph, noise_model_mapping, Infidelity, random_seed=random_seed
-    )
 
 
 def report_alternate_circuits(results):

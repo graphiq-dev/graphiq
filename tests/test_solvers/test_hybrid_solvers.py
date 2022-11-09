@@ -69,12 +69,20 @@ def test_square4():
 
 
 def test_alternate_circuits_1():
-    results = run_one_repeater_graph_state(3, None, 0)
+    graph = repeater_graph_states(3)
+    solver_setting = EvolutionarySearchSolverSetting()
+    results = search_for_alternative_circuits(
+        graph, None, Infidelity, solver_setting, random_seed=2000
+    )
     report_alternate_circuits(results)
 
 
 def test_alternate_circuits_2():
-    results = run_one_repeater_graph_state(4, None, 1)
+    graph = repeater_graph_states(4)
+    solver_setting = EvolutionarySearchSolverSetting()
+    results = search_for_alternative_circuits(
+        graph, None, Infidelity, solver_setting, random_seed=1000
+    )
     report_alternate_circuits(results)
 
 
@@ -89,7 +97,12 @@ def test_alternate_circuits_w_noise():
         "ee": {},
         "ep": {},
     }
-    results = run_one_repeater_graph_state(4, noise_model_mapping, random_seed=1000)
+
+    graph = repeater_graph_states(4)
+    solver_setting = EvolutionarySearchSolverSetting()
+    results = search_for_alternative_circuits(
+        graph, noise_model_mapping, Infidelity, solver_setting, random_seed=1000
+    )
     report_alternate_circuits(results)
 
 
@@ -104,7 +117,11 @@ def test_alternate_circuits_w_noise():
         "ee": {},
         "ep": {},
     }
-    results = run_one_repeater_graph_state(4, noise_model_mapping, random_seed=1000)
+    graph = repeater_graph_states(4)
+    solver_setting = EvolutionarySearchSolverSetting()
+    results = search_for_alternative_circuits(
+        graph, noise_model_mapping, Infidelity, solver_setting, random_seed=1000
+    )
     report_alternate_circuits(results)
 
 
@@ -119,5 +136,9 @@ def test_alternate_circuits_w_noise2():
         "ee": {},
         "ep": {"CNOT": emitter_noise},
     }
-    results = run_one_repeater_graph_state(2, noise_model_mapping, random_seed=1000)
+    graph = repeater_graph_states(4)
+    solver_setting = EvolutionarySearchSolverSetting()
+    results = search_for_alternative_circuits(
+        graph, noise_model_mapping, Infidelity, solver_setting, random_seed=1000
+    )
     report_alternate_circuits(results)

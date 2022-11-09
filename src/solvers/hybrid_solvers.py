@@ -146,5 +146,4 @@ class HybridEvolutionarySolver(EvolutionarySolver):
         for j in range(self.setting.n_pop):
             perturbed_circuit = self.randomize_circuit(ideal_circuit)
             population.append((np.inf, perturbed_circuit))
-        print("population initialization is done")
         return population

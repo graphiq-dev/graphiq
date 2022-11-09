@@ -1,4 +1,6 @@
 import numpy as np
+import pytest
+
 from src import ops
 
 import src.backends.density_matrix.functions as dmf
@@ -12,6 +14,14 @@ def _state_initialization(n_quantum, state=dmf.state_ketz0()):
         dmf.create_n_product_state(n_quantum, state),
         representation="density matrix",
     )
+
+
+def test_noise_base():
+    test_noise = nm.NoiseBase()
+    assert test_noise.noise_parameters == {}
+
+    with pytest.raises(NotImplementedError):
+        test_noise.get_backend_dependent_noise()
 
 
 def test_depolarizing_noise():

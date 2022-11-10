@@ -135,6 +135,32 @@ def test_one_qubit_replacement():
     assert np.allclose(state1.dm.data, state2.dm.data)
 
 
+@pytest.mark.parametrize(
+    "state_rep, expected_output",
+    [
+        (Stabilizer(5), None),
+        (Graph(5, root_node_id=1), None),
+    ]
+)
+def test_one_qubit_replacement_get_backends(state_rep, expected_output):
+    noise = nm.OneQubitGateReplacement(
+        dmf.parameterized_one_qubit_unitary(np.pi / 2, 0, np.pi)
+    )
+
+    result = noise.get_backend_dependent_noise(state_rep=state_rep, n_quantum=5, reg_list=[2])
+    assert result == expected_output
+
+
+def test_one_qubit_replacement_error():
+    noise = nm.OneQubitGateReplacement(
+        dmf.parameterized_one_qubit_unitary(np.pi / 2, 0, np.pi)
+    )
+
+    state_rep = StateRepresentationBase(data=5)
+    with pytest.raises(TypeError, match="Backend type is not supported."):
+        noise.get_backend_dependent_noise(state_rep=state_rep, n_quantum=5, reg_list=[2])
+
+
 def test_two_qubit_replacement():
     n_quantum = 5
     control_qubit = 2

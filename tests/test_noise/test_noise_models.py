@@ -1,4 +1,5 @@
 import numpy as np
+import numpy.testing as nptest
 import pytest
 
 from src import ops
@@ -6,6 +7,10 @@ from src import ops
 import src.backends.density_matrix.functions as dmf
 import src.noise.noise_models as nm
 from src.state import QuantumState
+from src.backends.state_base import StateRepresentationBase
+from src.backends.density_matrix.state import DensityMatrix
+from src.backends.stabilizer.state import Stabilizer
+from src.backends.graph.state import Graph
 
 
 def _state_initialization(n_quantum, state=dmf.state_ketz0()):
@@ -18,6 +23,22 @@ def _state_initialization(n_quantum, state=dmf.state_ketz0()):
 
 def test_noise_base():
     test_noise = nm.NoiseBase()
+    assert test_noise.noise_parameters == {}
+
+    with pytest.raises(NotImplementedError):
+        test_noise.get_backend_dependent_noise()
+
+
+def test_addition_noise_base():
+    test_noise = nm.AdditionNoiseBase()
+    assert test_noise.noise_parameters == {'After gate': True}
+
+    with pytest.raises(NotImplementedError):
+        test_noise.get_backend_dependent_noise()
+
+
+def test_replacement_noise_base():
+    test_noise = nm.ReplacementNoiseBase()
     assert test_noise.noise_parameters == {}
 
     with pytest.raises(NotImplementedError):
@@ -65,6 +86,33 @@ def test_no_noise():
     noise.apply(state1)
 
     assert np.allclose(state1.dm.data, state2.dm.data)
+
+
+# No error
+@pytest.mark.parametrize(
+    "state_rep, expected_output",
+    [
+        (DensityMatrix(data=1), np.eye(dmf.create_n_product_state(1, dmf.state_ketz0()).shape[0])),
+        (Stabilizer(data=1), []),
+        (Graph(data=1, root_node_id=1), None)
+    ],
+)
+def test_no_noise_get_backend(state_rep, expected_output):
+    test_noise = nm.NoNoise()
+    output = test_noise.get_backend_dependent_noise(state_rep, n_quantum=1)
+    if isinstance(output, np.ndarray):
+        nptest.assert_equal(output, expected_output)
+    else:
+        assert output == expected_output
+
+
+# With error
+def test_no_noise_get_backend_error():
+    test_noise = nm.NoNoise()
+    state_rep = StateRepresentationBase(data=1)
+
+    with pytest.raises(TypeError, match="Backend type is not supported."):
+        test_noise.get_backend_dependent_noise(state_rep=state_rep, n_quantum=1)
 
 
 def test_one_qubit_replacement():

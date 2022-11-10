@@ -1,3 +1,4 @@
+import networkx as nx
 import numpy as np
 import numpy.testing as nptest
 import pytest
@@ -11,6 +12,7 @@ from src.backends.state_base import StateRepresentationBase
 from src.backends.density_matrix.state import DensityMatrix
 from src.backends.stabilizer.state import Stabilizer
 from src.backends.graph.state import Graph
+from benchmarks.circuits import *
 
 
 def _state_initialization(n_quantum, state=dmf.state_ketz0()):
@@ -27,6 +29,26 @@ def test_noise_base():
 
     with pytest.raises(NotImplementedError):
         test_noise.get_backend_dependent_noise()
+
+
+@pytest.mark.parametrize(
+    "state, state_rep, error",
+    [
+        (ghz3_state_circuit()[1].dm.data, "density matrix", NotImplementedError),
+        (ghz3_state_circuit()[1].stabilizer.data, "stabilizer", NotImplementedError),
+        (nx.Graph([(0, 1), (1, 2)]), "graph", None),
+    ]
+)
+def test_noise_base_with_error(state, state_rep, error):
+    test_noise = nm.NoiseBase()
+    q_state = QuantumState(n_qubits=3, data=state, representation=state_rep)
+
+    if not isinstance(state, nx.Graph):
+        with pytest.raises(NotImplementedError):
+            test_noise.apply(q_state, n_quantum=3, reg_list=[1])
+    else:
+        result = test_noise.apply(q_state, n_quantum=3, reg_list=[1])
+        assert result is error
 
 
 def test_addition_noise_base():

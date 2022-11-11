@@ -439,9 +439,7 @@ class DeterministicSolver(SolverBase):
             control_type="e",
             target=circuit.dag.edges[edge1]["reg"],
             target_type="e",
-            noise=self._identify_noise(
-                ops.CNOT.__name__, self.noise_model_mapping["ee"]
-            ),
+            noise=self._identify_noise(ops.CNOT, self.noise_model_mapping["ee"]),
         )
         circuit.insert_at(gate, [edge0, edge1])
 
@@ -542,9 +540,7 @@ class DeterministicSolver(SolverBase):
             control_type="e",
             target=photon_index,
             target_type="p",
-            noise=self._identify_noise(
-                ops.CNOT.__name__, self.noise_model_mapping["ep"]
-            ),
+            noise=self._identify_noise(ops.CNOT, self.noise_model_mapping["ep"]),
         )
         gate.add_labels("Fixed")
         circuit.insert_at(gate, [edge0, edge1])
@@ -624,7 +620,7 @@ class DeterministicSolver(SolverBase):
             target=circuit.dag.edges[edge1]["reg"],
             target_type="p",
             noise=self._identify_noise(
-                ops.MeasurementCNOTandReset.__name__, self.noise_model_mapping["ep"]
+                ops.MeasurementCNOTandReset, self.noise_model_mapping["ep"]
             ),
         )
         gate.add_labels("Fixed")

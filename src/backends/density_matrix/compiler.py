@@ -166,13 +166,15 @@ class DensityMatrixCompiler(CompilerBase):
             op.noise.apply(state, n_quantum, [q_index(op.register, op.reg_type)])
 
         elif isinstance(op, ops.ControlledPairOperationBase):
-            op.noise.apply(
+            op.noise[0].apply(
                 state,
                 n_quantum,
-                [
-                    q_index(op.control, op.control_type),
-                    q_index(op.target, op.target_type),
-                ],
+                [q_index(op.control, op.control_type)],
+            )
+            op.noise[1].apply(
+                state,
+                n_quantum,
+                [q_index(op.target, op.target_type)],
             )
 
         # TODO: Handle the following two-qubit noisy gates, currently no replacement or partial replacement

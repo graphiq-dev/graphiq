@@ -408,6 +408,11 @@ class ControlledPairOperationBase(OperationBase):
         :return: function returns nothing
         :rtype: None
         """
+
+        if type(noise) == list:
+            assert len(noise) == 2
+        else:
+            noise = 2 * [noise]
         super().__init__(
             q_registers=(control, target),
             q_registers_type=(control_type, target_type),
@@ -470,6 +475,10 @@ class ClassicalControlledPairOperationBase(OperationBase):
         :return: nothing
         :rtype: None
         """
+        if type(noise) == list:
+            assert len(noise) == 2
+        else:
+            noise = 2 * [noise]
         super().__init__(
             q_registers=(control, target),
             q_registers_type=(control_type, target_type),

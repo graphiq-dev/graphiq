@@ -28,9 +28,7 @@ class SolverBase(ABC):
 
     fixed_ops = [ops.Input, ops.Output]  # ops that should never be removed/swapped
 
-    one_qubit_ops = [
-        ops.Hadamard,
-    ]
+    one_qubit_ops = [ops.Hadamard, ops.Phase, ops.SigmaX, ops.SigmaY, ops.SigmaZ]
 
     two_qubit_ops = [
         ops.CNOT,
@@ -106,22 +104,35 @@ class SolverBase(ABC):
         """
         A helper function to identify the noise model for an operation
 
-        :param op: an operation or its name
-        :type op: ops.OperationBase or str
+        :param op: an operation
+        :type op: ops.OperationBase
         :param noise_model_mapping: a dictionary that stores the mapping between an operation
             and its associated noise model
         :type noise_model_mapping: dict
         :return: a noise model
         :rtype: nm.NoiseBase
         """
-        if type(op) != str:
+
+        if isinstance(op, ops.ControlledPairOperationBase) or isinstance(
+            op, ops.ClassicalControlledPairOperationBase
+        ):
+            op_control = type(op).__name__ + "_control"
+            op_target = type(op).__name__ + "_target"
+            if op_control in noise_model_mapping.keys():
+                control_noise = noise_model_mapping[op_control]
+            else:
+                control_noise = nm.NoNoise()
+            if op_target in noise_model_mapping.keys():
+                target_noise = noise_model_mapping[op_target]
+            else:
+                target_noise = nm.NoNoise()
+            return [control_noise, target_noise]
+        else:
             op_name = type(op).__name__
-        else:
-            op_name = op
-        if op_name in noise_model_mapping.keys():
-            return noise_model_mapping[op_name]
-        else:
-            return nm.NoNoise()
+            if op_name in noise_model_mapping.keys():
+                return noise_model_mapping[op_name]
+            else:
+                return nm.NoNoise()
 
 
 class RandomSearchSolverSetting(ABC):

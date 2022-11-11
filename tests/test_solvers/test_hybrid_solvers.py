@@ -2,7 +2,8 @@ import pytest
 import matplotlib.pyplot as plt
 import numpy as np
 import networkx as nx
-from benchmarks.graph_states import repeater_graph_states
+from benchmarks.graph_states import *
+
 from src.backends.stabilizer.compiler import StabilizerCompiler
 from src.backends.stabilizer.functions.rep_conversion import (
     get_clifford_tableau_from_graph,
@@ -48,20 +49,16 @@ def graph_stabilizer_setup(graph, solver_class, solver_setting, random_seed):
     return solver
 
 
-def exemplary_test(graph, error_rate, loss_rate, solver_setting, random_seed):
+def noise_model_loss_and_depolarizing_2(error_rate, loss_rate):
     emitter_noise = noise.DepolarizingNoise(error_rate)
     photon_loss = noise.PhotonLoss(loss_rate)
     noise_model_mapping = {
         "e": {},
-        "p": {"Hadamard": photon_loss},
+        "p": {"SigmaX": photon_loss, "SigmaY": photon_loss, "SigmaZ": photon_loss},
         "ee": {},
-        "ep": {"CNOT": emitter_noise},
+        "ep": {},
     }
-
-    results = search_for_alternative_circuits(
-        graph, noise_model_mapping, Infidelity, solver_setting, random_seed
-    )
-    report_alternate_circuits(results)
+    return noise_model_mapping
 
 
 def test_repeater_graph_state_4():
@@ -90,32 +87,32 @@ def test_alternate_circuits_1():
     solver_setting.n_hof = 10
     solver_setting.n_pop = 60
     solver_setting.n_stop = 60
-    results = search_for_alternative_circuits(
-        graph, None, Infidelity, solver_setting, random_seed=1000
-    )
-    report_alternate_circuits(results)
+    exemplary_test(graph, 0, 0, solver_setting, 1000)
 
 
 def test_alternate_circuits_2():
     graph = repeater_graph_states(4)
-    solver_setting = EvolutionarySearchSolverSetting()
-    results = search_for_alternative_circuits(
-        graph, None, Infidelity, solver_setting, random_seed=1000
-    )
-    report_alternate_circuits(results)
+    exemplary_test(graph, 0, 0, None, 1000)
 
 
 def test_alternate_circuits_w_noise():
-    error_rate = 0
     loss_rate = 0.01
     graph = repeater_graph_states(4)
-    solver_setting = EvolutionarySearchSolverSetting()
-    exemplary_test(graph, error_rate, loss_rate, solver_setting, 1000)
+    noise_model = noise_model_pure_loss(loss_rate)
+    exemplary_test(graph, noise_model, None, 1000)
 
 
 def test_alternate_circuits_w_noise2():
     error_rate = 0.01
     loss_rate = 0.01
     graph = repeater_graph_states(3)
-    solver_setting = EvolutionarySearchSolverSetting()
-    exemplary_test(graph, error_rate, loss_rate, solver_setting, 1000)
+    noise_model = noise_model_loss_and_depolarizing(error_rate, loss_rate)
+    exemplary_test(graph, noise_model, None, 1)
+
+
+def test_alternate_circuits_w_noise3():
+    error_rate = 0.01
+    loss_rate = 0.01
+    graph = nx.star_graph(3)
+    noise_model = noise_model_loss_and_depolarizing(error_rate, loss_rate)
+    exemplary_test(graph, noise_model, None, 1000)

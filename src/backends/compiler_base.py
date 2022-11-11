@@ -91,33 +91,133 @@ class CompilerBase(ABC):
                     f"the {self.__class__.__name__} compiler"
                 )
 
-            if not self._noise_simulation or isinstance(op.noise, nm.NoNoise):
+            no_noise = not self._noise_simulation
+            is_controlled_op = isinstance(
+                op, ops.ControlledPairOperationBase
+            ) or isinstance(op, ops.ClassicalControlledPairOperationBase)
+
+            if is_controlled_op:
+                no_noise = (
+                    isinstance(op.noise[0], nm.NoNoise)
+                    and isinstance(op.noise[1], nm.NoNoise)
+                ) or no_noise
+            else:
+                no_noise = no_noise or isinstance(op.noise, nm.NoNoise)
+
+            if no_noise:
                 self.compile_one_gate(
                     state, op, circuit.n_quantum, q_index, classical_registers
                 )
+
             else:
-                if isinstance(op.noise, nm.AdditionNoiseBase):
-                    if op.noise.noise_parameters["After gate"]:
-                        self.compile_one_gate(
-                            state, op, circuit.n_quantum, q_index, classical_registers
+                if is_controlled_op:
+                    if isinstance(op.noise[0], nm.AdditionNoiseBase) and isinstance(
+                        op.noise[1], nm.AdditionNoiseBase
+                    ):
+                        after_control = op.noise[0].noise_parameters["After gate"]
+                        after_target = op.noise[1].noise_parameters["After gate"]
+                        if after_control and after_target:
+                            self.compile_one_gate(
+                                state,
+                                op,
+                                circuit.n_quantum,
+                                q_index,
+                                classical_registers,
+                            )
+                            self._apply_additional_noise(
+                                state, op, circuit.n_quantum, q_index
+                            )
+                        elif (not after_control) and (not after_target):
+                            self._apply_additional_noise(
+                                state, op, circuit.n_quantum, q_index
+                            )
+                            self.compile_one_gate(
+                                state,
+                                op,
+                                circuit.n_quantum,
+                                q_index,
+                                classical_registers,
+                            )
+                        elif after_control and (not after_target):
+                            noise_copy = op.noise
+                            tmp_noise = [nm.NoNoise, op.noise[1]]
+                            op.noise = tmp_noise
+                            self._apply_additional_noise(
+                                state, op, circuit.n_quantum, q_index
+                            )
+
+                            self.compile_one_gate(
+                                state,
+                                op,
+                                circuit.n_quantum,
+                                q_index,
+                                classical_registers,
+                            )
+                            tmp_noise = [op.noise[0], nm.NoNoise]
+
+                            op.noise = tmp_noise
+                            self._apply_additional_noise(
+                                state, op, circuit.n_quantum, q_index
+                            )
+                            op.noise = noise_copy
+                        else:
+                            noise_copy = op.noise
+                            tmp_noise = [op.noise[0], nm.NoNoise]
+                            op.noise = tmp_noise
+                            self._apply_additional_noise(
+                                state, op, circuit.n_quantum, q_index
+                            )
+                            self.compile_one_gate(
+                                state,
+                                op,
+                                circuit.n_quantum,
+                                q_index,
+                                classical_registers,
+                            )
+
+                            tmp_noise = [nm.NoNoise, op.noise[1]]
+                            op.noise = tmp_noise
+                            self._apply_additional_noise(
+                                state, op, circuit.n_quantum, q_index
+                            )
+                            op.noise = noise_copy
+                    else:
+                        raise ValueError(
+                            "We currently do not support different noise positions for one controlled gate."
                         )
 
-                        self._apply_additional_noise(
-                            state, op, circuit.n_quantum, q_index
-                        )
-                    else:
-                        self._apply_additional_noise(
-                            state, op, circuit.n_quantum, q_index
-                        )
-                        self.compile_one_gate(
+                else:
+                    if isinstance(op.noise, nm.AdditionNoiseBase):
+                        if op.noise.noise_parameters["After gate"]:
+                            self.compile_one_gate(
+                                state,
+                                op,
+                                circuit.n_quantum,
+                                q_index,
+                                classical_registers,
+                            )
+
+                            self._apply_additional_noise(
+                                state, op, circuit.n_quantum, q_index
+                            )
+                        else:
+                            self._apply_additional_noise(
+                                state, op, circuit.n_quantum, q_index
+                            )
+                            self.compile_one_gate(
+                                state,
+                                op,
+                                circuit.n_quantum,
+                                q_index,
+                                classical_registers,
+                            )
+                    elif isinstance(op.noise, nm.ReplacementNoiseBase):
+                        self.compile_one_noisy_gate(
                             state, op, circuit.n_quantum, q_index, classical_registers
                         )
-                elif isinstance(op.noise, nm.ReplacementNoiseBase):
-                    self.compile_one_noisy_gate(
-                        state, op, circuit.n_quantum, q_index, classical_registers
-                    )
-                else:
-                    raise ValueError("Noise position is not acceptable.")
+                    else:
+
+                        raise ValueError("Noise position is not acceptable.")
 
         return state
 
@@ -198,4 +298,14 @@ class CompilerBase(ABC):
 
     @abstractmethod
     def compile_one_gate(self, state, op, n_quantum, q_index, classical_registers):
+        raise NotImplementedError("Please select a valid compiler")
+
+    @abstractmethod
+    def compile_one_noisy_gate(
+        self, state, op, n_quantum, q_index, classical_registers
+    ):
+        raise NotImplementedError("Please select a valid compiler")
+
+    @abstractmethod
+    def _apply_additional_noise(self, op, n_quantum, q_index):
         raise NotImplementedError("Please select a valid compiler")

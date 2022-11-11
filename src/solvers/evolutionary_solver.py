@@ -300,9 +300,7 @@ class EvolutionarySolver(RandomSearchSolver):
                 control_type="e",
                 target=i,
                 target_type="p",
-                noise=self._identify_noise(
-                    ops.CNOT.__name__, noise_model_mapping["ep"]
-                ),
+                noise=self._identify_noise(ops.CNOT, noise_model_mapping["ep"]),
             )
             op.add_labels("Fixed")
             circuit.add(op)
@@ -336,7 +334,7 @@ class EvolutionarySolver(RandomSearchSolver):
                 target=measurement_assignment[j],
                 target_type="p",
                 noise=self._identify_noise(
-                    ops.MeasurementCNOTandReset.__name__, noise_model_mapping["ep"]
+                    ops.MeasurementCNOTandReset, noise_model_mapping["ep"]
                 ),
             )
             op.add_labels("Fixed")
@@ -660,9 +658,7 @@ class EvolutionarySolver(RandomSearchSolver):
             control_type="e",
             target=circuit.dag.edges[edge1]["reg"],
             target_type="e",
-            noise=self._identify_noise(
-                ops.CNOT.__name__, self.noise_model_mapping["ee"]
-            ),
+            noise=self._identify_noise(ops.CNOT, self.noise_model_mapping["ee"]),
         )
 
         circuit.insert_at(gate, [edge0, edge1])
@@ -719,7 +715,7 @@ class EvolutionarySolver(RandomSearchSolver):
             target=circuit.dag.edges[edge1]["reg"],
             target_type="p",
             noise=self._identify_noise(
-                ops.MeasurementCNOTandReset.__name__, self.noise_model_mapping["ep"]
+                ops.MeasurementCNOTandReset, self.noise_model_mapping["ep"]
             ),
         )
 

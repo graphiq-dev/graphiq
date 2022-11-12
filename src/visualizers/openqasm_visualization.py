@@ -28,14 +28,18 @@ def draw_openqasm(qasm, show=False, ax=None, display_text=None):
     if display_text is None:
         display_text = {}
 
-    style = {"displaytext": display_text}
+    style = {
+        "displaytext": display_text,
+        "margin": [2, 2, 2, 2],
+    }
 
     qc = QuantumCircuit.from_qasm_str(qasm)
     if ax is None:
-        fig, ax = plt.subplots()
-        qc.draw(output="mpl", ax=ax, plot_barriers=False, style=style)
+        # fig, ax = plt.subplots()
+        # qc.draw(output="mpl", ax=ax, plot_barriers=False, style=style, fold=-1)
+        fig = qc.draw(output="mpl", plot_barriers=False, style=style, fold=-1)
     else:
-        fig = qc.draw(output="mpl", ax=ax, plot_barriers=False, style=style)
+        fig = qc.draw(output="mpl", ax=ax, plot_barriers=False, style=style, fold=-1)
     if show:
         plt.show()
 

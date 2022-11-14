@@ -57,5 +57,3 @@ We acknowledge funding support from the Air Force Office of Scientific Research 
 
 
 
-
-

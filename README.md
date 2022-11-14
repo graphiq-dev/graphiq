@@ -36,7 +36,7 @@ This project includes the following folders:
 * [`backends`](https://github.com/ki3-qbt/graph-compiler/tree/main/src/backends) - simulate a quantum circuit using different state representations, e.g., the density matrix or stabilizer formalisms.
 * [`noise`](https://github.com/ki3-qbt/graph-compiler/tree/main/src/noise) - models for the study of noise and optical loss in realistic quantum devices.
 * [`solvers`](https://github.com/ki3-qbt/graph-compiler/tree/main/src/solvers) - algorithms that search for quantum circuits satisfying target conditions.
-* [`benchmarks`](https://github.com/ki3-qbt/graph-compiler/tree/main/benchmarks) - a suite of automated tools for benchmarking solvers and compilers, scaled to run on a high-performance compute clusters.
+* [`benchmarks`](https://github.com/ki3-qbt/graph-compiler/tree/main/benchmarks) - a suite of automated tools for benchmarking solvers and compilers, scaled to run on high-performance computing clusters.
 * [`visualizers`](https://github.com/ki3-qbt/graph-compiler/tree/main/src/visualizers) - functions for plotting backends and quantum circuits.
 * [`tests`](https://github.com/ki3-qbt/graph-compiler/tree/main/benchmarks) - automated code testing framework (powered by pytest).
 

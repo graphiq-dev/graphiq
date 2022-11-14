@@ -1,5 +1,5 @@
 <h1 align="center">
- Graph Complier
+ Graph Compiler
 </h1>
 
 <div align="center">

@@ -87,7 +87,12 @@ class NoiseBase(ABC):
                 gate_list = self.get_backend_dependent_noise(
                     state_rep, n_quantum, reg_list
                 )
-                state_rep.apply_circuit(gate_list)
+                if isinstance(state_rep, MixedStabilizer):
+                    mixture = state_rep.mixture
+                    for (p_i, tableau_i) in mixture:
+                        tableau_i.apply_circuit(gate_list)
+                else:
+                    state_rep.apply_circuit(gate_list)
 
             elif isinstance(state_rep, Graph):
                 # TODO: Implement this for Graph backend

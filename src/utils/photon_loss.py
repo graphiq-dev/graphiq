@@ -13,7 +13,7 @@ def photon_survival_rate(circuit):
     circuit = circuit.copy()
     circuit.unwrap_nodes()
     n_photons = circuit.n_photons
-    survive = [1]*n_photons
+    survive = [1] * n_photons
 
     for reg in range(n_photons):
         out_node = f"p{reg}_out"
@@ -31,6 +31,8 @@ def photon_survival_rate(circuit):
                 op_noise = op_noise[1]
 
             if isinstance(op_noise, PhotonLoss):
-                survive[reg] = (1 - op_noise.noise_parameters["loss rate"])*survive[reg]
+                survive[reg] = (1 - op_noise.noise_parameters["loss rate"]) * survive[
+                    reg
+                ]
 
     return survive

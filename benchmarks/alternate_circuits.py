@@ -78,12 +78,12 @@ def search_for_alternative_circuits(
     )
     hybrid_solver.seed(random_seed)
     hybrid_solver.solve()
-
+    tolerance = 0.001
     for i in range(hybrid_solver.setting.n_hof):
         alternate_score = hybrid_solver.hof[i][0]
         alternate_circuit = hybrid_solver.hof[i][1]
 
-        if alternate_score <= benchmark_score and not compare_circuits(
+        if alternate_score <= benchmark_score + tolerance and not compare_circuits(
             benchmark_circuit, alternate_circuit
         ):
             compiler.noise_simulation = True
@@ -130,6 +130,27 @@ def noise_model_loss_and_depolarizing(error_rate, loss_rate):
     return noise_model_mapping
 
 
+def noise_model_pauli_error():
+    pauli_x_error = noise.PauliError("X")
+    pauli_y_error = noise.PauliError("Y")
+    pauli_z_error = noise.PauliError("Z")
+    noise_model_mapping = {
+        "e": {
+            "SigmaX": pauli_y_error,
+            "SigmaY": pauli_z_error,
+            "SigmaZ": pauli_x_error,
+        },
+        "p": {
+            "SigmaX": pauli_y_error,
+            "SigmaY": pauli_z_error,
+            "SigmaZ": pauli_x_error,
+        },
+        "ee": {},
+        "ep": {},
+    }
+    return noise_model_mapping
+
+
 def noise_model_pure_loss(loss_rate):
     photon_loss = noise.PhotonLoss(loss_rate)
     noise_model_mapping = {
@@ -157,12 +178,18 @@ def exemplary_test(graph, noise_model_mapping, solver_setting=None, random_seed=
     report_alternate_circuits(results)
 
 
-def exemplary_multiple_test(graph, noise_model_mapping, solver_setting=None, n_test=10):
+def exemplary_multiple_test(
+    graph, noise_model_mapping, random_numbers, solver_setting=None
+):
     if solver_setting is None:
         solver_setting = EvolutionarySearchSolverSetting()
-    for i in range(n_test):
+    for i in range(len(random_numbers)):
         results = search_for_alternative_circuits(
-            graph, noise_model_mapping, Infidelity, solver_setting, random_seed=i
+            graph,
+            noise_model_mapping,
+            Infidelity,
+            solver_setting,
+            random_seed=random_numbers[i],
         )
         if len(results) > 1:
             print(f"The random seed that works is {i}.")

@@ -622,3 +622,22 @@ def test_circuit_comparison_7():
     assert match
     assert not ged_noise
     assert not match_noise
+
+
+def test_circuit_comparison_8():
+    circuit1 = CircuitDAG(n_emitter=1, n_photon=2, n_classical=0)
+    circuit1.add(
+        ops.OneQubitGateWrapper([ops.Phase, ops.Identity], register=0, reg_type="e")
+    )
+    circuit1.add(ops.CNOT(control=0, control_type="e", target=1, target_type="p"))
+    circuit1.add(ops.SigmaY(register=0, reg_type="p"))
+    circuit2 = CircuitDAG(n_emitter=1, n_photon=2, n_classical=0)
+    circuit2.add(ops.Phase(register=0, reg_type="e"))
+    circuit2.add(
+        ops.OneQubitGateWrapper([ops.Identity, ops.SigmaY], register=0, reg_type="p")
+    )
+    circuit2.add(ops.CNOT(control=0, control_type="e", target=1, target_type="p"))
+    ged = circuit1.compare(circuit2, method="GED_full")
+    match = circuit1.compare(circuit2)
+    assert ged
+    assert match

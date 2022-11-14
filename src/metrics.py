@@ -110,11 +110,11 @@ class Infidelity(MetricBase):
             if isinstance(state.stabilizer, MixedStabilizer):
                 fid = sum(
                     [
-                        pi * sfm.fidelity(tableau, ti)
-                        for pi, ti in state.stabilizer.mixture
+                        p_i * sfm.fidelity(tableau, t_i)
+                        for p_i, t_i in state.stabilizer.mixture
                     ]
                 )
-            elif type(state.stabilizer) == Stabilizer:
+            else:
                 fid = sfm.fidelity(self.target.stabilizer.data, state.stabilizer.data)
 
         elif state.dm is not None and self.target.dm is not None:

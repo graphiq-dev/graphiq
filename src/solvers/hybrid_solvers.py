@@ -83,7 +83,7 @@ class HybridEvolutionarySolver(EvolutionarySolver):
         """
         trans_probs = {
             self.add_emitter_one_qubit_op: 1 / 4,
-            self.add_photon_one_qubit_op: 1 / 4,
+            self.replace_photon_one_qubit_op: 1 / 4,
             self.remove_op: 1 / 4,
             self.add_measurement_cnot_and_reset: 1 / 10,
         }

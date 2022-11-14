@@ -1,5 +1,5 @@
 <h1 align="center">
- Ｇｒａｐｈ Ｃｏｍｐｉｌｅｒ
+ Graph Complier
 </h1>
 
 <div align="center">
@@ -13,54 +13,47 @@
 </div>
 
 <p align="center" style="font-size:20px">
-  The Graph Compiler will create an optimization algorithm to find a resource-efficient scheme for graph state generation.
+  Graph Compiler is a Python library for the simulation, inverse design, and optimization of noisy quantum circuits
 </p>
 
 
 ## Features
-<img src="https://user-images.githubusercontent.com/87783633/198037273-06ec89cf-233d-4c08-9f7a-96313bfcb435.gif" width="275px" align="right">
+<img src="https://user-images.githubusercontent.com/87783633/198037273-06ec89cf-233d-4c08-9f7a-96313bfcb435.gif" width="230px" align="right">
 
-* A [suite of backends](https://github.com/ki3-qbt/graph-compiler/tree/main/src/backends) to simulate quantum circuits that are capable of modeling up to thousands of qubits.
+* Diverse [backends](https://github.com/ki3-qbt/graph-compiler/tree/main/src/backends) for the simulation of noisy quantum circuits comprised of hundreds of qubits.
 
-* A set of algorithms for circuit synthesis, optimization, and decomposition to generate the desired quantum state.
+* Algorithms for the inverse design and optimization of circuits that output a desired quantum state.
 
-* Circuits can be constructed with both emitters and photonic qubits to simulate realistic short-term discrete variable photonic quantum devices.
+* Circuits support emitter and photonic qubits, as a basis for simulations of realistic near-term quantum photonic devices.
 
-* Realistic characterization of [noise processes](https://github.com/ki3-qbt/graph-compiler/tree/main/src/noise) and photonic loss
-
-* First of its kind, significant driver for further basic research into realistic entangled resource preparation and distribution
+* Library of models for the study of [noise](https://github.com/ki3-qbt/graph-compiler/tree/main/src/noise) and optical loss.
 
 
 ## What's Here
 
-THis project includes the following folders:
+This project includes the following folders:
 
-* [`backends`](https://github.com/ki3-qbt/graph-compiler/tree/main/src/backends) - simulate a quantum circuit using different underlying representations, including the density matrix, stabilizer, and graph formalisms.
-* [`noise`](https://github.com/ki3-qbt/graph-compiler/tree/main/src/noise) - suite of noise models to study performance of quantum devices in realistic environments.
-* [`solvers`](https://github.com/ki3-qbt/graph-compiler/tree/main/src/solvers) - implementations of search algorithms to find quantum circuits which produce a target state.
-* [`benchmarks`](https://github.com/ki3-qbt/graph-compiler/tree/main/benchmarks) - a set of benchmark circuits that will be used to assess the performance of our solvers.
-* [`visualizers`](https://github.com/ki3-qbt/graph-compiler/tree/main/src/visualizers) - various functions that allow us to plot the different backends and compare quantum circuits.
-* [`tests`](https://github.com/ki3-qbt/graph-compiler/tree/main/benchmarks) - automated testing framework using pytest to ensure that new changes are tested and don't break existing code. 
+* [`backends`](https://github.com/ki3-qbt/graph-compiler/tree/main/src/backends) - simulate a quantum circuit using different state representations, e.g., the density matrix or stabilizer formalisms.
+* [`noise`](https://github.com/ki3-qbt/graph-compiler/tree/main/src/noise) - models for the study of noise and optical loss in realistic quantum devices.
+* [`solvers`](https://github.com/ki3-qbt/graph-compiler/tree/main/src/solvers) - algorithms that search for quantum circuits satisfying target conditions.
+* [`benchmarks`](https://github.com/ki3-qbt/graph-compiler/tree/main/benchmarks) - a suite of automated tools for benchmarking solvers and compilers, scaled to run on a high-performance compute clusters.
+* [`visualizers`](https://github.com/ki3-qbt/graph-compiler/tree/main/src/visualizers) - functions for plotting backends and quantum circuits.
+* [`tests`](https://github.com/ki3-qbt/graph-compiler/tree/main/benchmarks) - automated code testing framework (powered by pytest).
 
 
 ## Getting Started
-
-To get started with understanding our codebase, please begin by reading our [startup guide](https://github.com/ki3-qbt/graph-compiler/tree/main/examples/startup_guide). This is will introduce the most important classes in the software, as well as our version control, testing and automatic documentation frameworks.
-
-![image](https://user-images.githubusercontent.com/87783633/198317628-e4eb845f-4e0d-4f4b-a03f-273d933b49b5.png)
+The [startup guide](https://github.com/ki3-qbt/graph-compiler/tree/main/examples/startup_guide) introduces the most important classes used in our framework, alongside code usage examples and tutorials. The folder also features an introduction to our version control and testing standards for interested contributors.
 
 
 ## Contributors
 
 This project is a collaboration between [Ki3 Photonics Technologies](https://www.ki3photonics.com/) and [Quantum Bridge Technologies](https://qubridge.io/).
 
-We welcome developers to make contributions to this project by raising an issue or submitting a pull-request.Please use the [PEP8 style](https://peps.python.org/pep-0008/) for code-style consistency.
-
+We encourage and welcome contributions to this project. Interested developers should use the [PEP8 style](https://peps.python.org/pep-0008/) for code-style consistency and submit contributions via pull-request or raising an issue.
 
 ## Acknowledgements
 
 We acknowledge funding support from the Air Force Office of Scientific Research (AFOSR) under Grant FA9550-22-1-0062, as well as support from the Mitacs and the Vanier CGS (NSERC).
-
 
 
 

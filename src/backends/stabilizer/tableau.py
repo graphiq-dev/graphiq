@@ -1,3 +1,4 @@
+import copy
 from abc import ABC
 import numpy as np
 import src.backends.stabilizer.functions.utils as sfu
@@ -270,6 +271,9 @@ class CliffordTableau(TableauBase):
         else:
             self._phase = np.zeros(2 * self.n_qubits).astype(int)
         self._iphase = np.zeros(2 * self.n_qubits).astype(int)
+
+    def copy(self):
+        return copy.deepcopy(self)
 
     @property
     def table_x(self):

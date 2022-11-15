@@ -31,7 +31,30 @@ class CompilerBase(ABC):
         :rtype: None
         """
         self._measurement_determinism = "probabilistic"
-        self._noise_simulation = True
+        self._noise_simulation = False
+
+    @property
+    def noise_simulation(self):
+        """
+        Flag to run circuit simulation using noise or not.
+
+        :return: boolean flag to run noise
+        :rtype: boolean
+        """
+        return self._noise_simulation
+
+    @noise_simulation.setter
+    def noise_simulation(self, value):
+        """
+        Set the flag for running noise.
+
+        :param value: True or False
+        :return:
+        """
+        if isinstance(value, bool):
+            self._noise_simulation = value
+        else:
+            raise ValueError("Noise simulation should be True or False.")
 
     def compile(self, circuit: CircuitBase):
         """
@@ -47,7 +70,10 @@ class CompilerBase(ABC):
         # TODO: make this more general, but for now we assume all registers are initialized to |0>
 
         state = QuantumState(
-            circuit.n_quantum, circuit.n_quantum, representation=self.__class__.name
+            n_qubits=circuit.n_quantum,
+            data=circuit.n_quantum,  # initialize to |0...0> state
+            representation=self.__class__.name,
+            mixed=True if self._noise_simulation else False,
         )
         classical_registers = np.zeros(circuit.n_classical)
 
@@ -148,31 +174,6 @@ class CompilerBase(ABC):
             raise ValueError(
                 'Measurement determinism can only be set to "probabilistic", 0, or 1'
             )
-
-    @property
-    def noise_simulation(self):
-        """
-        Returns the setting for noise simulation
-
-        :return: the setting for noise simulation
-        :rtype: bool
-        """
-        return self._noise_simulation
-
-    @noise_simulation.setter
-    def noise_simulation(self, choice):
-        """
-        Set the setting for noise simulation
-
-        :param choice: True to enable noise simulation; False to disable noise simulation
-        :type choice: bool
-        :return: nothing
-        :rtype: None
-        """
-        if type(choice) is bool:
-            self._noise_simulation = choice
-        else:
-            raise ValueError("Noise simulation choice can only be set to True or False")
 
     @staticmethod
     def reg_to_index_func(n_photon):

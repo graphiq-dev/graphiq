@@ -4,6 +4,7 @@ Compilation tools for simulating a circuit with a Stabilizer backend
 
 from src import ops as ops
 from src.backends.compiler_base import CompilerBase
+from src.backends.stabilizer.state import MixedStabilizer
 
 
 class StabilizerCompiler(CompilerBase):
@@ -101,36 +102,66 @@ class StabilizerCompiler(CompilerBase):
         elif type(op) is ops.ClassicalCNOT:
 
             # apply an X gate on the target qubit conditioned on the measurement outcome = 1
-            outcome = state.apply_measurement(
-                q_index(op.control, op.control_type),
-                measurement_determinism=self.measurement_determinism,
-            )
+            if isinstance(state, MixedStabilizer):
+                outcome = state.apply_measurement(
+                    q_index(op.control, op.control_type),
+                    measurement_determinism=self.measurement_determinism,
+                )
+                print(outcome)
+                state.apply_conditioned_gate(
+                    q_index(op.target, op.target_type), outcome, gate="x"
+                )
 
-            if outcome == 1:
-                state.apply_sigmax(q_index(op.target, op.target_type))
+            else:
+                outcome = state.apply_measurement(
+                    q_index(op.control, op.control_type),
+                    measurement_determinism=self.measurement_determinism,
+                )
+                if outcome == 1:
+                    state.apply_sigmaz(q_index(op.target, op.target_type))
 
             classical_registers[op.c_register] = outcome
 
         elif type(op) is ops.ClassicalCZ:
             # apply an Z gate on the target qubit conditioned on the measurement outcome = 1
-            outcome = state.apply_measurement(
-                q_index(op.control, op.control_type),
-                measurement_determinism=self.measurement_determinism,
-            )
+            if isinstance(state, MixedStabilizer):
+                outcome = state.apply_measurement(
+                    q_index(op.control, op.control_type),
+                    measurement_determinism=self.measurement_determinism,
+                )
+                state.apply_conditioned_gate(
+                    q_index(op.target, op.target_type), outcome, gate="z"
+                )
+                classical_registers[op.c_register] = outcome[0]
 
-            if outcome == 1:
-                state.apply_sigmaz(q_index(op.target, op.target_type))
+            else:
+                outcome = state.apply_measurement(
+                    q_index(op.control, op.control_type),
+                    measurement_determinism=self.measurement_determinism,
+                )
+                if outcome == 1:
+                    state.apply_sigmaz(q_index(op.target, op.target_type))
 
             classical_registers[op.c_register] = outcome
 
         elif type(op) is ops.MeasurementCNOTandReset:
-            outcome = state.apply_measurement(
-                q_index(op.control, op.control_type),
-                measurement_determinism=self.measurement_determinism,
-            )
+            if isinstance(state, MixedStabilizer):
+                outcomes = state.apply_measurement(
+                    q_index(op.control, op.control_type),
+                    measurement_determinism=self.measurement_determinism,
+                )
+                state.apply_conditioned_gate(
+                    q_index(op.target, op.target_type), outcomes, gate="x"
+                )
 
-            if outcome == 1:
-                state.apply_sigmax(q_index(op.target, op.target_type))
+            else:
+                outcome = state.apply_measurement(
+                    q_index(op.control, op.control_type),
+                    measurement_determinism=self.measurement_determinism,
+                )
+
+                if outcome == 1:
+                    state.apply_sigmax(q_index(op.target, op.target_type))
 
             # reset the control qubit
             state.reset_qubit(
@@ -139,12 +170,19 @@ class StabilizerCompiler(CompilerBase):
             )
 
         elif type(op) is ops.MeasurementZ:
-            outcome = state.apply_measurement(
-                q_index(op.register, op.reg_type),
-                measurement_determinism=self.measurement_determinism,
-            )
+            if isinstance(state, MixedStabilizer):
+                outcomes = state.apply_measurement(
+                    q_index(op.register, op.reg_type),
+                    measurement_determinism=self.measurement_determinism,
+                )
+                classical_registers[op.c_register] = outcomes[0]
 
-            classical_registers[op.c_register] = outcome
+            else:
+                outcome = state.apply_measurement(
+                    q_index(op.register, op.reg_type),
+                    measurement_determinism=self.measurement_determinism,
+                )
+                classical_registers[op.c_register] = outcome
 
         else:
             raise ValueError(

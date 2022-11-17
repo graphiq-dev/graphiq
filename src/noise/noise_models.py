@@ -531,7 +531,9 @@ class AmplitudeDampingNoise(AdditionNoiseBase):
                 if damping_prob == 0.0:
                     return
                 single_qubit_kraus = dmf.amplitude_damping_operators(damping_prob)
-                kraus_ops_iter = itertools.combinations(single_qubit_kraus, len(reg_list))
+                kraus_ops_iter = itertools.combinations(
+                    single_qubit_kraus, len(reg_list)
+                )
                 kraus_ops = []
                 for kraus_op in kraus_ops_iter:
                     kraus_ops.append(

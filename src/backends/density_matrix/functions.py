@@ -476,6 +476,8 @@ def partial_trace(rho, keep, dims, optimize=False):
     Calculates the partial trace
     :math:`\\rho_a = Tr_b(\\rho)`
 
+    The partial trace is computed using the `einsum` function.
+
     :param rho: the (2D) matrix to take the partial trace
     :type rho: numpy.ndarray
     :param keep:  An array of indices of the spaces to keep. For instance, if the space is
@@ -496,12 +498,17 @@ def partial_trace(rho, keep, dims, optimize=False):
     ndim = dims.size
     nkeep = np.prod(dims[keep])
 
+    # string for initial array dimensions of form "abc...ABC...", where upper/lowercase = local Hilbert space
     ssleft = "".join([string.ascii_lowercase[i] for i in range(ndim)]) + "".join(
         [string.ascii_uppercase[i] for i in range(ndim)]
     )
+
+    # string for final array dimensions is the same as initial, with upper/lowercase of dimensions to trace over omitted
     ssright = "".join(
         [string.ascii_lowercase[i] for i in range(ndim) if i in keep]
     ) + "".join([string.ascii_uppercase[i] for i in range(ndim) if i in keep])
+
+    # e.g., "abcABC -> abAB" is partial trace over third qubit in three-qubit state
     superscript = ssleft + "->" + ssright
 
     rho_a = rho.reshape(np.tile(dims, 2))

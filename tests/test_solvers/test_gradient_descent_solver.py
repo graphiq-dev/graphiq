@@ -73,7 +73,9 @@ def test_one_layer_variational_circuit():
 
     optimizer = adagrad(learning_rate=0.25)
 
-    solver = GradientDescentSolver(metric, compiler, circuit, optimizer=optimizer, n_step=150)
+    solver = GradientDescentSolver(
+        metric, compiler, circuit, optimizer=optimizer, n_step=150
+    )
     loss_curve, params = solver.solve(initial_params=params)
 
     assert np.isclose(loss_curve[-1], 0.0)  # check that the solver converged
@@ -95,7 +97,9 @@ def test_one_layer_shared_weights(n_qubits):
     params = circuit.initialize_parameters()
     optimizer = adagrad(learning_rate=0.5)
 
-    solver = GradientDescentSolver(metric, compiler, circuit, optimizer=optimizer, n_step=30)
+    solver = GradientDescentSolver(
+        metric, compiler, circuit, optimizer=optimizer, n_step=30
+    )
     loss_curve, params = solver.solve(initial_params=params)
 
     if VISUAL_TEST:

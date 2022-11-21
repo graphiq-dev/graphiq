@@ -4,7 +4,7 @@ from qiskit.visualization.qcstyle import DefaultStyle
 import matplotlib.pyplot as plt
 
 
-def draw_openqasm(qasm, show=False, ax=None, display_text=None):
+def draw_openqasm(qasm, show=False, ax=None, display_text=None, fold=20):
     """
     Draw a circuit diagram from an openqasm 2 script
 
@@ -35,11 +35,19 @@ def draw_openqasm(qasm, show=False, ax=None, display_text=None):
 
     qc = QuantumCircuit.from_qasm_str(qasm)
     if ax is None:
+        # Original code
         # fig, ax = plt.subplots()
         # qc.draw(output="mpl", ax=ax, plot_barriers=False, style=style, fold=-1)
-        fig = qc.draw(output="mpl", plot_barriers=False, style=style, fold=-1)
+
+        # new code:
+        fig, ax = plt.subplots()
+        # annot = ax.annotate("", xy=(1, -1), xytext=(20, 20), textcoords="offset points",
+        #                     bbox=dict(boxstyle="round", fc="w"),
+        #                     arrowprops=dict(arrowstyle="->"))
+
+        fig = qc.draw(output="mpl", ax=ax, plot_barriers=False, style=style, fold=fold)
     else:
-        fig = qc.draw(output="mpl", ax=ax, plot_barriers=False, style=style, fold=-1)
+        fig = qc.draw(output="mpl", ax=ax, plot_barriers=False, style=style, fold=fold)
     if show:
         plt.show()
 

@@ -489,7 +489,7 @@ class CircuitBase(ABC):
             reg_type="c", register=register, new_size=new_size
         )
 
-    def draw_circuit(self, show=True, ax=None):
+    def draw_circuit(self, show=True, ax=None, fold=20):
         """
         Draw conventional circuit representation
 
@@ -501,7 +501,7 @@ class CircuitBase(ABC):
         :rtype: matplotlib.pyplot.figure, matplotlib.pyplot.axes
         """
         return draw_openqasm(
-            self.to_openqasm(), show=show, ax=ax, display_text=self.openqasm_symbols
+            self.to_openqasm(), show=show, ax=ax, display_text=self.openqasm_symbols, fold=fold
         )
 
     def _openqasm_update(self, op):

@@ -6,7 +6,7 @@ import jax.numpy as np
 import numpy
 import src
 
-src.DENSITY_MATRIX_ARRAY_LIBRARY = "jax"
+# src.DENSITY_MATRIX_ARRAY_LIBRARY = "jax"
 
 from tests.test_flags import visualization, jax_library, VISUAL_TEST, JAX_TEST
 

@@ -184,43 +184,9 @@ def variational_entangling_layer_2qubit():
     return circuit, ideal_state
 
 
-def variational_entangling_layer_nqubits(n_qubits=3, layers=1):
-    """
-    Variational circuit composed of a single entangling layer
-    """
-
-    ket = (
-        1
-        / np.sqrt(2**n_qubits)
-        * (
-            dmf.tensor(n_qubits * [dmf.state_ketz0()])
-            + dmf.tensor(n_qubits * [dmf.state_ketz1()])
-        )
-    )
-    state = DensityMatrix(dmf.ket2dm(ket))
-    ideal_state = QuantumState(n_qubits, state.data, representation="density matrix")
-
-    circuit = CircuitDAG(n_emitter=n_qubits, n_photon=0, n_classical=0)
-    for i in range(n_qubits):
-        circuit.add(
-            ParameterizedOneQubitRotation(
-                register=0,
-                reg_type="e",
-                params=(0.0, 1.0, 1.0),  # set the parameters explicitly, if desired
-            )
-        )
-        circuit.add(
-            CNOT(
-                control=i, control_type="e", target=(i + 1) % n_qubits, target_type="e"
-            )
-        )
-
-    return circuit, ideal_state
-
-
 def strongly_entangling_layer(n_qubits=3, layers=1):
     """
-    Variational circuit composed of a single entangling layer
+    Variational circuit composed of a single entangling layer. Ideal state is an n-qubit GHZ state.
     """
 
     ket = (

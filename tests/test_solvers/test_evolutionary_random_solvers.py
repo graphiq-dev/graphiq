@@ -255,6 +255,7 @@ def test_solver_logging(seed):
         io=io,
     )
     solver.seed(seed)
+    solver.n_stop = 5
 
     solver.solve()
     solver.logs_to_df()

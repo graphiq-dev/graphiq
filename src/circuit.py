@@ -29,6 +29,7 @@ NOT retroactively apply to the added qubits
 
 """
 import copy
+import random
 import networkx as nx
 import matplotlib.pyplot as plt
 from abc import ABC, abstractmethod
@@ -206,6 +207,10 @@ class CircuitBase(ABC):
         :rtype: None
         """
         self._registers = Register(reg_dict={"e": [], "p": [], "c": []})
+        self._parameters = {}
+
+        self._fmap = self._default_map
+        self._map = self._fmap()
 
         if openqasm_imports is None:
             self.openqasm_imports = {}
@@ -539,6 +544,91 @@ class CircuitBase(ABC):
         """
         return copy.deepcopy(self)
 
+    """ Mapping between each operation and parameter values """
+
+    @property
+    def parameters(self):
+        """
+        A dictionary of all parameters associated to the quantum circuit.
+
+        :return: a dictionary, of the form {parameter_key: [list of parameters values]}
+        """
+        return self._parameters
+
+    @parameters.setter
+    def parameters(self, parameters: dict):
+        self._parameters = parameters
+
+        for op in self.sequence(unwrapped=True):
+            op.params = self._parameters.get(self.map[id(op)], tuple())
+
+    @property
+    def fmap(self):
+        """
+        Provides a mapping *function* between an operation (Op) and its parameter list.
+
+        :return: function which returns a mapping dictionary (see `self.map`)
+        :rtype: func
+        """
+        return self._fmap
+
+    @fmap.setter
+    def fmap(self, func):
+        # todo, check function
+        self._fmap = func
+
+    @property
+    def map(self):
+        """
+        Dictionary which maps from an operation (Op) to a parameter list.
+        Each dictionary key:value pair is of the form `id(op): parameter_key`,
+        where `parameter_key` is the associated key for indexing into the `parameters` dictionary.
+
+        :return: op to parameter key mapping dictionary
+        :rtype: dict
+        """
+        return self._map
+
+    def _default_map(self):
+        """Default map, in which each op is mapped to itself (no parameter sharing, except for copied ops)"""
+        _map = {id(op): id(op) for op in self.sequence(unwrapped=True)}
+        return _map
+
+    def initialize_parameters(self, seed=None):
+        """
+        Randomly initializes all parameter lists from a uniform distribution between the parameter bounds
+        defined by the operation.
+
+        :param seed: seed value for randomly selecting circuit parameters
+        :type seed: int
+        :return: parameter dictionary
+        :rtype: dict
+        """
+        if seed is not None:
+            random.seed(seed)
+
+        self._map = self._fmap()
+        self._parameters = {}
+        for op in self.sequence(unwrapped=True):
+            if op.params:
+                key = self._map[id(op)]
+                if key is None:
+                    continue
+
+                elif key in self._parameters.keys():
+                    # parameter already added from previous operation (i.e. shared-weight)
+                    continue
+
+                else:
+                    pi = []
+                    for p, (lb, ub) in zip(op.params, op.param_info["bounds"]):
+                        pi.append(random.uniform(lb, ub))
+
+                    op.params = pi
+                    self._parameters[key] = pi
+
+        return self._parameters
+
 
 class CircuitDAG(CircuitBase):
     """
@@ -571,8 +661,9 @@ class CircuitDAG(CircuitBase):
         :return: nothing
         :rtype: None
         """
-        super().__init__(openqasm_imports=openqasm_imports, openqasm_defs=openqasm_defs)
         self.dag = nx.MultiDiGraph()
+        super().__init__(openqasm_imports=openqasm_imports, openqasm_defs=openqasm_defs)
+
         self._node_id = 0
         self.edge_dict = {}
         self.node_dict = {}

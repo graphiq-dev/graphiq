@@ -45,6 +45,8 @@ class OperationBase(ABC):
         q_registers_type=tuple(),
         c_registers=tuple(),
         noise=nm.NoNoise(),
+        params=tuple(),
+        param_info=dict(),
     ):
         """
         Creates an Operation base object (which is largely responsible for holding the registers on which
@@ -95,6 +97,8 @@ class OperationBase(ABC):
         self._c_registers = c_registers
         self._labels = []
         self.noise = noise
+        self.params = params
+        self.param_info = param_info
 
     @classmethod
     def openqasm_info(cls):
@@ -613,6 +617,63 @@ class Phase(OneQubitOperationBase):
 
     def __init__(self, register=0, reg_type="e", noise=nm.NoNoise()):
         super().__init__(register, reg_type, noise)
+
+
+class ParameterizedOneQubitRotation(OneQubitOperationBase):
+    """
+    Parameterized one qubit rotation.
+    """
+
+    _openqasm_info = (
+        oq_lib.parameterized_info()
+    )  # todo, change to appropriate openQASM info
+
+    def __init__(
+        self, register=0, reg_type="e", noise=nm.NoNoise(), params=None, param_info=None
+    ):
+        super().__init__(register, reg_type, noise)
+
+        if params is None:
+            params = (0.0, 0.0, 0.0)
+        if param_info is None:
+            param_info = {
+                "bounds": ((-np.pi, np.pi), (-np.pi, np.pi), (-np.pi, np.pi)),
+                "labels": ("theta", "phi", "lambda"),
+            }
+        self.params = params
+        self.param_info = param_info
+
+
+class ParameterizedControlledRotationQubit(ControlledPairOperationBase):
+    """
+    Parameterized two qubit controlled gate,
+    """
+
+    _openqasm_info = (
+        oq_lib.cparameterized_info()
+    )  # todo, change to appropriate openQASM info
+
+    def __init__(
+        self,
+        control=0,
+        control_type="e",
+        target=0,
+        target_type="e",
+        noise=nm.NoNoise(),
+        params=None,
+        param_info=None,
+    ):
+        super().__init__(control, control_type, target, target_type, noise)
+
+        if params is None:
+            params = (0.0, 0.0, 0.0)
+        if param_info is None:
+            param_info = {
+                "bounds": ((-np.pi, np.pi), (-np.pi, np.pi), (-np.pi, np.pi)),
+                "labels": ("theta", "phi", "lambda"),
+            }
+        self.params = params
+        self.param_info = param_info
 
 
 class Identity(OneQubitOperationBase):

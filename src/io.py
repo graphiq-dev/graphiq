@@ -101,17 +101,15 @@ class IO:
         # build the full folder name with date, time, and uuid, if selected
         _str = ""
         if include_date:
-            _str = _str + date
+            _str = _str + date + "_"
         if include_time:
-            _str = _str + "_" + time
+            _str = _str + time + "_"
 
-        _str = _str + "_" + folder
+        _str = _str + folder
 
         if include_id:
             _str = (
-                _str
-                + " - "
-                + "".join(random.choice(string.hexdigits) for _ in range(4))
+                _str + "_" + "".join(random.choice(string.hexdigits) for _ in range(4))
             )
 
         path = path.joinpath(_str)

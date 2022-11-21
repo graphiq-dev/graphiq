@@ -202,6 +202,28 @@ def phase_info():
     return OpenQASMInfo("s", imports, definition, usage, False, gate_symbol="P")
 
 
+def parameterized_info():
+    # todo: update to the default rotation in Qiskit plotting
+    imports = []
+    definition = "gate s a { U(0, pi/2, 0) a; }"
+
+    def usage(q_reg, q_reg_type, c_reg):
+        return f"s {q_reg_type[0]}{q_reg[0]}[0];"
+
+    return OpenQASMInfo("s", imports, definition, usage, False, gate_symbol="PR")
+
+
+def cparameterized_info():
+    # todo: update to the default rotation in Qiskit plotting
+    imports = []
+    definition = "gate cz a, b { U(pi/2, 0, pi) b; CX a, b; U(pi/2, 0, pi) b; }"  # H on target, CX, H on target
+
+    def usage(q_reg, q_reg_type, c_reg):
+        return f"cz {q_reg_type[0]}{q_reg[0]}[0], {q_reg_type[1]}{q_reg[1]}[0];"
+
+    return OpenQASMInfo("cz", imports, definition, usage, False, gate_symbol="CZ")
+
+
 def single_qubit_wrapper_info(op_list):
     """
     This function combines the openqasm info from multiple base Operations,

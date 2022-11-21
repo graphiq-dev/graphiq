@@ -17,3 +17,7 @@ Deterministic Solver
 .. automodule:: src.solvers.deterministic_solver
    :members:
 
+Gradient Descent Solvers
+------------------------------
+.. automodule:: src.solvers.gradient_descent_solver
+   :members:

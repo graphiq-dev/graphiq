@@ -53,10 +53,10 @@ class GradientDescentSolver(SolverBase):
         self.optimizer = optimizer
         self.n_step = n_step
         self.progress = progress
-        self.loss_curve = []
+        self.cost_curve = []
 
     @staticmethod
-    def compute_loss(
+    def compute_cost(
         params: dict, circuit: CircuitBase, compiler: CompilerBase, metric: MetricBase
     ):
         """
@@ -68,20 +68,21 @@ class GradientDescentSolver(SolverBase):
         :type circuit: CircuitBase
         :param compiler: density matrix compiler
         :param metric: metric to evaluate performance of circuit parameters
-        :return:
+        :return: cost: scalar value quantifying the circuit performance with the given parameter set
         """
-        # sets parameter, simulates circuit, evaluates and then returns the loss
+        # sets parameter, simulates circuit, evaluates and then returns the cost
         circuit.parameters = params
         output_state = compiler.compile(circuit)
-        loss = metric.evaluate(output_state, circuit)
-        return loss
+        cost = metric.evaluate(output_state, circuit)
+        return cost
 
     def solve(self, initial_params=None):
         """
         Main gradient descent algorithm, performing `n_steps` updates with the provided optimizer.
         :param initial_params: initial parameter dictionary
         :type initial_params: dict
-        :return:
+        :return: cost_curve, params: list of computed cost values at each optimization step, and final optimized params
+        :rtype: (list, dict)
         """
         if initial_params is not None:
             params = initial_params
@@ -90,20 +91,20 @@ class GradientDescentSolver(SolverBase):
 
         opt_state = self.optimizer.init(params)
 
-        loss_curve = []
-        grad = jax.grad(self.compute_loss)
+        cost_curve = []
+        grad = jax.grad(self.compute_cost)
         for step in (
             pbar := tqdm.tqdm(range(self.n_step), disable=(not self.progress))
         ):
-            loss = self.compute_loss(params, self.circuit, self.compiler, self.metric)
+            cost = self.compute_cost(params, self.circuit, self.compiler, self.metric)
             gradient = grad(params, self.circuit, self.compiler, self.metric)
             updates, opt_state = self.optimizer.update(gradient, opt_state)
             params = optax.apply_updates(params, updates)
-            loss_curve.append(loss)
+            cost_curve.append(cost)
             if self.progress:
-                pbar.set_description(f"Cost: {loss:.10f}")
+                pbar.set_description(f"Cost: {cost:.10f}")
             else:
-                print(step, loss, params)
+                print(step, cost, params)
 
-        self.loss_curve = loss_curve
-        return loss_curve, params
+        self.cost_curve = cost_curve
+        return cost_curve, params

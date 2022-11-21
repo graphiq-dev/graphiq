@@ -44,7 +44,7 @@ def visualize(circuit, compiler, solver):
     # output_state.dm.draw()
 
     fig, ax = plt.subplots(1, 1)
-    ax.plot(solver.loss_curve)
+    ax.plot(solver.cost_curve)
     ax.set(xlabel="Optimization Step", ylabel="Infidelity")
     plt.show()
 

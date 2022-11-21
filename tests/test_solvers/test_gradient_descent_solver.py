@@ -33,16 +33,13 @@ def compute_loss(params, circuit, compiler, metric):
 
 
 def run(nqubit):
-    circuit, target = benchmarks.circuits.variational_entangling_layer_nqubit(nqubit)
+    circuit, target = benchmarks.circuits.strongly_entangling_layer(nqubit)
     compiler = DensityMatrixCompiler()
     metric = Infidelity(target=target)
     return circuit, compiler, metric
 
 
 def visualize(circuit, compiler, solver):
-    # output_state = compiler.compile(circuit)
-    # output_state.dm.draw()
-
     fig, ax = plt.subplots(1, 1)
     ax.plot(solver.cost_curve)
     ax.set(xlabel="Optimization Step", ylabel="Infidelity")
@@ -59,6 +56,7 @@ def test_loss_function():
     grads = jax.grad(compute_loss)(params, circuit, compiler, metric)
 
     print(loss, grads)
+    assert loss is not np.nan
 
 
 @jax_library

@@ -3,10 +3,10 @@ import matplotlib.pyplot as plt
 import jax
 import optax
 import jax.numpy as np
-
+import numpy
 import src
 
-# src.DENSITY_MATRIX_ARRAY_LIBRARY = "jax"
+src.DENSITY_MATRIX_ARRAY_LIBRARY = "jax"
 
 from tests.test_flags import visualization, jax_library, VISUAL_TEST, JAX_TEST
 
@@ -19,9 +19,9 @@ from src.metrics import Infidelity
 from src.visualizers.density_matrix import density_matrix_bars
 
 # todo, split into different test functions
-# 1) just compute loss function and associated gradient of parameters
-# 2) run few steps with gradient based solver
-# 3) compute loss function + grad with different fmaps
+# 1) just compute loss function and associated gradient of parameters (done)
+# 2) run few steps with gradient based solver (done)
+# 3) compute loss function + grad with different fmaps (done)
 # 4) test switching between numpy and jax - see where issues come up
 
 
@@ -68,13 +68,15 @@ def test_one_layer_variational_circuit_visualize():
 
 @jax_library
 def test_one_layer_variational_circuit():
-    circuit, compiler, metric = run(3)
-    params = circuit.initialize_parameters()
+    circuit, compiler, metric = run(2)
+    params = circuit.initialize_parameters(seed=0)
 
-    optimizer = adagrad(learning_rate=0.5)
+    optimizer = adagrad(learning_rate=0.25)
 
-    solver = GradientDescentSolver(metric, compiler, circuit, optimizer=optimizer)
+    solver = GradientDescentSolver(metric, compiler, circuit, optimizer=optimizer, n_step=150)
     loss_curve, params = solver.solve(initial_params=params)
+
+    assert np.isclose(loss_curve[-1], 0.0)  # check that the solver converged
 
     if VISUAL_TEST:
         visualize(circuit, compiler, solver)
@@ -93,7 +95,7 @@ def test_one_layer_shared_weights(n_qubits):
     params = circuit.initialize_parameters()
     optimizer = adagrad(learning_rate=0.5)
 
-    solver = GradientDescentSolver(metric, compiler, circuit, optimizer=optimizer)
+    solver = GradientDescentSolver(metric, compiler, circuit, optimizer=optimizer, n_step=30)
     loss_curve, params = solver.solve(initial_params=params)
 
     if VISUAL_TEST:

@@ -594,14 +594,19 @@ class CircuitBase(ABC):
         _map = {id(op): id(op) for op in self.sequence(unwrapped=True)}
         return _map
 
-    def initialize_parameters(self):
+    def initialize_parameters(self, seed=None):
         """
         Randomly initializes all parameter lists from a uniform distribution between the parameter bounds
         defined by the operation.
 
+        :param seed: seed value for randomly selecting circuit parameters
+        :type seed: int
         :return: parameter dictionary
         :rtype: dict
         """
+        if seed is not None:
+            random.seed(seed)
+
         self._map = self._fmap()
         self._parameters = {}
         for op in self.sequence(unwrapped=True):

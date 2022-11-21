@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script src="https://d3js.org/d3.v5.min.js"></script>
+    <script src="{{ url_for('static', filename='js/register.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/gates.js') }}"></script>
+    <script>
+        var someJavaScriptVar = {{ test_data|tojson }};
+        console.log(someJavaScriptVar)
+    </script>
+    <style>
+        div.circuit-label-container {
+            /* To see element border */
+            /* border: 1px solid black; */
+            position: absolute;
+        }
+
+        div.circuit-detail-container {
+            margin-left: 75px;
+            width: 1300px;
+            overflow-x: auto;
+            white-space: nowrap;
+            border: 1px solid black;
+        }
+
+        .register-label {
+            font-family: monospace; 
+            font-weight: 400; 
+            text-anchor: end; 
+            font-size: 14px;
+        }
+
+        div.tooltip {	
+            position: absolute;			
+            text-align: center;			
+            width: 60px;					
+            height: 28px;					
+            padding: 2px;				
+            font: 12px sans-serif;		
+            background: lightsteelblue;	
+            border: 0px;		
+            border-radius: 8px;			
+            pointer-events: none;			
+        }
+
+    </style>
+</head>
+<body>
+    <script>
+        var div = d3.select("body").append("div")	
+            .attr("class", "tooltip")				
+            .style("opacity", 0);
+    </script>
+    <script name="init">
+        register_label_init()
+        register_detail_init()   
+        
+        for (let i = 0; i < 4; i++) {
+            draw_register_label("q", "q", i)
+        }
+
+        for (let i = 0; i < 1; i++) {
+            draw_register_label("q", "e", i)
+        }
+
+        for (let i = 0; i < 1; i++) {
+            draw_register_label("c", "c", i)
+        }
+    </script>
+    <script>
+        for (let i = 0; i < 4; i++) {
+            draw_quantum_register("q", i)
+        }
+
+        for (let i = 0; i < 1; i++) {
+            draw_quantum_register("e", i)
+        }
+
+        draw_classical_register("c", reg_num=4)
+        hadamard(20, 30)
+        hadamard(20, 100 - 20)
+
+        cnot(20 + 20, 250)
+        
+    </script>
+</body>
+</html>

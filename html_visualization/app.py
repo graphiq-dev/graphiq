@@ -4,16 +4,22 @@ from flask import session
 
 app = Flask(__name__)  # Flask constructor
 
+
 # A decorator used to tell the application
 # which URL is associated function
 @app.route('/')
 def index():
-    test_data = {
-        "t": 1,
-        "z": 2,
+    return render_template("index.html")
+
+
+@app.route('/get_test_data')
+def get_test_data():
+    data = {
+        "value1": 1,
+        "value2": 2,
     }
 
-    return render_template("index.html", test_data=test_data)
+    return jsonify(data)
 
 
 if __name__ == '__main__':

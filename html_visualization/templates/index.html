@@ -2,12 +2,13 @@
 <html lang="en">
 <head>
     <script src="https://d3js.org/d3.v5.min.js"></script>
+
+    <script>
+        const dataUrl = "{{ url_for('get_test_data') }}";
+    </script>
+    <script src="{{ url_for('static', filename='js/data.js') }}"></script>
     <script src="{{ url_for('static', filename='js/register.js') }}"></script>
     <script src="{{ url_for('static', filename='js/gates.js') }}"></script>
-    <script>
-        var someJavaScriptVar = {{ test_data|tojson }};
-        console.log(someJavaScriptVar)
-    </script>
     <style>
         div.circuit-label-container {
             /* To see element border */

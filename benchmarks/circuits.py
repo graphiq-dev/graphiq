@@ -171,7 +171,7 @@ def variational_entangling_layer_2qubit():
         [dmf.state_ketz1(), dmf.state_ketz1()]
     )
     state = DensityMatrix(dmf.ket2dm(ket))
-    ideal_state = QuantumState(4, state.data, representation="density matrix")
+    ideal_state = QuantumState(2, state.data, representation="density matrix")
 
     circuit = CircuitDAG(n_emitter=2, n_photon=0, n_classical=0)
     circuit.add(ParameterizedOneQubitRotation(register=0, reg_type="e"))

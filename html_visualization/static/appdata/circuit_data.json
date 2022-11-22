@@ -1,0 +1,8 @@
+{
+  "circuit": {
+    "p_register": 100,
+    "e_register": 1,
+    "c_register": 1,
+    "n_quantum": 101
+  }
+}

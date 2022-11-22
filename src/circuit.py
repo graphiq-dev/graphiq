@@ -44,6 +44,8 @@ from src.visualizers.dag import dag_topology_pos
 from src.visualizers.openqasm_visualization import draw_openqasm
 from src.utils.circuit_comparison import compare_circuits
 
+import json
+
 
 class Register:
     """
@@ -1429,3 +1431,15 @@ class CircuitDAG(CircuitBase):
         for reg_type in self._register_depth:
             self.calculate_reg_depth(reg_type=reg_type)
         return self._register_depth.copy()
+
+    def to_json(self):
+        json_dict = {
+            "register": self.register,
+            "register_depth": self.register_depth
+        }
+
+        json_obj = json.dumps(json_dict, indent=3)
+
+        return json_obj
+
+

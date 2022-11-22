@@ -1,6 +1,6 @@
 # an object of WSGI application
-from flask import Flask, jsonify, render_template
-from flask import session
+from flask import Flask, jsonify, render_template, json
+import os
 
 app = Flask(__name__)  # Flask constructor
 
@@ -20,6 +20,14 @@ def get_test_data():
     }
 
     return jsonify(data)
+
+
+@app.route('/get_circuit_data')
+def get_circuit_data():
+    json_url = os.path.join(app.root_path, "static", "appdata", "circuit_data.json")
+    data = json.load(open(json_url))
+
+    return data
 
 
 if __name__ == '__main__':

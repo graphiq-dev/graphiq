@@ -104,5 +104,3 @@ function draw_register_label(reg_type, name, reg_num) {
 
     return new_register_label
 }
-
-console.log(state)

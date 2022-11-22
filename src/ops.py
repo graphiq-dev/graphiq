@@ -916,3 +916,22 @@ def name_to_class_map(name):
     if name in mapping:
         return mapping[name]
     return None
+
+
+def class_to_name_map(operation: OperationBase):
+    mapping = {
+        CNOT: "CX",
+        SigmaX: "X",
+        SigmaY: "Y",
+        SigmaZ: "Z",
+        Hadamard: "H",
+        Phase: "S",
+        CZ: "CZ",
+        ClassicalCNOT: "CCX",
+        ClassicalCZ: "CCZ",
+        MeasurementCNOTandReset: "MCXR",
+    }
+    if type(operation) in mapping:
+        return mapping[type(operation)]
+    return None
+

@@ -1432,14 +1432,3 @@ class CircuitDAG(CircuitBase):
             self.calculate_reg_depth(reg_type=reg_type)
         return self._register_depth.copy()
 
-    def to_json(self):
-        json_dict = {
-            "register": self.register,
-            "register_depth": self.register_depth
-        }
-
-        json_obj = json.dumps(json_dict, indent=3)
-
-        return json_obj
-
-

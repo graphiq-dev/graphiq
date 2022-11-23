@@ -2,12 +2,16 @@
 <html lang="en">
 <head>
     <script src="https://d3js.org/d3.v5.min.js"></script>
-<!--    <script>-->
-<!--        let data = {{ data }}-->
-<!--    </script>-->
+    <!-- <script type="module" src="https://cdn.skypack.dev/d3@7"></script>
+    <script type="module" src="{{ url_for('static', filename='js/module.js') }}"></script> -->
     <script src="{{ url_for('static', filename='js/data.js') }}"></script>
     <script src="{{ url_for('static', filename='js/register.js') }}"></script>
     <script src="{{ url_for('static', filename='js/gates.js') }}"></script>
+    <!-- <script>
+        var data = {{ data | safe }}
+
+        console.log(data)
+    </script> -->
     <style>
         div.circuit-label-container {
             /* To see element border */
@@ -17,10 +21,10 @@
 
         div.circuit-detail-container {
             margin-left: 75px;
-            width: 1300px;
+            width: 1000px;
             overflow-x: auto;
             white-space: nowrap;
-            border: 1px solid black;
+            /* border: 1px solid black; */
         }
 
         .register-label {
@@ -66,22 +70,23 @@
         for (let i = 0; i < 1; i++) {
             draw_register_label("c", "c", i)
         }
+
+        for (let i = 0; i < 5; i++) {
+            draw_quantum_register(0, (i+1)*50)
+        }
+
+        draw_classical_register(0, 300)
     </script>
     <script>
-        for (let i = 0; i < 4; i++) {
-            draw_quantum_register("q", i)
-        }
+        hadamard(50, 50, "q0")
+        hadamard(100, 50, "q0")
+        hadamard(50, 100, "q1")
+        x_gate(150, 150, "q2")
 
-        for (let i = 0; i < 1; i++) {
-            draw_quantum_register("e", i)
-        }
-
-        draw_classical_register("c", reg_num=4)
-        hadamard(20, 30)
-        hadamard(20, 100 - 20)
-
-        cnot(20 + 20, 250)
+        cnot(50, 250, -100)
+        cnot(100, 250, -100)
         
     </script>
+    <div></div>
 </body>
 </html>

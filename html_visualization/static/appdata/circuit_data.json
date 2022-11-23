@@ -1,8 +1,86 @@
 {
-  "circuit": {
-    "p_register": 100,
-    "e_register": 1,
-    "c_register": 1,
-    "n_quantum": 101
-  }
+   "register": {
+      "e": [
+         1
+      ],
+      "p": [
+         1,
+         1,
+         1
+      ],
+      "c": [
+         1
+      ]
+   },
+   "register_depth": {
+      "e": [
+         6
+      ],
+      "p": [
+         2,
+         3,
+         7
+      ],
+      "c": [
+         6
+      ]
+   },
+   "sequence": [
+      {
+         "type": "1q",
+         "gate": "H",
+         "register": 0,
+         "reg_type": "e"
+      },
+      {
+         "type": "cp",
+         "gate": "CX",
+         "control": 0,
+         "control_type": "e",
+         "target": 0,
+         "target_type": "p"
+      },
+      {
+         "type": "cp",
+         "gate": "CX",
+         "control": 0,
+         "control_type": "e",
+         "target": 1,
+         "target_type": "p"
+      },
+      {
+         "type": "cp",
+         "gate": "CX",
+         "control": 0,
+         "control_type": "e",
+         "target": 2,
+         "target_type": "p"
+      },
+      {
+         "type": "1q",
+         "gate": "H",
+         "register": 2,
+         "reg_type": "p"
+      },
+      {
+         "type": "1q",
+         "gate": "H",
+         "register": 0,
+         "reg_type": "e"
+      },
+      {
+         "type": "ccp",
+         "gate": "MCXR"
+      },
+      {
+         "type": "1q",
+         "gate": "H",
+         "register": 2,
+         "reg_type": "p"
+      }
+   ],
+   "target state": {},
+   "fidelity": {},
+   "Number of Hadamard": {},
+   "Number of CNOT": {}
 }

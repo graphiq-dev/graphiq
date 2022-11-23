@@ -40,32 +40,29 @@ function register_detail_init() {
 
 // draw function
 // draw the quantum register
-function draw_quantum_register(name, reg_num) {
-    next_reg_line++
-    state.register_position[`${name}${reg_num}`] = next_reg_line * 50
-
+function draw_quantum_register(x, y) {
     const register = d3.select("#circuit-detail-svg")
-    const g = register.append("g")
+
+    g = register.append("g")
+        .attr("transform", `translate(${x}, ${y})`)
 
     g.append('line')
         .style("stroke", "black")
         .style("fill", "none")
         .attr("x1", 0)
-        .attr("y1", next_reg_line * 50)
+        .attr("y1", 0)
         .attr("x2", register.attr("width"))
-        .attr("y2", next_reg_line * 50)
-        .attr("name", `${name}[${reg_num}]`);
+        .attr("y2", 0)
+        // .attr("name", `${name}[${reg_num}]`);
 
     return register
 }
 
 // draw the classical register
-function draw_classical_register(name, reg_num) {
-    next_reg_line++
-    state.register_position[`${name}${reg_num}`] = next_reg_line * 50
-
+function draw_classical_register(x, y) {
     const register = d3.select("#circuit-detail-svg")
     const g = register.append("g")
+        .attr("transform", `translate(${x}, ${y})`)
 
     g.append('line')
         .style("stroke", "black")
@@ -73,14 +70,14 @@ function draw_classical_register(name, reg_num) {
         .attr("y1", next_reg_line * 50 - 1)
         .attr("x2", register.attr("width"))
         .attr("y2", next_reg_line * 50 - 1)
-        .attr("name", `${name}[${reg_num}]`);
+        // .attr("name", `${name}[${reg_num}]`);
     g.append('line')
         .style("stroke", "black")
         .attr("x1", 0)
         .attr("y1", next_reg_line * 50 + 2)
         .attr("x2", register.attr("width"))
         .attr("y2", next_reg_line * 50 + 2)
-        .attr("name", `${name}[${reg_num}]`);
+        // .attr("name", `${name}[${reg_num}]`);
     
     return register
 }
@@ -96,7 +93,7 @@ function draw_register_label(reg_type, name, reg_num) {
         .attr("id", `${reg_type}-${name}-${reg_num}`)
 
     text = graph.append("text")
-        .text(`${name}[${reg_num}]`)
+        .text(`${name}${reg_num}`)
         .attr("class", "register-label")
         .attr("x", x)
         .attr("y", y)

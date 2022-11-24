@@ -5,7 +5,8 @@ from src.circuit import *
 def circuit_to_json(circuit: CircuitDAG, destination: str = ""):
     json_dict = {
         "register": circuit.register,
-        "register_depth": circuit.register_depth
+        "register_depth": circuit.register_depth,
+        "openqasm": circuit.to_openqasm(),
     }
     sequence = []
 

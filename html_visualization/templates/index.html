@@ -45,6 +45,12 @@
             pointer-events: none;			
         }
 
+        div.data-panel {
+            padding: 20px;
+            margin-top: 20px;
+            border: 1px solid black;
+        }
+
     </style>
 </head>
 <body>
@@ -77,7 +83,10 @@
     </script>
     <script>
         hadamard(50, 50, "q0")
-        hadamard(100, 50, "q0")
+        x_gate(100, 50, "q0")
+        y_gate(150, 50, "q0")
+        z_gate(200, 50, "q0")
+        p_gate(250, 50, "q0")
         hadamard(50, 100, "q1")
         x_gate(150, 150, "q2")
 
@@ -85,8 +94,11 @@
         cnot(100, 250, -100)
         
     </script>
-    <div>
-        {{ data["register"] }}
+    <div class="data-panel">
+        <p>Input Data:</p>
+        <p>Register: {{ data["register"] }}</p>
+        <p>Register depth: {{ data["register_depth"] }}</p>
+        <span style="white-space: pre-line">{{ data["openqasm"] }}</span>
     </div>
 </body>
 </html>

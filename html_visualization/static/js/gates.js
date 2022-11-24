@@ -67,7 +67,71 @@ function x_gate(x, y, register) {
     return gate
 }
 
+function y_gate(x, y, register) {
+    gate = one_qubit_gate(x, y, "Y", color="green")
 
+    // add on display
+    div = d3.select(".tooltip")
+    gate.on("mouseover", function(d) {
+        div.transition()
+            .duration(200)
+            .style("opacity", .7);
+        div.html(`Y gate on ${register}`)
+            .style("left", (d3.event.pageX) + "px")
+            .style("top", (d3.event.pageY) + "px");
+        })
+    .on("mouseout", function(d) {
+        div.transition()
+            .duration(500)
+            .style("opacity", 0);
+    });
+
+    return gate
+}
+
+function z_gate(x, y, register) {
+    gate = one_qubit_gate(x, y, "Z", color="red")
+
+    // add on display
+    div = d3.select(".tooltip")
+    gate.on("mouseover", function(d) {
+        div.transition()
+            .duration(200)
+            .style("opacity", .7);
+        div.html(`Z gate on ${register}`)
+            .style("left", (d3.event.pageX) + "px")
+            .style("top", (d3.event.pageY) + "px");
+        })
+    .on("mouseout", function(d) {
+        div.transition()
+            .duration(500)
+            .style("opacity", 0);
+    });
+
+    return gate
+}
+
+function p_gate(x, y, register) {
+    gate = one_qubit_gate(x, y, "P", color="yellow")
+
+    // add on display
+    div = d3.select(".tooltip")
+    gate.on("mouseover", function(d) {
+        div.transition()
+            .duration(200)
+            .style("opacity", .7);
+        div.html(`P gate on ${register}`)
+            .style("left", (d3.event.pageX) + "px")
+            .style("top", (d3.event.pageY) + "px");
+        })
+    .on("mouseout", function(d) {
+        div.transition()
+            .duration(500)
+            .style("opacity", 0);
+    });
+
+    return gate
+}
 
 function cnot(x1, y1, y2) {
     gate = gate = d3.select("#circuit-detail-svg").append("g")
@@ -97,6 +161,34 @@ function cnot(x1, y1, y2) {
         .attr("x1", 0)
         .attr("x2", 0)
         .attr("y1", -20)
+        .attr("y2", y2)
+        .attr("stroke", "#002D9C")
+    gate.append("circle")
+        .attr("cx", 0)
+        .attr("cy", y2)
+        .attr("r", 5)
+        .attr("fill", "#002D9C")
+
+    return gate
+}
+
+function cz(x1, y1, y2) {
+    gate = gate = d3.select("#circuit-detail-svg").append("g")
+        .attr("transform", `translate(${x1}, ${y1})`)
+
+    // draw a circle at (0, 0), then draw two line to form a cross in the middle
+    gate.append("circle")
+        .attr("cx", 0)
+        .attr("cy", 0)
+        .attr("r", 5)
+        .attr("fill", "#002D9C")
+
+
+    // draw the target register
+    gate.append("line")
+        .attr("x1", 0)
+        .attr("x2", 0)
+        .attr("y1", 0)
         .attr("y2", y2)
         .attr("stroke", "#002D9C")
     gate.append("circle")

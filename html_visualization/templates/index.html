@@ -2,8 +2,6 @@
 <html lang="en">
 <head>
     <script src="https://d3js.org/d3.v5.min.js"></script>
-    <!-- <script type="module" src="https://cdn.skypack.dev/d3@7"></script>
-    <script type="module" src="{{ url_for('static', filename='js/module.js') }}"></script> -->
     <script src="{{ url_for('static', filename='js/data.js') }}"></script>
     <script src="{{ url_for('static', filename='js/register.js') }}"></script>
     <script src="{{ url_for('static', filename='js/gates.js') }}"></script>
@@ -87,6 +85,8 @@
         cnot(100, 250, -100)
         
     </script>
-    <div></div>
+    <div>
+        {{ data["register"] }}
+    </div>
 </body>
 </html>

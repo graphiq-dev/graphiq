@@ -1,5 +1,5 @@
 # an object of WSGI application
-from flask import Flask, jsonify, render_template, json
+from flask import Flask, jsonify, render_template, json, request, redirect, url_for
 import os
 
 app = Flask(__name__)  # Flask constructor
@@ -29,18 +29,26 @@ def read():
 
 @app.route('/')
 def index():
-    json_url = os.path.join(app.root_path, "static", "appdata", "circuit_data.json")
-    data = json.load(open(json_url))
+    json_url = os.path.join(app.root_path, "static", "data", "circuit_data.json")
+    cache["circuit"] = json.load(open(json_url))
 
-    return render_template("index.html", data=data)
+    return render_template("index.html", data=cache["circuit"])
 
 
-@app.route('/get_circuit_data')
-def get_circuit_data():
-    json_url = os.path.join(app.root_path, "static", "appdata", "circuit_data.json")
-    data = json.load(open(json_url))
+@app.route('/circuit_data', methods=['GET', 'POST'])
+def circuit_data():
+    if request.method == 'GET':
+        json_url = os.path.join(app.root_path, "static", "data", "circuit_data.json")
+        data = json.load(open(json_url))
 
-    return data
+        return data
+    else:
+        data = json.loads(request.get_data())
+        json_url = os.path.join(app.root_path, "static", "data", "circuit_data.json")
+        with open(json_url, "w") as outfile:
+            outfile.write(json.dumps(data, indent=3))
+
+        return data
 
 
 @app.route('/get_circuit_position_data')

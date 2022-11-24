@@ -80,7 +80,8 @@ def linear3_example():
 
 def linear3_example2():
     graph = nx.Graph([(1, 2), (2, 3)])
-    random_numbers = [*range(20, 100, 5)] + [200, 500]
+    # random_numbers = [*range(20, 100, 5)] + [200, 500]
+    random_numbers = [90]
     exemplary_multiple_test(graph, None, random_numbers, solver_setting=None)
 
 

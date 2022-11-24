@@ -76,10 +76,7 @@ def test_one_qubit_replacement():
     )
 
     hadamard_gate = dmf.get_one_qubit_gate(n_quantum, qubit_position, dmf.hadamard())
-    assert np.allclose(
-        noise.get_backend_dependent_noise(state1.dm, n_quantum, [qubit_position]),
-        hadamard_gate,
-    )
+
     noise.apply(state1, n_quantum, [qubit_position])
 
     state2.dm.apply_unitary(hadamard_gate)
@@ -100,12 +97,6 @@ def test_two_qubit_replacement():
         n_quantum, control_qubit, target_qubit, dmf.sigmax()
     )
 
-    assert np.allclose(
-        noise.get_backend_dependent_noise(
-            state1.dm, n_quantum, control_qubit, target_qubit
-        ),
-        cnot_gate,
-    )
     noise.apply(state1, n_quantum, control_qubit, target_qubit)
 
     state2.dm.apply_unitary(cnot_gate)
@@ -120,10 +111,6 @@ def test_pauli_error():
     noise = nm.PauliError("X")
 
     x_gate = dmf.get_one_qubit_gate(n_quantum, qubit_position, dmf.sigmax())
-    assert np.allclose(
-        noise.get_backend_dependent_noise(state1.dm, n_quantum, [qubit_position]),
-        x_gate,
-    )
     noise.apply(state1, n_quantum, [qubit_position])
 
     state2.dm.apply_unitary(x_gate)

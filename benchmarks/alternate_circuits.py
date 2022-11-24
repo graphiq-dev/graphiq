@@ -192,6 +192,6 @@ def exemplary_multiple_test(
             random_seed=random_numbers[i],
         )
         if len(results) > 1:
-            print(f"The random seed that works is {i}.")
+            print(f"The random seed that works is {random_numbers[i]}.")
             break
     report_alternate_circuits(results)

@@ -12,27 +12,29 @@ let state = {
 
 
 // init function
-function register_label_init() {
+function register_label_init(width, height) {
     const register_label_container = d3.select("body")
         .append("div")
         .attr("class", "circuit-label-container")
     register_label_container.append("svg")
         .attr("id", "circuit-label-svg")
-        .attr("width", 70)
-        .attr("height", 400)
+        .attr("width", width)
+        .attr("height", height)
+//        .attr("width", 70)
+//        .attr("height", 400)
     
     
     return register_label_container
 }
 
-function register_detail_init() {
+function register_detail_init(width, height) {
     const register_detail_container = d3.select("body")
         .append("div")
         .attr("class", "circuit-detail-container")
     register_detail_container.append("svg")
         .attr("id", "circuit-detail-svg")
-        .attr("width", 3000)
-        .attr("height", 400)
+        .attr("width", width)
+        .attr("height", height)
 
     return register_detail_container
 }
@@ -83,17 +85,17 @@ function draw_classical_register(x, y) {
 }
 
 // draw register label for both quantum and classical register
-function draw_register_label(reg_type, name, reg_num) {
-    x = 70
-    next_reg_label++
-    y = next_reg_label * 50
+function draw_register_label(label_name, x, y) {
+//    x = 70
+//    next_reg_label++
+//    y = next_reg_label * 50
     const new_register_label = d3.select("#circuit-label-svg")
 
     graph = new_register_label.append("g")
-        .attr("id", `${reg_type}-${name}-${reg_num}`)
+        .attr("id", `${label_name}`)
 
     text = graph.append("text")
-        .text(`${name}${reg_num}`)
+        .text(`${label_name}`)
         .attr("class", "register-label")
         .attr("x", x)
         .attr("y", y)

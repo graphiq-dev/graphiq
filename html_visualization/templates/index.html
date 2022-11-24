@@ -60,20 +60,14 @@
             .style("opacity", 0);
     </script>
     <script name="init">
-        register_label_init()
-        register_detail_init()   
+        register_label_init(70, 350)
+        register_detail_init(2000, 350)
         
         for (let i = 0; i < 4; i++) {
-            draw_register_label("q", "q", i)
+            draw_register_label(`q${i}`, 70, (i+1)*50)
         }
-
-        for (let i = 0; i < 1; i++) {
-            draw_register_label("q", "e", i)
-        }
-
-        for (let i = 0; i < 1; i++) {
-            draw_register_label("c", "c", i)
-        }
+        draw_register_label("e0", 70, 250)
+        draw_register_label("c0", 70, 300)
 
         for (let i = 0; i < 5; i++) {
             draw_quantum_register(0, (i+1)*50)

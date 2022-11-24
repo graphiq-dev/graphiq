@@ -226,7 +226,7 @@ class QuantumState:
         :raises ValueError: if existing representations within the QuantumState object cannot be sent to a
                            stabilizer representation AND no stabilizer representation is saved
         :return: stabilizer representation
-        :rtype: Stabilizer
+        :rtype: Stabilizer or MixedStabilizer
         """
         if self._stabilizer is not None:
             return self._stabilizer

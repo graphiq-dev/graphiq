@@ -2,6 +2,7 @@ import pytest
 import numpy as np
 import networkx as nx
 
+from src.backends.density_matrix import numpy as dmnp
 from src.state import QuantumState
 from src.state import DENSITY_MATRIX_QUBIT_THRESH
 from src.backends.stabilizer.tableau import CliffordTableau
@@ -9,14 +10,14 @@ from src.backends.stabilizer.tableau import CliffordTableau
 
 @pytest.mark.parametrize("n", [1, 2, 3, 4, 5])
 def test_initializing_dm_1(n):
-    data = np.eye(2**n)
+    data = dmnp.eye(2**n)
     state = QuantumState(n, data, representation="density matrix")
     assert np.allclose(state.dm.data, data / np.trace(data))
 
 
 @pytest.mark.parametrize("n", [1, 2, 3, 4, 5])
 def test_initializing_dm_2(n):
-    data = np.eye(2**n)
+    data = dmnp.eye(2**n)
     state = QuantumState(n, [data], representation=["density matrix"])
     assert np.allclose(state.dm.data, data / np.trace(data))
 
@@ -31,7 +32,7 @@ def test_initializing_dm_3():
 def test_initializing_dm_4():
     """Test that it fails if we have a size mismatch between state n and the data"""
     n = 5
-    data = np.eye(2 ** (n + 1))
+    data = dmnp.eye(2 ** (n + 1))
     with pytest.raises(AssertionError):
         QuantumState(n, data, representation="density matrix")
 
@@ -61,7 +62,7 @@ def test_initializing_graph_3():
 def test_initializing_dm_and_graph():
     n = 3
     data_g = nx.Graph([(1, 2), (2, 3)])
-    data_dm = np.eye(2**n)
+    data_dm = dmnp.eye(2**n)
     state = QuantumState(
         n, [data_dm, data_g], representation=["density matrix", "graph"]
     )
@@ -91,7 +92,7 @@ def test_initializing_stabilizer_3():
         QuantumState(n, data, representation="stabilizer")
 
 
-@pytest.mark.parametrize("size, data", [(5, 5), (4, np.eye(2**4))])
+@pytest.mark.parametrize("size, data", [(5, 5), (4, dmnp.eye(2**4))])
 def test_automatic_representation_selection_1(size, data):
     """
     Test that it defaults to density matrix if the datatype is compatible and the state size is smaller than the

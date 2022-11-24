@@ -5,9 +5,32 @@ Includes functions to generate commonly used matrices, apply certain gates, etc.
 
 """
 from functools import reduce
+import string
+import os
+import inspect
 
-import numpy as np
-from scipy.linalg import eigh
+from src.backends.density_matrix import numpy as np
+from src.backends.density_matrix import eig, eigh
+
+
+def dagger(matrix):
+    """
+    Returns the hermitian conjugate of an input matrix.
+    :param matrix: input matrix
+    :type matrix: np.ndarray
+    :return:
+    """
+    return matrix.conjugate().T
+
+
+def identity():
+    """
+    Return :math:`I` qubit matrix
+
+    :return: 2x2 identity matrix
+    :rtype: numpy.ndarray
+    """
+    return np.array([[1.0, 0.0], [0.0, 1.0]])
 
 
 def sigmax():
@@ -57,7 +80,7 @@ def phase():
     :return: the phase matrix
     :rtype: numpy.ndarray
     """
-    return np.diag([1.0, 1.0j])
+    return np.diag(np.array([1.0, 1.0j]))
 
 
 def state_ketx0():
@@ -242,7 +265,7 @@ def get_multi_qubit_gate(n_qubits, qubit_positions, target_gates):
     :param qubit_positions: a list of positions for non-identity gates
     :type qubit_positions: list[int]
     :param target_gates: a list of gates
-    :type target_gates: list[numpy.ndarray]
+    :type target_gates: list[numpy.ndarray] or tuple(numpy.ndarray)
     :raises AssertionError: if the number of qubit positions to apply gates is not equal to the number of gates
     :return: the resulting matrix that acts on the whole state
     :rtype: numpy.ndarray
@@ -453,6 +476,8 @@ def partial_trace(rho, keep, dims, optimize=False):
     Calculates the partial trace
     :math:`\\rho_a = Tr_b(\\rho)`
 
+    The partial trace is computed using the `einsum` function.
+
     :param rho: the (2D) matrix to take the partial trace
     :type rho: numpy.ndarray
     :param keep:  An array of indices of the spaces to keep. For instance, if the space is
@@ -467,15 +492,27 @@ def partial_trace(rho, keep, dims, optimize=False):
     :return: the (2D) matrix after partial trace
     :rtype: numpy.ndarray
     """
+
     keep = np.asarray(keep)
     dims = np.asarray(dims)
     ndim = dims.size
     nkeep = np.prod(dims[keep])
 
-    idx1 = [*range(ndim)]
-    idx2 = [ndim + i if i in keep else i for i in range(ndim)]
+    # string for initial array dimensions of form "abc...ABC...", where upper/lowercase = local Hilbert space
+    ssleft = "".join([string.ascii_lowercase[i] for i in range(ndim)]) + "".join(
+        [string.ascii_uppercase[i] for i in range(ndim)]
+    )
+
+    # string for final array dimensions is the same as initial, with upper/lowercase of dimensions to trace over omitted
+    ssright = "".join(
+        [string.ascii_lowercase[i] for i in range(ndim) if i in keep]
+    ) + "".join([string.ascii_uppercase[i] for i in range(ndim) if i in keep])
+
+    # e.g., "abcABC -> abAB" is partial trace over third qubit in three-qubit state
+    superscript = ssleft + "->" + ssright
+
     rho_a = rho.reshape(np.tile(dims, 2))
-    rho_a = np.einsum(rho_a, idx1 + idx2, optimize=optimize)
+    rho_a = np.einsum(superscript, rho_a)
     return rho_a.reshape(nkeep, nkeep)
 
 
@@ -492,9 +529,8 @@ def apply_cz(state_matrix, control_qubit, target_qubit):
     :return: the density matrix output after applying controlled-Z gate
     :rtype: numpy.ndarray
     """
-    n_qubits = int(np.log2(np.sqrt(state_matrix.size)))
+    n_qubits = int(np.round(np.log2(state_matrix.shape[0])))
     cz = get_two_qubit_controlled_gate(n_qubits, control_qubit, target_qubit, sigmaz())
-
     return cz @ state_matrix @ np.transpose(np.conjugate(cz))
 
 
@@ -578,7 +614,6 @@ def fidelity(rho, sigma):
     :return: the fidelity between 0 and 1
     :rtype: float
     """
-
     assert is_density_matrix(rho)
     assert is_density_matrix(sigma)
 
@@ -593,13 +628,21 @@ def fidelity(rho, sigma):
         rho_sigma = hermitianize(rho_sigma)
 
         rho_final = sqrtm_psd(rho_sigma)
-        # return np.maximum(np.minimum(np.real(np.trace(rho_final)) ** 2, 1.0), 0.0)
-        return np.real(np.trace(rho_final)) ** 2
+        f = np.real(np.trace(rho_final)) ** 2
+        if not np.isclose(f, 1.0):
+            raise Warning(f"Fidelity should be between 0 and 1. Value if {f}.")
+        f = np.maximum(np.minimum(f, 1.0), 0.0)
+        return f
 
 
 def trace_distance(rho, sigma):
     """
-    Return the trace distance between two states rho and sigma
+    Return the trace distance between two hermitian matrices, :math:`\\rho` and :math:`\\sigma`
+    The trace distance is computed as:
+
+    :math:`T(\\rho, \\sigma) = \\frac{1}{2} Tr\\left( \\sqrt{ (\\rho - \\sigma)^2 } \\right)
+     = \\frac{1}{2} \\sum_i | \\lambda_i |
+     `
 
     :param rho: the first state
     :type rho: numpy.ndarray
@@ -608,7 +651,12 @@ def trace_distance(rho, sigma):
     :return: the trace distance between 0 and 1
     :rtype: float
     """
-    return np.real(np.linalg.norm(rho - sigma, "nuc") / 2)
+    # error in jax.numpy.linalg.norm when computing nucleus norm
+    # return np.real(np.linalg.norm(rho - sigma, "nuc") / 2)
+
+    # assuming rho & sigma are hermitian, compute trace distance as mod sum of eigenvalues
+    eigvals, _ = eigh(rho - sigma)
+    return 0.5 * np.sum(np.abs(eigvals))
 
 
 def bipartite_partial_transpose(rho, dim1, dim2, subsys):
@@ -642,10 +690,11 @@ def bipartite_partial_transpose(rho, dim1, dim2, subsys):
     pt_dims = np.arange(4).reshape(2, 2).T
     pt_index = np.concatenate(
         [
-            [pt_dims[n, mask[n]] for n in range(2)],
-            [pt_dims[n, 1 - mask[n]] for n in range(2)],
+            np.array([pt_dims[n, mask[n]] for n in range(2)]),
+            np.array([pt_dims[n, 1 - mask[n]] for n in range(2)]),
         ]
     )
+
     rho_pt = (
         rho.reshape(np.array([dim1, dim1, dim2, dim2]))
         .transpose(pt_index)
@@ -658,6 +707,8 @@ def negativity(rho, dim1, dim2):
     """
     Return the negativity of the matrix rho.
 
+    :math:`\\mathcal{N}(\\rho) = \\frac{|| \\rho^{\\Lambda_A} - 1}{2}`
+
     :param rho: the density matrix to evaluate the negativity
     :type rho: numpy.ndarray
     :param dim1: dimension of the first system
@@ -668,10 +719,9 @@ def negativity(rho, dim1, dim2):
     :rtype: float
     """
     rho_pt = bipartite_partial_transpose(rho, dim1, dim2, 0)
-
-    eig_vals, _ = np.linalg.eig(rho_pt)
+    # eig_vals = np.real(np.linalg.eigvals(rho_pt))
+    eig_vals, _ = eigh(rho_pt)
     eig_vals = np.real(eig_vals)
-
     return np.sum(np.abs(eig_vals) - eig_vals) / 2
 
 
@@ -805,7 +855,7 @@ def is_unitary(input_matrix):
     if input_matrix.shape[0] != input_matrix.shape[1]:
         return False
     identity = np.eye(input_matrix.shape[0])
-    adjoint = np.conjugate(input_matrix.T)
+    adjoint = dagger(input_matrix)
     return np.allclose(input_matrix @ adjoint, identity) and np.allclose(
         adjoint @ input_matrix, identity
     )
@@ -837,3 +887,17 @@ def check_equivalent_unitaries(unitary_op1, unitary_op2):
         return True
     else:
         return False
+
+
+def amplitude_damping_operators(damping_prob):
+    """
+    Return two channel operators corresponding to the single-qubit amplitude damping channel.
+
+    :return: channel operator
+    :rtype: (numpy.ndarray, numpy.ndarray)
+    """
+    assert 0.0 <= damping_prob <= 1.0
+    return (
+        np.array([[1.0, 0.0], [0.0, np.sqrt(1.0 - damping_prob)]]),
+        np.array([[0.0, np.sqrt(damping_prob)], [0.0, 0.0]]),
+    )

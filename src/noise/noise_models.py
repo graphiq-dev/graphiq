@@ -3,7 +3,7 @@ The Noise objects are objects that tell the compiler the noise model of each gat
 
 A noise can be placed before or after the execution of the gate. It can also alter the behavior of the gate. To allow
 the flexibility to place the noise, the user needs to specify where to put the noise. Currently, we support placing
-additional noise before or after a gate as well as replacing a gate. 
+additional noise before or after a gate as well as replacing a gate.
 
 Currently, we consider only local errors.
 
@@ -28,7 +28,7 @@ from src.backends.stabilizer.state import Stabilizer, MixedStabilizer
 from src.backends.graph.state import Graph
 from src.backends.state_base import StateRepresentationBase
 
-REDUCE_STABILIZER_MIXTURE = False
+REDUCE_STABILIZER_MIXTURE = True
 
 
 """ Base classes from which any noise model will inherit """
@@ -468,6 +468,66 @@ class LocalCliffordError(AdditionNoiseBase):
                 raise TypeError("Backend type is not supported.")
 
 
+class AmplitudeDampingNoise(AdditionNoiseBase):
+    """
+    Amplitude damping noise described by a depolarizing probability
+
+    """
+
+    def __init__(self, damping_probability):
+        """
+        Construct an amplitude damping noise model
+
+        :param damping_probability: the dampening probability between 0 and 1
+        :type damping_probability: float
+        """
+        noise_parameters = {"damping_probability": damping_probability}
+        super().__init__(noise_parameters)
+
+    def apply(self, state: QuantumState, n_quantum, reg_list):
+        """
+        Apply the noisy gate to the state representations of state
+
+        :param state: the state
+        :type state: QuantumState
+        :param n_quantum: number of qubits
+        :type n_quantum: int
+        :param reg_list: a list of registers where the noise is applied
+        :type reg_list: list[int]
+        :return: nothing
+        :rtype: None
+        """
+        for state_rep in state.all_representations:
+            if isinstance(state_rep, DensityMatrix):
+                damping_prob = self.noise_parameters["damping_probability"]
+                if damping_prob == 0.0:
+                    return
+                single_qubit_kraus = dmf.amplitude_damping_operators(damping_prob)
+                kraus_ops_iter = itertools.combinations(
+                    single_qubit_kraus, len(reg_list)
+                )
+                kraus_ops = []
+                for kraus_op in kraus_ops_iter:
+                    kraus_ops.append(
+                        dmf.get_multi_qubit_gate(n_quantum, reg_list, kraus_op)
+                    )
+
+                state_rep.apply_channel(kraus_ops)
+
+            elif isinstance(state_rep, Stabilizer):
+                # TODO: Find the correct representation for Stabilizer backend
+                raise NotImplementedError(
+                    "AmplitudeDamping not implemented for stabilizer representation"
+                )
+            elif isinstance(state_rep, Graph):
+                # TODO: Implement this for Graph backend
+                raise NotImplementedError(
+                    "AmplitudeDamping not implemented for graph representation"
+                )
+            else:
+                raise TypeError("Backend type is not supported.")
+
+
 class DepolarizingNoise(AdditionNoiseBase):
     """
     Depolarizing noise described by a depolarizing probability
@@ -511,7 +571,7 @@ class DepolarizingNoise(AdditionNoiseBase):
         for state_rep in state.all_representations:
             if isinstance(state_rep, DensityMatrix):
                 single_qubit_kraus = [
-                    np.eye(2),
+                    dmf.identity(),
                     dmf.sigmax(),
                     dmf.sigmay(),
                     dmf.sigmaz(),
@@ -571,7 +631,7 @@ class DepolarizingNoise(AdditionNoiseBase):
                     "DepolarizingNoise not implemented for graph representation"
                 )
             else:
-                raise TypeError("Backend type is not supported.")
+                raise TypeError(f"Backend type {type(state_rep)} is not supported.")
 
 
 class HadamardPerturbedError(OneQubitGateReplacement):
@@ -710,12 +770,12 @@ class PhotonLoss(AdditionNoiseBase):
                 raise TypeError("Backend type is not supported.")
 
 
-""" 
-Noise models to be implemented in the future. 
-The following classes are not implemented yet. 
+"""
+Noise models to be implemented in the future.
+The following classes are not implemented yet.
 
-TODO: scattering/ collapse noise. A non-unitary noise model to have the state of a single qubit collapsed 
-(measured and reset in some basis) with some probability after some particular gates 
+TODO: scattering/ collapse noise. A non-unitary noise model to have the state of a single qubit collapsed
+(measured and reset in some basis) with some probability after some particular gates
 (depending on the physics of the quantum emitters).
 """
 

@@ -2,6 +2,8 @@
 from flask import Flask, jsonify, render_template, json, request, redirect, url_for
 import os
 
+from draw import DrawingManager
+
 app = Flask(__name__)  # Flask constructor
 
 
@@ -31,8 +33,9 @@ def read():
 def index():
     json_url = os.path.join(app.root_path, "static", "data", "circuit_data.json")
     cache["circuit"] = json.load(open(json_url))
+    draw = DrawingManager(cache["circuit"]["openqasm"])
 
-    return render_template("index.html", data=cache["circuit"])
+    return render_template("index.html", data=cache["circuit"], draw=draw)
 
 
 @app.route('/circuit_data', methods=['GET', 'POST'])

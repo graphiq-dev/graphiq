@@ -36,6 +36,7 @@ class QuantumState:
     initialization.
 
     """
+
     # TODO: add a handle to delete specific representations (may be useful to clear out memory)
 
     def __init__(self, n_qubits, data, representation=None, mixed=False):

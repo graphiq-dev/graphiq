@@ -2,9 +2,10 @@
 The Operation objects are objects which tell the compiler what gate to apply on which registers / qubits
 
 They serve two purposes:
-1. They are used to build our circuit: circuit.add(OperationObj). The circuit constructs the DAG structure from the
-connectivity information in OperationObj
-2. They are passed as an iterable to the compiler, such that the compiler can perform the correct series of information
+    1. They are used to build our circuit: circuit.add(OperationObj). The circuit constructs the DAG structure from the
+       connectivity information in OperationObj
+    2. They are passed as an iterable to the compiler, such that the compiler can perform the correct series of
+       information
 
 REGISTERS VS QUDITS/CBITS: following qiskit/openQASM and other softwares, we allow a distinction between registers
 and qudits/qubits (where one register can contain a number of qubits / qudits).
@@ -18,8 +19,8 @@ and qubit d of register c.
 We can also use a mixture of registers an qubits: q_registers=(a, (b, c)) means that the operation will be applied
 between EACH QUBIT of register a, and qubit c of register b
 
-TODO: consider refactoring register notation to not use tuples (which can be confusing).
 """
+# TODO: consider refactoring register notation to not use tuples (which can be confusing).
 from abc import ABC
 import itertools
 import numpy as np
@@ -751,8 +752,9 @@ class MeasurementCNOTandReset(ClassicalControlledPairOperationBase):
 class MeasurementZ(OperationBase):
     """
     Z Measurement Operation
-    TODO: maybe create a base class for measurements in the future IFF we also want to support other measurements
     """
+
+    # TODO: maybe create a base class for measurements in the future IFF we also want to support other measurements
 
     _openqasm_info = oq_lib.z_measurement_info()
 

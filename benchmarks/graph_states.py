@@ -54,6 +54,7 @@ def star_graph_state(points):
 def random_graph_state(n_qubits, p_edge, np_rng=None):
     """
     Creates a random graph where each edge is added with probability
+
     :param n_qubits: number of qubits in the graph state
     :type n_qubits: int
     :param p_edge: the probability of an edge existing between any two nodes a, b

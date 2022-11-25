@@ -3,11 +3,11 @@ Circuit class, which defines the sequence of operations and gates.
 Once a compiler is defined, the resulting quantum state can be simulated.
 
 The Circuit class can be:
-
-1. manually constructed, with new operations added to the end of the circuit or inserted at a specified location for CircuitDAG
-2. evaluated into a sequence of Operations, based on the topological ordering
+    1. manually constructed, with new operations added to the end of the circuit or inserted at a specified location
+       for CircuitDAG
+    2. evaluated into a sequence of Operations, based on the topological ordering
         Purpose (example): use at compilation step, use for compatibility with other software (e.g. openQASM)
-3. visualized or saved using, for example, openQASM
+    3. visualized or saved using, for example, openQASM
         Purpose: method of saving circuit (ideal), compatibility with other software, visualizers
 
 Further reading on DAG circuit representation:
@@ -15,17 +15,19 @@ https://qiskit.org/documentation/stubs/qiskit.converters.circuit_to_dag.html
 
 
 Experimental:
+
 REGISTER HANDLING (only for RegisterCircuitDAG):
 
 In qiskit and openQASM, for example, you can apply operations on either a specific qubit in a specific register OR
 on the full register (see ops.py for an explanation of how registers are applied).
-1. Each operation received (whether or not it applies to full registers) is broken down into a set of operations that
-apply between a specific number of qubits (i.e. an operation for each qubit of the register).
-2. Registers can be added/expanded via provided methods.
+
+    1. Each operation received (whether or not it applies to full registers) is broken down into a set of operations that
+       apply between a specific number of qubits (i.e. an operation for each qubit of the register).
+    2. Registers can be added/expanded via provided methods.
 
 USER WARNINGS:
-1. if you expand a register AFTER using an Operation which applied to the full register, the Operation will
-NOT retroactively apply to the added qubits
+    1. if you expand a register AFTER using an Operation which applied to the full register, the Operation will
+       NOT retroactively apply to the added qubits
 
 """
 import copy
@@ -365,6 +367,7 @@ class CircuitBase(ABC):
         """
         Provides the index of the next emitter qubit in the provided quantum register. This allows the user to query
         which qubit they should add next, should they decide to expand the register
+
         :param register: the register index {0, ..., N - 1} for N emitter quantum registers
         :type register: int
         :return: the index of the next qubit
@@ -376,6 +379,7 @@ class CircuitBase(ABC):
         """
         Provides the index of the next photonic qubit in the provided quantum register. This allows the user to query
         which qubit they should add next, should they decide to expand the register
+
         :param register: the register index {0, ..., N - 1} for N photonic quantum registers
         :type register: int
         :return: the index of the next qubit
@@ -387,6 +391,7 @@ class CircuitBase(ABC):
         """
         Provides the index of the next cbit in the provided classical register. This allows the user to query
         which qubit they should add next, should they decide to expand the register
+
         :param register: the register index {0, ..., M - 1} for M classical registers
         :type register: int
         :return: the index of the next cbit
@@ -1452,7 +1457,7 @@ class CircuitDAG(CircuitBase):
         :param root_node: root node that is used as starting point
         :type root_node: node
         :return: the max depth of the node
-        :r_type: int
+        :rtype: int
         """
         # Check if the node is the Input node
         # If Input node then return -1
@@ -1475,7 +1480,7 @@ class CircuitDAG(CircuitBase):
         :param reg_type: str indicates register type. Can be "e", "p", or "c"
         :type reg_type: str
         :return: the array of register indexes with depth from smallest to largest
-        :r_type: numpy.array
+        :rtype: numpy.array
         """
         return np.argsort(self.calculate_reg_depth(reg_type=reg_type))
 
@@ -1487,7 +1492,7 @@ class CircuitDAG(CircuitBase):
         :param reg_type: str indicates register type. Can be "e", "p", or "c"
         :type reg_type: str
         :return: the array of register depth of all register in the register type
-        :r_type: numpy.array
+        :rtype: numpy.array
         """
         if reg_type not in self._register_depth:
             raise ValueError(f"register type {reg_type} is not in this circuit")
@@ -1505,7 +1510,7 @@ class CircuitDAG(CircuitBase):
         :param reg_type: str indicates register type. Can be "e", "p", or "c"
         :type reg_type: str
         :return: the index of register with min depth within register type
-        :r_type: int
+        :rtype: int
         """
         return np.argmin(self.calculate_reg_depth(reg_type=reg_type))
 
@@ -1515,7 +1520,7 @@ class CircuitDAG(CircuitBase):
         Then return the register depth dict
 
         :return: register depth dict that has been calculated
-        :r_type: dict
+        :rtype: dict
         """
         for reg_type in self._register_depth:
             self.calculate_reg_depth(reg_type=reg_type)

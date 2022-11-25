@@ -18,9 +18,13 @@ Contents
    circuits
    backends
    metrics
+   state
+   io
    noise
    solvers
-
+   utils
+   visualizers
+   benchmarks
 
 
 Indices and tables

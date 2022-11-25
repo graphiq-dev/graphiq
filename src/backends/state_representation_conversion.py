@@ -139,6 +139,7 @@ def graph_to_density(input_graph):
 def graph_to_stabilizer(input_graph):
     """
     Convert a graph to stabilizer
+
     :param input_graph: the input graph to be converted to the stabilizer
     :type input_graph: networkX.Graph or numpy.ndarray
     :raise TypeError: if input_graph is not of the type of networkx.Graph or a src.backends.graph.state.Graph
@@ -199,13 +200,13 @@ def density_to_stabilizer(input_matrix):
     Convert a density matrix to stabilizer via graph representation
 
     This works only for graph states, not for general stabilizer states that are not graph states
-    TODO: generalize to general stabilizer states
 
     :param input_matrix: a density matrix
     :type input_matrix: numpy.ndarray
     :return: a stabilizer representation
     :rtype: list[str]
     """
+    # TODO: generalize to general stabilizer states
     graph = density_to_graph(input_matrix)
     stabilizer = graph_to_stabilizer(graph)
     return stabilizer

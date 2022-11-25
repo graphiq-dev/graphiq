@@ -2,17 +2,17 @@
 The QuantumState/GraphState classes mediates the interactions between different graph representations
 
 State representations that we support are:
-1. Density matrix
-2. Stabilizer
+    1. Density matrix
+    2. Stabilizer
 
 State representations that we intend to support in the near future are:
-1. Graph representation
+    1. Graph representation
 
-TODO: once we can convert more easily between different representations,
-we should REMOVE the requirement that data be a list the same length as the
-number of requested representations, and ideally just use a single data
-object to initialize all representations
 """
+# TODO: once we can convert more easily between different representations,
+#  we should REMOVE the requirement that data be a list the same length as the
+#  number of requested representations, and ideally just use a single data
+#  object to initialize all representations
 import warnings
 import networkx as nx
 
@@ -35,8 +35,9 @@ class QuantumState:
     It also should also be able to add (where possible) representation which were not present at
     initialization.
 
-    TODO: add a handle to delete specific representations (may be useful to clear out memory)
     """
+
+    # TODO: add a handle to delete specific representations (may be useful to clear out memory)
 
     def __init__(self, n_qubits, data, representation=None, mixed=False):
         """

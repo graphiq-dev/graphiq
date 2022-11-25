@@ -1,14 +1,12 @@
 """
 Density matrix representation for states.
-
-It supports applications of unitary operations, quantum channels and measurements on the state.
-
+Supports unitary operations, quantum channels, and state measurements.
 """
-import networkx as nx
-import numpy as np
+import numpy
 import matplotlib.pyplot as plt
 import src.backends.density_matrix.functions as dmf
 
+from src.backends.density_matrix import numpy as np
 from src.backends.state_base import StateRepresentationBase
 from src.backends.graph.state import Graph
 from src.visualizers.density_matrix import density_matrix_heatmap, density_matrix_bars
@@ -131,9 +129,9 @@ class DensityMatrix(StateRepresentationBase):
                 if prob < 0:
                     prob = 0
                 probs.append(prob)
-
+            probs = np.array(probs)
             if measurement_determinism == "probabilistic":
-                outcome = np.random.choice([0, 1], p=probs / np.sum(probs))
+                outcome = numpy.random.choice([0, 1], p=probs / np.sum(probs))
             elif measurement_determinism == 1:
                 if probs[1] > 0:
                     outcome = 1

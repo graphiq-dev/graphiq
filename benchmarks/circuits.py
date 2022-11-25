@@ -6,7 +6,7 @@ import networkx as nx
 
 from src.circuit import CircuitDAG
 from src.ops import *
-
+from src import ops
 from src.backends.density_matrix.functions import (
     state_ketz0,
     state_ketz1,
@@ -158,5 +158,66 @@ def linear_cluster_4qubit_circuit():
             control=0, control_type="e", target=3, target_type="p", c_register=0
         )
     )
+
+    return circuit, ideal_state
+
+
+def variational_entangling_layer_2qubit():
+    """
+    Variational circuit composed of one local rotation and entangling rotation gate, with the ideal state being a
+    Bell state.
+    """
+    ket = dmf.tensor([dmf.state_ketz0(), dmf.state_ketz0()]) + dmf.tensor(
+        [dmf.state_ketz1(), dmf.state_ketz1()]
+    )
+    state = DensityMatrix(dmf.ket2dm(ket))
+    ideal_state = QuantumState(2, state.data, representation="density matrix")
+
+    circuit = CircuitDAG(n_emitter=2, n_photon=0, n_classical=0)
+    circuit.add(ParameterizedOneQubitRotation(register=0, reg_type="e"))
+    circuit.add(
+        ParameterizedControlledRotationQubit(
+            control=0, control_type="e", target=1, target_type="e"
+        )
+    )
+
+    return circuit, ideal_state
+
+
+def strongly_entangling_layer(n_qubits=3, layers=1):
+    """
+    Variational circuit composed of a single entangling layer. Ideal state is an n-qubit GHZ state.
+    """
+
+    ket = (
+        1
+        / np.sqrt(2**n_qubits)
+        * (
+            dmf.tensor(n_qubits * [dmf.state_ketz0()])
+            + dmf.tensor(n_qubits * [dmf.state_ketz1()])
+        )
+    )
+    state = DensityMatrix(dmf.ket2dm(ket))
+    ideal_state = QuantumState(n_qubits, state.data, representation="density matrix")
+
+    circuit = CircuitDAG(n_emitter=n_qubits, n_photon=0, n_classical=0)
+    for layer in range(layers):
+        for i in range(n_qubits):
+            circuit.add(
+                ops.ParameterizedOneQubitRotation(
+                    register=i,
+                    reg_type="e",
+                    params=(0.0, 1.0, 1.0),  # set the parameters explicitly, if desired
+                )
+            )
+        for i in range(n_qubits):
+            circuit.add(
+                ops.CNOT(
+                    control=i,
+                    control_type="e",
+                    target=(i + 1) % n_qubits,
+                    target_type="e",
+                )
+            )
 
     return circuit, ideal_state

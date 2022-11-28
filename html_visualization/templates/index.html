@@ -5,11 +5,6 @@
     <script src="{{ url_for('static', filename='js/data.js') }}"></script>
     <script src="{{ url_for('static', filename='js/register.js') }}"></script>
     <script src="{{ url_for('static', filename='js/gates.js') }}"></script>
-    <!-- <script>
-        var data = {{ data | safe }}
-
-        console.log(data)
-    </script> -->
     <style>
         div.circuit-label-container {
             /* To see element border */
@@ -86,6 +81,8 @@
 
         cnot(50, 250, -100)
         cnot(100, 250, -100)
+
+        cz(200, 250, -100)
         
     </script>
     <div class="data-panel">

@@ -133,8 +133,24 @@ function p_gate(x, y, register) {
     return gate
 }
 
+function create_control_at(element, x1, y1, y2, color="#002D9C") {
+    element.append("line")
+        .attr("x1", x1)
+        .attr("x2", x1)
+        .attr("y1", y1)
+        .attr("y2", y2)
+        .attr("stroke", color)
+    element.append("circle")
+        .attr("cx", x1)
+        .attr("cy", y2)
+        .attr("r", 5)
+        .attr("fill", color)
+
+    return g
+}
+
 function cnot(x1, y1, y2) {
-    gate = gate = d3.select("#circuit-detail-svg").append("g")
+    gate = d3.select("#circuit-detail-svg").append("g")
         .attr("transform", `translate(${x1}, ${y1})`)
 
     // draw a circle at (0, 0), then draw two line to form a cross in the middle
@@ -156,18 +172,8 @@ function cnot(x1, y1, y2) {
         .attr("y2", -10)
         .attr("stroke", "white")
 
-    // draw the target register
-    gate.append("line")
-        .attr("x1", 0)
-        .attr("x2", 0)
-        .attr("y1", -20)
-        .attr("y2", y2)
-        .attr("stroke", "#002D9C")
-    gate.append("circle")
-        .attr("cx", 0)
-        .attr("cy", y2)
-        .attr("r", 5)
-        .attr("fill", "#002D9C")
+    // draw the control gate
+    create_control_at(gate, 0, -20, y2)
 
     return gate
 }
@@ -185,17 +191,7 @@ function cz(x1, y1, y2) {
 
 
     // draw the target register
-    gate.append("line")
-        .attr("x1", 0)
-        .attr("x2", 0)
-        .attr("y1", 0)
-        .attr("y2", y2)
-        .attr("stroke", "#002D9C")
-    gate.append("circle")
-        .attr("cx", 0)
-        .attr("cy", y2)
-        .attr("r", 5)
-        .attr("fill", "#002D9C")
+    create_control_at(gate, 0, 0, y2)
 
     return gate
 }

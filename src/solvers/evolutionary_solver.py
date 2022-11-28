@@ -20,6 +20,11 @@ from src import ops
 
 
 class EvolutionarySearchSolverSetting(RandomSearchSolverSetting):
+    """
+    A class to store the solver setting of an EvolutionarySearchSolver
+
+    """
+
     def __init__(
         self,
         n_hof=5,

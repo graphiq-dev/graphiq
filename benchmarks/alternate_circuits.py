@@ -24,18 +24,18 @@ def search_for_alternative_circuits(
     solver to get a benchmark circuit and score. It then calls the hybrid solver based on deterministic solver and
     random / evolutionary search solver
 
-    :param graph:
+    :param graph: a graph that represents a graph state
     :type graph: networkX.Graph
-    :param noise_model_mapping:
+    :param noise_model_mapping: a way to assign noises to gates
     :type noise_model_mapping: dict
-    :param metric_class:
-    :type metric_class:
-    :param solver_setting:
-    :type solver_setting:
-    :param random_seed:
-    :type random_seed:
-    :return:
-    :rtype:
+    :param metric_class: a metric class
+    :type metric_class: MetricBase or its subclass
+    :param solver_setting: specifies the setting of a chosen solver
+    :type solver_setting: RandomSearchSolverSetting or EvolutionarySearchSolverSetting
+    :param random_seed: a random seed
+    :type random_seed: int
+    :return: results are stored in terms of (score, survival probability, circuit)
+    :rtype: list[tuple(float, float, CircuitDAG)]
     """
     results = []
     target_tableau = get_clifford_tableau_from_graph(graph)
@@ -77,6 +77,7 @@ def search_for_alternative_circuits(
     )
     hybrid_solver.seed(random_seed)
     hybrid_solver.solve()
+    # add a small tolerance for score comparison
     tolerance = 0.001
     for i in range(hybrid_solver.setting.n_hof):
         alternate_score = hybrid_solver.hof[i][0]
@@ -101,6 +102,14 @@ def search_for_alternative_circuits(
 
 
 def report_alternate_circuits(results):
+    """
+    A way to print out results
+
+    :param results: results are stored in terms of (score, survival probability, circuit)
+    :type results: tuple
+    :return: nothing
+    :rtype: None
+    """
     print(f"Find {len(results)} circuits that produce the same state.")
     print(
         f"The circuit (first one drawn) returned by the deterministic solver has a score of {results[0][0]},\
@@ -117,8 +126,18 @@ def report_alternate_circuits(results):
         print("There is no alternative circuit found.")
 
 
-def noise_model_loss_and_depolarizing(error_rate, loss_rate):
-    emitter_noise = noise.DepolarizingNoise(error_rate)
+def noise_model_loss_and_depolarizing(depolarizing_prob, loss_rate):
+    """
+    A noise model with photon losses and depolarizing noise
+
+    :param depolarizing_prob: the depolarizing probability
+    :type depolarizing_prob: float
+    :param loss_rate: the probability of losing one photon
+    :type loss_rate: float
+    :return:
+    :rtype:
+    """
+    emitter_noise = noise.DepolarizingNoise(depolarizing_prob)
     photon_loss = noise.PhotonLoss(loss_rate)
     noise_model_mapping = {
         "e": {"CNOT": emitter_noise},
@@ -130,6 +149,12 @@ def noise_model_loss_and_depolarizing(error_rate, loss_rate):
 
 
 def noise_model_pauli_error():
+    """
+    A noise model with only Pauli errors
+
+    :return: a way to map noises to gates
+    :rtype: dict
+    """
     pauli_x_error = noise.PauliError("X")
     pauli_y_error = noise.PauliError("Y")
     pauli_z_error = noise.PauliError("Z")
@@ -151,6 +176,14 @@ def noise_model_pauli_error():
 
 
 def noise_model_pure_loss(loss_rate):
+    """
+    A noise model with only photon losses
+
+    :param loss_rate: the probability of losing one photon
+    :type loss_rate: float
+    :return: a way to map noises to gates
+    :rtype: dict
+    """
     photon_loss = noise.PhotonLoss(loss_rate)
     noise_model_mapping = {
         "e": {},
@@ -169,6 +202,20 @@ def noise_model_pure_loss(loss_rate):
 
 
 def exemplary_test(graph, noise_model_mapping, solver_setting=None, random_seed=1):
+    """
+    Run one exemplary test to search alternative circuits for an input graph state.
+
+    :param graph: an input graph that represents a graph state
+    :type graph: networkX.Graph
+    :param noise_model_mapping: a way to map noises to gates
+    :type noise_model_mapping: dict
+    :param solver_setting: specifies the setting of the chosen solver
+    :type solver_setting: RandomSearchSolverSetting or EvolutionarySearchSolverSetting
+    :param random_seed: a random seed
+    :type random_seed: int
+    :return: nothing
+    :rtype: None
+    """
     if solver_setting is None:
         solver_setting = EvolutionarySearchSolverSetting()
     results = search_for_alternative_circuits(
@@ -180,6 +227,20 @@ def exemplary_test(graph, noise_model_mapping, solver_setting=None, random_seed=
 def exemplary_multiple_test(
     graph, noise_model_mapping, random_numbers, solver_setting=None
 ):
+    """
+    Run exemplary test multiple times
+
+    :param graph: an input graph that represents a graph state
+    :type graph: networkX.Graph
+    :param noise_model_mapping: a way to map noises to gates
+    :type noise_model_mapping: dict
+    :param random_numbers: a list of random numbers
+    :type random_numbers: list[int]
+    :param solver_setting: specifies the setting of the chosen solver
+    :type solver_setting: RandomSearchSolverSetting or EvolutionarySearchSolverSetting
+    :return: nothing
+    :rtype: None
+    """
     if solver_setting is None:
         solver_setting = EvolutionarySearchSolverSetting()
     for i in range(len(random_numbers)):

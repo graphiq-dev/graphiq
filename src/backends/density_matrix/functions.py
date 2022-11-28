@@ -55,7 +55,7 @@ def sigmay():
 
 def sigmaz():
     """
-    Return :math:`\\sigma_z`matrix
+    Return :math:`\\sigma_z` matrix
 
     :return: sigma Z matrix
     :rtype: numpy.ndarray
@@ -74,7 +74,7 @@ def hadamard():
 
 
 def phase():
-    r"""
+    """
     Return the phase matrix :math:`P = \\begin{bmatrix} 1 & 0 \\\ 0 & i \\end{bmatrix}`
 
     :return: the phase matrix
@@ -758,7 +758,7 @@ def project_to_z0_and_remove(rho, locations):
 
 
 def parameterized_one_qubit_unitary(theta, phi, lam):
-    r"""
+    """
     Define a generic 3-parameter one-qubit unitary gate.
 
     :math:`U(\\theta, \\phi, \\lambda) = \\begin{bmatrix} \\cos(\\frac{\\theta}{2}) & -e^{i \\lambda}
@@ -787,7 +787,7 @@ def parameterized_one_qubit_unitary(theta, phi, lam):
 
 
 def full_one_qubit_unitary(n_qubits, qubit_position, theta, phi, lam):
-    r"""
+    """
     Define a generic 3-parameter one-qubit unitary gate that acts on the whole space.
 
     :math:`U(\\theta, \\phi, \\lambda) = \\begin{bmatrix} \\cos(\\frac{\\theta}{2}) & -e^{i \\lambda}
@@ -818,9 +818,9 @@ def full_two_qubit_controlled_unitary(
     Define a generic 4-parameter two-qubit gate that is a controlled unitary gate.
     :math:`|0\\rangle \\langle 0|\\otimes I +
     e^{i \\gamma} |1\\rangle \\langle 1| \\otimes U(\\theta, \\phi, \\lambda)`,
-    where :math:`U(\\theta,\\phi, \\lambda) =
-    \\begin{bmatrix} \\cos(\\frac{\\theta}{2}) & -e^{i \\lambda} \\sin(\\frac{\\theta}{2}) \\\
-    e^{i \\phi}\\sin(\\frac{\\theta}{2}) & e^{i (\\phi+\\lambda)}\\cos(\\frac{\\theta}{2})\\end{bmatrix}`
+    where :math:`U(\\theta,\\phi, \\lambda) =\\begin{bmatrix} \\cos(\\frac{\\theta}{2}) & -e^{i \\lambda}
+    \\sin(\\frac{\\theta}{2})\\\ e^{i \\phi}\\sin(\\frac{\\theta}{2}) &
+    e^{i (\\phi+\\lambda)}\\cos(\\frac{\\theta}{2})\\end{bmatrix}`
 
     :param n_qubits: number of qubits
     :type n_qubits: int

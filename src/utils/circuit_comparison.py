@@ -1,8 +1,8 @@
 """
 Functions to compare quantum circuits
 
-TODO: GED implementation requires further investigation.
 """
+# TODO: GED implementation requires further investigation.
 import networkx as nx
 
 

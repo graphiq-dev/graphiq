@@ -14,8 +14,9 @@ class DensityMatrixCompiler(CompilerBase):
     Compiler which deals exclusively with the DensityMatrix state representation.
     Currently creates a DensityMatrix state object and applies the circuit Operations to it in order
 
-    # TODO: [longer term] refactor to take a QuantumState object input instead of creating its own initial state?
     """
+
+    # TODO: [longer term] refactor to take a QuantumState object input instead of creating its own initial state?
 
     name = "density matrix"
     ops = {  # the accepted operations and the single-qubit action needed for each gate

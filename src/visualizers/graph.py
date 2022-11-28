@@ -19,8 +19,9 @@ def draw_graph(state_graph, show=False, ax=None, with_labels=True):
     :type with_labels: bool
     :return: function returns nothing
     :rtype: None
-    TODO: return fig, ax
     """
+    # TODO: return fig, ax
+
     nx.draw(
         state_graph.get_graph_id_form(),
         with_labels=with_labels,

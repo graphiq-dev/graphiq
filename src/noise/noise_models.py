@@ -7,11 +7,12 @@ additional noise before or after a gate as well as replacing a gate.
 
 Currently, we consider only local errors.
 
-TODO: Maybe think about coherent errors
-TODO: Think about how to quickly initialize noise models for all gates
-TODO: Implement more noise models
-TODO: Check incompatibility between noise models and operations, between noise models and backend representations
 """
+
+# TODO: Maybe think about coherent errors
+# TODO: Think about how to quickly initialize noise models for all gates
+# TODO: Implement more noise models
+# TODO: Check incompatibility between noise models and operations, between noise models and backend representations
 
 import numpy as np
 import itertools
@@ -220,7 +221,6 @@ class TwoQubitControlledGateReplacement(ReplacementNoiseBase):
     A replacement type of gate for two-qubit controlled unitary gate, where noises can be added to the control qubit
     before the gate and after the gate, and the gate applied on the target qubit can be a generic one-qubit gate.
 
-    TODO: add a backend-independent description of unitary gates and update this class
     """
 
     def __init__(

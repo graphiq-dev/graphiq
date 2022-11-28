@@ -195,8 +195,8 @@ class DensityMatrix(StateRepresentationBase):
         :return: fig, axes on which the state is drawn
         :rtype: matplotlib.figure, matplotlib.axes
 
-        TODO: add a "ax" parameter to match the other viewing utils
         """
+        # TODO: add a "ax" parameter to match the other viewing utils
         if style == "bar":
             fig, axs = density_matrix_bars(self.data)
         else:
@@ -218,102 +218,3 @@ class DensityMatrix(StateRepresentationBase):
         :rtype: bool
         """
         return np.allclose(self._data, other.data)
-
-
-class DensityMatrixQubit(DensityMatrix):
-    def __init__(self, data, *args, **kwargs):
-        """
-        Construct a DensityMatrix object from a numpy.ndarray or from the number of qubits. If an integer is specified,
-        then the state is initialized as a product state of :math:`|0\\rangle` with the given number of qubits.
-
-        :param data: density matrix or the number of qubits
-        :type data: numpy.ndarray or int
-        :return: nothing
-        :rtype: None
-        """
-        super().__init__(data, *args, **kwargs)
-        self._n_qubits = int(np.log2(self.data.shape[0]))
-        self.qubit_presence = self._n_qubits * [True]
-
-    @property
-    def n_qubits(self):
-        return self._n_qubits
-
-    @property
-    def n_present_qubits(self):
-        return self.qubit_presence.count(True)
-
-    def _count_effective_position(self, qubit_position):
-        removed_positions = self.qubit_presence[0:qubit_position].count(False)
-        return qubit_position - removed_positions
-
-    def delete_qubit(self, qubit_position):
-        """
-
-        :param qubit_position: original qubit position before any qubit deletion
-        :type qubit_position: int
-        :return:
-        :rtype:
-        """
-
-        new_position = self._count_effective_position(qubit_position)
-        keep = np.arange(self.n_present_qubits)
-        keep = np.delete(keep, new_position)
-        dims = self.n_present_qubits * [2]
-        self.data = dmf.partial_trace(self.data, keep=keep, dims=dims)
-        self.qubit_presence[qubit_position] = False
-
-    def apply_one_qubit_gate(self, qubit_position, op):
-        """
-
-        :param qubit_position: original qubit position before any qubit deletion
-        :type qubit_position:
-        :param op:
-        :type op:
-        :return:
-        :rtype:
-        """
-        if self.qubit_presence[qubit_position]:
-            new_position = self._count_effective_position(qubit_position)
-            unitary = dmf.get_one_qubit_gate(self.n_present_qubits, new_position, op)
-            super().apply_unitary(unitary)
-
-    def apply_two_qubit_controlled_gate(
-        self, control_position, target_position, target_gate
-    ):
-        """
-
-        :param control_position:
-        :type control_position:
-        :param target_position:
-        :type target_position:
-        :param target_gate:
-        :type target_gate:
-        :return:
-        :rtype:
-        """
-        if (
-            self.qubit_presence[control_position]
-            and self.qubit_presence[target_position]
-        ):
-            new_control = self._count_effective_position(control_position)
-            new_target = self._count_effective_position(target_position)
-            unitary = dmf.get_two_qubit_controlled_gate(
-                self.n_present_qubits, new_control, new_target, target_gate
-            )
-            super().apply_unitary(unitary)
-
-    def measure_qubit(self, qubit_position, measurement_determinism="probabilistic"):
-        """
-
-        :param qubit_position:
-        :type qubit_position:
-        :param measurement_determinism:
-        :type measurement_determinism:
-        :return:
-        :rtype:
-        """
-        if self.qubit_presence[qubit_position]:
-            new_position = self._count_effective_position(qubit_position)
-            projectors = dmf.projectors_zbasis(self.n_present_qubits, new_position)
-            super().apply_measurement(projectors, measurement_determinism)

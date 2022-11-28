@@ -1,13 +1,14 @@
 """
 The purpose of this document is to have a single place in which openQASM functionality has to be kept up to date
 
+TODO: consider what to do if we move onto qudits
+TODO: gate definitions drawn from openQASM 3, so there's actually a global phase shift in the implementations
 in openQASM 2.0 due to the ways in which things were implemented. We should fix that if we ever want to use
 openQASM for anything other than visualization purposes
+
+TODO: refactor to use: https://github.com/Qiskit/qiskit-terra/blob/main/qiskit/qasm/libs/qelib1.inc
+      I think this may allow us to have all the ops we need?
 """
-# TODO: consider what to do if we move onto qudits
-# TODO: gate definitions drawn from openQASM 3, so there's actually a global phase shift in the implementations
-# TODO: refactor to use: https://github.com/Qiskit/qiskit-terra/blob/main/qiskit/qasm/libs/qelib1.inc
-#       I think this may allow us to have all the ops we need?
 
 
 class OpenQASMInfo:

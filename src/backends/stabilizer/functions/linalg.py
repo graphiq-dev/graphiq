@@ -135,7 +135,7 @@ def row_reduction(x_matrix, z_matrix):
     :param x_matrix: binary matrix for representing Pauli X part of the symplectic binary
         representation of the stabilizer generators.
     :type x_matrix: numpy.ndarray
-    :param z_matrix: binary matrix for representing Pauli Z part of the
+    :param z_matrix:binary matrix for representing Pauli Z part of the
         symplectic binary representation of the stabilizer generators
     :type z_matrix: numpy.ndarray
     :return: a tuple of the transformed x_matrix and z_matrix and the index of the last non-zero row of the new x_matrix

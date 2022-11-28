@@ -480,7 +480,7 @@ def _col_finder(row_reduced_coeff_matrix):
 def local_clifford_ops(solution):
     """
     Finds a list of operators needed to be applied on each qubit of the first graph to transform in to the second,
-    given the Clifford transformation matrix, which is the output of the solver function.
+        given the Clifford transformation matrix, which is the output of the solver function.
 
     :param solution: an array of single-qubit Clifford :math:`2 \\times 2` matrices in the symplectic formalism
     :type solution: numpy.ndarray
@@ -512,8 +512,8 @@ def local_clifford_ops(solution):
 def lc_graph_operations(adj_matrix, solution):
     """
     Finds a list of local complementations needed to be applied on each node of the given graph
-    to transform it into the target graph given the Clifford transformation matrix,
-    which is the output of the solver function.
+        to transform it into the target graph given the Clifford transformation matrix,
+        which is the output of the solver function.
 
     :param adj_matrix: The adjacency matrix of the first graph. This is equal to the binary matrix for
         representing Pauli Z part of the symplectic binary representation of the stabilizer generators

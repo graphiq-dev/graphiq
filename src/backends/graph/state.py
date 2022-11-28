@@ -1,8 +1,8 @@
 """
 Graph representation of quantum state
 
-"""
 # TODO: Refactor and revise when building the compiler for graph representation
+"""
 import networkx as nx
 import warnings
 from collections.abc import Iterable
@@ -22,10 +22,10 @@ class Graph(StateRepresentationBase):
     As the intermediate states of the process may not be graph states (but assuming still stabilizer states),
     we may need to keep track of local Cliffords that convert the state to the graph state represented by the graph
 
+    # TODO: set default root_node_id if the user doesn't specify one?
+    # We should figure out how to handle cases where the root node is not obvious
     """
 
-    # TODO: set default root_node_id if the user doesn't specify one?
-    #  We should figure out how to handle cases where the root node is not obvious
     def __init__(self, data, root_node_id, *args, **kwargs):
         """
         Create a Graph representation object
@@ -192,11 +192,11 @@ class Graph(StateRepresentationBase):
         :type other_graph: Graph
         :param mode: the chosen mode for finding solutions. It can be either 'deterministic' (default) or 'random'.
         :type mode: str
-        :raises AssertionError: if the number of rows in the row reduced matrix is less than the rank of coefficient
-            matrix or if the number of linearly dependent columns is not equal to :math:`4n - rank`
-            (for :math:`n` being the number of nodes in the graph)
+        :raises AssertionError: if the number of rows in the row reduced matrix is less than the rank of coefficient matrix
+        or if the number of linearly dependent columns is not equal to :math:`4n - rank`
+        (for :math:`n` being the number of nodes in the graph)
         :return: If a solution is found, returns True and an array of single-qubit Clifford :math:`2 \\times 2` matrices
-            in the symplectic formalism. If not, graphs are not LC equivalent and returns False, None.
+        in the symplectic formalism. If not, graphs are not LC equivalent and returns False, None.
         :rtype: bool, numpy.ndarray or None
         """
         g1 = nx.to_numpy_array(self.data).astype(int)
@@ -471,7 +471,6 @@ class Graph(StateRepresentationBase):
     def merge(self, id1, id2):
         """
         Merges two nodes in the graph by:
-
         1. Creating a new node, new_node, where the node_id is union(node1_id, node2_id) --> union of the frozen sets
         2. For any edges of the form (a, node1) or (a, node2) with a in V (the set of nodes of the graph),
            add the edge (a, new_node) to the graph
@@ -479,7 +478,7 @@ class Graph(StateRepresentationBase):
 
         Note that this is NOT the fusion gate function, as it doesn't take into account possibility of
         failure. We also DO NOT check whether there is an existing edge between node1, node2 prior to merging.
-        It is merely a function that deterministically merges nodes.
+         It is merely a function that deterministically merges nodes.
 
         :param id1: the ID of the first node in the graph to merge
         :type id1: int or frozenset

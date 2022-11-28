@@ -3,8 +3,8 @@ Evolutionary solver which includes a random search solver as a special case.
 This solver is based on certain physical rules imposed by a platform.
 One can define these rules via the allowed DAG transformations.
 
-"""
 # TODO: evolutionary solvers very often perform better with elitism. Consider adding
+"""
 
 import numpy as np
 import warnings
@@ -251,7 +251,6 @@ class EvolutionarySolver(RandomSearchSolver):
         :return: nothing
         :rtype: None
         """
-        # TODO: check whether the input iteration is needed.
         self.trans_probs[self.add_emitter_one_qubit_op] = max(
             self.trans_probs[self.add_emitter_one_qubit_op]
             - 1 / self.setting.n_stop / 3,

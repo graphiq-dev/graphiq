@@ -57,23 +57,6 @@ def test_ghz3():
     assert np.allclose(output_dm, target_state.dm.data)
 
 
-def test_1000_qubits():
-    n_photons = 998
-    n_emitters = 2
-    emission_assignment = EvolutionarySolver.get_emission_assignment(
-        n_photons, n_emitters
-    )
-    measurement_assignment = EvolutionarySolver.get_measurement_assignment(
-        n_photons, n_emitters
-    )
-    circuit = EvolutionarySolver.initialization(
-        emission_assignment, measurement_assignment
-    )
-    compiler = StabilizerCompiler()
-    output_stabilizer = compiler.compile(circuit)
-    # print(output_stabilizer.stabilizer.tableau)
-
-
 def test_compile_circuit():
     dag = CircuitDAG(n_emitter=1, n_photon=3, n_classical=0)
     dag.add(

@@ -416,10 +416,10 @@ class MixedStabilizer(StateRepresentationBase):
         Reduce the number of tableaux store in the mixture by comparing the Hamming distance between them.
         Probabilities are summed and one tableau removed if they are the same.
 
-        # TODO: explore other ways of reduction and further simplification using a standard form.
-
-        :return:
+        :return: nothing
+        :rtype: None
         """
+        # TODO: explore other ways of reduction and further simplification using a standard form.
         mixture_temp = self._mixture
         mixture_reduce = []
         while len(mixture_temp) != 0:

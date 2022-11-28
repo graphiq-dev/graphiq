@@ -25,9 +25,9 @@ def search_for_alternative_circuits(
     random / evolutionary search solver
 
     :param graph:
-    :type graph:
+    :type graph: networkX.Graph
     :param noise_model_mapping:
-    :type noise_model_mapping:
+    :type noise_model_mapping: dict
     :param metric_class:
     :type metric_class:
     :param solver_setting:
@@ -68,7 +68,6 @@ def search_for_alternative_circuits(
         prob = 1
 
     results.append((benchmark_score, prob, benchmark_circuit))
-    print("starting hybrid solver")
     hybrid_solver = HybridEvolutionarySolver(
         target=target,
         metric=metric,

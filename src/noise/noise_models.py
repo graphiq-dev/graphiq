@@ -589,7 +589,9 @@ class DepolarizingNoise(AdditionNoiseBase):
                     )
                 state_rep.apply_channel(kraus_ops)
 
-            elif isinstance(state_rep, Stabilizer):
+            elif isinstance(state_rep, Stabilizer) or isinstance(
+                state_rep, MixedStabilizer
+            ):
                 if not isinstance(state_rep, MixedStabilizer):
                     state.stabilizer = MixedStabilizer([(1.0, state_rep.data)])
                     state_rep = state.stabilizer
@@ -752,15 +754,14 @@ class PhotonLoss(AdditionNoiseBase):
                 raise NotImplementedError(
                     "PhotonLoss not implemented for density matrix representation"
                 )
+            elif isinstance(state_rep, MixedStabilizer):
+                mixture = state_rep.mixture
+                for i in range(len(mixture)):
+                    mixture[i] = ((1 - loss_rate) * mixture[i][0], mixture[i][1])
             elif isinstance(state_rep, Stabilizer):
-                if isinstance(state_rep, MixedStabilizer):
-                    mixture = state_rep.mixture
-                    for i in range(len(mixture)):
-                        mixture[i] = ((1 - loss_rate) * mixture[i][0], mixture[i][1])
-                else:
-                    state_rep = MixedStabilizer([(1 - loss_rate, state_rep.data)])
-
+                state_rep = MixedStabilizer([(1 - loss_rate, state_rep.data)])
                 state.stabilizer = state_rep
+
             elif isinstance(state_rep, Graph):
                 # TODO: Implement this for Graph backend
                 raise NotImplementedError(

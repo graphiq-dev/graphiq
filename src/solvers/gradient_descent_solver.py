@@ -79,6 +79,7 @@ class GradientDescentSolver(SolverBase):
     def solve(self, initial_params=None):
         """
         Main gradient descent algorithm, performing `n_steps` updates with the provided optimizer.
+
         :param initial_params: initial parameter dictionary
         :type initial_params: dict
         :return: cost_curve, params: list of computed cost values at each optimization step, and final optimized params

@@ -538,6 +538,7 @@ class DeterministicSolver(SolverBase):
             target_type="p",
             noise=self._identify_noise(ops.CNOT.__name__, self.noise_model_mapping),
         )
+        gate.add_labels("Fixed")
         circuit.insert_at(gate, [edge0, edge1])
 
     def _find_emitter_indices(self, tableau, generator_index):
@@ -618,6 +619,7 @@ class DeterministicSolver(SolverBase):
                 ops.MeasurementCNOTandReset.__name__, self.noise_model_mapping
             ),
         )
+        gate.add_labels("Fixed")
         circuit.insert_at(gate, [edge0, edge1])
 
     def _wrap_noise(self, op, noise_model_mapping):

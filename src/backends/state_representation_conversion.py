@@ -8,6 +8,7 @@ import numpy as np
 import networkx as nx
 
 import src.backends.density_matrix.functions as dmf
+from src.backends.density_matrix import numpy as dmnp
 import src.backends.graph.functions as gf
 import src.backends.stabilizer.functions.utils as sfu
 import src.backends.stabilizer.functions.linalg as slinalg
@@ -78,12 +79,14 @@ def density_to_graph(input_matrix, threshold=0.1):
     :return: an adjacency matrix representation
     :rtype: numpy.ndarray
     """
-
-    if isinstance(input_matrix, np.ndarray):
+    if isinstance(
+        input_matrix, (np.ndarray, dmnp.ndarray)
+    ):  # check if numpy array or numpy/jax array
         rho = input_matrix
     else:
         raise TypeError("Input density matrix must be a numpy.ndarray")
-    n_qubits = int(np.log2(np.sqrt(rho.size)))
+    n_qubits = int(np.round(np.log2(rho.shape[0])))
+
     graph_adj = np.zeros((n_qubits, n_qubits))
     for i in range(n_qubits):
         for j in range(i + 1, n_qubits):
@@ -136,6 +139,7 @@ def graph_to_density(input_graph):
 def graph_to_stabilizer(input_graph):
     """
     Convert a graph to stabilizer
+
     :param input_graph: the input graph to be converted to the stabilizer
     :type input_graph: networkX.Graph or numpy.ndarray
     :raise TypeError: if input_graph is not of the type of networkx.Graph or a src.backends.graph.state.Graph
@@ -196,13 +200,13 @@ def density_to_stabilizer(input_matrix):
     Convert a density matrix to stabilizer via graph representation
 
     This works only for graph states, not for general stabilizer states that are not graph states
-    TODO: generalize to general stabilizer states
 
     :param input_matrix: a density matrix
     :type input_matrix: numpy.ndarray
     :return: a stabilizer representation
     :rtype: list[str]
     """
+    # TODO: generalize to general stabilizer states
     graph = density_to_graph(input_matrix)
     stabilizer = graph_to_stabilizer(graph)
     return stabilizer

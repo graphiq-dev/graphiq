@@ -1,13 +1,12 @@
 import numpy as np
 import networkx as nx
-
 from functools import reduce
+
 from src.backends.density_matrix.state import DensityMatrix
 from src.backends.graph.state import Graph
 import src.backends.density_matrix.functions as dmf
 import src.backends.graph.functions as gf
 import src.backends.stabilizer.functions.utils as sfu
-
 import src.backends.state_representation_conversion as rep_converter
 
 
@@ -17,7 +16,6 @@ def test_negativity():
     st1 = dmf.state_ketx0()
 
     st1 = dmf.reduce(np.kron, n_qubits * [st1 @ np.conjugate(st1.T)])
-
     assert dmf.negativity(st1, 4, 4) < 0.1
 
     graph1 = nx.Graph([(0, 1), (1, 2)])

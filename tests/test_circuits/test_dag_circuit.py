@@ -482,3 +482,126 @@ def test_visualization_unwrapped_2():
     except Exception as e:
         print(dag.to_openqasm())
         raise e
+
+
+def test_circuit_comparison_1():
+    # self-comparison should return True
+    circuit1 = CircuitDAG(n_emitter=0, n_photon=1, n_classical=0)
+    circuit1.add(ops.Hadamard(register=0, reg_type="e"))
+    circuit1.add(ops.CNOT(control=0, control_type="e", target=0, target_type="p"))
+    ged = circuit1.compare(circuit1, method="GED_full")
+    ged_approximate = circuit1.compare(circuit1, method="GED_approximate")
+    ged_adaptive = circuit1.compare(circuit1, method="GED_adaptive")
+    direct = circuit1.compare(circuit1)
+
+    assert ged
+    assert ged_approximate
+    assert ged_adaptive
+    assert direct
+
+
+def test_circuit_comparison_2():
+    # one-qubit
+    circuit1 = CircuitDAG(n_emitter=0, n_photon=1, n_classical=0)
+    circuit2 = CircuitDAG(n_emitter=0, n_photon=1, n_classical=0)
+    circuit2.add(ops.Phase(register=0, reg_type="p"))
+    ged12 = circuit1.compare(circuit2, method="GED_full")
+    match12 = circuit1.compare(circuit2)
+
+    circuit3 = CircuitDAG(n_emitter=1, n_photon=0, n_classical=0)
+    circuit4 = CircuitDAG(n_emitter=0, n_photon=1, n_classical=0)
+    ged34 = circuit3.compare(circuit4, method="GED_full")
+    match34 = circuit3.compare(circuit4)
+
+    assert not ged12
+    assert not ged34
+    assert not match12
+    assert not match34
+
+
+def test_circuit_comparison_3():
+    # two-qubit
+    circuit1 = CircuitDAG(n_emitter=1, n_photon=1, n_classical=1)
+    circuit1.add(ops.CNOT(control=0, control_type="p", target=1, target_type="p"))
+    circuit2 = CircuitDAG(n_emitter=1, n_photon=1, n_classical=1)
+    circuit2.add(
+        ops.ClassicalCNOT(
+            control=0, control_type="p", target=1, target_type="p", c_register=0
+        )
+    )
+    ged12 = circuit1.compare(circuit2, method="GED_full")
+    match12 = circuit1.compare(circuit2)
+
+    circuit3 = CircuitDAG(n_emitter=0, n_photon=2, n_classical=0)
+    circuit3.add(ops.CNOT(control=1, control_type="p", target=0, target_type="p"))
+    circuit4 = CircuitDAG(n_emitter=0, n_photon=2, n_classical=0)
+    circuit4.add(ops.CZ(control=0, control_type="p", target=1, target_type="p"))
+    ged34 = circuit3.compare(circuit4, method="GED_full")
+    match34 = circuit3.compare(circuit4)
+
+    circuit5 = CircuitDAG(n_emitter=1, n_photon=1, n_classical=0)
+    circuit5.add(ops.Phase(register=0, reg_type="e"))
+    circuit6 = CircuitDAG(n_emitter=1, n_photon=1, n_classical=0)
+    circuit6.add(ops.CNOT(control=0, control_type="e", target=0, target_type="p"))
+    ged56 = circuit5.compare(circuit6, method="GED_full")
+    match56 = circuit5.compare(circuit6)
+
+    assert not ged12
+    assert not ged34
+    assert not ged56
+    assert not match12
+    assert not match34
+    assert not match56
+
+
+def test_circuit_comparison_4():
+    circuit1 = CircuitDAG(n_emitter=2, n_photon=2, n_classical=0)
+    circuit1.add(ops.CNOT(control=0, control_type="e", target=0, target_type="p"))
+    circuit1.add(ops.CNOT(control=1, control_type="e", target=1, target_type="p"))
+    circuit2 = CircuitDAG(n_emitter=2, n_photon=2, n_classical=0)
+    circuit2.add(ops.CNOT(control=0, control_type="e", target=1, target_type="p"))
+    circuit2.add(ops.CNOT(control=1, control_type="e", target=0, target_type="p"))
+    ged = circuit1.compare(circuit2, method="GED_full")
+    match = circuit1.compare(circuit2)
+
+    assert not ged
+    assert not match
+
+
+def test_circuit_comparison_5():
+    # lager circuit comparison
+    from benchmarks.circuits import ghz3_state_circuit
+    from benchmarks.circuits import ghz4_state_circuit
+
+    circuit1, _ = ghz3_state_circuit()
+    circuit2, _ = ghz4_state_circuit()
+
+    ged1 = circuit1.compare(circuit1, method="GED_full")
+    ged2 = circuit2.compare(circuit2, method="GED_full")
+    ged12 = circuit1.compare(circuit2, method="GED_full")
+    match1 = circuit1.compare(circuit1)
+    match2 = circuit2.compare(circuit2)
+    match12 = circuit1.compare(circuit2)
+
+    assert ged1
+    assert ged2
+    assert not ged12
+    assert match1
+    assert match2
+    assert not match12
+
+
+def test_circuit_comparison_6():
+    gate1 = [ops.SigmaY, ops.SigmaX]
+    gate2 = [ops.SigmaX, ops.Phase]
+    circuit1 = CircuitDAG(n_emitter=1, n_photon=0, n_classical=0)
+    circuit1.add(ops.Phase(register=0, reg_type="e"))
+    circuit1.add(ops.OneQubitGateWrapper(gate1, register=0, reg_type="e"))
+    circuit2 = CircuitDAG(n_emitter=1, n_photon=0, n_classical=0)
+    circuit2.add(ops.OneQubitGateWrapper(gate2, register=0, reg_type="e"))
+    circuit2.add(ops.SigmaY(register=0, reg_type="e"))
+    ged = circuit1.compare(circuit2, method="GED_full")
+    match = circuit1.compare(circuit2)
+
+    assert ged
+    assert match

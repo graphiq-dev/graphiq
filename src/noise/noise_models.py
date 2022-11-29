@@ -7,11 +7,11 @@ additional noise before or after a gate as well as replacing a gate.
 
 Currently, we consider only local errors.
 
-TODO: Maybe think about coherent errors
-TODO: Think about how to quickly initialize noise models for all gates
-TODO: Implement more noise models
-TODO: Check incompatibility between noise models and operations, between noise models and backend representations
 """
+# TODO: Maybe think about coherent errors
+# TODO: Think about how to quickly initialize noise models for all gates
+# TODO: Implement more noise models
+# TODO: Check incompatibility between noise models and operations, between noise models and backend representations
 
 import numpy as np
 import itertools
@@ -84,8 +84,11 @@ class NoiseBase(ABC):
                 )
                 state_rep.apply_unitary(noisy_gate)
             elif isinstance(state_rep, Stabilizer):
-                # TODO: Find the correct representation for Stabilizer backend
-                pass
+                gate_list = self.get_backend_dependent_noise(
+                    state_rep, n_quantum, reg_list
+                )
+                state_rep.apply_circuit(gate_list)
+
             elif isinstance(state_rep, Graph):
                 # TODO: Implement this for Graph backend
                 pass
@@ -163,8 +166,7 @@ class NoNoise(AdditionNoiseBase):
         if isinstance(state_rep, DensityMatrix):
             return np.eye(state_rep.data.shape[0])
         elif isinstance(state_rep, Stabilizer):
-            # TODO: Find the correct representation for Stabilizer backend
-            return n_quantum * "I"
+            return []
         elif isinstance(state_rep, Graph):
             # simply return None
             return
@@ -187,8 +189,9 @@ class OneQubitGateReplacement(ReplacementNoiseBase):
     """
     A replacement type of noise for one-qubit gates
 
-    TODO: add a backend-independent description of unitary gates and update this class
     """
+
+    # TODO: add a backend-independent description of unitary gates and update this class
 
     def __init__(self, one_qubit_unitary):
         """
@@ -234,8 +237,9 @@ class TwoQubitControlledGateReplacement(ReplacementNoiseBase):
     A replacement type of gate for two-qubit controlled unitary gate, where noises can be added to the control qubit
     before the gate and after the gate, and the gate applied on the target qubit can be a generic one-qubit gate.
 
-    TODO: add a backend-independent description of unitary gates and update this class
     """
+
+    # TODO: add a backend-independent description of unitary gates and update this class
 
     def __init__(
         self,
@@ -393,11 +397,21 @@ class PauliError(AdditionNoiseBase):
                 return np.eye(2**n_quantum)
             else:
                 raise ValueError("Wrong description of a Pauli matrix.")
+
         elif isinstance(state_rep, Stabilizer):
-            # TODO: Find the correct representation for Stabilizer backend
-            raise NotImplementedError(
-                "PauliError not implemented for stabilizer representation"
-            )
+            gate_list = []
+            if pauli_error == "X":
+                gate_list.append(("X", reg_list[0]))
+            elif pauli_error == "Y":
+                gate_list.append(("Y", reg_list[0]))
+            elif pauli_error == "Z":
+                gate_list.append(("Z", reg_list[0]))
+            elif pauli_error == "I":
+                pass
+            else:
+                raise ValueError("Wrong description of a Pauli matrix.")
+            return gate_list
+
         elif isinstance(state_rep, Graph):
             # TODO: Implement this for Graph backend
             raise NotImplementedError(
@@ -482,6 +496,66 @@ class LocalCliffordError(AdditionNoiseBase):
             pass
         else:
             raise TypeError("Backend type is not supported.")
+
+
+class AmplitudeDampingNoise(AdditionNoiseBase):
+    """
+    Amplitude damping noise described by a depolarizing probability
+
+    """
+
+    def __init__(self, damping_probability):
+        """
+        Construct an amplitude damping noise model
+
+        :param damping_probability: the dampening probability between 0 and 1
+        :type damping_probability: float
+        """
+        noise_parameters = {"damping_probability": damping_probability}
+        super().__init__(noise_parameters)
+
+    def apply(self, state: QuantumState, n_quantum, reg_list):
+        """
+        Apply the noisy gate to the state representations of state
+
+        :param state: the state
+        :type state: QuantumState
+        :param n_quantum: number of qubits
+        :type n_quantum: int
+        :param reg_list: a list of registers where the noise is applied
+        :type reg_list: list[int]
+        :return: nothing
+        :rtype: None
+        """
+        for state_rep in state.all_representations:
+            if isinstance(state_rep, DensityMatrix):
+                damping_prob = self.noise_parameters["damping_probability"]
+                if damping_prob == 0.0:
+                    return
+                single_qubit_kraus = dmf.amplitude_damping_operators(damping_prob)
+                kraus_ops_iter = itertools.combinations(
+                    single_qubit_kraus, len(reg_list)
+                )
+                kraus_ops = []
+                for kraus_op in kraus_ops_iter:
+                    kraus_ops.append(
+                        dmf.get_multi_qubit_gate(n_quantum, reg_list, kraus_op)
+                    )
+
+                state_rep.apply_channel(kraus_ops)
+
+            elif isinstance(state_rep, Stabilizer):
+                # TODO: Find the correct representation for Stabilizer backend
+                raise NotImplementedError(
+                    "AmplitudeDamping not implemented for stabilizer representation"
+                )
+            elif isinstance(state_rep, Graph):
+                # TODO: Implement this for Graph backend
+                raise NotImplementedError(
+                    "AmplitudeDamping not implemented for graph representation"
+                )
+            else:
+                raise TypeError("Backend type is not supported.")
 
 
 class DepolarizingNoise(AdditionNoiseBase):
@@ -711,8 +785,9 @@ class MixedUnitaryError(AdditionNoiseBase):
     """
     Mixed unitary error, described by an ensemble of unitary operations
 
-    TODO: implement this error model
     """
+
+    # TODO: implement this error model
 
     def __init__(self, unitaries_list, prob_list):
         """
@@ -788,8 +863,9 @@ class CoherentUnitaryError(AdditionNoiseBase):
     """
     Coherent unitary error described by a single unitary
 
-    # TODO: implement this error model
     """
+
+    # TODO: implement this error model
 
     def __init__(self, unitary):
         """
@@ -839,8 +915,9 @@ class MeasurementError(NoiseBase):
     """
     a measurement error described by a conditional probability distribution
 
-     # TODO: implement this error model
     """
+
+    # TODO: implement this error model
 
     def __init__(self, prob_dist):
         """
@@ -918,8 +995,9 @@ class GeneralKrausError(AdditionNoiseBase):
 
     This error may only work for the DensityMatrix backend.
 
-    # TODO: Implement this noise model by figuring out how to pass parameters
     """
+
+    # TODO: Implement this noise model by figuring out how to pass parameters
 
     def __init__(self, kraus_ops):
         """
@@ -990,8 +1068,9 @@ class ResetError(NoiseBase):
     """
     Reset error
 
-    # TODO: implement this error model
     """
+
+    # TODO: implement this error model
 
     def __init__(self, noise_parameters={}):
         super().__init__(noise_parameters)
@@ -1057,8 +1136,9 @@ class PhotonLoss(NoiseBase):
     """
     Photon loss
 
-    TODO: implement this error model
     """
+
+    # TODO: implement this error model
 
     def __init__(self, loss_rate):
         noise_parameters = {"loss rate": loss_rate}

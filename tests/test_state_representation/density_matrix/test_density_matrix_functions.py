@@ -59,6 +59,20 @@ def test_multi_qubit_gate3():
     )
 
 
+def test_multi_qubit_gate4():
+    assert np.allclose(
+        get_multi_qubit_gate(2, [1, 0], [sigmax(), sigmaz()]),
+        get_one_qubit_gate(2, 1, sigmax()) @ get_one_qubit_gate(2, 0, sigmaz()),
+    )
+
+
+def test_multi_qubit_gate5():
+    assert np.allclose(
+        get_multi_qubit_gate(4, [3, 1], [sigmax(), sigmaz()]),
+        get_one_qubit_gate(4, 3, sigmax()) @ get_one_qubit_gate(4, 1, sigmaz()),
+    )
+
+
 def test_fidelity():
     rho = 1 / 2 * (ket2dm(state_ketx0()) + ket2dm(state_ketx1()))
     sigma = np.eye(2) / 2
@@ -70,7 +84,6 @@ def test_fidelity():
 
 @pytest.mark.parametrize("n_qubits", [2, 4, 6])
 def test_fidelity_multiqubit(n_qubits):
-
     rho = create_n_product_state(n_qubits, state_ketx0())
     sigma = (
         create_n_product_state(n_qubits, state_kety0()) / 2

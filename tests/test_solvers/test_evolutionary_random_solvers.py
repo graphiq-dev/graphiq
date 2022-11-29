@@ -91,7 +91,7 @@ def check_run_visual(run_info, expected_info):
 def linear3_run(density_matrix_compiler, linear3_expected):
     """
     Again, we set the fixture scope to module. Arguably, this is more important than last time because actually
-    running the solve takes (relatively) long.
+    running the solve function takes (relatively) long.
 
     Since we want to apply 2 separate tests on the same run (one visual, one non-visual), it makes sense to have a
     common fixture that only gets called once per module
@@ -122,12 +122,12 @@ def linear4_run(density_matrix_compiler, linear4_expected):
     Since we want to apply 2 separate tests on the same run (one visual, one non-visual), it makes sense to have a
     common fixture that only gets called once per module
     """
-    return generate_run(4, 1, linear4_expected, density_matrix_compiler, 10)
+    return generate_run(4, 1, linear4_expected, density_matrix_compiler, 1)
 
 
 @pytest.fixture(scope="module")
 def linear4_run_stabilizer(stabilizer_compiler, linear4_expected):
-    return generate_run(4, 1, linear4_expected, stabilizer_compiler, 10)
+    return generate_run(4, 1, linear4_expected, stabilizer_compiler, 1)
 
 
 @pytest.fixture(scope="module")
@@ -255,6 +255,7 @@ def test_solver_logging(seed):
         io=io,
     )
     solver.seed(seed)
+    solver.n_stop = 5
 
     solver.solve()
     solver.logs_to_df()

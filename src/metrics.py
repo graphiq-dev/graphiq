@@ -150,8 +150,12 @@ class TraceDistance(MetricBase):
 
     def evaluate(self, state, circuit):
         """
-        Evaluates the trace distance from a given state and circuit
+        Evaluates the trace distance between the state to the target state.
 
+        The trace distance is computed between two density matrices :math:`\\rho` and :math:`\\sigma` as:
+        :math:`T(\\rho, \\sigma) = \\frac{1}{2} Tr\\left( \\sqrt{ (\\rho - \\sigma)^2 } \\right)
+         = \\frac{1}{2} \\sum_i | \\lambda_i |
+         `
         :param state: the state to evaluate
         :type state: QuantumState
         :param circuit: circuit which generated state
@@ -172,12 +176,11 @@ class TraceDistance(MetricBase):
 
 class CircuitDepth(MetricBase):
     """
-    A Circuit Depth based metric object
+    A metric which calculates the circuit depth
     """
 
     def __init__(self, log_steps=1, depth_penalty=None, *args, **kwargs):
         """
-        Create CircuitDepth object
 
         :param log_steps: the metric values are computed at every log_steps optimization step
         :type log_steps: int

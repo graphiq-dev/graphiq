@@ -39,7 +39,7 @@ def height_func_list(x_matrix, z_matrix):
     :param z_matrix: z matrix in the symplectic representation of the stabilizers
     :type z_matrix: np.ndarray
     :return: the height as a function of qubit positions in graph. This is related to the entanglement entropy with
-    respect to the bi-partition of the state at the given position.
+        respect to the bi-partition of the state at the given position.
     :rtype: list[int]
     """
     n_qubits = np.shape(x_matrix)[0]
@@ -73,7 +73,7 @@ def height_function(x_matrix, z_matrix, qubit_position):
     :param qubit_position: label or position of the qubit/node in the graph
     :type qubit_position: int
     :return: the height function at the given qubit. This is related to the entanglement entropy with respect to the
-    bi-partition of the state at the given position.
+        bi-partition of the state at the given position.
     :rtype: int
     """
 

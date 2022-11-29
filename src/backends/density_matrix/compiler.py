@@ -14,25 +14,32 @@ class DensityMatrixCompiler(CompilerBase):
     Compiler which deals exclusively with the DensityMatrix state representation.
     Currently creates a DensityMatrix state object and applies the circuit Operations to it in order
 
-    # TODO: [longer term] refactor to take a QuantumState object input instead of creating its own initial state?
     """
+
+    # TODO: [longer term] refactor to take a QuantumState object input instead of creating its own initial state?
 
     name = "density matrix"
     ops = {  # the accepted operations and the single-qubit action needed for each gate
-        ops.Input: None,
-        ops.Identity: None,
-        ops.Phase: dm.phase(),
-        ops.Hadamard: dm.hadamard(),
-        ops.SigmaX: dm.sigmax(),
-        ops.SigmaY: dm.sigmay(),
-        ops.SigmaZ: dm.sigmaz(),
-        ops.CNOT: dm.sigmax(),
-        ops.CZ: dm.sigmaz(),
-        ops.ClassicalCNOT: dm.sigmax(),
-        ops.ClassicalCZ: dm.sigmaz(),
-        ops.MeasurementZ: None,
-        ops.MeasurementCNOTandReset: dm.sigmax(),
-        ops.Output: None,
+        ops.Input: lambda: None,
+        ops.Identity: lambda: None,
+        ops.Phase: lambda: dm.phase(),
+        ops.Hadamard: lambda: dm.hadamard(),
+        ops.SigmaX: lambda: dm.sigmax(),
+        ops.SigmaY: lambda: dm.sigmay(),
+        ops.SigmaZ: lambda: dm.sigmaz(),
+        ops.ParameterizedOneQubitRotation: lambda theta, phi, lam: dm.parameterized_one_qubit_unitary(
+            theta, phi, lam
+        ),
+        ops.ParameterizedControlledRotationQubit: lambda theta, phi, lam: dm.parameterized_one_qubit_unitary(
+            theta, phi, lam
+        ),
+        ops.CNOT: lambda: dm.sigmax(),
+        ops.CZ: lambda: dm.sigmaz(),
+        ops.ClassicalCNOT: lambda: dm.sigmax(),
+        ops.ClassicalCZ: lambda: dm.sigmaz(),
+        ops.MeasurementZ: lambda: dm.sigmaz(),
+        ops.MeasurementCNOTandReset: lambda: dm.sigmax(),
+        ops.Output: lambda: None,
     }
 
     def __init__(self, *args, **kwargs):
@@ -65,12 +72,17 @@ class DensityMatrixCompiler(CompilerBase):
             op.__class__ in self.ops.keys()
         ), f"{op.__class__} is not a valid operation for this compiler"
         state = state.dm
+
+        params = op.params
+
         if isinstance(op, ops.InputOutputOperationBase) or isinstance(op, ops.Identity):
             pass  # TODO: should think about best way to handle inputs/outputs
 
         elif isinstance(op, ops.OneQubitOperationBase):
             unitary = dm.get_one_qubit_gate(
-                n_quantum, q_index(op.register, op.reg_type), self.ops[op.__class__]
+                n_quantum,
+                q_index(op.register, op.reg_type),
+                self.ops[op.__class__](*params),
             )
             state.apply_unitary(unitary)
 
@@ -79,7 +91,7 @@ class DensityMatrixCompiler(CompilerBase):
                 n_quantum,
                 q_index(op.control, op.control_type),
                 q_index(op.target, op.target_type),
-                self.ops[op.__class__],
+                self.ops[op.__class__](*params),
             )
             state.apply_unitary(unitary)
 
@@ -90,7 +102,9 @@ class DensityMatrixCompiler(CompilerBase):
 
             # apply an gate on the target qubit conditioned on the measurement outcome = 1
             unitary = dm.get_one_qubit_gate(
-                n_quantum, q_index(op.target, op.target_type), self.ops[op.__class__]
+                n_quantum,
+                q_index(op.target, op.target_type),
+                self.ops[op.__class__](*params),
             )
 
             outcome = state.apply_measurement_controlled_gate(

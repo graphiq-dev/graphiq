@@ -38,7 +38,6 @@ import functools
 import re
 import string
 import numpy as np
-
 import src.ops as ops
 import src.utils.openqasm_lib as oq_lib
 from src.visualizers.dag import dag_topology_pos
@@ -278,11 +277,11 @@ class CircuitBase(ABC):
         :rtype: str
         """
         header_info = (
-            oq_lib.openqasm_header()
-            + "\n"
-            + "\n".join(self.openqasm_imports.keys())
-            + "\n"
-            + "\n".join(self.openqasm_defs.keys())
+                oq_lib.openqasm_header()
+                + "\n"
+                + "\n".join(self.openqasm_imports.keys())
+                + "\n"
+                + "\n".join(self.openqasm_defs.keys())
         )
 
         openqasm_str = [
@@ -300,15 +299,38 @@ class CircuitBase(ABC):
         )
         for op in self.sequence():
             oq_info = op.openqasm_info()
-            gate_application = oq_info.use_gate(
-                op.q_registers, op.q_registers_type, op.c_registers
-            )
+            # gate_application = ""
+            if isinstance(op, ops.ParameterizedOneQubitRotation):
+                gate_application = oq_info.use_gate(
+                    op.q_registers, op.q_registers_type, op.c_registers, params=op.param_info
+                )
+            elif isinstance(op, ops.ParameterizedControlledRotationQubit):
+                gate_application = oq_info.use_gate(
+                    op.q_registers, op.q_registers_type, op.c_registers, params=op.param_info
+                )
+            elif isinstance(op, ops.RY):
+                gate_application = oq_info.use_gate(
+                    op.q_registers, op.q_registers_type, op.c_registers, params=op.param_info
+                )
+
+            elif isinstance(op, ops.RZ):
+                gate_application = oq_info.use_gate(
+                    op.q_registers, op.q_registers_type, op.c_registers, params=op.param_info
+                )
+            elif isinstance(op, ops.RX):
+                gate_application = oq_info.use_gate(
+                    op.q_registers, op.q_registers_type, op.c_registers, params=op.param_info
+                )
+            else:
+                gate_application = oq_info.use_gate(
+                    op.q_registers, op.q_registers_type, op.c_registers
+                )
 
             # set barrier, if necessary to split out multi-block Operations from each other
             if (opened_barrier or oq_info.multi_comp) and gate_application != "":
                 openqasm_str.append(f"barrier {barrier_str};")
             if (
-                oq_info.multi_comp
+                    oq_info.multi_comp
             ):  # i.e. multiple visual blocks make this one Operation
                 opened_barrier = True
             elif gate_application != "":
@@ -555,6 +577,16 @@ class CircuitBase(ABC):
         """
         return self._parameters
 
+    # initialize the parameters dictionary with theta, phi, lam and n
+    def initialize_parameters(self):
+        """
+        Initializes the parameters dictionary with theta, phi, lam and n
+
+        :return: this function returns nothing
+        :rtype: None
+        """
+        self._parameters = {"theta": None, "phi": None, "lam": None, "n": None}
+
     @parameters.setter
     def parameters(self, parameters: dict):
         self._parameters = parameters
@@ -636,12 +668,12 @@ class CircuitDAG(CircuitBase):
     """
 
     def __init__(
-        self,
-        n_emitter=0,
-        n_photon=0,
-        n_classical=0,
-        openqasm_imports=None,
-        openqasm_defs=None,
+            self,
+            n_emitter=0,
+            n_photon=0,
+            n_classical=0,
+            openqasm_imports=None,
+            openqasm_defs=None,
     ):
         """
         Construct a DAG circuit with n_emitter one-qubit emitter quantum registers, n_photon one-qubit photon
@@ -1144,10 +1176,10 @@ class CircuitDAG(CircuitBase):
         while i in range(len(qasm_commands)):
             command = qasm_commands[i]
             if (
-                ("qreg" in command)
-                or ("creg" in command)
-                or ("barrier" in command)
-                or (command == "")
+                    ("qreg" in command)
+                    or ("creg" in command)
+                    or ("barrier" in command)
+                    or (command == "")
             ):
                 i += 1
                 continue
@@ -1226,7 +1258,7 @@ class CircuitDAG(CircuitBase):
 
             # Parse single-qubit operations
             if (
-                command.count("[0]") == 1
+                    command.count("[0]") == 1
             ):  # single qubit operation, from current script generation method
                 command_breakdown = command.split()
                 name = command_breakdown[0]
@@ -1259,7 +1291,7 @@ class CircuitDAG(CircuitBase):
                 )  # we must parse out [0] so -3
                 gate_class = ops.name_to_class_map(name)
                 assert (
-                    gate_class is not None
+                        gate_class is not None
                 ), "gate name not recognized, parsing failed"
                 circuit.add(
                     gate_class(
@@ -1355,9 +1387,9 @@ class CircuitDAG(CircuitBase):
 
         # get all edges that will need to be removed (i.e. the edges on which the Operation is being added)
         relevant_outputs = [
-            f"{operation.q_registers_type[i]}{operation.q_registers[i]}_out"
-            for i in range(len(operation.q_registers))
-        ] + [f"c{c}_out" for c in operation.c_registers]
+                               f"{operation.q_registers_type[i]}{operation.q_registers[i]}_out"
+                               for i in range(len(operation.q_registers))
+                           ] + [f"c{c}_out" for c in operation.c_registers]
 
         for output in relevant_outputs:
             edges_to_remove = list(

@@ -1,6 +1,5 @@
 import qiskit.transpiler.passes
 from qiskit import QuantumCircuit
-from qiskit.visualization.qcstyle import DefaultStyle
 import matplotlib.pyplot as plt
 
 

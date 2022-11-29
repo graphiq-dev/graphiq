@@ -344,9 +344,20 @@ def test_parameterized_gates_1():
     # Test with the ParameterizedOneQubitRotation and ParameterizedControlledRotationQubit
     dag = CircuitDAG(n_emitter=1, n_photon=1, n_classical=1)
     param_info = {"theta": np.pi, "phi": np.pi / 2, "lambda": np.pi / 4}
-    dag.add(ops.ParameterizedOneQubitRotation(register=0, reg_type="p", param_info=param_info))
-    dag.add(ops.ParameterizedControlledRotationQubit(control=0, control_type="p", target=1, target_type="p",
-                                                     param_info=param_info))
+    dag.add(
+        ops.ParameterizedOneQubitRotation(
+            register=0, reg_type="p", param_info=param_info
+        )
+    )
+    dag.add(
+        ops.ParameterizedControlledRotationQubit(
+            control=0,
+            control_type="p",
+            target=1,
+            target_type="p",
+            param_info=param_info,
+        )
+    )
     dag.validate()
     dag.draw_circuit()
 
@@ -367,15 +378,41 @@ def test_parameterized_gates_3():
     dag = CircuitDAG(n_emitter=1, n_photon=3, n_classical=1)
     # param_info = {"theta": np.pi}
     param_info = {"theta": np.pi, "phi": np.pi / 2, "lambda": np.pi / 4}
-    dag.add(ops.ParameterizedOneQubitRotation(register=0, reg_type="e", param_info=param_info))
-    dag.add(ops.ParameterizedOneQubitRotation(register=0, reg_type="e", param_info=param_info))
+    dag.add(
+        ops.ParameterizedOneQubitRotation(
+            register=0, reg_type="e", param_info=param_info
+        )
+    )
+    dag.add(
+        ops.ParameterizedOneQubitRotation(
+            register=0, reg_type="e", param_info=param_info
+        )
+    )
     dag.add(ops.CNOT(control=1, control_type="e", target=0, target_type="e"))
-    dag.add(ops.ParameterizedOneQubitRotation(register=0, reg_type="p", param_info=param_info))
+    dag.add(
+        ops.ParameterizedOneQubitRotation(
+            register=0, reg_type="p", param_info=param_info
+        )
+    )
 
-    dag.add(ops.ParameterizedControlledRotationQubit(control=0, control_type="e", target=1, target_type="e",
-                                                     param_info=param_info))
-    dag.add(ops.ParameterizedControlledRotationQubit(control=0, control_type="e", target=1, target_type="e",
-                                                     param_info=param_info))
+    dag.add(
+        ops.ParameterizedControlledRotationQubit(
+            control=0,
+            control_type="e",
+            target=1,
+            target_type="e",
+            param_info=param_info,
+        )
+    )
+    dag.add(
+        ops.ParameterizedControlledRotationQubit(
+            control=0,
+            control_type="e",
+            target=1,
+            target_type="e",
+            param_info=param_info,
+        )
+    )
     # add hadmard gate
     dag.add(ops.Hadamard(register=0, reg_type="e"))
     dag.add(ops.Hadamard(register=0, reg_type="p"))
@@ -428,8 +465,16 @@ def test_parameterized_gates_4():
         )
     )
     param_info = {"theta": np.pi, "phi": np.pi / 2, "lambda": np.pi / 4}
-    circuit1.add(ops.ParameterizedOneQubitRotation(register=0, reg_type="p", param_info=param_info))
-    circuit1.add(ops.ParameterizedOneQubitRotation(register=1, reg_type="p", param_info=param_info))
+    circuit1.add(
+        ops.ParameterizedOneQubitRotation(
+            register=0, reg_type="p", param_info=param_info
+        )
+    )
+    circuit1.add(
+        ops.ParameterizedOneQubitRotation(
+            register=1, reg_type="p", param_info=param_info
+        )
+    )
     circuit1.add(ops.RY(register=0, reg_type="p", param_info=param_info))
     circuit1.add(ops.RX(register=1, reg_type="p", param_info=param_info))
     circuit1.add(ops.RZ(register=0, reg_type="p", param_info=param_info))

@@ -41,13 +41,13 @@ class OperationBase(ABC):
     # If _openqasm_info is None, a given operation cannot be added to openQASM
 
     def __init__(
-            self,
-            q_registers=tuple(),
-            q_registers_type=tuple(),
-            c_registers=tuple(),
-            noise=nm.NoNoise(),
-            params=tuple(),
-            param_info=dict(),
+        self,
+        q_registers=tuple(),
+        q_registers_type=tuple(),
+        c_registers=tuple(),
+        noise=nm.NoNoise(),
+        params=tuple(),
+        param_info=dict(),
     ):
         """
         Creates an Operation base object (which is largely responsible for holding the registers on which
@@ -78,19 +78,19 @@ class OperationBase(ABC):
 
         for q, reg_type in zip(q_registers, q_registers_type):
             assert isinstance(q, int) or (
-                    isinstance(q, tuple)
-                    and len(q) == 2
-                    and isinstance(q[0], int)
-                    and isinstance(q[1], int)
+                isinstance(q, tuple)
+                and len(q) == 2
+                and isinstance(q[0], int)
+                and isinstance(q[1], int)
             ), f"Invalid photon_registers: photon_registers tuple must only contain tuples of length 2 or integers"
             assert reg_type == "e" or reg_type == "p"
 
         for c in c_registers:
             assert isinstance(c, int) or (
-                    isinstance(c, tuple)
-                    and len(c) == 2
-                    and isinstance(c[0], int)
-                    and isinstance(c[1], int)
+                isinstance(c, tuple)
+                and len(c) == 2
+                and isinstance(c[0], int)
+                and isinstance(c[1], int)
             ), f"Invalid c_register: c_register tuple must only contain tuples of length 2 or integers"
 
         self._q_registers = q_registers
@@ -450,13 +450,13 @@ class ClassicalControlledPairOperationBase(OperationBase):
     """
 
     def __init__(
-            self,
-            control,
-            control_type,
-            target,
-            target_type,
-            c_register=0,
-            noise=nm.NoNoise(),
+        self,
+        control,
+        control_type,
+        target,
+        target_type,
+        c_register=0,
+        noise=nm.NoNoise(),
     ):
         """
         Creates the classically controlled gate
@@ -624,12 +624,13 @@ class ParameterizedOneQubitRotation(OneQubitOperationBase):
     """
     Parameterized one qubit rotation.
     """
+
     _openqasm_info = (
         oq_lib.parameterized_info()
     )  # todo, change to appropriate openQASM info
 
     def __init__(
-            self, register=0, reg_type="e", noise=nm.NoNoise(), params=None, param_info=None
+        self, register=0, reg_type="e", noise=nm.NoNoise(), params=None, param_info=None
     ):
         super().__init__(register, reg_type, noise)
 
@@ -654,14 +655,14 @@ class ParameterizedControlledRotationQubit(ControlledPairOperationBase):
     )  # todo, change to appropriate openQASM info
 
     def __init__(
-            self,
-            control=0,
-            control_type="e",
-            target=0,
-            target_type="e",
-            noise=nm.NoNoise(),
-            params=None,
-            param_info=None,
+        self,
+        control=0,
+        control_type="e",
+        target=0,
+        target_type="e",
+        noise=nm.NoNoise(),
+        params=None,
+        param_info=None,
     ):
         super().__init__(control, control_type, target, target_type, noise)
         if params is None:
@@ -680,12 +681,11 @@ class RY(OneQubitOperationBase):
     """
     Rotation around the Y axis
     """
-    _openqasm_info = (
-        oq_lib.ry_info()
-    )
+
+    _openqasm_info = oq_lib.ry_info()
 
     def __init__(
-            self, register=0, reg_type="e", noise=nm.NoNoise(), params=None, param_info=None
+        self, register=0, reg_type="e", noise=nm.NoNoise(), params=None, param_info=None
     ):
         super().__init__(register, reg_type, noise)
 
@@ -704,12 +704,11 @@ class RX(OneQubitOperationBase):
     """
     Rotation around the X axis
     """
-    _openqasm_info = (
-        oq_lib.rx_info()
-    )
+
+    _openqasm_info = oq_lib.rx_info()
 
     def __init__(
-            self, register=0, reg_type="e", noise=nm.NoNoise(), params=None, param_info=None
+        self, register=0, reg_type="e", noise=nm.NoNoise(), params=None, param_info=None
     ):
         super().__init__(register, reg_type, noise)
 
@@ -728,12 +727,11 @@ class RZ(OneQubitOperationBase):
     """
     Rotation around the Z axis
     """
-    _openqasm_info = (
-        oq_lib.rz_info()
-    )
+
+    _openqasm_info = oq_lib.rz_info()
 
     def __init__(
-            self, register=0, reg_type="e", noise=nm.NoNoise(), params=None, param_info=None
+        self, register=0, reg_type="e", noise=nm.NoNoise(), params=None, param_info=None
     ):
         super().__init__(register, reg_type, noise)
 
@@ -767,7 +765,7 @@ class CNOT(ControlledPairOperationBase):
     _openqasm_info = oq_lib.cnot_info()
 
     def __init__(
-            self, control=0, control_type="e", target=0, target_type="e", noise=nm.NoNoise()
+        self, control=0, control_type="e", target=0, target_type="e", noise=nm.NoNoise()
     ):
         super().__init__(control, control_type, target, target_type, noise)
 
@@ -780,7 +778,7 @@ class CZ(ControlledPairOperationBase):
     _openqasm_info = oq_lib.cz_info()
 
     def __init__(
-            self, control=0, control_type="e", target=0, target_type="e", noise=nm.NoNoise()
+        self, control=0, control_type="e", target=0, target_type="e", noise=nm.NoNoise()
     ):
         super().__init__(control, control_type, target, target_type, noise)
 
@@ -809,13 +807,13 @@ class MeasurementCNOTandReset(ClassicalControlledPairOperationBase):
     _openqasm_info = oq_lib.measurement_cnot_and_reset()
 
     def __init__(
-            self,
-            control: object = 0,
-            control_type: object = "e",
-            target: object = 0,
-            target_type: object = "p",
-            c_register: object = 0,
-            noise: object = nm.NoNoise(),
+        self,
+        control: object = 0,
+        control_type: object = "e",
+        target: object = 0,
+        target_type: object = "p",
+        c_register: object = 0,
+        noise: object = nm.NoNoise(),
     ) -> object:
         super().__init__(control, control_type, target, target_type, c_register, noise)
 

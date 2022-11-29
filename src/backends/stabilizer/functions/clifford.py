@@ -111,7 +111,6 @@ def z_measurement_gate(
 def measure_x(tableau, qubit_position, measurement_determinism="probabilistic"):
     """
     Returns the outcome 0 or 1 if one measures the given qubit in the X basis.
-    # TODO: be able to handle mixed states in the future
 
     :param tableau: the input tableau to be measured
     :type tableau: CliffordTableau
@@ -123,6 +122,7 @@ def measure_x(tableau, qubit_position, measurement_determinism="probabilistic"):
     :return: the classical outcome of measuring given qubit in the X basis.
     :rtype: int
     """
+    # TODO: be able to handle mixed states in the future
     stabilizer_state_new = hadamard_gate(tableau, qubit_position)
     _, outcome, _ = z_measurement_gate(
         stabilizer_state_new, qubit_position, measurement_determinism
@@ -133,7 +133,6 @@ def measure_x(tableau, qubit_position, measurement_determinism="probabilistic"):
 def measure_y(tableau, qubit_position, measurement_determinism="probabilistic"):
     """
     Returns the outcome 0 or 1 if one measures the given qubit in the Y basis.
-     # TODO: be able to handle mixed states in the future
 
     :param tableau: the input tableau to be measured
     :type tableau: CliffordTableau
@@ -145,6 +144,7 @@ def measure_y(tableau, qubit_position, measurement_determinism="probabilistic"):
     :return: the classical outcome of measuring given qubit in the Y basis.
     :rtype: int
     """
+    # TODO: be able to handle mixed states in the future
     new_tableau = tableau
     # apply P dagger gate
     new_tableau = phase_dagger_gate(new_tableau, qubit_position)
@@ -160,7 +160,6 @@ def measure_y(tableau, qubit_position, measurement_determinism="probabilistic"):
 def measure_z(tableau, qubit_position, measurement_determinism="probabilistic"):
     """
     Returns the outcome 0 or 1 if one measures the given qubit in the Z basis.
-
 
     :param tableau: the input tableau to be measured
     :type tableau: CliffordTableau
@@ -187,16 +186,15 @@ def reset_z(
     :type tableau: CliffordTableau
     :param qubit_position: index of the qubit to be reset
     :type qubit_position: int
-    :param intended_state: either 0 for :math:`|0 \\rangle` state or 1 for :math:`|1 \\rangle`  state
+    :param intended_state: either 0 for :math:`|0 \\rangle` state or 1 for :math:`|1 \\rangle` state
     :type intended_state: int
     :param measurement_determinism: if the outcome is probabilistic from the simulation, we have the option to
         select a specific outcome
     :type measurement_determinism: int or str
     :return: updated tableau
-    :rtype:CliffordTableau
+    :rtype: CliffordTableau
     """
     # reset qubit to computational basis states
-
     n_qubits = tableau.n_qubits  # number of qubits
     assert qubit_position < n_qubits
     assert intended_state == 0 or intended_state == 1

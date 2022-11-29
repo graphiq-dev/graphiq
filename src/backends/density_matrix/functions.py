@@ -23,6 +23,16 @@ def dagger(matrix):
     return matrix.conjugate().T
 
 
+def identity():
+    """
+    Return :math:`I` qubit matrix
+
+    :return: 2x2 identity matrix
+    :rtype: numpy.ndarray
+    """
+    return np.array([[1.0, 0.0], [0.0, 1.0]])
+
+
 def sigmax():
     """
     Return :math:`\\sigma_x` matrix
@@ -45,7 +55,7 @@ def sigmay():
 
 def sigmaz():
     """
-    Return :math:`\\sigma_z`matrix
+    Return :math:`\\sigma_z` matrix
 
     :return: sigma Z matrix
     :rtype: numpy.ndarray
@@ -64,7 +74,7 @@ def hadamard():
 
 
 def phase():
-    r"""
+    """
     Return the phase matrix :math:`P = \\begin{bmatrix} 1 & 0 \\\ 0 & i \\end{bmatrix}`
 
     :return: the phase matrix
@@ -255,7 +265,7 @@ def get_multi_qubit_gate(n_qubits, qubit_positions, target_gates):
     :param qubit_positions: a list of positions for non-identity gates
     :type qubit_positions: list[int]
     :param target_gates: a list of gates
-    :type target_gates: list[numpy.ndarray]
+    :type target_gates: list[numpy.ndarray] or tuple(numpy.ndarray)
     :raises AssertionError: if the number of qubit positions to apply gates is not equal to the number of gates
     :return: the resulting matrix that acts on the whole state
     :rtype: numpy.ndarray
@@ -466,6 +476,8 @@ def partial_trace(rho, keep, dims, optimize=False):
     Calculates the partial trace
     :math:`\\rho_a = Tr_b(\\rho)`
 
+    The partial trace is computed using the `einsum` function.
+
     :param rho: the (2D) matrix to take the partial trace
     :type rho: numpy.ndarray
     :param keep:  An array of indices of the spaces to keep. For instance, if the space is
@@ -486,12 +498,17 @@ def partial_trace(rho, keep, dims, optimize=False):
     ndim = dims.size
     nkeep = np.prod(dims[keep])
 
+    # string for initial array dimensions of form "abc...ABC...", where upper/lowercase = local Hilbert space
     ssleft = "".join([string.ascii_lowercase[i] for i in range(ndim)]) + "".join(
         [string.ascii_uppercase[i] for i in range(ndim)]
     )
+
+    # string for final array dimensions is the same as initial, with upper/lowercase of dimensions to trace over omitted
     ssright = "".join(
         [string.ascii_lowercase[i] for i in range(ndim) if i in keep]
     ) + "".join([string.ascii_uppercase[i] for i in range(ndim) if i in keep])
+
+    # e.g., "abcABC -> abAB" is partial trace over third qubit in three-qubit state
     superscript = ssleft + "->" + ssright
 
     rho_a = rho.reshape(np.tile(dims, 2))
@@ -611,7 +628,11 @@ def fidelity(rho, sigma):
         rho_sigma = hermitianize(rho_sigma)
 
         rho_final = sqrtm_psd(rho_sigma)
-        return np.maximum(np.minimum(np.real(np.trace(rho_final)) ** 2, 1.0), 0.0)
+        f = np.real(np.trace(rho_final)) ** 2
+        if not np.isclose(f, 1.0):
+            raise Warning(f"Fidelity should be between 0 and 1. Value if {f}.")
+        f = np.maximum(np.minimum(f, 1.0), 0.0)
+        return f
 
 
 def trace_distance(rho, sigma):
@@ -737,7 +758,7 @@ def project_to_z0_and_remove(rho, locations):
 
 
 def parameterized_one_qubit_unitary(theta, phi, lam):
-    r"""
+    """
     Define a generic 3-parameter one-qubit unitary gate.
 
     :math:`U(\\theta, \\phi, \\lambda) = \\begin{bmatrix} \\cos(\\frac{\\theta}{2}) & -e^{i \\lambda}
@@ -766,7 +787,7 @@ def parameterized_one_qubit_unitary(theta, phi, lam):
 
 
 def full_one_qubit_unitary(n_qubits, qubit_position, theta, phi, lam):
-    r"""
+    """
     Define a generic 3-parameter one-qubit unitary gate that acts on the whole space.
 
     :math:`U(\\theta, \\phi, \\lambda) = \\begin{bmatrix} \\cos(\\frac{\\theta}{2}) & -e^{i \\lambda}
@@ -797,9 +818,9 @@ def full_two_qubit_controlled_unitary(
     Define a generic 4-parameter two-qubit gate that is a controlled unitary gate.
     :math:`|0\\rangle \\langle 0|\\otimes I +
     e^{i \\gamma} |1\\rangle \\langle 1| \\otimes U(\\theta, \\phi, \\lambda)`,
-    where :math:`U(\\theta,\\phi, \\lambda) =
-    \\begin{bmatrix} \\cos(\\frac{\\theta}{2}) & -e^{i \\lambda} \\sin(\\frac{\\theta}{2}) \\\
-    e^{i \\phi}\\sin(\\frac{\\theta}{2}) & e^{i (\\phi+\\lambda)}\\cos(\\frac{\\theta}{2})\\end{bmatrix}`
+    where :math:`U(\\theta,\\phi, \\lambda) =\\begin{bmatrix} \\cos(\\frac{\\theta}{2}) & -e^{i \\lambda}
+    \\sin(\\frac{\\theta}{2})\\\ e^{i \\phi}\\sin(\\frac{\\theta}{2}) &
+    e^{i (\\phi+\\lambda)}\\cos(\\frac{\\theta}{2})\\end{bmatrix}`
 
     :param n_qubits: number of qubits
     :type n_qubits: int

@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import jax
 import optax
 import jax.numpy as np
-
+import numpy
 import src
 
 # src.DENSITY_MATRIX_ARRAY_LIBRARY = "jax"
@@ -19,9 +19,9 @@ from src.metrics import Infidelity
 from src.visualizers.density_matrix import density_matrix_bars
 
 # todo, split into different test functions
-# 1) just compute loss function and associated gradient of parameters
-# 2) run few steps with gradient based solver
-# 3) compute loss function + grad with different fmaps
+# 1) just compute loss function and associated gradient of parameters (done)
+# 2) run few steps with gradient based solver (done)
+# 3) compute loss function + grad with different fmaps (done)
 # 4) test switching between numpy and jax - see where issues come up
 
 
@@ -33,18 +33,15 @@ def compute_loss(params, circuit, compiler, metric):
 
 
 def run(nqubit):
-    circuit, target = benchmarks.circuits.variational_entangling_layer_nqubit(nqubit)
+    circuit, target = benchmarks.circuits.strongly_entangling_layer(nqubit)
     compiler = DensityMatrixCompiler()
     metric = Infidelity(target=target)
     return circuit, compiler, metric
 
 
 def visualize(circuit, compiler, solver):
-    # output_state = compiler.compile(circuit)
-    # output_state.dm.draw()
-
     fig, ax = plt.subplots(1, 1)
-    ax.plot(solver.loss_curve)
+    ax.plot(solver.cost_curve)
     ax.set(xlabel="Optimization Step", ylabel="Infidelity")
     plt.show()
 
@@ -59,6 +56,7 @@ def test_loss_function():
     grads = jax.grad(compute_loss)(params, circuit, compiler, metric)
 
     print(loss, grads)
+    assert loss is not np.nan
 
 
 @jax_library
@@ -70,13 +68,17 @@ def test_one_layer_variational_circuit_visualize():
 
 @jax_library
 def test_one_layer_variational_circuit():
-    circuit, compiler, metric = run(3)
-    params = circuit.initialize_parameters()
+    circuit, compiler, metric = run(2)
+    params = circuit.initialize_parameters(seed=0)
 
-    optimizer = adagrad(learning_rate=0.5)
+    optimizer = adagrad(learning_rate=0.25)
 
-    solver = GradientDescentSolver(metric, compiler, circuit, optimizer=optimizer)
+    solver = GradientDescentSolver(
+        metric, compiler, circuit, optimizer=optimizer, n_step=150
+    )
     loss_curve, params = solver.solve(initial_params=params)
+
+    assert np.isclose(loss_curve[-1], 0.0)  # check that the solver converged
 
     if VISUAL_TEST:
         visualize(circuit, compiler, solver)
@@ -95,7 +97,9 @@ def test_one_layer_shared_weights(n_qubits):
     params = circuit.initialize_parameters()
     optimizer = adagrad(learning_rate=0.5)
 
-    solver = GradientDescentSolver(metric, compiler, circuit, optimizer=optimizer)
+    solver = GradientDescentSolver(
+        metric, compiler, circuit, optimizer=optimizer, n_step=30
+    )
     loss_curve, params = solver.solve(initial_params=params)
 
     if VISUAL_TEST:

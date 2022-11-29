@@ -60,7 +60,7 @@ def benchmark_data(
         2. Each row holds information. Current targets for implementation include:
             a) Runtime of solver iteration [not done]
             b) loss function performance reported (float) [not done]
-            b.1) Circuit (only useful if we're not saving the dataframe)
+                1) Circuit (only useful if we're not saving the dataframe)
             c) Whether or not the measurement results impact the final state (bool) [not done]
             d) Final circuit depth [not done]
             e) Runtime of solver iteration [not done]

@@ -1,18 +1,18 @@
 // comment
 
-function one_qubit_gate(x, y, letter, color="#33C4FF") {
+function one_qubit_gate(x, y, gate_name, params=null, color="#33C4FF") {
     gate = d3.select("#circuit-detail-svg").append("g")
         .attr("transform", `translate(${x - 20}, ${y - 20})`)
 
     gate.append("rect")
-        .attr("class", letter)
+        .attr("class", gate_name)
         .attr("x", 0)
         .attr("y", 0)
         .attr("width", 40)
         .attr("height", 40)
         .style("fill", color)
     gate.append("text")
-        .text(letter)
+        .text(gate_name)
         .attr("textLength", 10)
         .attr("x", 0 + 40 / 2)
         .attr("y", 0 + 40 / 2)
@@ -49,6 +49,8 @@ function x_gate(x, y, register) {
     gate = one_qubit_gate(x, y, "X")
     
     // add on display
+    gate_info = d3.select(".gate-panel")
+
     div = d3.select(".tooltip")
     gate.on("mouseover", function(d) {		
         div.transition()		
@@ -56,12 +58,14 @@ function x_gate(x, y, register) {
             .style("opacity", .7);		
         div.html(`X gate on ${register}`)	
             .style("left", (d3.event.pageX) + "px")		
-            .style("top", (d3.event.pageY) + "px");	
-        })					
+            .style("top", (d3.event.pageY) + "px");
+        gate_info.html(`Gate Info: X gate on ${register}`)
+        })
     .on("mouseout", function(d) {		
         div.transition()		
             .duration(500)		
-            .style("opacity", 0);	
+            .style("opacity", 0);
+        gate_info.html("Gate Info:")
     });
 
     return gate
@@ -174,6 +178,21 @@ function cnot(x1, y1, y2) {
 
     // draw the control gate
     create_control_at(gate, 0, -20, y2)
+    // add on display
+    div = d3.select(".tooltip")
+    gate.on("mouseover", function(d) {
+        div.transition()
+            .duration(200)
+            .style("opacity", .7);
+        div.html(`CNOT gate`)
+            .style("left", (d3.event.pageX) + "px")
+            .style("top", (d3.event.pageY) + "px");
+        })
+    .on("mouseout", function(d) {
+        div.transition()
+            .duration(500)
+            .style("opacity", 0);
+    });
 
     return gate
 }
@@ -192,6 +211,21 @@ function cz(x1, y1, y2) {
 
     // draw the target register
     create_control_at(gate, 0, 0, y2)
+
+    div = d3.select(".tooltip")
+    gate.on("mouseover", function(d) {
+        div.transition()
+            .duration(200)
+            .style("opacity", .7);
+        div.html(`CZ gate`)
+            .style("left", (d3.event.pageX) + "px")
+            .style("top", (d3.event.pageY) + "px");
+        })
+    .on("mouseout", function(d) {
+        div.transition()
+            .duration(500)
+            .style("opacity", 0);
+    });
 
     return gate
 }

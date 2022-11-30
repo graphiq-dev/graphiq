@@ -46,9 +46,18 @@
             border: 1px solid black;
         }
 
+        div.gate-panel {
+            padding: 5px;
+            position: fixed;
+            border: 1px solid black;
+        }
+
     </style>
 </head>
 <body>
+    <div class="gate-panel">
+        Gate Info:
+    </div>
     <script>
         var div = d3.select("body").append("div")	
             .attr("class", "tooltip")				
@@ -70,7 +79,7 @@
 
         draw_classical_register(0, 300)
     </script>
-    <script>
+    <script name="add-gates">
         hadamard(50, 50, "q0")
         x_gate(100, 50, "q0")
         y_gate(150, 50, "q0")
@@ -89,7 +98,7 @@
         <p>Input Data:</p>
         <p>Register: {{ data["register"] }}</p>
         <p>Register depth: {{ data["register_depth"] }}</p>
-        <span style="white-space: pre-line">{{ draw.openqasm }}</span>
+        <span style="white-space: pre-line">{{ draw }}</span>
     </div>
 </body>
 </html>

@@ -1,23 +1,53 @@
 // comment
 
-function one_qubit_gate(x, y, gate_name, params=null, color="#33C4FF") {
-    gate = d3.select("#circuit-detail-svg").append("g")
+function one_qubit_gate(x, y, gate_name, color="#33C4FF", params=null) {
+    let gate = d3.select("#circuit-detail-svg").append("g")
         .attr("transform", `translate(${x - 20}, ${y - 20})`)
+    let width = 0
+    if (params != null) {
+        width = Math.max(40, 15*2 + gate_name.length*12, 15*2 + params.length*5)
+    } else {
+        width = Math.max(40, 15*2 + gate_name.length*12)
+    }
+
 
     gate.append("rect")
         .attr("class", gate_name)
         .attr("x", 0)
         .attr("y", 0)
-        .attr("width", 40)
+        .attr("width", width)
         .attr("height", 40)
         .style("fill", color)
-    gate.append("text")
+    if (params == null) {
+        gate.append("text")
         .text(gate_name)
-        .attr("textLength", 10)
-        .attr("x", 0 + 40 / 2)
+        .attr("letter-spacing", 1)
+        .attr("font-size", "1em")
+        .attr("textLength", gate_name.length * 12)
+        .attr("x", width / 2)
         .attr("y", 0 + 40 / 2)
         .style("text-anchor", "middle")
         .style("dominant-baseline", "middle")
+    } else {
+        gate.append("text")
+        .text(gate_name)
+        .attr("letter-spacing", 1)
+        .attr("font-size", "1em")
+        .attr("textLength", gate_name.length * 12)
+        .attr("x", width / 2)
+        .attr("y", -5 + 40 / 2)
+        .style("text-anchor", "middle")
+        .style("dominant-baseline", "middle")
+
+        gate.append("text")
+        .text(params)
+        .attr("font-size", "0.7em")
+        .attr("textLength", params.length * 5)
+        .attr("x", width / 2)
+        .attr("y", 10 + 40 / 2)
+        .style("text-anchor", "middle")
+        .style("dominant-baseline", "middle")
+    }
     
     // add on display
     return gate
@@ -34,12 +64,14 @@ function hadamard(x, y, register) {
             .style("opacity", .7);		
         div.html(`H gate on ${register}`)	
             .style("left", (d3.event.pageX) + "px")		
-            .style("top", (d3.event.pageY) + "px");	
+            .style("top", (d3.event.pageY) + "px");
+        gate_info.html(`Gate Info: Hadamard gate on ${register}`)
         })					
     .on("mouseout", function(d) {		
         div.transition()		
             .duration(500)		
-            .style("opacity", 0);	
+            .style("opacity", 0);
+        gate_info.html("Gate Info:")
     });
 
     return gate
@@ -72,7 +104,7 @@ function x_gate(x, y, register) {
 }
 
 function y_gate(x, y, register) {
-    gate = one_qubit_gate(x, y, "Y", color="green")
+    gate = one_qubit_gate(x=x, y=y, gate_name="Y", color="green")
 
     // add on display
     div = d3.select(".tooltip")
@@ -83,11 +115,13 @@ function y_gate(x, y, register) {
         div.html(`Y gate on ${register}`)
             .style("left", (d3.event.pageX) + "px")
             .style("top", (d3.event.pageY) + "px");
+        gate_info.html(`Gate Info: Y gate on ${register}`)
         })
     .on("mouseout", function(d) {
         div.transition()
             .duration(500)
             .style("opacity", 0);
+        gate_info.html("Gate Info:")
     });
 
     return gate
@@ -105,11 +139,13 @@ function z_gate(x, y, register) {
         div.html(`Z gate on ${register}`)
             .style("left", (d3.event.pageX) + "px")
             .style("top", (d3.event.pageY) + "px");
+        gate_info.html(`Gate Info: Z gate on ${register}`)
         })
     .on("mouseout", function(d) {
         div.transition()
             .duration(500)
             .style("opacity", 0);
+        gate_info.html("Gate Info:")
     });
 
     return gate
@@ -127,15 +163,53 @@ function p_gate(x, y, register) {
         div.html(`P gate on ${register}`)
             .style("left", (d3.event.pageX) + "px")
             .style("top", (d3.event.pageY) + "px");
+        gate_info.html(`Gate Info: P gate on ${register}`)
         })
     .on("mouseout", function(d) {
         div.transition()
             .duration(500)
             .style("opacity", 0);
+        gate_info.html("Gate Info:")
     });
 
     return gate
 }
+
+function rx(x, y, register, params) {
+    if (params == null || params == "") {
+        params = "(pi/2)"
+    }
+    let gate = one_qubit_gate(x=x, y=y, gate_name="RX", color="#33C4FF", params=params)
+
+    // add display effect
+
+    return gate
+}
+
+function ry(x, y, register, params) {
+    if (params == null || params == "") {
+        params = "(pi/2)"
+    }
+    let gate = one_qubit_gate(x=x, y=y, gate_name="RY", color="#33C4FF", params=params)
+
+    // add display effect
+
+    return gate
+}
+
+function rz(x, y, register, params) {
+    if (params == null || params == "") {
+        params = "(pi/2)"
+    }
+    let gate = one_qubit_gate(x=x, y=y, gate_name="RZ", color="#33C4FF", params=params)
+
+    // add display effect
+
+    return gate
+}
+
+
+// Two qubit gate
 
 function create_control_at(element, x1, y1, y2, color="#002D9C") {
     element.append("line")
@@ -226,6 +300,51 @@ function cz(x1, y1, y2) {
             .duration(500)
             .style("opacity", 0);
     });
+
+    return gate
+}
+
+function crx(x1, y1, y2, params="(pi/2)") {
+    gate_name = "RX"
+    let gate = rx(x1, y1, "q1", params)
+    let width = 0
+    if (params != null) {
+        width = Math.max(40, 15*2 + gate_name.length*12, 15*2 + params.length*5)
+    } else {
+        width = Math.max(40, 15*2 + gate_name.length*12)
+    }
+
+    create_control_at(gate, width/2, 0, y2+20, "#33C4FF")
+
+    return gate
+}
+
+function cry(x1, y1, y2, params="(pi/2)") {
+    gate_name = "RY"
+    let gate = ry(x1, y1, "q1", params)
+    let width = 0
+    if (params != null) {
+        width = Math.max(40, 15*2 + gate_name.length*12, 15*2 + params.length*5)
+    } else {
+        width = Math.max(40, 15*2 + gate_name.length*12)
+    }
+
+    create_control_at(gate, width/2, 0, y2+20, "#33C4FF")
+
+    return gate
+}
+
+function crz(x1, y1, y2, params="(pi/2)") {
+    gate_name = "RZ"
+    let gate = rz(x1, y1, "q1", params)
+    let width = 0
+    if (params != null) {
+        width = Math.max(40, 15*2 + gate_name.length*12, 15*2 + params.length*5)
+    } else {
+        width = Math.max(40, 15*2 + gate_name.length*12)
+    }
+
+    create_control_at(gate, width/2, 0, y2+20, "#33C4FF")
 
     return gate
 }

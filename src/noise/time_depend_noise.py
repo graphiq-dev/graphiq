@@ -707,21 +707,3 @@ def _noise_type_list(noisy_reg, noise_parameters):
                 "noise type used in noise parameter dictionary is not valid. It should be either "
                 "'srt' or list [str]"
             )
-
-
-if __name__ == "__main__":
-    circ1, _ = examples.linear_cluster_4qubit_circuit()
-
-    compiler1 = StabilizerCompiler()
-    target_state = compiler1.compile(circ1)
-    noisy_circ = NoisyCircuit(circ1, [(0, "e")])
-    metric = Infidelity(target_state)
-    output_state1 = noisy_circ.output_state("stabilizer")
-    infidelity1 = metric.evaluate(output_state1, circ1)
-    print("infidelity=", infidelity1)
-    circ1_tree = noisy_circ.circuit_tree()
-    # ideal
-    print(circ1.register)
-    circ1.draw_circuit()
-    # the 6th branch = noisy circuit in the tree
-    circ1_tree[6][0].draw_circuit()

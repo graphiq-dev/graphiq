@@ -21,7 +21,7 @@ class NoisyCircuit:
     the noise parameters and list of imperfect registers.
     """
 
-    def __init__(self, circ, noisy_regs, noise_parameters=mp.noise_parameters):
+    def __init__(self, circ, noisy_regs=None, noise_parameters=mp.noise_parameters):
         """
         Creates a NoisyCircuit object that allows an ideal circuit to turn into a noisy one by inserting errors to the
         set of noisy registers (noisy_regs). The noise/error model and its properties in specified by the
@@ -38,7 +38,10 @@ class NoisyCircuit:
         # add any missing crucial keys to the input noise_parameter dict from the default dict in the .mp file
         noise_parameters = {**mp.noise_parameters, **noise_parameters}
         self.noise_parameters = noise_parameters
-        self.noisy_regs = noisy_regs  # [(reg, reg_type)]
+        if noisy_regs is not None:
+            self.noisy_regs = noisy_regs  # [(reg, reg_type)]
+        else:
+            self.noisy_regs = [(reg, 'e') for reg in range(circ.n_emitters)]  # [(reg, reg_type)]
 
     @property
     def circ(self):
@@ -210,7 +213,7 @@ class NoiseEvent:
 
     def merge_with(self, events):
         """
-        Merge another NoiseEvent object or objects into the current one. The probability and list of errors is adjusted
+        Merge other NoiseEvent object or objects into the current one. The probability and list of errors is adjusted
         accordingly.
         :param events: a list of NoiseEvent objects or a single one
         :return: None
@@ -718,6 +721,7 @@ if __name__ == "__main__":
     print("infidelity=", infidelity1)
     circ1_tree = noisy_circ.circuit_tree()
     # ideal
+    print(circ1.register)
     circ1.draw_circuit()
     # the 6th branch = noisy circuit in the tree
     circ1_tree[6][0].draw_circuit()

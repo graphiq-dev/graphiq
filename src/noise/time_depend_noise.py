@@ -1,10 +1,10 @@
 import copy
+
+from src.circuit import CircuitDAG
 from src.state import QuantumState
 from src.backends.stabilizer.tableau import CliffordTableau
-from src.metrics import Infidelity
 from src.backends.stabilizer.compiler import StabilizerCompiler
 import src.ops as ops
-import benchmarks.circuits as examples
 import numpy as np
 from itertools import combinations_with_replacement
 import src.noise.model_parameters as mp
@@ -49,7 +49,39 @@ class NoisyCircuit:
 
     @circ.setter
     def circ(self, new_circ):
+        assert isinstance(new_circ, CircuitDAG)
         self._circ = new_circ
+
+    @staticmethod
+    def to_event_tree(
+            prob_tree_found, reg=0, reg_type="e", noise_type="x"
+    ):  # turn it to the NoiseEvent class instance
+        """
+        A helper function that translate the output of the prob_tree_finder function into a list of NoiseEvent objects. We
+        call this list an event tree.
+        :param prob_tree_found: the list [(error happening at certain (sections indices, ), probability of this event)] and
+        the list of sections
+        :type prob_tree_found: list[((, ), float)], list
+        :param reg: the register where noise events are happening
+        :type reg: int
+        :param reg_type: type of the register
+        :type reg_type: str
+        :param noise_type: str or list[str]
+        :return: list of events
+        :rtype: list[NoiseEvent]
+        """
+        prob_tree = prob_tree_found[0]
+        list_of_sections = prob_tree_found[1]
+        event_tree = []
+        for branch in prob_tree:
+            prob = branch[1]
+            section_indices = branch[0]
+            nodes = [list_of_sections[i][-1] for i in section_indices]
+            nodes_and_regs = [(node, (reg, reg_type), noise_type) for node in nodes]
+            event = NoiseEvent(prob, nodes_and_regs)
+            # print("nods and regs",event.nodes_and_regs)
+            event_tree.append(event)
+        return event_tree  # returns a list of events of the NoiseEvent type
 
     def reg_history(self, reg, reg_type):
         """
@@ -95,9 +127,9 @@ class NoisyCircuit:
             )
 
             # gets the specific types of noise for this particular register in the noise parameters dict if there is any
-            noise_type_list = _noise_type_list(noisy_reg, self.noise_parameters)
+            noise_type_list = self.noise_type_list(noisy_reg)
             for noise_type in noise_type_list:
-                event_tree = _to_event_tree(
+                event_tree = self.to_event_tree(
                     prob_tree_found,
                     reg=noisy_reg[0],
                     reg_type=noisy_reg[1],
@@ -153,7 +185,49 @@ class NoisyCircuit:
                 n_qubits, state_data, representation="stabilizer", mixed=True
             )
             # output_state = MixedStabilizer(state_data)
+        else:
+            raise NotImplementedError("non-stabilizer backends not supported yet")
         return quantum_state
+
+    def noise_type_list(self, noisy_reg):
+        """
+        Gets the noisy register as a tuple (reg, reg_type) and returns a list of noise types that must be applied on
+        that register.Used to find the register specific noise type from noise parameters' dictionary if there exists
+        any.
+        :param noisy_reg: the noisy register and its type (emitter: 'e' or photon: 'p')
+        :type noisy_reg: tuple(int, str)
+        :return: list of noise types
+        :rtype: list[str]
+        """
+        # gets noisy reg (reg, reg_type) and noise parameter dict and returns a list of noise types that must be applied
+        # on the register.
+        noise_parameters = self.noise_parameters
+        if f"{noisy_reg[1]}{noisy_reg[0]}" in noise_parameters["reg_specific_noise"]:
+            noise_type = noise_parameters["reg_specific_noise"][
+                f"{noisy_reg[1]}{noisy_reg[0]}"
+            ]
+            if isinstance(noise_type, list):
+                assert all(isinstance(noise, str) for noise in noise_type)
+                return noise_type
+            elif isinstance(noise_type, str):
+                return [noise_type]
+            else:
+                raise ValueError(
+                    "noise type used in noise parameter dictionary is not valid. It should be either "
+                    "'srt' or list [str]"
+                )
+        else:
+            noise_type = noise_parameters["noise_type"]
+            if isinstance(noise_type, list):
+                assert all(isinstance(noise, str) for noise in noise_type)
+                return noise_type
+            elif isinstance(noise_type, str):
+                return [noise_type]
+            else:
+                raise ValueError(
+                    "noise type used in noise parameter dictionary is not valid. It should be either "
+                    "'srt' or list [str]"
+                )
 
 
 class NoiseEvent:
@@ -226,6 +300,8 @@ class NoiseEvent:
         elif isinstance(events, NoiseEvent):
             self.prob *= events.prob
             self.nodes_and_regs = self.nodes_and_regs + events.nodes_and_regs
+        else:
+            raise ValueError("events should be a list of NoiseEvent objects or a single object")
 
 
 def _reg_gate_history(circ, reg, reg_type="e"):
@@ -464,7 +540,7 @@ def poisson_prob(count, time, rate):
     :return: the probability of the specified number of events happening
     :rtype: float
     """
-    return np.exp(-rate * time) * (rate * time) ** count / np.math.factorial(count)
+    return np.exp(-rate * time) * ((rate * time) ** count) / np.math.factorial(count)
 
 
 def cut_off_counter(cut_off_prob, time, rate):
@@ -576,7 +652,7 @@ def insert_error(circ, all_branches):
     circ_tree = []  # a list of tuples of (circuits, probs)
     for event in all_branches:
         prob = event.prob
-        circ_new = copy.deepcopy(circ)
+        circ_new = circ.copy()
         for error in event.nodes_and_regs:
             error_node = error[0]
             reg, reg_type = error[1]
@@ -591,37 +667,6 @@ def insert_error(circ, all_branches):
             circ_new.insert_at(error_op(register=reg, reg_type=reg_type), error_edge)
         circ_tree.append((circ_new, prob))
     return circ_tree
-
-
-def _to_event_tree(
-    prob_tree_found, reg=0, reg_type="e", noise_type="x"
-):  # turn it to the NoiseEvent class instance
-    """
-    A helper function that translate the output of the prob_tree_finder function into a list of NoiseEvent objects. We
-    call this list an event tree.
-    :param prob_tree_found: the list [(error happening at certain (sections indices, ), probability of this event)] and
-    the list of sections
-    :type prob_tree_found: list[((, ), float)], list
-    :param reg: the register where noise events are happening
-    :type reg: int
-    :param reg_type: type of the register
-    :type reg_type: str
-    :param noise_type: str or list[str]
-    :return: list of events
-    :rtype: list[NoiseEvent]
-    """
-    prob_tree = prob_tree_found[0]
-    list_of_sections = prob_tree_found[1]
-    event_tree = []
-    for branch in prob_tree:
-        prob = branch[1]
-        section_indices = branch[0]
-        nodes = [list_of_sections[i][-1] for i in section_indices]
-        nodes_and_regs = [(node, (reg, reg_type), noise_type) for node in nodes]
-        event = NoiseEvent(prob, nodes_and_regs)
-        # print("nods and regs",event.nodes_and_regs)
-        event_tree.append(event)
-    return event_tree  # returns a list of events of the NoiseEvent type
 
 
 def unwrapper(event_tree_list, events_to_merge=None, all_events=None, ii=0):
@@ -666,44 +711,3 @@ def unwrapper(event_tree_list, events_to_merge=None, all_events=None, ii=0):
             single_event.merge_with(events_to_merge[1:])
             all_events.append(single_event)
         return all_events
-
-
-def _noise_type_list(noisy_reg, noise_parameters):
-    """
-    Gets the noisy register as a tuple (reg, reg_type) and returns a list of noise types that must be applied on that
-    register.Used to find the register specific noise type from noise parameters' dictionary if there exists any.
-    :param noisy_reg: the noisy register and its type (emitter: 'e' or photon: 'p')
-    :type noisy_reg: tuple(int, str)
-    :param noise_parameters: a dictionary of all noise parameters of a NoisyCircuit instance.
-    :type noise_parameters: dict
-    :return: list of noise types
-    :rtype: list[str]
-    """
-    # gets noisy reg (reg, reg_type) and noise parameter dict and returns a list of noise types that must be applied
-    # on the register.
-    if f"{noisy_reg[1]}{noisy_reg[0]}" in noise_parameters["reg_specific_noise"]:
-        noise_type = noise_parameters["reg_specific_noise"][
-            f"{noisy_reg[1]}{noisy_reg[0]}"
-        ]
-        if isinstance(noise_type, list):
-            assert all(isinstance(noise, str) for noise in noise_type)
-            return noise_type
-        elif isinstance(noise_type, str):
-            return [noise_type]
-        else:
-            raise ValueError(
-                "noise type used in noise parameter dictionary is not valid. It should be either "
-                "'srt' or list [str]"
-            )
-    else:
-        noise_type = noise_parameters["noise_type"]
-        if isinstance(noise_type, list):
-            assert all(isinstance(noise, str) for noise in noise_type)
-            return noise_type
-        elif isinstance(noise_type, str):
-            return [noise_type]
-        else:
-            raise ValueError(
-                "noise type used in noise parameter dictionary is not valid. It should be either "
-                "'srt' or list [str]"
-            )

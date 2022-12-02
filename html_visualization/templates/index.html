@@ -5,6 +5,9 @@
     <script src="{{ url_for('static', filename='js/data.js') }}"></script>
     <script src="{{ url_for('static', filename='js/register.js') }}"></script>
     <script src="{{ url_for('static', filename='js/gates.js') }}"></script>
+    <script>
+        let visualization_info = {{visualization_info | safe}}
+    </script>
     <style>
         div.circuit-label-container {
             /* To see element border */
@@ -52,12 +55,17 @@
             border: 1px solid black;
         }
 
+        div.circuit-container {
+            padding-top: 50px;
+        }
+
     </style>
 </head>
 <body>
     <div class="gate-panel">
         Gate Info:
     </div>
+    <div class="circuit-container"></div>
     <script>
         var div = d3.select("body").append("div")	
             .attr("class", "tooltip")				
@@ -65,8 +73,8 @@
     </script>
     <script name="init">
         register_label_init(70, 350)
-        register_detail_init(2000, 350)
-        
+        register_detail_init(1000, 350)
+
         for (let i = 0; i < 4; i++) {
             draw_register_label(`q${i}`, 70, (i+1)*50)
         }
@@ -79,40 +87,67 @@
 
         draw_classical_register(0, 300)
     </script>
-    <script name="add-gates">
-        // register q0
-        hadamard(50, 50, "q0")
-        x_gate(100, 50, "q0")
-        y_gate(150, 50, "q0")
-        z_gate(200, 50, "q0")
-        p_gate(250, 50, "q0")
-        one_qubit_gate(300, 50, "Mygate")
+    <script>
+        hadamard(100, 50, "q0")
+        one_qubit_gate(100, 100, "Mygate")
+        one_qubit_gate(100, 150, gate_name="U", color="#33C4FF", params="(pi/2, pi/4, pi/6)")
+        cnot(100, 200, 50, control="q3, e0", target="q2")
 
+        d3.select("#circuit-detail-svg").append("line")
+        .attr("x1", 100)
+        .attr("x2", 100)
+        .attr("y1", 0)
+        .attr("y2", 250)
+        .attr("stroke", "black")
 
-        // q[1]
-        hadamard(50, 100, "q1")
-        gate2 = ry(100, 100, "q1")
-        console.log(gate2.attr("width"))
-        rx(170, 100, "q1", "(pi/4)")
-        rz(240, 100, "q1", "(3pi/8)")
-        one_qubit_gate(x=320, y=100, gate_name="U", color="#33C4FF", params="(pi/2, pi/4, pi/6)")
+        d3.select("#circuit-detail-svg").append("line")
+        .attr("x1", 100-30)
+        .attr("x2", 100-30)
+        .attr("y1", 0)
+        .attr("y2", 250)
+        .attr("stroke", "black")
 
-        // one_qubit_gate(x=100, y=100, gate_name="RX", color="#33C4FF", params="(pi/2, pi/4)")
-        // one_qubit_gate(100, 100, "U=HXH")
-
-        // 2 qubit gates
-        gate1 = cnot(50, 250, -100)
-        create_control_at(gate1, 0, -20, -50)
-        cnot(100, 250, -50)
-        gate1 = cnot(150, 200, -50)
-        create_control_at(gate1, 0, 20, 50)
-        cz(200, 250, -100)
-
-        crx(250, 200, 50)
-        cry(320, 200, 50)
-        crz(390, 200, 50)
-        
+        d3.select("#circuit-detail-svg").append("line")
+        .attr("x1", 100+30)
+        .attr("x2", 100+30)
+        .attr("y1", 0)
+        .attr("y2", 250)
+        .attr("stroke", "black")
     </script>
+<!--    <script name="add-gates">-->
+<!--        // register q0-->
+<!--        hadamard(50, 50, "q0")-->
+<!--        x_gate(100, 50, "q0")-->
+<!--        y_gate(150, 50, "q0")-->
+<!--        z_gate(200, 50, "q0")-->
+<!--        p_gate(250, 50, "q0")-->
+<!--        one_qubit_gate(300, 50, "Mygate")-->
+
+
+<!--        // q[1]-->
+<!--        hadamard(50, 100, "q1")-->
+<!--        gate2 = ry(100, 100, "q1")-->
+<!--        rx(170, 100, "q1", "(pi/4)")-->
+<!--        rz(240, 100, "q1", "(3pi/8)")-->
+<!--        one_qubit_gate(x=320, y=100, gate_name="U", color="#33C4FF", params="(pi/2, pi/4, pi/6)")-->
+
+<!--        // one_qubit_gate(x=100, y=100, gate_name="RX", color="#33C4FF", params="(pi/2, pi/4)")-->
+<!--        // one_qubit_gate(100, 100, "U=HXH")-->
+
+<!--        // 2 qubit gates-->
+<!--        gate1 = cnot(50, 150, 100, control="q3, e0", target="q2")-->
+<!--        create_control_at(gate1, 0, 20, 50)-->
+<!--        cnot(100, 150, 50, control="q3", target="q2")-->
+<!--        gate1 = cnot(150, 200, 50, control="q2, e0", target="q2")-->
+<!--        create_control_at(gate1, 0, -20, -50)-->
+<!--        cz(200, 250, -100)-->
+
+<!--        crx(250, 200, 50)-->
+<!--        cry(320, 200, 50)-->
+<!--        crz(390, 200, 50)-->
+
+<!--    </script>-->
+
     <div class="data-panel">
         <p>Input Data:</p>
         <p>Register: {{ data["register"] }}</p>

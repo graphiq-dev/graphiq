@@ -13,7 +13,7 @@ let state = {
 
 // init function
 function register_label_init(width, height) {
-    const register_label_container = d3.select("body")
+    const register_label_container = d3.select("div.circuit-container")
         .append("div")
         .attr("class", "circuit-label-container")
     register_label_container.append("svg")
@@ -28,7 +28,7 @@ function register_label_init(width, height) {
 }
 
 function register_detail_init(width, height) {
-    const register_detail_container = d3.select("body")
+    const register_detail_container = d3.select("div.circuit-container")
         .append("div")
         .attr("class", "circuit-detail-container")
     register_detail_container.append("svg")

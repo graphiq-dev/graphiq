@@ -1,14 +1,15 @@
 // comment
 
 function one_qubit_gate(x, y, gate_name, color="#33C4FF", params=null) {
-    let gate = d3.select("#circuit-detail-svg").append("g")
-        .attr("transform", `translate(${x - 20}, ${y - 20})`)
     let width = 0
+    let height = 40
     if (params != null) {
-        width = Math.max(40, 15*2 + gate_name.length*12, 15*2 + params.length*5)
+        width = Math.max(40, 15*2 + gate_name.length*10, 15*2 + params.length*5)
     } else {
-        width = Math.max(40, 15*2 + gate_name.length*12)
+        width = Math.max(40, 15*2 + gate_name.length*10)
     }
+    let gate = d3.select("#circuit-detail-svg").append("g")
+        .attr("transform", `translate(${x - width/2}, ${y - height/2})`)
 
 
     gate.append("rect")
@@ -23,7 +24,7 @@ function one_qubit_gate(x, y, gate_name, color="#33C4FF", params=null) {
         .text(gate_name)
         .attr("letter-spacing", 1)
         .attr("font-size", "1em")
-        .attr("textLength", gate_name.length * 12)
+        .attr("textLength", gate_name.length * 10)
         .attr("x", width / 2)
         .attr("y", 0 + 40 / 2)
         .style("text-anchor", "middle")
@@ -33,7 +34,7 @@ function one_qubit_gate(x, y, gate_name, color="#33C4FF", params=null) {
         .text(gate_name)
         .attr("letter-spacing", 1)
         .attr("font-size", "1em")
-        .attr("textLength", gate_name.length * 12)
+        .attr("textLength", gate_name.length * 10)
         .attr("x", width / 2)
         .attr("y", -5 + 40 / 2)
         .style("text-anchor", "middle")
@@ -41,7 +42,7 @@ function one_qubit_gate(x, y, gate_name, color="#33C4FF", params=null) {
 
         gate.append("text")
         .text(params)
-        .attr("font-size", "0.7em")
+        .attr("font-size", "0.8em")
         .attr("textLength", params.length * 5)
         .attr("x", width / 2)
         .attr("y", 10 + 40 / 2)
@@ -58,6 +59,7 @@ function hadamard(x, y, register) {
     
     // add on display
     div = d3.select(".tooltip")
+    gate_info = d3.select(".gate-panel")
     gate.on("mouseover", function(d) {		
         div.transition()		
             .duration(200)		
@@ -108,6 +110,7 @@ function y_gate(x, y, register) {
 
     // add on display
     div = d3.select(".tooltip")
+    gate_info = d3.select(".gate-panel")
     gate.on("mouseover", function(d) {
         div.transition()
             .duration(200)
@@ -132,6 +135,7 @@ function z_gate(x, y, register) {
 
     // add on display
     div = d3.select(".tooltip")
+    gate_info = d3.select(".gate-panel")
     gate.on("mouseover", function(d) {
         div.transition()
             .duration(200)
@@ -156,6 +160,7 @@ function p_gate(x, y, register) {
 
     // add on display
     div = d3.select(".tooltip")
+    gate_info = d3.select(".gate-panel")
     gate.on("mouseover", function(d) {
         div.transition()
             .duration(200)
@@ -227,10 +232,10 @@ function create_control_at(element, x1, y1, y2, color="#002D9C") {
     return g
 }
 
-function cnot(x1, y1, y2) {
+function cnot(x1, y1, y2, control, target) {
     gate = d3.select("#circuit-detail-svg").append("g")
         .attr("transform", `translate(${x1}, ${y1})`)
-
+    gate_info = d3.select(".gate-panel")
     // draw a circle at (0, 0), then draw two line to form a cross in the middle
     gate.append("circle")
         .attr("cx", 0)
@@ -251,7 +256,7 @@ function cnot(x1, y1, y2) {
         .attr("stroke", "white")
 
     // draw the control gate
-    create_control_at(gate, 0, -20, y2)
+    create_control_at(gate, 0, 20, y2)
     // add on display
     div = d3.select(".tooltip")
     gate.on("mouseover", function(d) {
@@ -261,11 +266,13 @@ function cnot(x1, y1, y2) {
         div.html(`CNOT gate`)
             .style("left", (d3.event.pageX) + "px")
             .style("top", (d3.event.pageY) + "px");
+        gate_info.html(`Gate Info: CNOT gate, control - ${control}, target - ${target}`)
         })
     .on("mouseout", function(d) {
         div.transition()
             .duration(500)
             .style("opacity", 0);
+        gate_info.html("Gate Info")
     });
 
     return gate

@@ -1,6 +1,7 @@
 # an object of WSGI application
 from flask import Flask, jsonify, render_template, json, request, redirect, url_for
 import os
+from visualization_main import Painter
 
 app = Flask(__name__)  # Flask constructor
 
@@ -32,7 +33,25 @@ def index():
     json_url = os.path.join(app.root_path, "static", "data", "circuit_data.json")
     cache["circuit"] = json.load(open(json_url))
 
-    return render_template("index.html", data=cache["circuit"], draw=cache["circuit"]["openqasm"])
+    painter = Painter()
+
+    painter.add_register(register=0, reg_type="p")
+    painter.add_register(register=1, reg_type="p")
+    painter.add_register(register=2, reg_type="p")
+    painter.add_register(register=3, reg_type="p")
+    painter.add_register(register=0, reg_type="e")
+    painter.add_register(register=0, reg_type="c")
+    painter.add_gate(gate_name="H", qargs=["e0"])
+    painter.add_gate(gate_name="CX", qargs=["e0", "p1"])
+    painter.add_gate(gate_name="CX", qargs=["e0", "p2"])
+
+    visualization_info = painter.build_visualization_info()
+
+    return render_template("index.html",
+        data=cache["circuit"],
+        draw=cache["circuit"]["openqasm"],
+        visualization_info=visualization_info,
+    )
 
 
 @app.route('/circuit_data', methods=['GET', 'POST'])

@@ -677,7 +677,7 @@ class ParameterizedControlledRotationQubit(ControlledPairOperationBase):
         self.param_info = param_info
 
 
-class RY(OneQubitOperationBase):
+class RY(ParameterizedOneQubitRotation):
     """
     Rotation around the Y axis
     """
@@ -693,14 +693,14 @@ class RY(OneQubitOperationBase):
             params = (0.0, 0.0, 0.0)
         if param_info is None:
             param_info = {
-                "bounds": ((-np.pi, np.pi), (-np.pi, np.pi), (-np.pi, np.pi)),
+                "bounds": ("theta", 0, 0),
                 "labels": ("theta", "phi", "lambda"),
             }
         self.params = params
         self.param_info = param_info
 
 
-class RX(OneQubitOperationBase):
+class RX(ParameterizedOneQubitRotation):
     """
     Rotation around the X axis
     """
@@ -716,14 +716,15 @@ class RX(OneQubitOperationBase):
             params = (0.0, 0.0, 0.0)
         if param_info is None:
             param_info = {
-                "bounds": ((-np.pi, np.pi), (-np.pi, np.pi), (-np.pi, np.pi)),
+                "bounds": ("theta", np.pi/2, np.pi/2),
                 "labels": ("theta", "phi", "lambda"),
             }
         self.params = params
         self.param_info = param_info
 
 
-class RZ(OneQubitOperationBase):
+class RZ(ParameterizedOneQubitRotation):
+
     """
     Rotation around the Z axis
     """
@@ -739,7 +740,7 @@ class RZ(OneQubitOperationBase):
             params = (0.0, 0.0, 0.0)
         if param_info is None:
             param_info = {
-                "bounds": ((-np.pi, np.pi), (-np.pi, np.pi), (-np.pi, np.pi)),
+                "bounds": (0, 0, "lambda"),
                 "labels": ("theta", "phi", "lambda"),
             }
         self.params = params

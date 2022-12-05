@@ -301,7 +301,6 @@ class CircuitBase(ABC):
         )
         for op in self.sequence():
             oq_info = op.openqasm_info()
-            # gate_application = ""
             if isinstance(op, ops.ParameterizedOneQubitRotation):
                 gate_application = oq_info.use_gate(
                     op.q_registers,
@@ -310,28 +309,6 @@ class CircuitBase(ABC):
                     params=op.param_info,
                 )
             elif isinstance(op, ops.ParameterizedControlledRotationQubit):
-                gate_application = oq_info.use_gate(
-                    op.q_registers,
-                    op.q_registers_type,
-                    op.c_registers,
-                    params=op.param_info,
-                )
-            elif isinstance(op, ops.RY):
-                gate_application = oq_info.use_gate(
-                    op.q_registers,
-                    op.q_registers_type,
-                    op.c_registers,
-                    params=op.param_info,
-                )
-
-            elif isinstance(op, ops.RZ):
-                gate_application = oq_info.use_gate(
-                    op.q_registers,
-                    op.q_registers_type,
-                    op.c_registers,
-                    params=op.param_info,
-                )
-            elif isinstance(op, ops.RX):
                 gate_application = oq_info.use_gate(
                     op.q_registers,
                     op.q_registers_type,
@@ -596,16 +573,6 @@ class CircuitBase(ABC):
         :return: a dictionary, of the form {parameter_key: [list of parameters values]}
         """
         return self._parameters
-
-    # initialize the parameters dictionary with theta, phi, lam and n
-    def initialize_parameters(self):
-        """
-        Initializes the parameters dictionary with theta, phi, lam and n
-
-        :return: this function returns nothing
-        :rtype: None
-        """
-        self._parameters = {"theta": None, "phi": None, "lam": None, "n": None}
 
     @parameters.setter
     def parameters(self, parameters: dict):
@@ -1572,3 +1539,13 @@ class CircuitDAG(CircuitBase):
         for reg_type in self._register_depth:
             self.calculate_reg_depth(reg_type=reg_type)
         return self._register_depth.copy()
+
+    # calculate number of gates in the circuit
+    def num_gates(self):
+        """
+        Calculate the number of gates in the circuit
+
+        :return: the number of gates in the circuit
+        :rtype: int
+        """
+        return len(self.node_dict["Gate"])

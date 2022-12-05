@@ -245,7 +245,7 @@ def ry_info():
     def usage(q_reg, q_reg_type, c_reg, params):
         return f"ry({params['theta']}) {q_reg_type[0]}{q_reg[0]}[0];"
 
-    return OpenQASMInfo("ry", imports, definition, usage, False, gate_symbol="RY")
+    return OpenQASMInfo("ry", imports, definition, usage, False, gate_symbol="R_y")
 
 
 def rx_info():
@@ -255,7 +255,7 @@ def rx_info():
     def usage(q_reg, q_reg_type, c_reg, params):
         return f"rx({params['theta']}) {q_reg_type[0]}{q_reg[0]}[0];"
 
-    return OpenQASMInfo("rx", imports, definition, usage, False, gate_symbol="RX")
+    return OpenQASMInfo("rx", imports, definition, usage, False, gate_symbol="R_x")
 
 
 def rz_info():
@@ -265,7 +265,7 @@ def rz_info():
     def usage(q_reg, q_reg_type, c_reg, params):
         return f"rz({params['phi']}) {q_reg_type[0]}{q_reg[0]}[0];"
 
-    return OpenQASMInfo("rz", imports, definition, usage, False, gate_symbol="RZ")
+    return OpenQASMInfo("rz", imports, definition, usage, False, gate_symbol="R_z")
 
 
 def single_qubit_wrapper_info(op_list):

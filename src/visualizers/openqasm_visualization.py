@@ -21,12 +21,12 @@ def draw_openqasm(qasm, show=False, ax=None, display_text=None):
     """
     # https://qiskit.org/documentation/tutorials/circuits_advanced/03_advanced_circuit_visualization.html
     # TODO: double check that qc.draw returns a figure
-
+    # TODO: implement a way to display the parameters in brackets: Rz(np.pi/2)
     # display_text_full = DefaultStyle().style['disptex']
     # for key, val in display_text.items():
     #     display_text_full[key] = val
     if display_text is None:
-        display_text = {}
+        display_text = {'rx': 'R_x', 'ry': 'R_y', 'rz': 'R_z', }
 
     style = {"displaytext": display_text}
 
@@ -37,6 +37,18 @@ def draw_openqasm(qasm, show=False, ax=None, display_text=None):
     else:
         fig = qc.draw(output="mpl", ax=ax, plot_barriers=False, style=style)
     if show:
+        # if the num_gates is small increase font size, if large decrease font size
+        num_gates = len(qc.data)
+        if num_gates < 10:
+            for text in ax.texts:
+                text.set_fontsize(10)
+        elif num_gates < 20:
+            for text in ax.texts:
+                text.set_fontsize(8)
+        else:
+            for text in ax.texts:
+                text.set_fontsize(7)
+
         plt.show()
 
     return fig, ax

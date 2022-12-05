@@ -363,7 +363,7 @@ def test_parameterized_gates_1():
 
 
 def test_parameterized_gates_2():
-    # Use the RY, RZ, RX ates
+    # Use the RY, RZ, RX gates
     dag = CircuitDAG(n_emitter=1, n_photon=1, n_classical=1)
     param_info = {"theta": np.pi, "phi": np.pi / 2, "lambda": np.pi / 4}
     dag.add(ops.RY(register=0, reg_type="p", param_info=param_info))

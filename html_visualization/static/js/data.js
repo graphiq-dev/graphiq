@@ -14,22 +14,22 @@ let visualization_info = {
     gates: [
         {
             gate_name: "H",
-            qarg: "e0",
-            control: "",
+            qargs: ["e0"],
+            controls: [],
             params: {},
             x_pos: 50,
         },
         {
             gate_name: "CX",
-            qarg: "p1",
-            control: "e0",
+            qargs: ["p1"],
+            controls: ["e0"],
             params: {},
             x_pos: 100,
         },
         {
             gate_name: "U",
-            qarg: "p2",
-            control: "e0",
+            qargs: ["p2"],
+            controls: ["e0"],
             params: {
                 theta: "pi/2",
                 phi: "pi/4",

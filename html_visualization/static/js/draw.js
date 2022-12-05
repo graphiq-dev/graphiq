@@ -17,18 +17,16 @@ function draw_register_info(register) {
 
 function draw_gate_info(gates) {
     for (let i = 0; i < gates.length; i++) {
-        // one_qubit_gate(x, y, gate_name, register, color="#33C4FF", params=null)
-        register = visualization_info.register.qreg[gates[i].qarg]
+        register = visualization_info.register.qreg[gates[i].qargs]
 
-        g = one_qubit_gate(gates[i].x_pos, register, gates[i].gate_name, gates[i].qarg, gates[i].params)
+        g = one_qubit_gate(gates[i].x_pos, register, gates[i].gate_name, gates[i].qargs, gates[i].params)
 
-        if (gates[i].control != "") {
+        if (gates[i].controls.length !== 0) {
             color = g.select("rect").style("fill")
 
             x = g.select("rect").attr("width") / 2
             y1 = g.select("rect").attr("height")
-            y2 = visualization_info.register.qreg[gates[i].control] - register + 20
-            // create_control_at(element, x1, y1, y2, color="#002D9C")
+            y2 = visualization_info.register.qreg[gates[i].controls] - register + 20
             create_control_at(g, x, y1, y2, color)
         }
     }

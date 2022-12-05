@@ -26,7 +26,7 @@ def draw_openqasm(qasm, show=False, ax=None, display_text=None):
     # for key, val in display_text.items():
     #     display_text_full[key] = val
     if display_text is None:
-        display_text = {'rx': 'R_x', 'ry': 'R_y', 'rz': 'R_z', }
+        display_text = {}
 
     style = {"displaytext": display_text}
 

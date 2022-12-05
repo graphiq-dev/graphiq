@@ -716,7 +716,7 @@ class RX(ParameterizedOneQubitRotation):
             params = (0.0, 0.0, 0.0)
         if param_info is None:
             param_info = {
-                "bounds": ("theta", np.pi/2, np.pi/2),
+                "bounds": ("theta", np.pi / 2, np.pi / 2),
                 "labels": ("theta", "phi", "lambda"),
             }
         self.params = params

@@ -20,12 +20,23 @@ let visualization_info = {
             x_pos: 50,
         },
         {
-            gate_name: "My gate",
+            gate_name: "CX",
             qarg: "p1",
             control: "e0",
             params: {},
             x_pos: 100,
         },
+        {
+            gate_name: "U",
+            qarg: "p2",
+            control: "e0",
+            params: {
+                theta: "pi/2",
+                phi: "pi/4",
+                lambda: "pi/8",
+            },
+            x_pos: 200,
+        }
     ]
 }
 

@@ -1,10 +1,35 @@
 // comment
 
-function one_qubit_gate(x, y, gate_name, register, color="#33C4FF", params=null) {
+function add_params_on_display(gate, params) {
+    gate_info = d3.select(".gate-panel")
+    gate_info.append("p").html("Params:")
+
+    for (p in params) {
+        gate_info.append("p").html(`- ${p}: ${params[p]}`)
+    }
+}
+
+function create_params_str(params) {
+    params_str = ""
+
+    params_str += "("
+    for (p in params) {
+        params_str += `${params[p]}, `
+    }
+    params_str = params_str.slice(0, params_str.length - 2)
+    params_str += ")"
+
+    return params_str
+}
+
+function one_qubit_gate(x, y, gate_name, register, params={}, color="#33C4FF") {
     let width = 0
     let height = 40
-    if (params != null) {
-        width = Math.max(40, 15*2 + gate_name.length*11, 15*2 + params.length*5)
+    params_str = ""
+
+    if (Object.keys(params).length !== 0) {
+        params_str = create_params_str(params)
+        width = Math.max(40, 15*2 + gate_name.length*11, 15*2 + params_str.length*5)
     } else {
         width = Math.max(40, 15*2 + gate_name.length*11)
     }
@@ -26,13 +51,13 @@ function one_qubit_gate(x, y, gate_name, register, color="#33C4FF", params=null)
         .style("text-anchor", "middle")
         .style("dominant-baseline", "middle")
 
-    if (params != null) {
+    if (Object.keys(params).length !== 0) {
         g_name.attr("y", -5 + 40 / 2)
 
         gate.append("text")
-        .text(params)
+        .text(params_str)
         .attr("font-size", "0.8em")
-        .attr("textLength", params.length * 5)
+        .attr("textLength", params_str.length * 5)
         .attr("x", width / 2)
         .attr("y", 10 + 40 / 2)
         .style("text-anchor", "middle")
@@ -49,7 +74,8 @@ function one_qubit_gate(x, y, gate_name, register, color="#33C4FF", params=null)
         div.html(`${gate_name} gate on ${register}`)
             .style("left", (d3.event.pageX) + "px")
             .style("top", (d3.event.pageY) + "px");
-        gate_info.html(`Gate Info: ${gate_name} gate on ${register}`)
+        gate_info.append("p").html(`${gate_name} gate on ${register}`)
+        add_params_on_display(gate, params)
         })
     .on("mouseout", function(d) {
         div.transition()

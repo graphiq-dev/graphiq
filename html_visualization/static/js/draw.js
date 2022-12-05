@@ -20,7 +20,7 @@ function draw_gate_info(gates) {
         // one_qubit_gate(x, y, gate_name, register, color="#33C4FF", params=null)
         register = visualization_info.register.qreg[gates[i].qarg]
 
-        g = one_qubit_gate(gates[i].x_pos, register, gates[i].gate_name, gates[i].qarg)
+        g = one_qubit_gate(gates[i].x_pos, register, gates[i].gate_name, gates[i].qarg, gates[i].params)
 
         if (gates[i].control != "") {
             color = g.select("rect").style("fill")

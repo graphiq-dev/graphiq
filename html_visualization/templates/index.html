@@ -8,8 +8,6 @@
     <script src="{{ url_for('static', filename='js/draw.js') }}"></script>
     <style>
         div.circuit-label-container {
-            /* To see element border */
-            /* border: 1px solid black; */
             position: absolute;
         }
 
@@ -18,7 +16,6 @@
             width: 1000px;
             overflow-x: auto;
             white-space: nowrap;
-            /* border: 1px solid black; */
         }
 
         .register-label {
@@ -76,66 +73,8 @@
         register_label_init(70, 350)
         register_detail_init(1000, 350)
 
-        draw_register_info(visualization_info.register)
+        draw_register_info(visualization_info.registers)
         draw_gate_info(visualization_info.gates)
-
-
     </script>
-<!--    <script name="init">-->
-<!--        register_label_init(70, 350)-->
-<!--        register_detail_init(1000, 350)-->
-
-<!--        for (let i = 0; i < 4; i++) {-->
-<!--            draw_register_label(`q${i}`, 70, (i+1)*50)-->
-<!--        }-->
-<!--        draw_register_label("e0", 70, 250)-->
-<!--        draw_register_label("c0", 70, 300)-->
-
-<!--        for (let i = 0; i < 5; i++) {-->
-<!--            draw_quantum_register(0, (i+1)*50)-->
-<!--        }-->
-
-<!--        draw_classical_register(0, 300)-->
-<!--    </script>-->
-<!--    <script name="add-gates">-->
-<!--        // register q0-->
-<!--        hadamard(50, 50, "q0")-->
-<!--        x_gate(100, 50, "q0")-->
-<!--        y_gate(150, 50, "q0")-->
-<!--        z_gate(200, 50, "q0")-->
-<!--        p_gate(250, 50, "q0")-->
-<!--        one_qubit_gate(330, 50, "Mygate", "q0")-->
-
-
-<!--        // q[1]-->
-<!--        hadamard(50, 100, "q1")-->
-<!--        gate2 = ry(120, 100, "q1")-->
-<!--        rx(190, 100, "q1", "(pi/4)")-->
-<!--        rz(260, 100, "q1", "(3pi/8)")-->
-<!--        one_qubit_gate(x=370, y=100, gate_name="U", "q1", color="#33C4FF", params="(pi/2, pi/4, pi/6)")-->
-
-<!--        // one_qubit_gate(x=100, y=100, gate_name="RX", color="#33C4FF", params="(pi/2, pi/4)")-->
-<!--        // one_qubit_gate(100, 100, "U=HXH")-->
-
-<!--        // 2 qubit gates-->
-<!--        gate1 = cnot(50, 150, 100, control="q3, e0", target="q2")-->
-<!--        create_control_at(gate1, 0, 20, 50)-->
-<!--        cnot(100, 150, 50, control="q3", target="q2")-->
-<!--        gate1 = cnot(150, 200, 50, control="q2, e0", target="q2")-->
-<!--        create_control_at(gate1, 0, -20, -50)-->
-<!--        cz(200, 250, -100)-->
-
-<!--        crx(250, 200, 50)-->
-<!--        cry(320, 200, 50)-->
-<!--        crz(390, 200, 50)-->
-
-<!--    </script>-->
-
-<!--    <div class="data-panel">-->
-<!--        <p>Input Data:</p>-->
-<!--        <p>Register: {{ data["register"] }}</p>-->
-<!--        <p>Register depth: {{ data["register_depth"] }}</p>-->
-<!--        <span style="white-space: pre-line">{{ draw }}</span>-->
-<!--    </div>-->
 </body>
 </html>

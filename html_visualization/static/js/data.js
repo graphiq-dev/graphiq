@@ -7,7 +7,7 @@ function run(dataset) {
 };
 
 let visualization_info = {
-    register: {
+    registers: {
         qreg: {p0: 50, p1: 100, p2: 150, p3: 200, e0: 250},
         creg: {c4: 300}
     },

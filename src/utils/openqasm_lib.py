@@ -212,7 +212,7 @@ def parameterized_info():
     def usage(q_reg, q_reg_type, c_reg, params):
         return f"u({params['theta']}, {params['phi']}, {params['lambda']})  {q_reg_type[0]}{q_reg[0]}[0];"
 
-    return OpenQASMInfo("u", imports, definition, usage, False, gate_symbol="PR")
+    return OpenQASMInfo("u", imports, definition, usage, False, gate_symbol="U_3")
 
 
 def cparameterized_info():
@@ -233,9 +233,7 @@ def cparameterized_info():
     def usage(q_reg, q_reg_type, c_reg, params):
         return f"cu3({params['theta']}, {params['phi']}, {params['lambda']}) {q_reg_type[0]}{q_reg[0]}[0], {q_reg_type[1]}{q_reg[1]}[0];"
 
-        # return f"cz {q_reg_type[0]}{q_reg[0]}[0], {q_reg_type[1]}{q_reg[1]}[0];"
-
-    return OpenQASMInfo("cu3", imports, definition, usage, False, gate_symbol="CPR")
+    return OpenQASMInfo("cu3", imports, definition, usage, False, gate_symbol="U_3")
 
 
 def ry_info():

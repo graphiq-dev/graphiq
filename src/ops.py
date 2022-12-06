@@ -693,7 +693,7 @@ class RY(ParameterizedOneQubitRotation):
             params = (0.0, 0.0, 0.0)
         if param_info is None:
             param_info = {
-                "bounds": ("theta", 0, 0),
+                "bounds": ((-np.pi, np.pi), (0.0, 0.0), (0.0, 0.0)),
                 "labels": ("theta", "phi", "lambda"),
             }
         self.params = params
@@ -716,7 +716,7 @@ class RX(ParameterizedOneQubitRotation):
             params = (0.0, 0.0, 0.0)
         if param_info is None:
             param_info = {
-                "bounds": ("theta", np.pi / 2, np.pi / 2),
+                "bounds": ((-np.pi, np.pi), (np.pi/2, np.pi/2), (np.pi/2, np.pi/2)),
                 "labels": ("theta", "phi", "lambda"),
             }
         self.params = params
@@ -740,7 +740,7 @@ class RZ(ParameterizedOneQubitRotation):
             params = (0.0, 0.0, 0.0)
         if param_info is None:
             param_info = {
-                "bounds": (0, 0, "lambda"),
+                "bounds": ((0.0, 0.0), (0.0, 0.0), (-np.pi, np.pi)),
                 "labels": ("theta", "phi", "lambda"),
             }
         self.params = params

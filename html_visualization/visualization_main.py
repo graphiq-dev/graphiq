@@ -1,32 +1,28 @@
 from draw import Painter
+from openqasm_parser import OpenQASMParser
 
 openqasm_str = """
 OPENQASM 2.0;
 
-
+qreg q[4];
+qreg p[10];
+qreg e[2];
+creg c[4];
 """
 
 painter = Painter()
 
-painter.add_register(register=0, reg_type="p")
-painter.add_register(register=1, reg_type="p")
-painter.add_register(register=2, reg_type="p")
-painter.add_register(register=3, reg_type="p")
-painter.add_register(register=0, reg_type="e")
-painter.add_register(register=0, reg_type="c")
+painter.add_register(reg_name="p", size=4)
+painter.add_register(reg_name="e", size=1)
+painter.add_register(reg_name="c", size=4, reg_type="creg")
 
-# painter.add_gate(gate_name="H", qargs=["e0"])
-# painter.add_gate(gate_name="RX", qargs=["e0"], params=["pi/2", "pi/4"])
-# painter.add_gate(gate_name="RX", qargs=["e0"], params=["pi/2", "pi/4"])
 painter.add_gate(gate_name="H", qargs=["e0"])
-painter.add_gate(gate_name="CX", qargs=["e0", "p1"])
-painter.add_gate(gate_name="CX", qargs=["e0", "p2"])
+painter.add_gate(gate_name="H", qargs=["e0"])
+painter.add_gate(gate_name="RX", qargs=["p0"], params={"theta": "pi/2", "phi": "pi/4"})
 
-info = painter.build_visualization_info()
+painter.build_visualization_info()
+print(painter.col_width)
 
-print(info)
-
-# print(painter.col_width)
-# print(painter.build_visualization_info())
-
+for gate in painter.gates:
+    print(gate)
 

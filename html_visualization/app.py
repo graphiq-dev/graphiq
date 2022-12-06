@@ -11,23 +11,6 @@ app = Flask(__name__)  # Flask constructor
 cache = {}
 
 
-@app.route("/create")
-def create():
-    cache["foo"] = 0
-    return cache
-
-
-@app.route("/increment")
-def increment():
-    cache["foo"] = cache["foo"] + 1
-    return cache
-
-
-@app.route("/read")
-def read():
-    return cache
-
-
 @app.route('/')
 def index():
     json_url = os.path.join(app.root_path, "static", "data", "circuit_data.json")
@@ -35,21 +18,18 @@ def index():
 
     painter = Painter()
 
-    painter.add_register(register=0, reg_type="p")
-    painter.add_register(register=1, reg_type="p")
-    painter.add_register(register=2, reg_type="p")
-    painter.add_register(register=3, reg_type="p")
-    painter.add_register(register=0, reg_type="e")
-    painter.add_register(register=0, reg_type="c")
+    painter.add_register(reg_name="p", size=4)
+    painter.add_register(reg_name="e", size=1)
+    painter.add_register(reg_name="c", size=4, reg_type="creg")
+
     painter.add_gate(gate_name="H", qargs=["e0"])
-    painter.add_gate(gate_name="CX", qargs=["e0", "p1"])
-    painter.add_gate(gate_name="CX", qargs=["e0", "p2"])
+    painter.add_gate(gate_name="H", qargs=["e0"])
+    painter.add_gate(gate_name="RX", qargs=["p0"], params={"theta": "pi/2", "phi": "pi/4"})
 
     visualization_info = painter.build_visualization_info()
 
     return render_template("index.html",
         data=cache["circuit"],
-        draw=cache["circuit"]["openqasm"],
         visualization_info=visualization_info,
     )
 

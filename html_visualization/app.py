@@ -13,9 +13,6 @@ cache = {}
 
 @app.route('/')
 def index():
-    json_url = os.path.join(app.root_path, "static", "data", "circuit_data.json")
-    cache["circuit"] = json.load(open(json_url))
-
     painter = Painter()
 
     painter.add_register(reg_name="p", size=4)
@@ -29,7 +26,6 @@ def index():
     visualization_info = painter.build_visualization_info()
 
     return render_template("index.html",
-        data=cache["circuit"],
         visualization_info=visualization_info,
     )
 

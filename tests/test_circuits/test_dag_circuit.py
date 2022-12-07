@@ -615,13 +615,9 @@ def test_circuit_comparison_7():
     circuit2.add(ops.Phase(register=0, reg_type="e"))
     ged = circuit1.compare(circuit2, method="GED_full")
     match = circuit1.compare(circuit2)
-    ged_noise = circuit1.compare(circuit2, method="GED_full", noise=True)
-    match_noise = circuit1.compare(circuit2, noise=True)
 
     assert ged
     assert match
-    assert not ged_noise
-    assert not match_noise
 
 
 def test_circuit_comparison_8():

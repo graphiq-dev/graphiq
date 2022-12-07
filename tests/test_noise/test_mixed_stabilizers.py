@@ -109,11 +109,3 @@ def test_mixed_state_measurement():
 
     nm.REDUCE_STABILIZER_MIXTURE = False
     state = compiler.compile(circ)
-
-
-if __name__ == "__main__":
-    test_mixed_state_class_types()
-    test_mixed_state_compare_with_dm(4)
-    test_mixed_state_tableaux_reduction()
-    test_mixed_state_measurement()
-    print("Tests successful")

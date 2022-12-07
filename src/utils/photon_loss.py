@@ -5,6 +5,9 @@ def photon_survival_rate(circuit):
     """
     Calculate the survival rate of photons
 
+    The survival rate of a photon is the product of probabilities that this photon is not lost
+    during a gate action
+
     :param circuit: circuit
     :type circuit: CircuitDAG
     :return: survival rate of photons

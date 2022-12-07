@@ -5,9 +5,10 @@ import src.backends.density_matrix.functions as dmf
 import src.backends.stabilizer.functions.clifford as sfc
 import src.noise.noise_models as nm
 from src.state import QuantumState
+from src.backends.stabilizer.state import MixedStabilizer
 
 
-def _state_initialization(n_quantum, state=dmf.state_ketz0()):
+def _state_initialization_dm(n_quantum, state=dmf.state_ketz0()):
     return QuantumState(
         n_quantum,
         dmf.create_n_product_state(n_quantum, state),
@@ -27,8 +28,8 @@ def test_depolarizing_noise():
     n_quantum = 3
     qubit_position = 1
     qubit_state = dmf.state_ketx0()
-    state1 = _state_initialization(n_quantum, qubit_state)
-    state2 = _state_initialization(n_quantum, qubit_state)
+    state1 = _state_initialization_dm(n_quantum, qubit_state)
+    state2 = _state_initialization_dm(n_quantum, qubit_state)
     depolarizing_prob = 0.1
     noise1 = nm.DepolarizingNoise(depolarizing_prob)
 
@@ -58,8 +59,8 @@ def test_depolarizing_noise():
 def test_no_noise():
     n_quantum = 5
     qubit_state = dmf.state_kety0()
-    state1 = _state_initialization(n_quantum, qubit_state)
-    state2 = _state_initialization(n_quantum, qubit_state)
+    state1 = _state_initialization_dm(n_quantum, qubit_state)
+    state2 = _state_initialization_dm(n_quantum, qubit_state)
     noise = nm.NoNoise()
     noise.apply(state1)
 
@@ -69,8 +70,8 @@ def test_no_noise():
 def test_one_qubit_replacement():
     n_quantum = 5
     qubit_position = 2
-    state1 = _state_initialization(n_quantum, dmf.state_ketx0())
-    state2 = _state_initialization(n_quantum, dmf.state_ketx0())
+    state1 = _state_initialization_dm(n_quantum, dmf.state_ketx0())
+    state2 = _state_initialization_dm(n_quantum, dmf.state_ketx0())
     noise = nm.OneQubitGateReplacement(
         dmf.parameterized_one_qubit_unitary(np.pi / 2, 0, np.pi)
     )
@@ -87,8 +88,8 @@ def test_two_qubit_replacement():
     n_quantum = 5
     control_qubit = 2
     target_qubit = 0
-    state1 = _state_initialization(n_quantum, dmf.state_ketx1())
-    state2 = _state_initialization(n_quantum, dmf.state_ketx1())
+    state1 = _state_initialization_dm(n_quantum, dmf.state_ketx1())
+    state2 = _state_initialization_dm(n_quantum, dmf.state_ketx1())
     noise = nm.TwoQubitControlledGateReplacement(
         dmf.parameterized_one_qubit_unitary(np.pi, 0, np.pi), phase_factor=0
     )
@@ -106,8 +107,8 @@ def test_two_qubit_replacement():
 def test_pauli_error():
     n_quantum = 5
     qubit_position = 2
-    state1 = _state_initialization(n_quantum, dmf.state_ketx0())
-    state2 = _state_initialization(n_quantum, dmf.state_ketx0())
+    state1 = _state_initialization_dm(n_quantum, dmf.state_ketx0())
+    state2 = _state_initialization_dm(n_quantum, dmf.state_ketx0())
     noise = nm.PauliError("X")
 
     x_gate = dmf.get_one_qubit_gate(n_quantum, qubit_position, dmf.sigmax())
@@ -117,9 +118,19 @@ def test_pauli_error():
     assert np.allclose(state1.dm.data, state2.dm.data)
 
 
-def test_photon_loss():
+def test_photon_loss_stabilizer():
     n_quantum = 2
-    state1 = _state_initialization_stabilizer(n_quantum)
+    state = _state_initialization_stabilizer(n_quantum)
     noise = nm.PhotonLoss(0.1)
-    noise.apply(state1, n_quantum, 1)
-    print(state1.stabilizer)
+    noise.apply(state, n_quantum, 1)
+    assert isinstance(state.stabilizer, MixedStabilizer)
+    assert state.stabilizer.probability == 0.9
+
+
+def test_photon_loss_dm():
+    n_quantum = 2
+    state = _state_initialization_dm(n_quantum)
+    noise = nm.PhotonLoss(0.1)
+    noise.apply(state, n_quantum, 1)
+    assert state.dm.trace == 0.9
+    assert not state.dm.normalized

@@ -6,7 +6,7 @@ Functions to compare quantum circuits
 import networkx as nx
 
 
-def compare_circuits(circuit1, circuit2, method="direct", noise=False):
+def compare_circuits(circuit1, circuit2, method="direct"):
     """
     Compare two circuits by using GED or direct loop method
 
@@ -16,24 +16,22 @@ def compare_circuits(circuit1, circuit2, method="direct", noise=False):
     :type circuit2: CircuitDAG
     :param method: Determine which comparison function to use
     :type method: str
-    :param noise: compare the noise if True
-    :type noise: bool
     :return: whether two circuits are the same
     :rtype: bool
     """
     if method == "direct":
-        return direct(circuit1, circuit2, noise=noise)
+        return direct(circuit1, circuit2)
     elif method == "GED_full":
-        return ged(circuit1, circuit2, full=True, noise=noise)
+        return ged(circuit1, circuit2, full=True)
     elif method == "GED_approximate":
-        return ged(circuit1, circuit2, full=False, noise=noise)
+        return ged(circuit1, circuit2, full=False)
     elif method == "GED_adaptive":
-        return ged_adaptive(circuit1, circuit2, noise=noise)
+        return ged_adaptive(circuit1, circuit2)
     else:
         raise ValueError(f"Method {method} is not supported.")
 
 
-def direct(circuit1, circuit2, noise=False):
+def direct(circuit1, circuit2):
     """
     Directly compare two circuits by iterating from input nodes to output nodes
 
@@ -41,8 +39,6 @@ def direct(circuit1, circuit2, noise=False):
     :type circuit1: CircuitDAG
     :param circuit2: circuit that to be compared
     :type circuit2: CircuitDAG
-    :param noise: compare the noise if True
-    :type noise: bool
     :return: whether two circuits are the same
     :rtype: bool
     """
@@ -50,9 +46,9 @@ def direct(circuit1, circuit2, noise=False):
     circuit1.unwrap_nodes()
     circuit2 = circuit2.copy()
     circuit2.unwrap_nodes()
-    if not noise:
-        circuit1.remove_identity()
-        circuit2.remove_identity()
+
+    circuit1.remove_identity()
+    circuit2.remove_identity()
 
     n_reg_match = circuit1.register == circuit2.register
     n_nodes_match = circuit1.dag.number_of_nodes() == circuit2.dag.number_of_nodes()
@@ -94,7 +90,7 @@ def direct(circuit1, circuit2, noise=False):
         return False
 
 
-def ged_adaptive(circuit1, circuit2, threshold=30, noise=False):
+def ged_adaptive(circuit1, circuit2, threshold=30):
     """
     Switch between exact and approximate GED calculation adaptively
 
@@ -104,8 +100,6 @@ def ged_adaptive(circuit1, circuit2, threshold=30, noise=False):
     :type circuit2: CircuitDAG
     :param threshold: threshold
     :type threshold: int
-    :param noise: compare the noise if True
-    :type noise: bool
     :return: exact/approximated GED between circuits(cost needed to transform self.dag to circuit_compare.dag)
     :rtype: bool
     """
@@ -113,11 +107,11 @@ def ged_adaptive(circuit1, circuit2, threshold=30, noise=False):
     full = (
         max(circuit1.dag.number_of_nodes(), circuit2.dag.number_of_nodes()) < threshold
     )
-    sim = ged(circuit1, circuit2, full=full, noise=noise)
+    sim = ged(circuit1, circuit2, full=full)
     return sim
 
 
-def ged(circuit1, circuit2, full=True, noise=False):
+def ged(circuit1, circuit2, full=True):
     """
     Calculate Graph Edit Distance (GED) between two circuits.
     Further reading on GED:
@@ -129,8 +123,6 @@ def ged(circuit1, circuit2, full=True, noise=False):
     :type circuit2: CircuitDAG
     :param full: Determine which GED function to use
     :type full: bool
-    :param noise: compare the noise if True
-    :type noise: bool
     :return: whether two circuits are the same
     :rtype: bool
     """
@@ -138,9 +130,9 @@ def ged(circuit1, circuit2, full=True, noise=False):
     circuit1.unwrap_nodes()
     circuit2 = circuit2.copy()
     circuit2.unwrap_nodes()
-    if not noise:
-        circuit1.remove_identity()
-        circuit2.remove_identity()
+
+    circuit1.remove_identity()
+    circuit2.remove_identity()
     dag1 = circuit1.dag
     dag2 = circuit2.dag
 

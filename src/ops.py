@@ -480,7 +480,7 @@ class ClassicalControlledPairOperationBase(OperationBase):
         :return: nothing
         :rtype: None
         """
-        if type(noise) == list:
+        if isinstance(noise, list):
             assert len(noise) == 2
         else:
             noise = 2 * [noise]
@@ -561,7 +561,7 @@ class OneQubitGateWrapper(OneQubitOperationBase):
         :return: a sequence of base operations (i.e. operations which are not compositions of other operations)
         :rtype: list
         """
-        if type(self.noise) == list:
+        if isinstance(self.noise, list):
             assert len(self.noise) == len(self.operations)
 
             gates = [

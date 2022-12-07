@@ -726,7 +726,16 @@ class SigmaXPerturbedError(OneQubitGateReplacement):
 
 class PhotonLoss(AdditionNoiseBase):
     """
-    Photon loss
+    Photon loss noise model.
+
+    Currently, it supports DensityMatrix/Stabilizer/MixedStabilizer backend.
+
+    For the DensityMatrix backend: it uses subnormalized states, i.e., the trace of the state is the probability
+    that no photon is lost.
+
+
+    For the Stabilizer/MixedStabilizer backend: it keeps track of the survival probability (no photon loss)
+    and the tableau corresponding to no photon loss.
 
     """
 
@@ -750,10 +759,8 @@ class PhotonLoss(AdditionNoiseBase):
         loss_rate = self.noise_parameters["loss rate"]
         for state_rep in state.all_representations:
             if isinstance(state_rep, DensityMatrix):
-                # TODO: Implement this for DensityMatrix backend
-                raise NotImplementedError(
-                    "PhotonLoss not implemented for density matrix representation"
-                )
+                # use subnormalized states
+                state_rep.data = (1 - loss_rate) * state_rep.data
             elif isinstance(state_rep, MixedStabilizer):
                 mixture = state_rep.mixture
                 for i in range(len(mixture)):

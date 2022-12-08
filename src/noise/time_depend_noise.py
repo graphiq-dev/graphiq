@@ -15,17 +15,18 @@ import src.noise.model_parameters as mp
 # TODO: A function to automatically set noise parameters for different noise models such as depolarizing, bit-flip, etc
 
 
-class NoisyCircuit:
+class NoisyEnsemble:
     """
-    Noisy circuit class. For a quantum circuit, this class explores all different possibilities to make it noisy given
+    NoisyEnsemble class. For a quantum circuit, this class explores all different possibilities to make it noisy given
     the noise parameters and list of imperfect registers.
     """
 
     def __init__(self, circ, noisy_regs=None, noise_parameters=mp.noise_parameters):
         """
-        Creates a NoisyCircuit object that allows an ideal circuit to turn into a noisy one by inserting errors to the
+        Creates a NoisyEnsemble object that allows an ideal circuit to turn into a noisy one by inserting errors to the
         set of noisy registers (noisy_regs). The noise/error model and its properties in specified by the
         noise_parameters.
+
         :param circ: the ideal quantum circuit
         :type circ: CircuitDAG
         :param noisy_regs: the list of noisy registers in the circuit given as a list of tuples[(reg, reg_type)]
@@ -59,6 +60,7 @@ class NoisyCircuit:
         """
         A helper function that translate the output of the prob_tree_finder function into a list of NoiseEvent objects. We
         call this list an event tree.
+
         :param prob_tree_found: the list [(error happening at certain (sections indices, ), probability of this event)] and
         the list of sections
         :type prob_tree_found: list[((, ), float)], list
@@ -79,13 +81,16 @@ class NoisyCircuit:
             nodes = [list_of_sections[i][-1] for i in section_indices]
             nodes_and_regs = [(node, (reg, reg_type), noise_type) for node in nodes]
             event = NoiseEvent(prob, nodes_and_regs)
-            # print("nods and regs",event.nodes_and_regs)
             event_tree.append(event)
         return event_tree  # returns a list of events of the NoiseEvent type
 
-    def reg_history(self, reg, reg_type):
+    @staticmethod
+    def reg_history(circ, reg, reg_type):
         """
         Returns a list of the nodes that a certain register goes through in the ideal DAG in the chronological order.
+
+        :param circ: the quantum circuit
+        :type circ: CircuitDAG
         :param reg: register
         :type reg: int
         :param reg_type: the type of the register
@@ -93,24 +98,25 @@ class NoisyCircuit:
         :return: a list of the nodes that act on the register in the chronological order
         :rtype: list
         """
-        ordered_nodes = _reg_gate_history(self.circ, reg, reg_type=reg_type)[1]
+        ordered_nodes = circ.reg_gate_history(reg, reg_type=reg_type)[1]
         return ordered_nodes
 
     def all_branches(self):
         """
-        This method calculates all possible NoiseEvents that can be applied on the NoisyCircuit object. This corresponds
+        This method calculates all possible NoiseEvents that can be applied on the NoisyEnsemble object. This corresponds
          to the event tree that is resulted from adding noise to the circuit. An event tree is a list of branches, where
           each branch has a probability of happening and corresponds to a series of error gates happening at different
           parts of the ideal circuit. The total probability of an event tree is between the cut-off probability, which
           can be set in noise parameters, and unity.
+
         :return: An event tree, which is a list of NoiseEvents
         :rtype: list[NoiseEvents]
         """
         event_tree_list = []
         for noisy_reg in self.noisy_regs:
-            ordered_path = _reg_gate_history(
+            ordered_path = self.reg_history(
                 self.circ, noisy_reg[0], reg_type=noisy_reg[1]
-            )[1]
+            )
             list_of_sections = section_finder(
                 self.circ,
                 ordered_path,
@@ -141,8 +147,9 @@ class NoisyCircuit:
 
     def total_prob(self):
         """
-        The actual sum of all probabilities of all branches of the NoisyCircuit. It is a positive number equal or less
+        The actual sum of all probabilities of all branches of the NoisyEnsemble. It is a positive number equal or less
         than 1. This number will be used for normalization purposes in other calculations.
+
         :return: total probabilities of all branches considered.
         :rtype: float or int
         """
@@ -152,6 +159,7 @@ class NoisyCircuit:
     def circuit_tree(self):
         """
         The list of all possible noisy circuits and their probabilities, resulted by applying noise to the ideal circuit
+
         :return: circuit tree; which is a list of circuits and their respective probability of happening in tuples
         :rtype: list[(, )]
         """
@@ -160,13 +168,13 @@ class NoisyCircuit:
     def output_state(self, backend="stabilizer"):
         """
         Calculates the resulting output quantum state once the noisy circuit is complied.
+
         :param backend: the backend in used to compile the noisy circuit. Right now only stabilizer is allowed.
         :type backend: str
         :return: the noisy quantum state produced by the quantum circuit
         :rtype: QuantumState
         """
         state_data = []
-        # output_state = None
         quantum_state = None
         if backend == "stabilizer":
             circ_tree = self.circuit_tree()
@@ -184,7 +192,6 @@ class NoisyCircuit:
             quantum_state = QuantumState(
                 n_qubits, state_data, representation="stabilizer", mixed=True
             )
-            # output_state = MixedStabilizer(state_data)
         else:
             raise NotImplementedError("non-stabilizer backends not supported yet")
         return quantum_state
@@ -194,13 +201,12 @@ class NoisyCircuit:
         Gets the noisy register as a tuple (reg, reg_type) and returns a list of noise types that must be applied on
         that register.Used to find the register specific noise type from noise parameters' dictionary if there exists
         any.
+
         :param noisy_reg: the noisy register and its type (emitter: 'e' or photon: 'p')
         :type noisy_reg: tuple(int, str)
         :return: list of noise types
         :rtype: list[str]
         """
-        # gets noisy reg (reg, reg_type) and noise parameter dict and returns a list of noise types that must be applied
-        # on the register.
         noise_parameters = self.noise_parameters
         if f"{noisy_reg[1]}{noisy_reg[0]}" in noise_parameters["reg_specific_noise"]:
             noise_type = noise_parameters["reg_specific_noise"][
@@ -242,6 +248,7 @@ class NoiseEvent:
         Creates a NoiseEvent object with probability = prob and the list of locations in the DAG circuit where the error
         is supposed to be inserted to create a noisy circuit. The node, register, and the type of the error gate are all
          given as a list of tuples in the nodes_and_regs parameter.
+
         :param prob: probability of happening
         :type prob: float
         :param nodes_and_regs: a list [(node, (reg, reg_type), noise_type)] to specify where in the DAG error gate are
@@ -289,6 +296,7 @@ class NoiseEvent:
         """
         Merge other NoiseEvent object or objects into the current one. The probability and list of errors is adjusted
         accordingly.
+
         :param events: a list of NoiseEvent objects or a single one
         :return: None
         """
@@ -304,37 +312,10 @@ class NoiseEvent:
             raise ValueError("events should be a list of NoiseEvent objects or a single object")
 
 
-def _reg_gate_history(circ, reg, reg_type="e"):
-    """
-    Finds all the gates that the specified register goes through in the given circuit. A list of operations (gates)
-    and a list of nodes in the chronological order is returned.
-    :param circ: the quantum circuit
-    :type circ: CircuitDAG
-    :param reg: the register
-    :type reg: int
-    :param reg_type: the type of the register
-    :type reg_type: str
-    :return: a tuple of lists, the first one is the list of operation and the second one is the list of nodes in
-    the DAG
-    :rtype: tuple(list, list)
-    """
-    # gives gate type history on some register (Emitter qubit default) in circuit
-    next_node = f"{reg_type}{reg}_in"
-    ordered_nodes = [next_node]
-    while next_node != f"{reg_type}{reg}_out":
-        next_node = [
-            edge[1]
-            for edge in circ.dag.out_edges(next_node, data=True)
-            if edge[2]["reg"] == reg and edge[2]["reg_type"] == reg_type
-        ][0]
-        ordered_nodes.append(next_node)
-    ops_list = [circ.dag.nodes[nod]["op"] for nod in ordered_nodes]
-    return ops_list, ordered_nodes
-
-
 def nodes_of_type(circ, node_list, gate_types):
     """
     Given a list of nodes in a circuit DAG, it returns the nodes that are of the specified gate types.
+
     :param circ: a quantum circuit
     :type circ: CircuitDAG
     :param node_list: a list of some operation nodes in the DAG
@@ -359,6 +340,7 @@ def nodes_of_type(circ, node_list, gate_types):
 def multi_reg_nodes(circ, node_list):
     """
     Given a list of nodes in a circuit DAG, it returns the multi-register nodes. (n-qubit gates, measurements, ect.)
+
     :param circ: a quantum circuit
     :type circ: CircuitDAG
     :param node_list: a list of some operation nodes in the DAG
@@ -383,6 +365,7 @@ def reg_as_control(
     """
     Given a certain register and a list of nodes in a circuit DAG, it returns nodes in the list that have the given
     register as the control qubit.
+
     :param circ: a quantum circuit
     :type circ: CircuitDAG
     :param node_list: a list of some operation nodes in the DAG
@@ -408,6 +391,7 @@ def reg_as_control(
 def emission_finder(circ, node_list):
     """
     Finds emission events in a given list of nodes in the DAG.
+
     :param circ: a quantum circuit
     :type circ: CircuitDAG
     :param node_list: a list of some operation nodes in the DAG
@@ -434,6 +418,7 @@ def section_finder(circ, ordered_path, criteria, reg=0, reg_type="e"):
     satisfy the partitioning criteria condition, plus the latter of the two nodes.
     A list of sections, where each section is a list of nodes itself, is returned.
     Valid criteria: 'measure', 'emission', 'multi_reg_gates', 'reg_as_control', 'all_gates'
+
     :param circ: a quantum circuit
     :type circ: CircuitDAG
     :param ordered_path: a list of some operation nodes in the DAG in chronological order for the specified register.
@@ -490,6 +475,7 @@ def section_finder(circ, ordered_path, criteria, reg=0, reg_type="e"):
 def section_duration(circ, section_nodes, gate_duration_dict):
     """
     A helper function that calculates the duration of a given section of a circuit.
+
     :param circ: a quantum circuit
     :type circ: CircuitDAG
     :param section_nodes: list of operation nodes of a section of gates applied on a register
@@ -509,6 +495,7 @@ def seq_time_tuples(circ, list_of_sections, gate_duration_dict):
     """
     Given a list of sections,this helper function calculates the duration of each section and returns a list of tuples,
     with each tuple including the index of the section in the list and its time duration.
+
     :param circ: a quantum circuit
     :type circ: CircuitDAG
     :param list_of_sections: list of sections, each of which are a list of nodes
@@ -531,6 +518,7 @@ def poisson_prob(count, time, rate):
     """
     Calculates the probability of having a certain number of events happening using a Poisson distribution, given the
     average rate of events per unit time and the time during which one counts the events.
+
     :param count: the number of events
     :type count: int
     :param time: the time duration
@@ -547,6 +535,7 @@ def cut_off_counter(cut_off_prob, time, rate):
     """
     Helper function to calculate the maximum number of events needed to be considered so that cut-off probability
     requirement is satisfied.
+
     :param cut_off_prob: the minimum total probability of all events we want to consider
     :type cut_off_prob: float
     :type time: float
@@ -576,6 +565,7 @@ def prob_tree_finder(
     and the list of sections used for that tree. The probability tree is a list of tuples where the first element is
     itself a tuple of section indices (in the list of sections) where error is supposed to happen and the second
     element of the tuple is the probability of happening for that branch.
+
     :param circ: a quantum circuit
     :type circ: CircuitDAG
     :param list_of_sections: list of sections, each of which are a list of nodes
@@ -638,6 +628,7 @@ def insert_error(circ, all_branches):
     """
     Given a circuit and a list noise events, this function returns a list of modified circuits with respect to the list
     of noise events. The probability of each modified circuit is also returned . We call this a circuit tree.
+
     :param circ: a quantum circuit
     :type circ: CircuitDAG
     :param all_branches: the list of all NoiseEvents that need to be applied on the circuit.
@@ -673,6 +664,7 @@ def unwrapper(event_tree_list, events_to_merge=None, all_events=None, ii=0):
     """
     This recursive function combines different individual event trees into a single one. Each event tree consist of a
     number of branches (list of NoiseEvents) that sum up to probability one.
+
     :param event_tree_list: a list of event trees
     :type event_tree_list: list
     :param events_to_merge: an internal parameter which is a list to keep branches and need to be merged into a single

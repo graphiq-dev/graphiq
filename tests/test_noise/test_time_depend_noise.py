@@ -18,7 +18,7 @@ def test_benchmark_circuits(bench_circuit):
     compiler1 = StabilizerCompiler()
     target_state = compiler1.compile(circ1)
     metric = Infidelity(target_state)
-    noisy_circ = tdn.NoisyCircuit(circ1, [(0, "e")])
+    noisy_circ = tdn.NoisyEnsemble(circ1, [(0, "e")])
 
     noisy_output_state = noisy_circ.output_state("stabilizer")
     infidelity1 = metric.evaluate(noisy_output_state, circ1)
@@ -52,7 +52,7 @@ def test_parameters(error_rates, criteria):
     circ_tree_list = []
     for cut_off_prob in np.linspace(0.54, 0.995, 5):
         noise_parameters["cut_off_prob"] = cut_off_prob
-        noisy_circ = tdn.NoisyCircuit(circ1, noise_parameters=noise_parameters)
+        noisy_circ = tdn.NoisyEnsemble(circ1, noise_parameters=noise_parameters)
         noisy_output_state = noisy_circ.output_state("stabilizer")
         infidelity1 = metric.evaluate(noisy_output_state, circ1)
         assert 0 <= 1 - infidelity1 <= 1

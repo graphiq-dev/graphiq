@@ -21,7 +21,9 @@ class NoisyEnsemble:
     the noise parameters and list of imperfect registers.
     """
 
-    def __init__(self, circ, noisy_regs=None, noise_parameters=None, gate_duration_dict=None):
+    def __init__(
+        self, circ, noisy_regs=None, noise_parameters=None, gate_duration_dict=None
+    ):
         """
         Creates a NoisyEnsemble object that allows an ideal circuit to turn into a noisy one by inserting errors to the
         set of noisy registers (noisy_regs). The noise/error model and its properties in specified by the
@@ -54,7 +56,9 @@ class NoisyEnsemble:
         if noisy_regs is not None:
             self.noisy_regs = noisy_regs  # [(reg, reg_type)]
         else:
-            self.noisy_regs = [(reg, 'e') for reg in range(circ.n_emitters)]  # [(reg, reg_type)]
+            self.noisy_regs = [
+                (reg, "e") for reg in range(circ.n_emitters)
+            ]  # [(reg, reg_type)]
 
     @property
     def circ(self):
@@ -67,14 +71,14 @@ class NoisyEnsemble:
 
     @staticmethod
     def to_event_tree(
-            prob_tree_found, reg=0, reg_type="e", noise_type="x"
+        prob_tree_found, reg=0, reg_type="e", noise_type="x"
     ):  # turn it to the NoiseEvent class instance
         """
-        A helper function that translate the output of the prob_tree_finder function into a list of NoiseEvent objects. We
-        call this list an event tree.
+        A helper function that translate the output of the prob_tree_finder function into a list of NoiseEvent objects.
+        We call this list an event tree.
 
-        :param prob_tree_found: the list [(error happening at certain (sections indices, ), probability of this event)] and
-        the list of sections
+        :param prob_tree_found: the list [(error happening at certain (sections indices, ), probability of this event)]
+        and the list of sections
         :type prob_tree_found: list[((, ), float)], list
         :param reg: the register where noise events are happening
         :type reg: int
@@ -115,7 +119,7 @@ class NoisyEnsemble:
 
     def all_branches(self):
         """
-        This method calculates all possible NoiseEvents that can be applied on the NoisyEnsemble object. This corresponds
+        This method calculates all possible NoiseEvents that can be applied on the NoisyEnsemble object. It corresponds
          to the event tree that is resulted from adding noise to the circuit. An event tree is a list of branches, where
           each branch has a probability of happening and corresponds to a series of error gates happening at different
           parts of the ideal circuit. The total probability of an event tree is between the cut-off probability, which
@@ -321,7 +325,9 @@ class NoiseEvent:
             self.prob *= events.prob
             self.nodes_and_regs = self.nodes_and_regs + events.nodes_and_regs
         else:
-            raise ValueError("events should be a list of NoiseEvent objects or a single object")
+            raise ValueError(
+                "events should be a list of NoiseEvent objects or a single object"
+            )
 
 
 def nodes_of_type(circ, node_list, gate_types):

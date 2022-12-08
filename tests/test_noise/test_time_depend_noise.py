@@ -9,9 +9,15 @@ import src.noise.time_depend_noise as tdn
 import numpy as np
 
 
-@pytest.mark.parametrize("bench_circuit",
-                         [linear_cluster_4qubit_circuit, linear_cluster_3qubit_circuit, ghz3_state_circuit,
-                          ghz4_state_circuit])
+@pytest.mark.parametrize(
+    "bench_circuit",
+    [
+        linear_cluster_4qubit_circuit,
+        linear_cluster_3qubit_circuit,
+        ghz3_state_circuit,
+        ghz4_state_circuit,
+    ],
+)
 def test_benchmark_circuits(bench_circuit):
     circ1, _ = bench_circuit()
 
@@ -53,7 +59,9 @@ def test_parameters(error_rates, criteria):
     circ_tree_list = []
     for cut_off_prob in np.linspace(0.54, 0.995, 5):
         noise_parameters["cut_off_prob"] = cut_off_prob
-        noisy_circ = tdn.NoisyEnsemble(circ1, noise_parameters=noise_parameters, gate_duration_dict=duration_dict)
+        noisy_circ = tdn.NoisyEnsemble(
+            circ1, noise_parameters=noise_parameters, gate_duration_dict=duration_dict
+        )
         noisy_output_state = noisy_circ.output_state("stabilizer")
         infidelity1 = metric.evaluate(noisy_output_state, circ1)
         assert 0 <= 1 - infidelity1 <= 1
@@ -61,8 +69,9 @@ def test_parameters(error_rates, criteria):
         fidelity_list.append(1 - infidelity1)
         circ_tree_list.append(circ1_tree)
     # the fidelity should be in descending order as cut off increases
-    assert all(fidelity_list[i] >= fidelity_list[i + 1] for i in range(len(fidelity_list) - 1))
+    assert all(
+        fidelity_list[i] >= fidelity_list[i + 1] for i in range(len(fidelity_list) - 1)
+    )
     # the number of branches in each circ tree should increase as cut off increases
     len_list = [len(x) for x in circ_tree_list]
     assert all(len_list[i] <= len_list[i + 1] for i in range(len(len_list) - 1))
-

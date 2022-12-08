@@ -27,7 +27,7 @@ gate_duration_dict = {
     ops.SigmaX: 1,
     ops.SigmaY: 1,
     ops.SigmaZ: 1,
-    ops.Hadamard: 2,
+    ops.Hadamard: 1,
     ops.Phase: 1,
     ops.ClassicalCNOT: 1,
     ops.ClassicalCZ: 1,

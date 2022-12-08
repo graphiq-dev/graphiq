@@ -21,7 +21,7 @@ class NoisyEnsemble:
     the noise parameters and list of imperfect registers.
     """
 
-    def __init__(self, circ, noisy_regs=None, noise_parameters=mp.noise_parameters):
+    def __init__(self, circ, noisy_regs=None, noise_parameters=None, gate_duration_dict=None):
         """
         Creates a NoisyEnsemble object that allows an ideal circuit to turn into a noisy one by inserting errors to the
         set of noisy registers (noisy_regs). The noise/error model and its properties in specified by the
@@ -34,11 +34,23 @@ class NoisyEnsemble:
         :param noise_parameters: a dictionary of parameters that together determine the noise model to be applied on the
          circuit.
         :type noise_parameters: dict
+        :param gate_duration_dict: the gate duration dictionary for the operations used in the circuit
+        :type: dict
         """
+        if noise_parameters is None:
+            noise_parameters = mp.noise_parameters
+        else:
+            # add any missing crucial keys to the input noise_parameter dict from the default dict in the .mp file
+            noise_parameters = {**mp.noise_parameters, **noise_parameters}
+        if gate_duration_dict is None:
+            gate_duration_dict = mp.gate_duration_dict
+        else:
+            assert all([issubclass(op, ops.OperationBase) for op in gate_duration_dict])
+            gate_duration_dict = {**mp.gate_duration_dict, **gate_duration_dict}
+
         self._circ = circ
-        # add any missing crucial keys to the input noise_parameter dict from the default dict in the .mp file
-        noise_parameters = {**mp.noise_parameters, **noise_parameters}
         self.noise_parameters = noise_parameters
+        self.gate_duration_dict = gate_duration_dict
         if noisy_regs is not None:
             self.noisy_regs = noisy_regs  # [(reg, reg_type)]
         else:
@@ -129,7 +141,7 @@ class NoisyEnsemble:
                 list_of_sections,
                 self.noise_parameters["error_rate"],
                 self.noise_parameters["cut_off_prob"],
-                mp.gate_duration_dict,
+                self.gate_duration_dict,
             )
 
             # gets the specific types of noise for this particular register in the noise parameters dict if there is any

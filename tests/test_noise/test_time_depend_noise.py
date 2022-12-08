@@ -42,7 +42,8 @@ def test_parameters(error_rates, criteria):
     noise_parameters = mp.noise_parameters
     noise_parameters["error_rate"] = error_rates
     noise_parameters["criteria"] = criteria
-
+    # some test value to change duration of a Hadamard gate:
+    duration_dict = {ops.Hadamard: 1.5}
     circ1, _ = linear_cluster_3qubit_circuit()
 
     compiler1 = StabilizerCompiler()
@@ -52,7 +53,7 @@ def test_parameters(error_rates, criteria):
     circ_tree_list = []
     for cut_off_prob in np.linspace(0.54, 0.995, 5):
         noise_parameters["cut_off_prob"] = cut_off_prob
-        noisy_circ = tdn.NoisyEnsemble(circ1, noise_parameters=noise_parameters)
+        noisy_circ = tdn.NoisyEnsemble(circ1, noise_parameters=noise_parameters, gate_duration_dict=duration_dict)
         noisy_output_state = noisy_circ.output_state("stabilizer")
         infidelity1 = metric.evaluate(noisy_output_state, circ1)
         assert 0 <= 1 - infidelity1 <= 1

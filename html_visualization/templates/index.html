@@ -28,6 +28,16 @@
 
         draw_register_info(test_visualization.registers)
         draw_gate_info(test_visualization.gates)
+
+        measure(200, 100, 200)
+
+        gate = x_gate(300, 100, "test")
+        create_classical_control_at(gate, 20, 40, 200+20)
+        reset(400, 150, "test")
+        for (let i = 0; i < 5; i++) {
+            barrier(500, (i+1)*50, "test")
+        }
+
     </script>
 </body>
 </html>

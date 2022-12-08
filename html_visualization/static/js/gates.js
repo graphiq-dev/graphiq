@@ -87,6 +87,50 @@ function one_qubit_gate(x, y, gate_name, register, params={}, color="#33C4FF") {
     return gate
 }
 
+function reset(x, y, register) {
+    let gate = d3.select("#circuit-detail-svg").append("g")
+        .attr("transform", `translate(${x - 20}, ${y - 20})`)
+
+    gate.append("rect")
+        .attr("class", "reset")
+        .attr("x", 0)
+        .attr("y", 0)
+        .attr("width", 40)
+        .attr("height", 40)
+        .style("fill", "black")
+    gate.append("text")
+        .text("0")
+        .attr("font-size", "1.2em")
+        .attr("x", 20)
+        .attr("y", 20+2)
+        .style("fill", "white")
+        .style("text-anchor", "middle")
+        .style("dominant-baseline", "middle")
+    gate.append("line")
+        .attr("x1", 10)
+        .attr("x2", 10)
+        .attr("y1", 10)
+        .attr("y2", 30)
+        .attr("stroke", "white")
+        .style("stroke-width", 1)
+    gate.append("line")
+        .attr("x1", 27)
+        .attr("x2", 33)
+        .attr("y1", 10)
+        .attr("y2", 20)
+        .attr("stroke", "white")
+        .style("stroke-width", 1)
+    gate.append("line")
+        .attr("x1", 27)
+        .attr("x2", 33)
+        .attr("y1", 30)
+        .attr("y2", 20)
+        .attr("stroke", "white")
+        .style("stroke-width", 1)
+
+    return gate
+}
+
 function hadamard(x, y, register) {
     gate = one_qubit_gate(x, y, "H", register)
 
@@ -159,7 +203,7 @@ function create_control_at(element, x1, y1, y2, color="#002D9C") {
         .attr("r", 5)
         .attr("fill", color)
 
-    return g
+    return element
 }
 
 function cnot(x1, y1, y2, control, target) {
@@ -284,4 +328,107 @@ function crz(x1, y1, y2, params="(pi/2)") {
     create_control_at(gate, width/2, 20, y2+20, "#33C4FF")
 
     return gate
+}
+
+// draw measurement
+function measure(x1, y1, y2, cbit=0) {
+    let measure_z = d3.select("#circuit-detail-svg").append("g")
+        .attr("transform", `translate(${x1 - 20}, ${y1 - 20})`)
+
+    measure_z.append("rect")
+        .attr("class", "measure")
+        .attr("x", 0)
+        .attr("y", 0)
+        .attr("width", 40)
+        .attr("height", 40)
+        .style("fill", "gray")
+    measure_z.append("path")
+        .attr("d", "M 10 30 C 10 15, 30 15, 30 30")
+        .attr("stroke", "black")
+        .style("fill", "transparent")
+        .style("stroke-width", 2)
+    measure_z.append("line")
+        .attr("x1", 20)
+        .attr("y1", 30)
+        .attr("x2", 30)
+        .attr("y2", 15)
+        .attr("stroke", "black")
+        .style("stroke-width", 2)
+    measure_z.append("text")
+        .text("z")
+        .attr("font-size", "1em")
+        .attr("x", 20)
+        .attr("y", 10)
+        .style("text-anchor", "middle")
+        .style("dominant-baseline", "middle")
+    measure_z.append("line")
+        .attr("x1", 18)
+        .attr("y1", 40)
+        .attr("x2", 18)
+        .attr("y2", y2+20-7)
+        .attr("stroke", "gray")
+        .attr("stroke-width", 2)
+        .style("fill", "transparent")
+    measure_z.append("line")
+        .attr("x1", 22)
+        .attr("y1", 40)
+        .attr("x2", 22)
+        .attr("y2", y2+20-7)
+        .attr("stroke", "gray")
+        .attr("stroke-width", 2)
+        .style("fill", "transparent")
+    measure_z.append("polygon")
+        .attr("points", `13,${y2+20-7} 27,${y2+20-7} 20,${y2+20}`)
+        .style("fill", "gray")
+        .style("stroke-width", 2)
+
+    return measure_z
+}
+
+// draw classical control
+function create_classical_control_at(element, x1, y1, y2, color="gray") {
+    element.append("line")
+        .attr("x1", x1 - 2)
+        .attr("x2", x1 - 2)
+        .attr("y1", y1)
+        .attr("y2", y2)
+        .attr("stroke", color)
+        .style('stroke-width', 2)
+    element.append("line")
+        .attr("x1", x1 + 2)
+        .attr("x2", x1 + 2)
+        .attr("y1", y1)
+        .attr("y2", y2)
+        .attr("stroke", color)
+        .style('stroke-width', 2)
+    element.append("circle")
+        .attr("cx", x1)
+        .attr("cy", y2)
+        .attr("r", 5)
+        .attr("fill", color)
+
+    return element
+}
+
+// draw barrier
+function barrier(x, y, register) {
+    let b = d3.select("#circuit-detail-svg").append("g")
+        .attr("transform", `translate(${x - 20}, ${y - 20})`)
+
+    b.append("rect")
+        .attr("x", 0)
+        .attr("y", 0)
+        .attr("width", 40)
+        .attr("height", 40)
+        .style("fill", "transparent")
+    b.append("line")
+        .attr("x1", 20)
+        .attr("y1", 0)
+        .attr("x2", 20)
+        .attr("y2", 40)
+        .attr("stroke", "black")
+        .style("stroke-width", 2)
+        .style("stroke-dasharray", "3,3")
+
+    return b
 }

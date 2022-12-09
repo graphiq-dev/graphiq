@@ -70,7 +70,7 @@ class OpenQASMInfo:
             return [self.definitions]
         return self.definitions
 
-    def use_gate(self, q_registers, q_registers_type, c_registers):
+    def use_gate(self, q_registers, q_registers_type, c_registers, **kwargs):
         """
         Returns a string which applies a gate on the quantum registers q_registers, and the classical
         registers c_registers
@@ -80,10 +80,13 @@ class OpenQASMInfo:
         :param q_registers_type: type of quantum registers ('e' for emitter qubits, 'p' for photonic qubits)
         :param c_registers: classical registers on which to apply a gate
         :type c_registers: tuple
+        :param **kwargs: additional arguments to pass to the usage function
+        :type **kwargs: dict
         :return: a string which applies a gate on the provided quantum registers
         :rtype: str
+
         """
-        return self.usage(q_registers, q_registers_type, c_registers)
+        return self.usage(q_registers, q_registers_type, c_registers, **kwargs)
 
 
 # -------------------------- General Helpers-------------------------------------
@@ -204,23 +207,63 @@ def phase_info():
 def parameterized_info():
     # todo: update to the default rotation in Qiskit plotting
     imports = []
-    definition = "gate s a { U(0, pi/2, 0) a; }"
+    definition = "gate u(theta, phi, lambda) a { U(theta, phi, lambda) a; }"
 
-    def usage(q_reg, q_reg_type, c_reg):
-        return f"s {q_reg_type[0]}{q_reg[0]}[0];"
+    def usage(q_reg, q_reg_type, c_reg, params):
+        return f"u({params['theta']}, {params['phi']}, {params['lambda']})  {q_reg_type[0]}{q_reg[0]}[0];"
 
-    return OpenQASMInfo("s", imports, definition, usage, False, gate_symbol="PR")
+    return OpenQASMInfo("u", imports, definition, usage, False, gate_symbol="U_3")
 
 
 def cparameterized_info():
     # todo: update to the default rotation in Qiskit plotting
     imports = []
-    definition = "gate cz a, b { U(pi/2, 0, pi) b; CX a, b; U(pi/2, 0, pi) b; }"  # H on target, CX, H on target
+    definition = """
+        gate cu3(theta,phi,lambda) c, t
+        {
+          U(0,0, (lambda+phi)/2) c;
+          U(0,0, (lambda-phi)/2) t;
+          CX c,t;
+          U(-theta/2,0,-(phi+lambda)/2) t;
+          CX c,t;
+          U(theta/2,phi,0) t;
+        }
+        """
 
-    def usage(q_reg, q_reg_type, c_reg):
-        return f"cz {q_reg_type[0]}{q_reg[0]}[0], {q_reg_type[1]}{q_reg[1]}[0];"
+    def usage(q_reg, q_reg_type, c_reg, params):
+        return f"cu3({params['theta']}, {params['phi']}, {params['lambda']}) {q_reg_type[0]}{q_reg[0]}[0], {q_reg_type[1]}{q_reg[1]}[0];"
 
-    return OpenQASMInfo("cz", imports, definition, usage, False, gate_symbol="CZ")
+    return OpenQASMInfo("cu3", imports, definition, usage, False, gate_symbol="U_3")
+
+
+def ry_info():
+    imports = []
+    definition = "gate ry(theta) a { U(theta,0,0) a; }"
+
+    def usage(q_reg, q_reg_type, c_reg, params):
+        return f"ry({params['theta']}) {q_reg_type[0]}{q_reg[0]}[0];"
+
+    return OpenQASMInfo("ry", imports, definition, usage, False, gate_symbol="R_y")
+
+
+def rx_info():
+    imports = []
+    definition = "gate rx(theta) a { U(theta, -pi/2,pi/2) a; }"
+
+    def usage(q_reg, q_reg_type, c_reg, params):
+        return f"rx({params['theta']}) {q_reg_type[0]}{q_reg[0]}[0];"
+
+    return OpenQASMInfo("rx", imports, definition, usage, False, gate_symbol="R_x")
+
+
+def rz_info():
+    imports = []
+    definition = " gate rz(phi) a { U(phi) a; }"
+
+    def usage(q_reg, q_reg_type, c_reg, params):
+        return f"rz({params['phi']}) {q_reg_type[0]}{q_reg[0]}[0];"
+
+    return OpenQASMInfo("rz", imports, definition, usage, False, gate_symbol="R_z")
 
 
 def single_qubit_wrapper_info(op_list):

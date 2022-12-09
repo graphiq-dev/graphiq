@@ -40,7 +40,6 @@ import functools
 import re
 import string
 import numpy as np
-
 import src.ops as ops
 import src.utils.openqasm_lib as oq_lib
 from src.visualizers.dag import dag_topology_pos
@@ -302,9 +301,24 @@ class CircuitBase(ABC):
         )
         for op in self.sequence():
             oq_info = op.openqasm_info()
-            gate_application = oq_info.use_gate(
-                op.q_registers, op.q_registers_type, op.c_registers
-            )
+            if isinstance(op, ops.ParameterizedOneQubitRotation):
+                gate_application = oq_info.use_gate(
+                    op.q_registers,
+                    op.q_registers_type,
+                    op.c_registers,
+                    params=op.param_info,
+                )
+            elif isinstance(op, ops.ParameterizedControlledRotationQubit):
+                gate_application = oq_info.use_gate(
+                    op.q_registers,
+                    op.q_registers_type,
+                    op.c_registers,
+                    params=op.param_info,
+                )
+            else:
+                gate_application = oq_info.use_gate(
+                    op.q_registers, op.q_registers_type, op.c_registers
+                )
 
             # set barrier, if necessary to split out multi-block Operations from each other
             if (opened_barrier or oq_info.multi_comp) and gate_application != "":

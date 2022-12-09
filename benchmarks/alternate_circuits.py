@@ -128,7 +128,7 @@ def report_alternate_circuits(results):
 
 def noise_model_loss_and_depolarizing(depolarizing_prob, loss_rate):
     """
-    A noise model with photon losses and depolarizing noise
+    An example of noise model with photon losses and depolarizing noise
 
     :param depolarizing_prob: the depolarizing probability
     :type depolarizing_prob: float
@@ -140,7 +140,7 @@ def noise_model_loss_and_depolarizing(depolarizing_prob, loss_rate):
     emitter_noise = noise.DepolarizingNoise(depolarizing_prob)
     photon_loss = noise.PhotonLoss(loss_rate)
     noise_model_mapping = {
-        "e": {"CNOT": emitter_noise},
+        "e": {},
         "p": {"Hadamard": photon_loss, "OneQubitGateWrapper": photon_loss},
         "ee": {"CNOT_control": emitter_noise, "CNOT_target": emitter_noise},
         "ep": {"CNOT_control": emitter_noise},
@@ -150,7 +150,7 @@ def noise_model_loss_and_depolarizing(depolarizing_prob, loss_rate):
 
 def noise_model_pauli_error():
     """
-    A noise model with only Pauli errors
+    An example of noise model with only Pauli errors
 
     :return: a way to map noises to gates
     :rtype: dict

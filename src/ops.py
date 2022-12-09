@@ -414,7 +414,7 @@ class ControlledPairOperationBase(OperationBase):
         :rtype: None
         """
 
-        if type(noise) == list:
+        if isinstance(noise, list):
             assert len(noise) == 2
         else:
             noise = 2 * [noise]

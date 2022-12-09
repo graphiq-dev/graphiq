@@ -1,3 +1,11 @@
+"""
+A script to run a couple of results:
+
+1. Runtime vs. the number of qubits in a repeater graph state
+
+2. Search for alternative circuits for various graph states
+
+"""
 import matplotlib.pyplot as plt
 import numpy as np
 import networkx as nx
@@ -17,6 +25,18 @@ import src.noise.noise_models as noise
 
 
 def deterministic_solver_runtime(n_low, n_high, n_step):
+    """
+    Plot the runtime vs. the number of qubits in a repeater graph state
+
+    :param n_low: specifies the starting point of the x-axis of the plot
+    :type n_low: int
+    :param n_high: specifies the ending point of the x-axis of the plot
+    :type n_high: int
+    :param n_step: specifies the step size of data points
+    :type n_step: int
+    :return: nothing
+    :rtype: None
+    """
     compiler_runtime = []
     solver_runtime = []
     for n_inner_photons in range(n_low, n_high, n_step):
@@ -55,51 +75,66 @@ def deterministic_solver_runtime(n_low, n_high, n_step):
 
 
 def linear3_example():
+    """
+    Search for any alternative circuits for 3-qubit linear cluster state using a noise model with depolarizing noise
+    and photon loss
+
+    :return: nothing
+    :rtype: None
+    """
     graph = nx.Graph([(1, 2), (2, 3)])
     noise_model = noise_model_loss_and_depolarizing(0.01, 0.01)
-    random_numbers = [
-        0,
-        1,
-        5,
-        10,
-        20,
-        30,
-        40,
-        50,
-        60,
-        66,
-        99,
-        100,
-        1000,
-        2000,
-        3000,
-        4000,
-    ]
+    random_numbers = np.arange(1, 100, 5)
     exemplary_multiple_test(graph, noise_model, random_numbers, solver_setting=None)
 
 
-def linear3_example2():
+def linear3_example_no_noise():
+    """
+    Search for any alternative circuits for 3-qubit linear cluster state without noise
+
+    :return: nothing
+    :rtype: None
+    """
     graph = nx.Graph([(1, 2), (2, 3)])
-    # random_numbers = [*range(20, 100, 5)] + [200, 500]
     random_numbers = [90]
     exemplary_multiple_test(graph, None, random_numbers, solver_setting=None)
 
 
 def linear4_example():
+    """
+    Search for any alternative circuits for 4-qubit linear cluster state using a noise model with depolarizing noise
+    and photon loss
+
+    :return: nothing
+    :rtype: None
+    """
     graph = nx.Graph([(1, 2), (2, 3), (3, 4)])
-    noise_model = noise_model_loss_and_depolarizing(0.05, 0.05)
+    noise_model = noise_model_loss_and_depolarizing(0.01, 0.01)
     random_numbers = [0, 1, 5, 10]
     exemplary_multiple_test(graph, noise_model, random_numbers, solver_setting=None)
 
 
 def linear5_example():
+    """
+    Search for any alternative circuits for 5-qubit linear cluster state using a noise model with depolarizing noise
+    and photon loss
+
+    :return: nothing
+    :rtype: None
+    """
     graph = nx.Graph([(1, 2), (2, 3), (3, 4), (4, 5)])
     noise_model = noise_model_loss_and_depolarizing(0.1, 0.1)
     random_numbers = [0, 1, 5, 10]
     exemplary_multiple_test(graph, noise_model, random_numbers, solver_setting=None)
 
 
-def repeater_graph_state_example1():
+def six_qubit_repeater_graph_state_example():
+    """
+    Search for any alternative circuits for 6-qubit repeater graph state with no noise
+
+    :return: nothing
+    :rtype: None
+    """
     graph = repeater_graph_states(3)
     random_numbers = [*range(10, 105, 5)] + [1000, 2000, 3000]
     solver_setting = EvolutionarySearchSolverSetting()
@@ -109,19 +144,7 @@ def repeater_graph_state_example1():
     exemplary_multiple_test(graph, None, random_numbers, solver_setting)
 
 
-def repeater_graph_state_example2():
-    graph = repeater_graph_states(4)
-    random_numbers = [*range(10, 105, 5)] + [1000, 2000, 3000]
-    solver_setting = EvolutionarySearchSolverSetting()
-    solver_setting.selection_active = True
-    solver_setting.use_adapt_probability = True
-    solver_setting.tournament_k = 10
-    solver_setting.n_stop = 60
-    exemplary_multiple_test(graph, None, random_numbers, solver_setting)
-
-
 if __name__ == "__main__":
-    # deterministic_solver_runtime(10, 100, 5)
-    # linear3_example2()
-    # repeater_graph_state_example1()
-    repeater_graph_state_example2()
+    deterministic_solver_runtime(10, 100, 5)
+    linear3_example_no_noise()
+    six_qubit_repeater_graph_state_example()

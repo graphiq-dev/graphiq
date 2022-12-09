@@ -636,6 +636,11 @@ class ParameterizedOneQubitRotation(OneQubitOperationBase):
 
         if params is None:
             params = (0.0, 0.0, 0.0)
+
+        else:
+            if len(params) != 3:
+                raise ValueError("Length of params must be 3")
+
         if param_info is None:
             param_info = {
                 "bounds": ((-np.pi, np.pi), (-np.pi, np.pi), (-np.pi, np.pi)),
@@ -667,6 +672,10 @@ class ParameterizedControlledRotationQubit(ControlledPairOperationBase):
         super().__init__(control, control_type, target, target_type, noise)
         if params is None:
             params = (0.0, 0.0, 0.0)
+        else:
+            if len(params) != 3:
+                raise ValueError("Length of params must be 3")
+
         if param_info is None:
             param_info = {
                 "bounds": ((-np.pi, np.pi), (-np.pi, np.pi), (-np.pi, np.pi)),
@@ -690,11 +699,14 @@ class RY(ParameterizedOneQubitRotation):
         super().__init__(register, reg_type, noise)
 
         if params is None:
-            params = (0.0, 0.0, 0.0)
+            params = 0.0
+        else:
+            if len(params) != 1:
+                raise ValueError("Length of params must be 1")
         if param_info is None:
             param_info = {
-                "bounds": ((-np.pi, np.pi), (0.0, 0.0), (0.0, 0.0)),
-                "labels": ("theta", "phi", "lambda"),
+                "bounds": (-np.pi, np.pi),
+                "labels": "theta",
             }
         self.params = params
         self.param_info = param_info
@@ -713,22 +725,22 @@ class RX(ParameterizedOneQubitRotation):
         super().__init__(register, reg_type, noise)
 
         if params is None:
-            params = (0.0, 0.0, 0.0)
+            params = 0.0
+
+        else:
+            if len(params) != 1:
+                raise ValueError("Length of params must be 1")
+
         if param_info is None:
             param_info = {
-                "bounds": (
-                    (-np.pi, np.pi),
-                    (np.pi / 2, np.pi / 2),
-                    (np.pi / 2, np.pi / 2),
-                ),
-                "labels": ("theta", "phi", "lambda"),
+                "bounds": (-np.pi, np.pi),
+                "labels": "theta",
             }
         self.params = params
         self.param_info = param_info
 
 
 class RZ(ParameterizedOneQubitRotation):
-
     """
     Rotation around the Z axis
     """
@@ -741,11 +753,15 @@ class RZ(ParameterizedOneQubitRotation):
         super().__init__(register, reg_type, noise)
 
         if params is None:
-            params = (0.0, 0.0, 0.0)
+            params = 0.0
+
+        else:
+            if len(params) != 1:
+                raise ValueError("Length of params must be 1")
         if param_info is None:
             param_info = {
-                "bounds": ((0.0, 0.0), (0.0, 0.0), (-np.pi, np.pi)),
-                "labels": ("theta", "phi", "lambda"),
+                "bounds": (-np.pi, np.pi),
+                "labels": "phi",
             }
         self.params = params
         self.param_info = param_info

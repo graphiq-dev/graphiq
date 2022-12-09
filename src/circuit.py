@@ -1539,13 +1539,3 @@ class CircuitDAG(CircuitBase):
         for reg_type in self._register_depth:
             self.calculate_reg_depth(reg_type=reg_type)
         return self._register_depth.copy()
-
-    # calculate number of gates in the circuit
-    def num_gates(self):
-        """
-        Calculate the number of gates in the circuit
-
-        :return: the number of gates in the circuit
-        :rtype: int
-        """
-        return len(self.node_dict["Gate"])

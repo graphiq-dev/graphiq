@@ -44,10 +44,10 @@ def draw_openqasm(qasm, show=False, ax=None, display_text=None):
                 text.set_fontsize(10)
         elif num_gates < 20:
             for text in ax.texts:
-                text.set_fontsize(8)
+                text.set_fontsize(7)
         else:
             for text in ax.texts:
-                text.set_fontsize(7)
+                text.set_fontsize(8)
 
         plt.show()
 

@@ -636,6 +636,11 @@ class ParameterizedOneQubitRotation(OneQubitOperationBase):
 
         if params is None:
             params = (0.0, 0.0, 0.0)
+
+        else:
+            if len(params) != 3:
+                raise ValueError("Length of params must be 3")
+
         if param_info is None:
             param_info = {
                 "bounds": ((-np.pi, np.pi), (-np.pi, np.pi), (-np.pi, np.pi)),
@@ -665,13 +670,98 @@ class ParameterizedControlledRotationQubit(ControlledPairOperationBase):
         param_info=None,
     ):
         super().__init__(control, control_type, target, target_type, noise)
-
         if params is None:
             params = (0.0, 0.0, 0.0)
+        else:
+            if len(params) != 3:
+                raise ValueError("Length of params must be 3")
+
         if param_info is None:
             param_info = {
                 "bounds": ((-np.pi, np.pi), (-np.pi, np.pi), (-np.pi, np.pi)),
                 "labels": ("theta", "phi", "lambda"),
+            }
+
+        self.params = params
+        self.param_info = param_info
+
+
+class RY(ParameterizedOneQubitRotation):
+    """
+    Rotation around the Y axis
+    """
+
+    _openqasm_info = oq_lib.ry_info()
+
+    def __init__(
+        self, register=0, reg_type="e", noise=nm.NoNoise(), params=None, param_info=None
+    ):
+        super().__init__(register, reg_type, noise)
+
+        if params is None:
+            params = 0.0
+        else:
+            if len(params) != 1:
+                raise ValueError("Length of params must be 1")
+        if param_info is None:
+            param_info = {
+                "bounds": (-np.pi, np.pi),
+                "labels": "theta",
+            }
+        self.params = params
+        self.param_info = param_info
+
+
+class RX(ParameterizedOneQubitRotation):
+    """
+    Rotation around the X axis
+    """
+
+    _openqasm_info = oq_lib.rx_info()
+
+    def __init__(
+        self, register=0, reg_type="e", noise=nm.NoNoise(), params=None, param_info=None
+    ):
+        super().__init__(register, reg_type, noise)
+
+        if params is None:
+            params = 0.0
+
+        else:
+            if len(params) != 1:
+                raise ValueError("Length of params must be 1")
+
+        if param_info is None:
+            param_info = {
+                "bounds": (-np.pi, np.pi),
+                "labels": "theta",
+            }
+        self.params = params
+        self.param_info = param_info
+
+
+class RZ(ParameterizedOneQubitRotation):
+    """
+    Rotation around the Z axis
+    """
+
+    _openqasm_info = oq_lib.rz_info()
+
+    def __init__(
+        self, register=0, reg_type="e", noise=nm.NoNoise(), params=None, param_info=None
+    ):
+        super().__init__(register, reg_type, noise)
+
+        if params is None:
+            params = 0.0
+
+        else:
+            if len(params) != 1:
+                raise ValueError("Length of params must be 1")
+        if param_info is None:
+            param_info = {
+                "bounds": (-np.pi, np.pi),
+                "labels": "phi",
             }
         self.params = params
         self.param_info = param_info

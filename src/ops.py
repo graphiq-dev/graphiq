@@ -66,6 +66,10 @@ class OperationBase(ABC):
         :type c_registers: tuple (tuple of: integers OR tuples of length 2)
         :param noise: Noise model
         :type noise: src.noise.noise_models.NoiseBase
+        :param params: an ordered list of parameter values for a parameterized gate
+        :type params: tuple
+        :param param_info: a dictionary that specifies all the information regarding parameters
+        :type param_info: dict
         :raises AssertionError: if photon_register, emitter_register, c_registers are not tuples,
                                OR if the elements of the tuple do not correspond to the notation described above
         :return: nothing
@@ -207,7 +211,7 @@ class OperationBase(ABC):
         :return: nothing
         :rtype: None
         """
-        if type(new_labels) is list:
+        if isinstance(new_labels, list):
             self._labels += new_labels
         else:
             self._labels.append(new_labels)
@@ -278,6 +282,34 @@ class OperationBase(ABC):
                 raise ValueError("Detected a non-supported quantum register type.")
 
         return type_description[:-1]
+
+    @staticmethod
+    def _validate_param_info(param_info, n_params):
+        """
+        Validate the param_info
+
+        :param param_info: param_info for a gate
+        :type param_info: None or dict
+        :param n_params: number of parameters
+        :type n_params: int
+        :return: whether the param_info is valid
+        :rtype: bool
+        """
+        if param_info is None:
+            return True
+        else:
+            if not isinstance(param_info, dict):
+                return False
+            else:
+                if ("bounds" not in param_info.keys()) or (
+                    "labels" not in param_info.keys()
+                ):
+                    return False
+                else:
+                    return (
+                        len(param_info["bounds"]) == n_params
+                        and len(param_info["labels"]) == n_params
+                    )
 
 
 class OneQubitOperationBase(OperationBase):
@@ -672,6 +704,10 @@ class ParameterizedOneQubitRotation(OneQubitOperationBase):
                 "bounds": ((-np.pi, np.pi), (-np.pi, np.pi), (-np.pi, np.pi)),
                 "labels": ("theta", "phi", "lambda"),
             }
+        else:
+            if not self._validate_param_info(param_info, 3):
+                raise ValueError("The data format of param_info is invalid.")
+
         self.params = params
         self.param_info = param_info
 
@@ -707,6 +743,9 @@ class ParameterizedControlledRotationQubit(ControlledPairOperationBase):
                 "bounds": ((-np.pi, np.pi), (-np.pi, np.pi), (-np.pi, np.pi)),
                 "labels": ("theta", "phi", "lambda"),
             }
+        else:
+            if not self._validate_param_info(param_info, 3):
+                raise ValueError("The data format of param_info is invalid.")
 
         self.params = params
         self.param_info = param_info
@@ -725,7 +764,7 @@ class RY(ParameterizedOneQubitRotation):
         super().__init__(register, reg_type, noise)
 
         if params is None:
-            params = 0.0
+            params = (0.0,)
         else:
             if len(params) != 1:
                 raise ValueError("Length of params must be 1")
@@ -734,6 +773,10 @@ class RY(ParameterizedOneQubitRotation):
                 "bounds": (-np.pi, np.pi),
                 "labels": "theta",
             }
+        else:
+            if not self._validate_param_info(param_info, 1):
+                raise ValueError("The data format of param_info is invalid.")
+
         self.params = params
         self.param_info = param_info
 
@@ -751,7 +794,7 @@ class RX(ParameterizedOneQubitRotation):
         super().__init__(register, reg_type, noise)
 
         if params is None:
-            params = 0.0
+            params = (0.0,)
 
         else:
             if len(params) != 1:
@@ -762,6 +805,10 @@ class RX(ParameterizedOneQubitRotation):
                 "bounds": (-np.pi, np.pi),
                 "labels": "theta",
             }
+        else:
+            if not self._validate_param_info(param_info, 1):
+                raise ValueError("The data format of param_info is invalid.")
+
         self.params = params
         self.param_info = param_info
 
@@ -779,7 +826,7 @@ class RZ(ParameterizedOneQubitRotation):
         super().__init__(register, reg_type, noise)
 
         if params is None:
-            params = 0.0
+            params = (0.0,)
 
         else:
             if len(params) != 1:
@@ -789,6 +836,10 @@ class RZ(ParameterizedOneQubitRotation):
                 "bounds": (-np.pi, np.pi),
                 "labels": "phi",
             }
+        else:
+            if not self._validate_param_info(param_info, 1):
+                raise ValueError("The data format of param_info is invalid.")
+
         self.params = params
         self.param_info = param_info
 

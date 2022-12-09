@@ -210,7 +210,9 @@ def parameterized_info():
     definition = "gate u(theta, phi, lambda) a { U(theta, phi, lambda) a; }"
 
     def usage(q_reg, q_reg_type, c_reg, params):
-        return f"u({params['theta']}, {params['phi']}, {params['lambda']})  {q_reg_type[0]}{q_reg[0]}[0];"
+        return (
+            f"u({params[0]}, {params[1]}, {params[2]})  {q_reg_type[0]}{q_reg[0]}[0];"
+        )
 
     return OpenQASMInfo("u", imports, definition, usage, False, gate_symbol="U_3")
 
@@ -231,7 +233,7 @@ def cparameterized_info():
         """
 
     def usage(q_reg, q_reg_type, c_reg, params):
-        return f"cu3({params['theta']}, {params['phi']}, {params['lambda']}) {q_reg_type[0]}{q_reg[0]}[0], {q_reg_type[1]}{q_reg[1]}[0];"
+        return f"cu3({params[0]}, {params[1]}, {params[2]}) {q_reg_type[0]}{q_reg[0]}[0], {q_reg_type[1]}{q_reg[1]}[0];"
 
     return OpenQASMInfo("cu3", imports, definition, usage, False, gate_symbol="U_3")
 
@@ -241,7 +243,7 @@ def ry_info():
     definition = "gate ry(theta) a { U(theta,0,0) a; }"
 
     def usage(q_reg, q_reg_type, c_reg, params):
-        return f"ry({params['theta']}) {q_reg_type[0]}{q_reg[0]}[0];"
+        return f"ry({params[0]}) {q_reg_type[0]}{q_reg[0]}[0];"
 
     return OpenQASMInfo("ry", imports, definition, usage, False, gate_symbol="R_y")
 
@@ -251,7 +253,7 @@ def rx_info():
     definition = "gate rx(theta) a { U(theta, -pi/2,pi/2) a; }"
 
     def usage(q_reg, q_reg_type, c_reg, params):
-        return f"rx({params['theta']}) {q_reg_type[0]}{q_reg[0]}[0];"
+        return f"rx({params[0]}) {q_reg_type[0]}{q_reg[0]}[0];"
 
     return OpenQASMInfo("rx", imports, definition, usage, False, gate_symbol="R_x")
 
@@ -261,7 +263,7 @@ def rz_info():
     definition = " gate rz(phi) a { U(phi) a; }"
 
     def usage(q_reg, q_reg_type, c_reg, params):
-        return f"rz({params['phi']}) {q_reg_type[0]}{q_reg[0]}[0];"
+        return f"rz({params[0]}) {q_reg_type[0]}{q_reg[0]}[0];"
 
     return OpenQASMInfo("rz", imports, definition, usage, False, gate_symbol="R_z")
 

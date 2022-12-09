@@ -306,14 +306,14 @@ class CircuitBase(ABC):
                     op.q_registers,
                     op.q_registers_type,
                     op.c_registers,
-                    params=op.param_info,
+                    params=op.params,
                 )
             elif isinstance(op, ops.ParameterizedControlledRotationQubit):
                 gate_application = oq_info.use_gate(
                     op.q_registers,
                     op.q_registers_type,
                     op.c_registers,
-                    params=op.param_info,
+                    params=op.params,
                 )
             else:
                 gate_application = oq_info.use_gate(

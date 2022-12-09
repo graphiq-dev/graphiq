@@ -61,8 +61,10 @@ class StabilizerCompiler(CompilerBase):
         :rtype: None
         """
         state = state.stabilizer
+
+        # TODO: should think about the best way to handle inputs/outputs
         if type(op) is ops.Input:
-            return  # TODO: should think about best way to handle inputs/outputs
+            return
 
         elif type(op) is ops.Output:
             return

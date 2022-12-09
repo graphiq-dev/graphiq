@@ -65,7 +65,7 @@ class DeterministicSolver(SolverBase):
         self.noise_simulation = True
 
         if noise_model_mapping is None:
-            noise_model_mapping = {}
+            noise_model_mapping = {"e": dict(), "p": dict(), "ee": dict(), "ep": dict()}
             self.noise_simulation = False
         elif type(noise_model_mapping) is not dict:
             raise TypeError(
@@ -140,6 +140,7 @@ class DeterministicSolver(SolverBase):
         circuit.validate()
 
         compiled_state = self.compiler.compile(circuit)
+
         compiled_state.partial_trace(
             keep=[*range(self.n_photon)], dims=(self.n_photon + self.n_emitter) * [2]
         )
@@ -400,7 +401,10 @@ class DeterministicSolver(SolverBase):
             gate_list = ops.simplify_local_clifford(gate_list)
             if gate_list == [ops.Identity, ops.Identity]:
                 return
-        noise = self._wrap_noise(gate_list, self.noise_model_mapping)
+        if reg_type == "e":
+            noise = self._wrap_noise(gate_list, self.noise_model_mapping["e"])
+        else:
+            noise = self._wrap_noise(gate_list, self.noise_model_mapping["p"])
         gate = ops.OneQubitGateWrapper(
             gate_list,
             reg_type=reg_type,
@@ -435,7 +439,7 @@ class DeterministicSolver(SolverBase):
             control_type="e",
             target=circuit.dag.edges[edge1]["reg"],
             target_type="e",
-            noise=self._identify_noise(ops.CNOT.__name__, self.noise_model_mapping),
+            noise=self._identify_noise(ops.CNOT, self.noise_model_mapping["ee"]),
         )
         circuit.insert_at(gate, [edge0, edge1])
 
@@ -536,7 +540,7 @@ class DeterministicSolver(SolverBase):
             control_type="e",
             target=photon_index,
             target_type="p",
-            noise=self._identify_noise(ops.CNOT.__name__, self.noise_model_mapping),
+            noise=self._identify_noise(ops.CNOT, self.noise_model_mapping["ep"]),
         )
         gate.add_labels("Fixed")
         circuit.insert_at(gate, [edge0, edge1])
@@ -616,51 +620,11 @@ class DeterministicSolver(SolverBase):
             target=circuit.dag.edges[edge1]["reg"],
             target_type="p",
             noise=self._identify_noise(
-                ops.MeasurementCNOTandReset.__name__, self.noise_model_mapping
+                ops.MeasurementCNOTandReset, self.noise_model_mapping["ep"]
             ),
         )
         gate.add_labels("Fixed")
         circuit.insert_at(gate, [edge0, edge1])
-
-    def _wrap_noise(self, op, noise_model_mapping):
-        """
-        A helper function to consolidate noise models for OneQubitWrapper operation
-
-        :param op: a list of operations
-        :type op: list[ops.OperationBase]
-        :param noise_model_mapping: a dictionary that stores the mapping between an operation
-            and its associated noise model
-        :type noise_model_mapping: dict
-        :return: a list of noise models
-        :rtype: list[nm.NoiseBase]
-        """
-
-        noise = []
-        for each_op in op:
-            noise.append(self._identify_noise(each_op.__name__, noise_model_mapping))
-        return noise
-
-    def _identify_noise(self, op, noise_model_mapping):
-        """
-        A helper function to identify the noise model for an operation
-
-        :param op: an operation or its name
-        :type op: ops.OperationBase or str
-        :param noise_model_mapping: a dictionary that stores the mapping between an operation
-            and its associated noise model
-        :type noise_model_mapping: dict
-        :return: a noise model
-        :rtype: nm.NoiseBase
-        """
-
-        if type(op) != str:
-            op_name = type(op).__name__
-        else:
-            op_name = op
-        if op_name in noise_model_mapping.keys():
-            return noise_model_mapping[op_name]
-        else:
-            return nm.NoNoise()
 
     @property
     def solver_info(self):

@@ -12,11 +12,78 @@ import pandas as pd
 
 import src.noise.noise_models as nm
 from src.backends.compiler_base import CompilerBase
-from src.solvers import RandomSearchSolver
+from src.solvers.solver_base import RandomSearchSolver, RandomSearchSolverSetting
 from src.circuit import CircuitDAG
 from src.metrics import MetricBase
 from src.io import IO
 from src import ops
+
+
+class EvolutionarySearchSolverSetting(RandomSearchSolverSetting):
+    """
+    A class to store the solver setting of an EvolutionarySearchSolver
+
+    """
+
+    def __init__(
+        self,
+        n_hof=5,
+        n_stop=50,
+        n_pop=50,
+        tournament_k=2,
+        selection_active=False,
+        use_adapt_probability=False,
+        save_openqasm: str = "none",
+    ):
+        super().__init__(n_hof=n_hof, n_stop=n_stop, n_pop=n_pop)
+        self._tournament_k = tournament_k
+        self._selection_active = selection_active
+        self._use_adapt_probability = use_adapt_probability
+        self._save_openqasm = save_openqasm
+
+    @property
+    def tournament_k(self):
+        return self._tournament_k
+
+    @tournament_k.setter
+    def tournament_k(self, value):
+        assert type(value) == int
+        self._tournament_k = value
+
+    @property
+    def selection_active(self):
+        return self._selection_active
+
+    @selection_active.setter
+    def selection_active(self, value):
+        assert type(value) == bool
+        self._selection_active = value
+
+    @property
+    def use_adapt_probability(self):
+        return self._use_adapt_probability
+
+    @use_adapt_probability.setter
+    def use_adapt_probability(self, value):
+        assert type(value) == bool
+        self._use_adapt_probability = value
+
+    @property
+    def save_openqasm(self):
+        return self._save_openqasm
+
+    @save_openqasm.setter
+    def save_openqasm(self, value):
+        assert type(value) == str
+        self._save_openqasm = value
+
+    def __str__(self):
+        s = super().__str__()
+        s += f"selection_active = {self.selection_active} \n"
+        s += f"use_adapt_probability = {self.use_adapt_probability} \n"
+        s += f"tournament_k = {self.tournament_k} \n"
+        s += f"save_openqasm = {self.save_openqasm}\n"
+        return s
 
 
 class EvolutionarySolver(RandomSearchSolver):
@@ -36,15 +103,9 @@ class EvolutionarySolver(RandomSearchSolver):
         compiler: CompilerBase,
         circuit: CircuitDAG = None,
         io: IO = None,
-        n_hof=5,
-        n_stop=50,
-        n_pop=50,
-        tournament_k=2,
         n_emitter=1,
         n_photon=1,
-        selection_active=False,
-        use_adapt_probability=False,
-        save_openqasm: str = "none",
+        solver_setting=EvolutionarySearchSolverSetting(),
         noise_model_mapping=None,
         *args,
         **kwargs,
@@ -63,30 +124,20 @@ class EvolutionarySolver(RandomSearchSolver):
         :type circuit: CircuitDAG
         :param io: input/output object for saving logs, intermediate results, circuits, etc.
         :type io: IO
-        :param n_hof: the size of the hall of fame (hof)
-        :type n_hof: int
         :param n_emitter: number of emitter registers to maintain in the circuit
         :type n_emitter: int
         :param n_photon: number of photon registers to maintain in the circuit
         :type n_photon: int
-        :param selection_active: use selection in the evolutionary algorithm
-        :type selection_active: bool
-        :param use_adapt_probability: use adapted probability in the evolutionary algorithm
-        :type use_adapt_probability: bool
-        :param save_openqasm: save population, hof, or both to openQASM strings (options: None, "hof", "pop", "both")
-        :type save_openqasm: str, None
         :param noise_model_mapping: a dictionary that associates each operation type to a noise model
         :type noise_model_mapping: dict
         """
         super().__init__(
-            target,
-            metric,
-            compiler,
-            circuit,
-            io,
-            n_hof=n_hof,
-            n_stop=n_stop,
-            n_pop=n_pop,
+            target=target,
+            metric=metric,
+            compiler=compiler,
+            circuit=circuit,
+            io=io,
+            solver_setting=solver_setting,
             *args,
             **kwargs,
         )
@@ -96,21 +147,20 @@ class EvolutionarySolver(RandomSearchSolver):
 
         # transformation functions and their relative probabilities
         self.trans_probs = self.initialize_transformation_probabilities()
-        self.selection_active = selection_active
-        self.tournament_k = tournament_k
-        self.noise_simulation = True
-        self.use_adapt_probability = use_adapt_probability
+
         if noise_model_mapping is None:
-            noise_model_mapping = {}
+            noise_model_mapping = {"e": dict(), "p": dict(), "ee": dict(), "ep": dict()}
             self.noise_simulation = False
         elif type(noise_model_mapping) is not dict:
             raise TypeError(
                 f"Datatype {type(noise_model_mapping)} is not a valid noise_model_mapping. "
                 f"noise_model_mapping should be a dict or None"
             )
-        self.noise_model_mapping = noise_model_mapping
+        else:
+            self.noise_simulation = True
 
-        self.save_openqasm = save_openqasm
+        self.noise_model_mapping = noise_model_mapping
+        self.setting = solver_setting
 
         self.p_dist = [0.5] + 11 * [0.1 / 22] + [0.4] + 11 * [0.1 / 22]
         self.e_dist = [0.5] + 11 * [0.02 / 22] + [0.48] + 11 * [0.02 / 22]
@@ -192,31 +242,33 @@ class EvolutionarySolver(RandomSearchSolver):
         assert total_prob > 0
         self.p_dist = list(p_prob_list / total_prob)
 
-    def adapt_probabilities(self, iteration: int):
+    def adapt_probabilities(self):
         """
         Changes the probability of selecting circuit transformations at each iteration.
         Generally, transformations that add gates are selected with higher probability at the beginning.
         As the search progresses, transformations that remove gates are selected with higher probability.
 
-        :param iteration: i-th iteration of the search method, which ranges from 0 to n_stop
-        :type iteration: int
         :return: nothing
         :rtype: None
         """
         # TODO: check whether the input iteration is needed.
         self.trans_probs[self.add_emitter_one_qubit_op] = max(
-            self.trans_probs[self.add_emitter_one_qubit_op] - 1 / self.n_stop / 3, 0.01
+            self.trans_probs[self.add_emitter_one_qubit_op]
+            - 1 / self.setting.n_stop / 3,
+            0.01,
         )
         self.trans_probs[self.replace_photon_one_qubit_op] = max(
-            self.trans_probs[self.replace_photon_one_qubit_op] - 1 / self.n_stop / 3,
+            self.trans_probs[self.replace_photon_one_qubit_op]
+            - 1 / self.setting.n_stop / 3,
             0.01,
         )
         self.trans_probs[self.remove_op] = min(
-            self.trans_probs[self.remove_op] + 1 / self.n_stop, 0.99
+            self.trans_probs[self.remove_op] + 1 / self.setting.n_stop, 0.99
         )
         if self.n_emitter > 1:
             self.trans_probs[self.add_emitter_cnot] = max(
-                self.trans_probs[self.add_emitter_cnot] - 1 / self.n_stop / 3, 0.01
+                self.trans_probs[self.add_emitter_cnot] - 1 / self.setting.n_stop / 3,
+                0.01,
             )
 
         # normalize the probabilities
@@ -224,9 +276,8 @@ class EvolutionarySolver(RandomSearchSolver):
         for key in self.trans_probs.keys():
             self.trans_probs[key] *= 1 / total
 
-    @staticmethod
     def initialization(
-        emission_assignment, measurement_assignment, noise_model_mapping=None
+        self, emission_assignment, measurement_assignment, noise_model_mapping=None
     ):
         """
         Initialize a quantum circuit with photon emission, emitter measurements
@@ -242,7 +293,7 @@ class EvolutionarySolver(RandomSearchSolver):
         :rtype: CircuitDAG
         """
         if noise_model_mapping is None:
-            noise_model_mapping = dict()
+            noise_model_mapping = {"e": dict(), "p": dict(), "ee": dict(), "ep": dict()}
 
         n_photon = len(emission_assignment)
         n_emitter = len(measurement_assignment)
@@ -255,20 +306,18 @@ class EvolutionarySolver(RandomSearchSolver):
                 control_type="e",
                 target=i,
                 target_type="p",
-                noise=EvolutionarySolver._identify_noise(
-                    ops.CNOT.__name__, noise_model_mapping
-                ),
+                noise=self._identify_noise(ops.CNOT, noise_model_mapping["ep"]),
             )
             op.add_labels("Fixed")
             circuit.add(op)
             # initialize all one-qubit Clifford gate for photonic qubits
             noise = []
-            if "Identity" in noise_model_mapping.keys():
-                noise.append(noise_model_mapping["Identity"])
+            if "Identity" in noise_model_mapping["p"].keys():
+                noise.append(noise_model_mapping["p"]["Identity"])
             else:
                 noise.append(nm.NoNoise())
-            if "Hadamard" in noise_model_mapping.keys():
-                noise.append(noise_model_mapping["Hadamard"])
+            if "Hadamard" in noise_model_mapping["p"].keys():
+                noise.append(noise_model_mapping["p"]["Hadamard"])
             else:
                 noise.append(nm.NoNoise())
             op_list = [ops.Identity, ops.Hadamard]
@@ -276,7 +325,7 @@ class EvolutionarySolver(RandomSearchSolver):
                 op_list,
                 register=i,
                 reg_type="p",
-                noise=EvolutionarySolver._wrap_noise(op_list, noise_model_mapping),
+                noise=self._wrap_noise(op_list, noise_model_mapping["p"]),
             )
             op.add_labels("Fixed")
 
@@ -290,8 +339,8 @@ class EvolutionarySolver(RandomSearchSolver):
                 control_type="e",
                 target=measurement_assignment[j],
                 target_type="p",
-                noise=EvolutionarySolver._identify_noise(
-                    ops.MeasurementCNOTandReset.__name__, noise_model_mapping
+                noise=self._identify_noise(
+                    ops.MeasurementCNOTandReset, noise_model_mapping["ep"]
                 ),
             )
             op.add_labels("Fixed")
@@ -307,7 +356,7 @@ class EvolutionarySolver(RandomSearchSolver):
         """
         population = []
         if self.circuit is None:
-            for j in range(self.n_pop):
+            for j in range(self.setting.n_pop):
                 emission_assignment = self.get_emission_assignment(
                     self.n_photon, self.n_emitter
                 )
@@ -323,7 +372,7 @@ class EvolutionarySolver(RandomSearchSolver):
                 # initialize all population members
                 population.append((np.inf, circuit))
         else:
-            for j in range(self.n_pop):
+            for j in range(self.setting.n_pop):
                 population.append((np.inf, self.circuit.copy()))
 
         return population
@@ -343,8 +392,8 @@ class EvolutionarySolver(RandomSearchSolver):
 
         population = self.population_initialization()
 
-        for i in range(self.n_stop):
-            for j in range(self.n_pop):
+        for i in range(self.setting.n_stop):
+            for j in range(self.setting.n_pop):
                 # choose a random transformation from allowed transformations
                 transformation = np.random.choice(
                     list(self.trans_probs.keys()), p=list(self.trans_probs.values())
@@ -367,15 +416,17 @@ class EvolutionarySolver(RandomSearchSolver):
                 population[j] = (score, circuit)
 
             self.update_hof(population)
-            if self.use_adapt_probability:
-                self.adapt_probabilities(i)
+            if self.setting.use_adapt_probability:
+                self.adapt_probabilities()
 
             # this should be the last thing performed *prior* to selecting a new population (after updating HoF)
             self.update_logs(population=population, iteration=i)
             self.save_circuits(population=population, hof=self.hof, iteration=i)
 
-            if self.selection_active:
-                population = self.tournament_selection(population, k=self.tournament_k)
+            if self.setting.selection_active:
+                population = self.tournament_selection(
+                    population, k=self.setting.tournament_k
+                )
 
             print(f"Iteration {i} | Best score: {self.hof[0][0]:.6f}")
 
@@ -438,16 +489,16 @@ class EvolutionarySolver(RandomSearchSolver):
         :param iteration: integer step in the solver algorithm
         :return:
         """
-        if self.io is None or self.save_openqasm == "none":
+        if self.io is None or self.setting.save_openqasm == "none":
             return
 
-        elif self.save_openqasm == "hof":
+        elif self.setting.save_openqasm == "hof":
             self._save_hof(hof, iteration=iteration)
 
-        elif self.save_openqasm == "pop":
+        elif self.setting.save_openqasm == "pop":
             self._save_pop(population, iteration=iteration)
 
-        elif self.save_openqasm == "both":
+        elif self.setting.save_openqasm == "both":
             self._save_pop(population, iteration=iteration)
             self._save_hof(hof, iteration=iteration)
         return
@@ -466,50 +517,6 @@ class EvolutionarySolver(RandomSearchSolver):
         """Converts each logs (population, hof, etc.) to a pandas DataFrame for easier visualization/saving"""
         for key, val in self.logs.items():
             self.logs[key] = pd.DataFrame(val)
-
-    @staticmethod
-    def _wrap_noise(op, noise_model_mapping):
-        """
-        A helper function to consolidate noise models for OneQubitWrapper operation
-
-        :param op: a list of operations
-        :type op: list[ops.OperationBase]
-        :param noise_model_mapping: a dictionary that stores the mapping between an operation
-            and its associated noise model
-        :type noise_model_mapping: dict
-        :return: a list of noise models
-        :rtype: list[nm.NoiseBase]
-        """
-        noise = []
-        for each_op in op:
-            noise.append(
-                EvolutionarySolver._identify_noise(
-                    each_op.__name__, noise_model_mapping
-                )
-            )
-        return noise
-
-    @staticmethod
-    def _identify_noise(op, noise_model_mapping):
-        """
-        A helper function to identify the noise model for an operation
-
-        :param op: an operation or its name
-        :type op: ops.OperationBase or str
-        :param noise_model_mapping: a dictionary that stores the mapping between an operation
-            and its associated noise model
-        :type noise_model_mapping: dict
-        :return: a noise model
-        :rtype: nm.NoiseBase
-        """
-        if type(op) != str:
-            op_name = type(op).__name__
-        else:
-            op_name = op
-        if op_name in noise_model_mapping.keys():
-            return noise_model_mapping[op_name]
-        else:
-            return nm.NoNoise()
 
     """ Circuit transformations """
 
@@ -535,7 +542,7 @@ class EvolutionarySolver(RandomSearchSolver):
         # select a random local Clifford gate
         ind = np.random.choice(len(self.one_qubit_ops), p=self.p_dist)
         op = self.one_qubit_ops[ind]
-        noise = self._wrap_noise(op, self.noise_model_mapping)
+        noise = self._wrap_noise(op, self.noise_model_mapping["p"])
         gate = ops.OneQubitGateWrapper(op, reg_type="p", register=reg, noise=noise)
         gate.add_labels("Fixed")
         circuit.replace_op(node, gate)
@@ -562,7 +569,7 @@ class EvolutionarySolver(RandomSearchSolver):
         # select a random local Clifford gate
         ind = np.random.choice(len(self.one_qubit_ops), p=self.e_dist)
         op = self.one_qubit_ops[ind]
-        noise = self._wrap_noise(op, self.noise_model_mapping)
+        noise = self._wrap_noise(op, self.noise_model_mapping["e"])
         gate = ops.OneQubitGateWrapper(op, reg_type="e", register=reg, noise=noise)
         circuit.replace_op(node, gate)
 
@@ -596,7 +603,8 @@ class EvolutionarySolver(RandomSearchSolver):
             # select a random local Clifford gate
             ind = np.random.choice(len(self.one_qubit_ops), p=self.p_dist)
             op = self.one_qubit_ops[ind]
-            gate = ops.OneQubitGateWrapper(op, reg_type="p", register=reg)
+            noise = self._wrap_noise(op, self.noise_model_mapping["p"])
+            gate = ops.OneQubitGateWrapper(op, reg_type="p", register=reg, noise=noise)
             circuit.insert_at(gate, [edge])
 
     def add_emitter_one_qubit_op(self, circuit):
@@ -629,7 +637,7 @@ class EvolutionarySolver(RandomSearchSolver):
             # select a random local Clifford gate
             ind = np.random.choice(len(self.one_qubit_ops), p=self.e_dist)
             op = self.one_qubit_ops[ind]
-            noise = self._wrap_noise(op, self.noise_model_mapping)
+            noise = self._wrap_noise(op, self.noise_model_mapping["e"])
             gate = ops.OneQubitGateWrapper(op, reg_type="e", register=reg, noise=noise)
             circuit.insert_at(gate, [edge])
 
@@ -656,7 +664,7 @@ class EvolutionarySolver(RandomSearchSolver):
             control_type="e",
             target=circuit.dag.edges[edge1]["reg"],
             target_type="e",
-            noise=self._identify_noise(ops.CNOT.__name__, self.noise_model_mapping),
+            noise=self._identify_noise(ops.CNOT, self.noise_model_mapping["ee"]),
         )
 
         circuit.insert_at(gate, [edge0, edge1])
@@ -713,7 +721,7 @@ class EvolutionarySolver(RandomSearchSolver):
             target=circuit.dag.edges[edge1]["reg"],
             target_type="p",
             noise=self._identify_noise(
-                ops.MeasurementCNOTandReset.__name__, self.noise_model_mapping
+                ops.MeasurementCNOTandReset, self.noise_model_mapping["ep"]
             ),
         )
 
@@ -859,8 +867,7 @@ class EvolutionarySolver(RandomSearchSolver):
 
         return {
             "solver name": self.name,
-            "Max iteration #": self.n_stop,
-            "Population size": self.n_pop,
+            "solver setting": self.setting,
             "seed": self.last_seed,
             "One-qubit ops": op_names(self.one_qubit_ops),
             "Transition probabilities": transition_names(self.trans_probs),

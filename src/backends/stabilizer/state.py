@@ -291,7 +291,7 @@ class MixedStabilizer(StateRepresentationBase):
     """
 
     def __init__(self, data, *args, **kwargs):
-        super().__init__(data, *args, **kwargs)
+
         if isinstance(data, int):
             self._mixture = [
                 (1.0, CliffordTableau(data)),
@@ -339,7 +339,7 @@ class MixedStabilizer(StateRepresentationBase):
 
         :return: the mixture as a list of (probability_i, tableau_i)
         :rtype: list
-        r"""
+        """
         return self._mixture
 
     @mixture.setter
@@ -351,7 +351,7 @@ class MixedStabilizer(StateRepresentationBase):
         :type value: list or int or CliffordTableau
         :return: the mixture as a list of (probability_i, tableau_i)
         :rtype: list
-        r"""
+        """
         if isinstance(value, list):
             assert all(
                 isinstance(p_i, float) and isinstance(t_i, CliffordTableau)
@@ -399,7 +399,8 @@ class MixedStabilizer(StateRepresentationBase):
     def probability(self):
         """
         Computes the total probability as the summed probability of all pure states in the mixture
-        :math:`\sum_i p_i \ \forall (p_i, \mathcal{T}_i`.
+        :math:`\\sum_i p_i \\ \\forall (p_i, \\mathcal{T}_i`.
+
         :return:
         """
         return sum(p_i for p_i, t_i in self.mixture)
@@ -415,10 +416,10 @@ class MixedStabilizer(StateRepresentationBase):
         Reduce the number of tableaux store in the mixture by comparing the Hamming distance between them.
         Probabilities are summed and one tableau removed if they are the same.
 
-        # TODO: explore other ways of reduction and further simplification using a standard form.
-
-        :return:
+        :return: nothing
+        :rtype: None
         """
+        # TODO: explore other ways of reduction and further simplification using a standard form.
         mixture_temp = self._mixture
         mixture_reduce = []
         while len(mixture_temp) != 0:

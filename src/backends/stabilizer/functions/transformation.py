@@ -157,7 +157,6 @@ def x_gate(tableau, qubit_position):
     :return: the resulting state after gate action
     :rtype: CliffordTableau or StabilizerTableau
     """
-
     tableau = hadamard_gate(tableau, qubit_position)
     tableau = z_gate(tableau, qubit_position)
     tableau = hadamard_gate(tableau, qubit_position)

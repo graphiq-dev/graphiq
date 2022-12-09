@@ -12,7 +12,9 @@ def density_matrix_heatmap(rho, axs=None):
     Plots a density matrix as 2D heatmap, one for the real components and one for the imaginary
 
     :param rho: a complex numpy array representing the density matrix
-    :type rho: numpy.dnarray
+    :type rho: numpy.ndarray
+    :param axs:
+    :type axs:
     :return: fig (figure handle), axs (list of axes handles)
     :rtype: matplotlib.figure, matplotlib.axes
     """

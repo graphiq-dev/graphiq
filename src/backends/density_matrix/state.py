@@ -18,13 +18,15 @@ class DensityMatrix(StateRepresentationBase):
     Density matrix of a state
     """
 
-    def __init__(self, data, *args, **kwargs):
+    def __init__(self, data, normalized=True, *args, **kwargs):
         """
         Construct a DensityMatrix object from a numpy.ndarray or from the number of qubits. If an integer is specified,
         then the state is initialized as a product state of :math:`|0\\rangle` with the given number of qubits.
 
         :param data: density matrix or the number of qubits
         :type data: numpy.ndarray or int
+        :param normalized: whether the state is normalized
+        :type normalized: bool
         :return: nothing
         :rtype: None
         """
@@ -34,7 +36,7 @@ class DensityMatrix(StateRepresentationBase):
                 # check if state_data is positive semi-definite
                 raise ValueError("The input matrix is not a valid density matrix")
 
-            if not np.equal(np.trace(data), 1):
+            if normalized and not np.equal(np.trace(data), 1):
                 data = data / np.trace(data)
         elif isinstance(data, int):
             # initialize as a tensor product of |0> state
@@ -47,11 +49,11 @@ class DensityMatrix(StateRepresentationBase):
     @classmethod
     def from_graph(cls, graph):
         """
-        Builds a density matrix representation from a graph (either nx.graph or a Graph representation)
+        Builds a density matrix representation from a graph (either nx.Graph or a Graph representation)
 
         :param graph: the graph from which we will build a density matrix
         :type graph: networkx.Graph OR Graph
-        :raises TypeError: if the input graph is neither nx.graph or Graph
+        :raises TypeError: if the input graph is neither nx.Graph or Graph
         :return: a DensityMatrix representation with the data contained by graph
         :rtype: DensityMatrix
         """
@@ -63,6 +65,26 @@ class DensityMatrix(StateRepresentationBase):
     @classmethod
     def valid_datatype(cls, data):
         return isinstance(data, (int, np.ndarray))
+
+    @property
+    def trace(self):
+        """
+        Return the trace of the state
+
+        :return: the trace of the state
+        :rtype: float
+        """
+        return np.trace(self.data)
+
+    @property
+    def normalized(self):
+        """
+        Return whether the state is normalized, that is, trace is 1
+
+        :return: whether the state is normalized
+        :rtype: bool
+        """
+        return np.allclose(self.trace, 1.0)
 
     def apply_unitary(self, unitary):
         """
@@ -188,7 +210,7 @@ class DensityMatrix(StateRepresentationBase):
         """
         Draw a bar graph or heatmap of the DensityMatrix representation data
 
-        :param style: 'bar' for barplot, 'heat' for heatmap
+        :param style: 'bar' for bar plot, 'heat' for heatmap
         :type style: str
         :param show: if True, show the density matrix plot. Otherwise, draw the density matrix plot but do not show
         :type show: bool

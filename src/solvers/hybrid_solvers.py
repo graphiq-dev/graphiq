@@ -3,7 +3,10 @@ Contains various hybrid solvers
 """
 import numpy as np
 
-from src.solvers.evolutionary_solver import EvolutionarySolver
+from src.solvers.evolutionary_solver import (
+    EvolutionarySolver,
+    EvolutionarySearchSolverSetting,
+)
 from src.solvers.deterministic_solver import DeterministicSolver
 from src.backends.compiler_base import CompilerBase
 from src.circuit import CircuitDAG
@@ -26,13 +29,7 @@ class HybridEvolutionarySolver(EvolutionarySolver):
         metric: MetricBase,
         compiler: CompilerBase,
         io: IO = None,
-        n_hof=10,
-        n_stop=50,
-        n_pop=50,
-        tournament_k=2,
-        selection_active=False,
-        use_adapt_probability=False,
-        save_openqasm: str = "none",
+        solver_setting=EvolutionarySearchSolverSetting(),
         noise_model_mapping=None,
         *args,
         **kwargs,
@@ -69,15 +66,9 @@ class HybridEvolutionarySolver(EvolutionarySolver):
             compiler=compiler,
             circuit=None,
             io=io,
-            n_hof=n_hof,
-            n_stop=n_stop,
-            n_pop=n_pop,
-            tournament_k=tournament_k,
             n_emitter=n_emitter,
             n_photon=n_photon,
-            selection_active=selection_active,
-            use_adapt_probability=use_adapt_probability,
-            save_openqasm=save_openqasm,
+            solver_setting=solver_setting,
             noise_model_mapping=noise_model_mapping,
             *args,
             **kwargs,
@@ -92,7 +83,7 @@ class HybridEvolutionarySolver(EvolutionarySolver):
         """
         trans_probs = {
             self.add_emitter_one_qubit_op: 1 / 4,
-            self.add_photon_one_qubit_op: 1 / 4,
+            self.replace_photon_one_qubit_op: 1 / 4,
             self.remove_op: 1 / 4,
             self.add_measurement_cnot_and_reset: 1 / 10,
         }
@@ -145,12 +136,14 @@ class HybridEvolutionarySolver(EvolutionarySolver):
             target=self.target,
             metric=self.metric,
             compiler=self.compiler,
+            noise_model_mapping=self.noise_model_mapping,
         )
         deterministic_solver.noise_simulation = False
         deterministic_solver.solve()
+        self.compiler.noise_simulation = True
         _, ideal_circuit = deterministic_solver.result
         population = []
-        for j in range(self.n_pop):
+        for j in range(self.setting.n_pop):
             perturbed_circuit = self.randomize_circuit(ideal_circuit)
             population.append((np.inf, perturbed_circuit))
         return population

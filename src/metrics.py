@@ -109,8 +109,8 @@ class Infidelity(MetricBase):
             elif isinstance(state.stabilizer, MixedStabilizer):
                 fid = sum(
                     [
-                        pi * sfm.fidelity(tableau, ti)
-                        for pi, ti in state.stabilizer.mixture
+                        p_i * sfm.fidelity(tableau, t_i)
+                        for p_i, t_i in state.stabilizer.mixture
                     ]
                 )
 

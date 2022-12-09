@@ -4,7 +4,7 @@ import src
 # TODO: long term, we might want this to be only the default, and for this parameter to be passed as a flag in testing
 # TODO: fix visual tests to be easier to assess as correct or incorrect (title figures to give hint)
 
-VISUAL_TEST = False
+VISUAL_TEST = True
 if src.DENSITY_MATRIX_ARRAY_LIBRARY == "jax":
     try:
         import jax

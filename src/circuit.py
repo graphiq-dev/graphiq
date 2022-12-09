@@ -306,14 +306,14 @@ class CircuitBase(ABC):
                     op.q_registers,
                     op.q_registers_type,
                     op.c_registers,
-                    params=op.param_info,
+                    params=op.params,
                 )
             elif isinstance(op, ops.ParameterizedControlledRotationQubit):
                 gate_application = oq_info.use_gate(
                     op.q_registers,
                     op.q_registers_type,
                     op.c_registers,
-                    params=op.param_info,
+                    params=op.params,
                 )
             else:
                 gate_application = oq_info.use_gate(
@@ -1456,11 +1456,25 @@ class CircuitDAG(CircuitBase):
         """
 
         if "OneQubitGateWrapper" in self.node_dict:
-            for node in self.node_dict["OneQubitGateWrapper"]:
+            wrapper_list = self.node_dict["OneQubitGateWrapper"].copy()
+            for node in wrapper_list:
                 op_list = self.dag.nodes[node]["op"].unwrap()
                 for op in op_list:
                     in_edge = list(self.dag.in_edges(node, keys=True))
                     self.insert_at(op, in_edge)
+                self.remove_op(node)
+
+    def remove_identity(self):
+        """
+        Remove all identity gates
+
+        :return: nothing
+        :rtype: None
+        """
+
+        if "Identity" in self.node_dict:
+            identity_list = self.node_dict["Identity"].copy()
+            for node in identity_list:
                 self.remove_op(node)
 
     def _max_depth(self, root_node):
@@ -1539,28 +1553,3 @@ class CircuitDAG(CircuitBase):
         for reg_type in self._register_depth:
             self.calculate_reg_depth(reg_type=reg_type)
         return self._register_depth.copy()
-
-    def reg_gate_history(self, reg, reg_type="e"):
-        """
-        Finds all the gates that the specified register goes through in the given circuit. A list of operations (gates)
-        and a list of nodes in the chronological order is returned.
-
-        :param reg: the register
-        :type reg: int
-        :param reg_type: the type of the register
-        :type reg_type: str
-        :return: a tuple of lists, the first one is the list of operation and the second one is the list of nodes in
-        the DAG
-        :rtype: tuple(list, list)
-        """
-        next_node = f"{reg_type}{reg}_in"
-        ordered_nodes = [next_node]
-        while next_node != f"{reg_type}{reg}_out":
-            next_node = [
-                edge[1]
-                for edge in self.dag.out_edges(next_node, data=True)
-                if edge[2]["reg"] == reg and edge[2]["reg_type"] == reg_type
-            ][0]
-            ordered_nodes.append(next_node)
-        ops_list = [self.dag.nodes[nod]["op"] for nod in ordered_nodes]
-        return ops_list, ordered_nodes

@@ -37,6 +37,32 @@ let visualization_info = {
             },
             x_pos: 200,
         }
+    ],
+    measurements: [
+        {
+            x_pos: 300,
+            qreg: "p0",
+            creg: "c4",
+            cbit: 0,
+        },
+        {
+            x_pos: 350,
+            qreg: "p1",
+            creg: "c4",
+            cbit: 0,
+        },
+        {
+            x_pos: 400,
+            qreg: "p2",
+            creg: "c4",
+            cbit: 0,
+        },
+        {
+            x_pos: 450,
+            qreg: "p3",
+            creg: "c4",
+            cbit: 0,
+        },
     ]
 }
 

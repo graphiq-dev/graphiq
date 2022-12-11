@@ -31,3 +31,32 @@ function draw_gate_info(gates) {
         }
     }
 }
+
+function draw_measurement(measurements) {
+    for (let i = 0; i < measurements.length; i++) {
+        qreg_pos =  visualization_info.registers.qreg[measurements[i].qreg]
+        creg_pos =  visualization_info.registers.creg[measurements[i].creg]
+        creg_pos = creg_pos - qreg_pos
+
+        // console.log(measurements[i])
+        g = measure(measurements[i].x_pos, qreg_pos, creg_pos)
+    }
+}
+
+function draw_resets(resets) {
+    for (let i = 0; i < resets.length; i++) {
+        qreg_pos =  visualization_info.registers.qreg[resets[i].qreg]
+
+        // console.log(measurements[i])
+        g = reset(resets[i].x_pos, qreg_pos, resets[i].qreg)
+    }
+}
+
+function draw_barriers(barriers) {
+    for (let i = 0; i < barriers.length; i++) {
+        qreg_pos =  visualization_info.registers.qreg[barriers[i].qreg]
+
+        // console.log(measurements[i])
+        g = barrier(barriers[i].x_pos, qreg_pos, barriers[i].qreg)
+    }
+}

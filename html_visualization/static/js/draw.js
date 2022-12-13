@@ -15,19 +15,43 @@ function draw_register_info(registers) {
     }
 }
 
+function draw_qreg(qreg) {
+    for (reg in qreg) {
+        draw_register_label(reg, 70, qreg[reg])
+        draw_quantum_register(0, qreg[reg])
+    }
+}
+
+function draw_creg(creg) {
+    for (reg in creg) {
+        draw_register_label(reg, 70, creg[reg])
+        draw_quantum_register(0, creg[reg])
+    }
+}
+
 function draw_gate_info(gates) {
     for (let i = 0; i < gates.length; i++) {
         register = visualization_info.registers.qreg[gates[i].qargs]
 
-        g = one_qubit_gate(gates[i].x_pos, register, gates[i].gate_name, gates[i].qargs, gates[i].params)
+        if (gates[i].gate_name === "CX") {
+            y2 = visualization_info.registers.qreg[gates[i].controls] - register
+            cnot(gates[i].x_pos, register, y2)
+        }
+        else if (gates[i].gate_name === "CZ") {
+            y2 = visualization_info.registers.qreg[gates[i].controls] - register
+            cz(gates[i].x_pos, register, y2)
+        }
+        else {
+            g = one_qubit_gate(gates[i].x_pos, register, gates[i].gate_name, gates[i].qargs, gates[i].params)
 
-        if (gates[i].controls.length !== 0) {
-            color = g.select("rect").style("fill")
+            if (gates[i].controls.length !== 0) {
+                color = g.select("rect").style("fill")
 
-            x = g.select("rect").attr("width") / 2
-            y1 = g.select("rect").attr("height")
-            y2 = visualization_info.registers.qreg[gates[i].controls] - register + 20
-            create_control_at(g, x, y1, y2, color)
+                x = g.select("rect").attr("width") / 2
+                y1 = g.select("rect").attr("height")
+                y2 = visualization_info.registers.qreg[gates[i].controls] - register + 20
+                create_control_at(g, x, y1, y2, color)
+            }
         }
     }
 }

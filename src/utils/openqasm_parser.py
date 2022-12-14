@@ -23,7 +23,6 @@ class OpenQASMParser:
         parser = Qasm(data=self.openqasm).parse()
 
         for node in parser.children:
-            # print(node.type)
             # add to def
             if node.type == 'qreg':
                 self._parse_qreg(node)

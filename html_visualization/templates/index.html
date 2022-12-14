@@ -9,8 +9,8 @@
     <script src="{{ url_for('static', filename='js/gates.js') }}"></script>
     <script src="{{ url_for('static', filename='js/draw.js') }}"></script>
     <script>
-        let test_visualization = {{ visualization_info | safe }}
-        console.log(test_visualization)
+        let visualization_info = {{ visualization_info | safe }}
+        console.log(visualization_info)
     </script>
 </head>
 <body>
@@ -27,11 +27,11 @@
         register_label_init(70, 350)
         register_detail_init(1000, 350)
 
-        draw_register_info(test_visualization.registers)
-        draw_gate_info(test_visualization.gates)
-        draw_measurement(test_visualization.measurements)
-        draw_resets(test_visualization.resets)
-        draw_barriers(test_visualization.barriers)
+        draw_register_info(visualization_info.registers)
+        draw_gate_info(visualization_info.gates)
+        draw_measurement(visualization_info.measurements)
+        draw_resets(visualization_info.resets)
+        draw_barriers(visualization_info.barriers)
     </script>
 </body>
 </html>

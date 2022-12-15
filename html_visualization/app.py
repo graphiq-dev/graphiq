@@ -14,14 +14,14 @@ cache = {
 }
 
 
-@app.route('/')
+@app.route("/")
 def index():
     return render_template("index.html", visualization_info=cache["circuit_data"])
 
 
-@app.route('/circuit_data', methods=['GET', 'POST'])
+@app.route("/circuit_data", methods=["GET", "POST"])
 def circuit_data():
-    if request.method == 'GET':
+    if request.method == "GET":
         return cache["circuit_data"]
     else:
         data = json.loads(request.get_data())
@@ -31,7 +31,5 @@ def circuit_data():
         return render_template("index.html", visualization_info=cache["circuit_data"])
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     app.run(debug=True)
-
-

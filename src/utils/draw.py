@@ -38,7 +38,13 @@ class Painter:
         return str(qarg[0]) + str(qarg[1])
 
     def add_new_col(self):
-        self.columns.append([0] * (len(self.registers_position["qreg"]) + len(self.registers_position["creg"])))
+        self.columns.append(
+            [0]
+            * (
+                len(self.registers_position["qreg"])
+                + len(self.registers_position["creg"])
+            )
+        )
         self.col_width.append(0)
         self.last_col += 1
 
@@ -52,17 +58,23 @@ class Painter:
             for i in range(size):
                 curr_reg_pos = self.next_reg_position
                 self.next_reg_position += 50
-                reg_pos[f"{reg_name}{i}"] = self.registers_position[reg_type][f"{reg_name}{i}"] = curr_reg_pos
+                reg_pos[f"{reg_name}{i}"] = self.registers_position[reg_type][
+                    f"{reg_name}{i}"
+                ] = curr_reg_pos
                 self.registers_mapping.append(f"{reg_name}{i}")
         else:
             curr_reg_pos = self.next_reg_position
             self.next_reg_position += 1
-            reg_pos[f"{reg_name}{size}"] = self.registers_position[reg_type][f"{reg_name}{size}"] = curr_reg_pos
+            reg_pos[f"{reg_name}{size}"] = self.registers_position[reg_type][
+                f"{reg_name}{size}"
+            ] = curr_reg_pos
             self.registers_mapping.append(f"{reg_name}{size}")
 
         # update columns
         if not self.columns:
-            self.columns.append([0] * size) if reg_type == "qreg" else self.columns.append(0)
+            self.columns.append(
+                [0] * size
+            ) if reg_type == "qreg" else self.columns.append(0)
             self.col_width.append(0)
         else:
             for col in self.columns:
@@ -70,16 +82,22 @@ class Painter:
 
         return reg_pos
 
-    def add_gate(self, gate_name: str, qargs: list, params: dict = None, controls: list = None):
+    def add_gate(
+        self, gate_name: str, qargs: list, params: dict = None, controls: list = None
+    ):
         # calculate which registers the gate will be on
         reg_pos = [self.registers_mapping.index(arg) for arg in qargs]
-        control_pos = [self.registers_mapping.index(arg) for arg in controls] if controls else []
+        control_pos = (
+            [self.registers_mapping.index(arg) for arg in controls] if controls else []
+        )
         from_reg = min(reg_pos + control_pos)
-        to_reg = max(reg_pos + control_pos)+1
+        to_reg = max(reg_pos + control_pos) + 1
         gate_col = self._find_and_add_to_empty_col(from_reg, to_reg)
 
         # calculate the col width
-        self.col_width[gate_col] = max(self._calculate_gate_width(gate_name, params), self.col_width[gate_col])
+        self.col_width[gate_col] = max(
+            self._calculate_gate_width(gate_name, params), self.col_width[gate_col]
+        )
 
         # gate info
         gate_info = {
@@ -101,10 +119,10 @@ class Painter:
         self.col_width[measure_col] = max(40, self.col_width[measure_col])
 
         measurement_info = {
-            'col': measure_col,
-            'qreg': qreg,
-            'creg': creg,
-            'cbit': cbit
+            "col": measure_col,
+            "qreg": qreg,
+            "creg": creg,
+            "cbit": cbit,
         }
         self.measurements.append(measurement_info)
         return measurement_info
@@ -116,8 +134,8 @@ class Painter:
         barrier_col = self._find_and_add_to_empty_col(from_reg, to_reg)
         self.col_width[barrier_col] = max(40, self.col_width[barrier_col])
         barrier_info = {
-            'col': barrier_col,
-            'qreg': qreg,
+            "col": barrier_col,
+            "qreg": qreg,
         }
         self.barriers.append(barrier_info)
 
@@ -130,8 +148,8 @@ class Painter:
         reset_col = self._find_and_add_to_empty_col(from_reg, to_reg)
         self.col_width[reset_col] = max(40, self.col_width[reset_col])
         reset_info = {
-            'col': reset_col,
-            'qreg': qreg,
+            "col": reset_col,
+            "qreg": qreg,
         }
         self.resets.append(reset_info)
 
@@ -140,7 +158,9 @@ class Painter:
     # Classical control gate
     def add_if(self, creg, gate_name: str, qargs: list, params: dict = None):
         if len(qargs) > 1:
-            raise ValueError("Multiple qubits gate is not supported in classical control right now")
+            raise ValueError(
+                "Multiple qubits gate is not supported in classical control right now"
+            )
 
         qreg_pos = [self.registers_mapping.index(arg) for arg in qargs]
         creg_pos = [self.registers_mapping.index(creg)]
@@ -150,14 +170,14 @@ class Painter:
         self.col_width[gate_col] = max(40, self.col_width[gate_col])
 
         classical_control_info = {
-            'col': gate_col,
-            'creg': creg,
-            'gate_info': {
+            "col": gate_col,
+            "creg": creg,
+            "gate_info": {
                 "gate_name": gate_name,
                 "params": {} if params is None else params,
                 "qargs": qargs,
                 "control": [],
-            }
+            },
         }
         self.classical_controls.append(classical_control_info)
         return classical_control_info
@@ -168,27 +188,27 @@ class Painter:
         cols_mid_point = []
 
         for i, v in enumerate(self.col_width):
-            cols_mid_point.append(start + v/2)
+            cols_mid_point.append(start + v / 2)
             start += v + 20
 
         for gate in self.gates:
             gate["x_pos"] = cols_mid_point[gate["col"]]
         for measurement in self.measurements:
-            measurement["x_pos"] = cols_mid_point[measurement['col']]
+            measurement["x_pos"] = cols_mid_point[measurement["col"]]
         for reset in self.resets:
-            reset["x_pos"] = cols_mid_point[reset['col']]
+            reset["x_pos"] = cols_mid_point[reset["col"]]
         for barrier in self.barriers:
-            barrier["x_pos"] = cols_mid_point[barrier['col']]
+            barrier["x_pos"] = cols_mid_point[barrier["col"]]
         for classical_control in self.classical_controls:
-            classical_control["x_pos"] = cols_mid_point[classical_control['col']]
+            classical_control["x_pos"] = cols_mid_point[classical_control["col"]]
 
         visualization_dict = {
             "registers": self.registers_position,
             "gates": self.gates,
-            'measurements': self.measurements,
-            'resets': self.resets,
-            'barriers': self.barriers,
-            'classical_controls': self.classical_controls,
+            "measurements": self.measurements,
+            "resets": self.resets,
+            "barriers": self.barriers,
+            "classical_controls": self.classical_controls,
         }
 
         return visualization_dict
@@ -227,13 +247,16 @@ class Painter:
                 params_str += f"{params[i]}, "
             params_str = params_str[:-2]
             params_str += ")"
-        width = self.gate_mapping[gate_name] if gate_name.upper() in self.gate_mapping \
+        width = (
+            self.gate_mapping[gate_name]
+            if gate_name.upper() in self.gate_mapping
             else max(40, 15 * 2 + len(gate_name) * 10, 15 * 2 + len(params_str) * 5)
+        )
         return width
 
     def draw(self):
         visualization_info = self.build_visualization_info()
-        url = 'http://127.0.0.1:5000/circuit_data'
+        url = "http://127.0.0.1:5000/circuit_data"
 
         data = json.dumps(visualization_info, indent=3)
         result = requests.post(url, data=data)
@@ -245,42 +268,49 @@ class Painter:
         parser.parse()
 
         # add qreg and creg to painter
-        for qreg in parser.ast['def']['qreg']:
-            size = parser.ast['def']['qreg'][qreg]['index']
-            self.add_register(qreg, size, 'qreg')
-        for creg in parser.ast['def']['creg']:
-            size = parser.ast['def']['creg'][creg]['index']
-            self.add_register(creg, size, 'creg')
+        for qreg in parser.ast["def"]["qreg"]:
+            size = parser.ast["def"]["qreg"][qreg]["index"]
+            self.add_register(qreg, size, "qreg")
+        for creg in parser.ast["def"]["creg"]:
+            size = parser.ast["def"]["creg"][creg]["index"]
+            self.add_register(creg, size, "creg")
 
         # add ops to painter
-        for op in parser.ast['ops']:
+        for op in parser.ast["ops"]:
             print(op)
-            if op['type'] == 'custom_unitary':
-                qargs = [self.convert_qargs_tuple_to_str(qarg) for qarg in op['qargs']]
-                self.add_gate(str.upper(op['name']), qargs)
-            if op['type'] == 'cnot':
-                qargs = op['target']['name'] + str(op['target']['index'])
-                controls = op['control']['name'] + str(op['control']['index'])
-                self.add_gate(gate_name='CX', qargs=[qargs], controls=[controls])
-            if op['type'] == 'measure':
-                qreg = op['qreg']['name'] + str(op['qreg']['index'])
-                creg = op['creg']['name'] + str(parser.ast['def']['creg'][op['creg']['name']]['index'])
-                self.add_measurement(qreg=qreg, creg=creg, cbit=op['creg']['index'])
+            if op["type"] == "custom_unitary":
+                qargs = [self.convert_qargs_tuple_to_str(qarg) for qarg in op["qargs"]]
+                self.add_gate(str.upper(op["name"]), qargs)
+            if op["type"] == "cnot":
+                qargs = op["target"]["name"] + str(op["target"]["index"])
+                controls = op["control"]["name"] + str(op["control"]["index"])
+                self.add_gate(gate_name="CX", qargs=[qargs], controls=[controls])
+            if op["type"] == "measure":
+                qreg = op["qreg"]["name"] + str(op["qreg"]["index"])
+                creg = op["creg"]["name"] + str(
+                    parser.ast["def"]["creg"][op["creg"]["name"]]["index"]
+                )
+                self.add_measurement(qreg=qreg, creg=creg, cbit=op["creg"]["index"])
             # TODO: Add handle barrier node here
             # if op['type'] == 'barrier':
             #     for reg in op['qreg']:
             #         for i in range(parser.ast['def']['qreg'][reg]['index']):
             #             self.add_barrier(qreg=f"{reg}{i}")
-            if op['type'] == 'reset':
-                qreg = op['name'] + str(op['index'])
+            if op["type"] == "reset":
+                qreg = op["name"] + str(op["index"])
                 self.add_reset(qreg)
-            if op['type'] == 'if':
-                creg = op['creg']['name'] + str(parser.ast['def']['creg'][op['creg']['name']]['index'])
-                qargs = [op['custom_unitary']['qargs'][0][0] + str(op['custom_unitary']['qargs'][0][1])]
+            if op["type"] == "if":
+                creg = op["creg"]["name"] + str(
+                    parser.ast["def"]["creg"][op["creg"]["name"]]["index"]
+                )
+                qargs = [
+                    op["custom_unitary"]["qargs"][0][0]
+                    + str(op["custom_unitary"]["qargs"][0][1])
+                ]
                 self.add_if(
                     creg=creg,
-                    gate_name=str.upper(op['custom_unitary']['name']),
-                    params=op['custom_unitary']['params'],
+                    gate_name=str.upper(op["custom_unitary"]["name"]),
+                    params=op["custom_unitary"]["params"],
                     qargs=qargs,
                 )
         return

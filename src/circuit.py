@@ -527,7 +527,11 @@ class CircuitBase(ABC):
         :rtype: matplotlib.pyplot.figure, matplotlib.pyplot.axes
         """
         return draw_openqasm(
-            self.to_openqasm(), show=show, ax=ax, display_text=self.openqasm_symbols, fold=fold
+            self.to_openqasm(),
+            show=show,
+            ax=ax,
+            display_text=self.openqasm_symbols,
+            fold=fold,
         )
 
     def _openqasm_update(self, op):
@@ -1555,4 +1559,3 @@ class CircuitDAG(CircuitBase):
         for reg_type in self._register_depth:
             self.calculate_reg_depth(reg_type=reg_type)
         return self._register_depth.copy()
-

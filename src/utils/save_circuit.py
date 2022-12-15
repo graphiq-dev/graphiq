@@ -43,4 +43,3 @@ def circuit_to_json(circuit: CircuitDAG, destination: str = ""):
         pass
 
     return json_obj
-

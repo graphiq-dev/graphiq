@@ -1164,4 +1164,3 @@ def class_to_name_map(operation: OperationBase):
     if type(operation) in mapping:
         return mapping[type(operation)]
     return None
-

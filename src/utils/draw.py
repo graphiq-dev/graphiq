@@ -26,7 +26,7 @@ class Painter:
         self.measurements = []
         self.barriers = []
         self.resets = []
-        self.classical_control = []
+        self.classical_controls = []
 
         if not gate_mapping:
             self.gate_mapping = standard_gate_width_mapping
@@ -70,7 +70,7 @@ class Painter:
 
         return reg_pos
 
-    def add_gate(self, gate_name: str, qargs: list, params: dict=None, controls: list=None):
+    def add_gate(self, gate_name: str, qargs: list, params: dict = None, controls: list = None):
         # calculate which registers the gate will be on
         reg_pos = [self.registers_mapping.index(arg) for arg in qargs]
         control_pos = [self.registers_mapping.index(arg) for arg in controls] if controls else []
@@ -137,6 +137,31 @@ class Painter:
 
         return reset_info
 
+    # Classical control gate
+    def add_if(self, creg, gate_name: str, qargs: list, params: dict = None):
+        if len(qargs) > 1:
+            raise ValueError("Multiple qubits gate is not supported in classical control right now")
+
+        qreg_pos = [self.registers_mapping.index(arg) for arg in qargs]
+        creg_pos = [self.registers_mapping.index(creg)]
+        from_reg = min(qreg_pos + creg_pos)
+        to_reg = max(qreg_pos + creg_pos) + 1
+        gate_col = self._find_and_add_to_empty_col(from_reg, to_reg)
+        self.col_width[gate_col] = max(40, self.col_width[gate_col])
+
+        classical_control_info = {
+            'col': gate_col,
+            'creg': creg,
+            'gate_info': {
+                "gate_name": gate_name,
+                "params": {} if params is None else params,
+                "qargs": qargs,
+                "control": [],
+            }
+        }
+        self.classical_controls.append(classical_control_info)
+        return classical_control_info
+
     def build_visualization_info(self):
         # calculate x_pos for gates and columns
         start = 30
@@ -154,6 +179,8 @@ class Painter:
             reset["x_pos"] = cols_mid_point[reset['col']]
         for barrier in self.barriers:
             barrier["x_pos"] = cols_mid_point[barrier['col']]
+        for classical_control in self.classical_controls:
+            classical_control["x_pos"] = cols_mid_point[classical_control['col']]
 
         visualization_dict = {
             "registers": self.registers_position,
@@ -161,6 +188,7 @@ class Painter:
             'measurements': self.measurements,
             'resets': self.resets,
             'barriers': self.barriers,
+            'classical_controls': self.classical_controls,
         }
 
         return visualization_dict
@@ -247,7 +275,12 @@ class Painter:
                 qreg = op['name'] + str(op['index'])
                 self.add_reset(qreg)
             if op['type'] == 'if':
-                qreg = op['qreg']['name'] + str(op['qreg']['index'])
                 creg = op['creg']['name'] + str(parser.ast['def']['creg'][op['creg']['name']]['index'])
-                self.add_measurement(qreg=qreg, creg=creg, cbit=op['creg']['index'])
+                qargs = [op['custom_unitary']['qargs'][0][0] + str(op['custom_unitary']['qargs'][0][1])]
+                self.add_if(
+                    creg=creg,
+                    gate_name=str.upper(op['custom_unitary']['name']),
+                    params=op['custom_unitary']['params'],
+                    qargs=qargs,
+                )
         return

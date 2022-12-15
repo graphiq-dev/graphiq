@@ -45,14 +45,6 @@ class OpenQASMParser:
             if node.type == 'if':
                 self.ast["ops"].append(self._parse_if(node))
 
-    def _parse_qreg(self, qreg_node):
-        qreg_info = {
-            'index': qreg_node.index,
-        }
-        self.ast['def']['qreg'][qreg_node.name] = qreg_info
-
-        return qreg_info
-
     # TODO: Maybe add parse body, because in the gate body there is a list of statement
     def _parse_gate(self, gate_node):
         gate_info = {
@@ -83,6 +75,14 @@ class OpenQASMParser:
         }
         self.ast['def']['creg'][creg_node.name] = creg_info
         return creg_info
+
+    def _parse_qreg(self, qreg_node):
+        qreg_info = {
+            'index': qreg_node.index,
+        }
+        self.ast['def']['qreg'][qreg_node.name] = qreg_info
+
+        return qreg_info
 
     def _parse_barrier(self, barrier_node):
         barrier_info = {
@@ -177,13 +177,10 @@ class OpenQASMParser:
     def _parse_if(self, if_node):
         if_info = {
             'type': if_node.type,
+            'creg': {
+                'name': if_node.children[0].name,
+                'value': if_node.children[1].value,
+            },
+            'custom_unitary': self._parse_custom_unitary(if_node.children[2])
         }
-        for node in if_node.children:
-            if node.type == 'custom_unitary':
-                custom_unitary = self._parse_custom_unitary(node)
-                if_info['custom_unitary'] = custom_unitary
-            if type == 'id':
-                if_info['creg'] = node.name
-            if type == 'int':
-                if_info['value'] = node.value
         return if_info

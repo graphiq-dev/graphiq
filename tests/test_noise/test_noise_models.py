@@ -1,21 +1,14 @@
-import networkx as nx
 import numpy as np
-import numpy.testing as nptest
-import pytest
-
 from src import ops
 
 import src.backends.density_matrix.functions as dmf
+import src.backends.stabilizer.functions.clifford as sfc
 import src.noise.noise_models as nm
 from src.state import QuantumState
-from src.backends.state_base import StateRepresentationBase
-from src.backends.density_matrix.state import DensityMatrix
-from src.backends.stabilizer.state import Stabilizer
-from src.backends.graph.state import Graph
-from benchmarks.circuits import *
+from src.backends.stabilizer.state import MixedStabilizer
 
 
-def _state_initialization(n_quantum, state=dmf.state_ketz0()):
+def _state_initialization_dm(n_quantum, state=dmf.state_ketz0()):
     return QuantumState(
         n_quantum,
         dmf.create_n_product_state(n_quantum, state),
@@ -23,56 +16,20 @@ def _state_initialization(n_quantum, state=dmf.state_ketz0()):
     )
 
 
-def test_noise_base():
-    test_noise = nm.NoiseBase()
-    assert test_noise.noise_parameters == {}
-
-    with pytest.raises(NotImplementedError):
-        test_noise.get_backend_dependent_noise()
-
-
-@pytest.mark.parametrize(
-    "state, state_rep, error",
-    [
-        (ghz3_state_circuit()[1].dm.data, "density matrix", NotImplementedError),
-        (ghz3_state_circuit()[1].stabilizer.data, "stabilizer", NotImplementedError),
-        (nx.Graph([(0, 1), (1, 2)]), "graph", None),
-    ]
-)
-def test_noise_base_with_error(state, state_rep, error):
-    test_noise = nm.NoiseBase()
-    q_state = QuantumState(n_qubits=3, data=state, representation=state_rep)
-
-    if not isinstance(state, nx.Graph):
-        with pytest.raises(NotImplementedError):
-            test_noise.apply(q_state, n_quantum=3, reg_list=[1])
-    else:
-        result = test_noise.apply(q_state, n_quantum=3, reg_list=[1])
-        assert result is error
-
-
-def test_addition_noise_base():
-    test_noise = nm.AdditionNoiseBase()
-    assert test_noise.noise_parameters == {'After gate': True}
-
-    with pytest.raises(NotImplementedError):
-        test_noise.get_backend_dependent_noise()
-
-
-def test_replacement_noise_base():
-    test_noise = nm.ReplacementNoiseBase()
-    assert test_noise.noise_parameters == {}
-
-    with pytest.raises(NotImplementedError):
-        test_noise.get_backend_dependent_noise()
+def _state_initialization_stabilizer(n_quantum):
+    return QuantumState(
+        n_quantum,
+        sfc.create_n_ket0_state(n_quantum),
+        representation="stabilizer",
+    )
 
 
 def test_depolarizing_noise():
     n_quantum = 3
     qubit_position = 1
     qubit_state = dmf.state_ketx0()
-    state1 = _state_initialization(n_quantum, qubit_state)
-    state2 = _state_initialization(n_quantum, qubit_state)
+    state1 = _state_initialization_dm(n_quantum, qubit_state)
+    state2 = _state_initialization_dm(n_quantum, qubit_state)
     depolarizing_prob = 0.1
     noise1 = nm.DepolarizingNoise(depolarizing_prob)
 
@@ -102,93 +59,37 @@ def test_depolarizing_noise():
 def test_no_noise():
     n_quantum = 5
     qubit_state = dmf.state_kety0()
-    state1 = _state_initialization(n_quantum, qubit_state)
-    state2 = _state_initialization(n_quantum, qubit_state)
+    state1 = _state_initialization_dm(n_quantum, qubit_state)
+    state2 = _state_initialization_dm(n_quantum, qubit_state)
     noise = nm.NoNoise()
     noise.apply(state1)
 
     assert np.allclose(state1.dm.data, state2.dm.data)
 
 
-# No error
-@pytest.mark.parametrize(
-    "state_rep, expected_output",
-    [
-        (DensityMatrix(data=1), np.eye(dmf.create_n_product_state(1, dmf.state_ketz0()).shape[0])),
-        (Stabilizer(data=1), []),
-        (Graph(data=1, root_node_id=1), None)
-    ],
-)
-def test_no_noise_get_backend(state_rep, expected_output):
-    test_noise = nm.NoNoise()
-    output = test_noise.get_backend_dependent_noise(state_rep, n_quantum=1)
-    if isinstance(output, np.ndarray):
-        nptest.assert_equal(output, expected_output)
-    else:
-        assert output == expected_output
-
-
-# With error
-def test_no_noise_get_backend_error():
-    test_noise = nm.NoNoise()
-    state_rep = StateRepresentationBase(data=1)
-
-    with pytest.raises(TypeError, match="Backend type is not supported."):
-        test_noise.get_backend_dependent_noise(state_rep=state_rep, n_quantum=1)
-
-
 def test_one_qubit_replacement():
     n_quantum = 5
     qubit_position = 2
-    state1 = _state_initialization(n_quantum, dmf.state_ketx0())
-    state2 = _state_initialization(n_quantum, dmf.state_ketx0())
+    state1 = _state_initialization_dm(n_quantum, dmf.state_ketx0())
+    state2 = _state_initialization_dm(n_quantum, dmf.state_ketx0())
     noise = nm.OneQubitGateReplacement(
         dmf.parameterized_one_qubit_unitary(np.pi / 2, 0, np.pi)
     )
 
     hadamard_gate = dmf.get_one_qubit_gate(n_quantum, qubit_position, dmf.hadamard())
-    assert np.allclose(
-        noise.get_backend_dependent_noise(state1.dm, n_quantum, [qubit_position]),
-        hadamard_gate,
-    )
+
     noise.apply(state1, n_quantum, [qubit_position])
 
     state2.dm.apply_unitary(hadamard_gate)
     assert np.allclose(state1.dm.data, state2.dm.data)
 
 
-@pytest.mark.parametrize(
-    "state_rep, expected_output",
-    [
-        (Stabilizer(5), None),
-        (Graph(5, root_node_id=1), None),
-    ]
-)
-def test_one_qubit_replacement_get_backends(state_rep, expected_output):
-    noise = nm.OneQubitGateReplacement(
-        dmf.parameterized_one_qubit_unitary(np.pi / 2, 0, np.pi)
-    )
-
-    result = noise.get_backend_dependent_noise(state_rep=state_rep, n_quantum=5, reg_list=[2])
-    assert result == expected_output
-
-
-def test_one_qubit_replacement_error():
-    noise = nm.OneQubitGateReplacement(
-        dmf.parameterized_one_qubit_unitary(np.pi / 2, 0, np.pi)
-    )
-
-    state_rep = StateRepresentationBase(data=5)
-    with pytest.raises(TypeError, match="Backend type is not supported."):
-        noise.get_backend_dependent_noise(state_rep=state_rep, n_quantum=5, reg_list=[2])
-
-
 def test_two_qubit_replacement():
     n_quantum = 5
     control_qubit = 2
     target_qubit = 0
-    state1 = _state_initialization(n_quantum, dmf.state_ketx1())
-    state2 = _state_initialization(n_quantum, dmf.state_ketx1())
+    state1 = _state_initialization_dm(n_quantum, dmf.state_ketx1())
+    state2 = _state_initialization_dm(n_quantum, dmf.state_ketx1())
     noise = nm.TwoQubitControlledGateReplacement(
         dmf.parameterized_one_qubit_unitary(np.pi, 0, np.pi), phase_factor=0
     )
@@ -197,12 +98,6 @@ def test_two_qubit_replacement():
         n_quantum, control_qubit, target_qubit, dmf.sigmax()
     )
 
-    assert np.allclose(
-        noise.get_backend_dependent_noise(
-            state1.dm, n_quantum, control_qubit, target_qubit
-        ),
-        cnot_gate,
-    )
     noise.apply(state1, n_quantum, control_qubit, target_qubit)
 
     state2.dm.apply_unitary(cnot_gate)
@@ -212,16 +107,30 @@ def test_two_qubit_replacement():
 def test_pauli_error():
     n_quantum = 5
     qubit_position = 2
-    state1 = _state_initialization(n_quantum, dmf.state_ketx0())
-    state2 = _state_initialization(n_quantum, dmf.state_ketx0())
+    state1 = _state_initialization_dm(n_quantum, dmf.state_ketx0())
+    state2 = _state_initialization_dm(n_quantum, dmf.state_ketx0())
     noise = nm.PauliError("X")
 
     x_gate = dmf.get_one_qubit_gate(n_quantum, qubit_position, dmf.sigmax())
-    assert np.allclose(
-        noise.get_backend_dependent_noise(state1.dm, n_quantum, [qubit_position]),
-        x_gate,
-    )
     noise.apply(state1, n_quantum, [qubit_position])
 
     state2.dm.apply_unitary(x_gate)
     assert np.allclose(state1.dm.data, state2.dm.data)
+
+
+def test_photon_loss_stabilizer():
+    n_quantum = 2
+    state = _state_initialization_stabilizer(n_quantum)
+    noise = nm.PhotonLoss(0.1)
+    noise.apply(state, n_quantum, 1)
+    assert isinstance(state.stabilizer, MixedStabilizer)
+    assert state.stabilizer.probability == 0.9
+
+
+def test_photon_loss_dm():
+    n_quantum = 2
+    state = _state_initialization_dm(n_quantum)
+    noise = nm.PhotonLoss(0.1)
+    noise.apply(state, n_quantum, 1)
+    assert state.dm.trace == 0.9
+    assert not state.dm.normalized

@@ -1,14 +1,12 @@
 """
 Density matrix representation for states.
-
-It supports applications of unitary operations, quantum channels and measurements on the state.
-
+Supports unitary operations, quantum channels, and state measurements.
 """
-import networkx as nx
-import numpy as np
+import numpy
 import matplotlib.pyplot as plt
 import src.backends.density_matrix.functions as dmf
 
+from src.backends.density_matrix import numpy as np
 from src.backends.state_base import StateRepresentationBase
 from src.backends.graph.state import Graph
 from src.visualizers.density_matrix import density_matrix_heatmap, density_matrix_bars
@@ -20,13 +18,15 @@ class DensityMatrix(StateRepresentationBase):
     Density matrix of a state
     """
 
-    def __init__(self, data, *args, **kwargs):
+    def __init__(self, data, normalized=True, *args, **kwargs):
         """
         Construct a DensityMatrix object from a numpy.ndarray or from the number of qubits. If an integer is specified,
         then the state is initialized as a product state of :math:`|0\\rangle` with the given number of qubits.
 
         :param data: density matrix or the number of qubits
         :type data: numpy.ndarray or int
+        :param normalized: whether the state is normalized
+        :type normalized: bool
         :return: nothing
         :rtype: None
         """
@@ -36,7 +36,7 @@ class DensityMatrix(StateRepresentationBase):
                 # check if state_data is positive semi-definite
                 raise ValueError("The input matrix is not a valid density matrix")
 
-            if not np.equal(np.trace(data), 1):
+            if normalized and not np.equal(np.trace(data), 1):
                 data = data / np.trace(data)
         elif isinstance(data, int):
             # initialize as a tensor product of |0> state
@@ -49,11 +49,11 @@ class DensityMatrix(StateRepresentationBase):
     @classmethod
     def from_graph(cls, graph):
         """
-        Builds a density matrix representation from a graph (either nx.graph or a Graph representation)
+        Builds a density matrix representation from a graph (either nx.Graph or a Graph representation)
 
         :param graph: the graph from which we will build a density matrix
         :type graph: networkx.Graph OR Graph
-        :raises TypeError: if the input graph is neither nx.graph or Graph
+        :raises TypeError: if the input graph is neither nx.Graph or Graph
         :return: a DensityMatrix representation with the data contained by graph
         :rtype: DensityMatrix
         """
@@ -65,6 +65,26 @@ class DensityMatrix(StateRepresentationBase):
     @classmethod
     def valid_datatype(cls, data):
         return isinstance(data, (int, np.ndarray))
+
+    @property
+    def trace(self):
+        """
+        Return the trace of the state
+
+        :return: the trace of the state
+        :rtype: float
+        """
+        return np.trace(self.data)
+
+    @property
+    def normalized(self):
+        """
+        Return whether the state is normalized, that is, trace is 1
+
+        :return: whether the state is normalized
+        :rtype: bool
+        """
+        return np.allclose(self.trace, 1.0)
 
     def apply_unitary(self, unitary):
         """
@@ -131,9 +151,9 @@ class DensityMatrix(StateRepresentationBase):
                 if prob < 0:
                     prob = 0
                 probs.append(prob)
-
+            probs = np.array(probs)
             if measurement_determinism == "probabilistic":
-                outcome = np.random.choice([0, 1], p=probs / np.sum(probs))
+                outcome = numpy.random.choice([0, 1], p=probs / np.sum(probs))
             elif measurement_determinism == 1:
                 if probs[1] > 0:
                     outcome = 1
@@ -190,15 +210,15 @@ class DensityMatrix(StateRepresentationBase):
         """
         Draw a bar graph or heatmap of the DensityMatrix representation data
 
-        :param style: 'bar' for barplot, 'heat' for heatmap
+        :param style: 'bar' for bar plot, 'heat' for heatmap
         :type style: str
         :param show: if True, show the density matrix plot. Otherwise, draw the density matrix plot but do not show
         :type show: bool
         :return: fig, axes on which the state is drawn
         :rtype: matplotlib.figure, matplotlib.axes
 
-        TODO: add a "ax" parameter to match the other viewing utils
         """
+        # TODO: add a "ax" parameter to match the other viewing utils
         if style == "bar":
             fig, axs = density_matrix_bars(self.data)
         else:

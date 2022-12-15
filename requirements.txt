@@ -13,5 +13,8 @@ qiskit~=0.38.0
 qutip~=4.7.0
 pylatexenc
 ray[default]
-psutil~=5.9.2
 Flask~=2.2.2
+psutil
+jax
+optax
+tqdm

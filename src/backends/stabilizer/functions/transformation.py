@@ -11,6 +11,18 @@ from src.backends.stabilizer.functions.linalg import (
 """Main gates """
 
 
+def identity(tableau, *args):
+    """
+    Apply the identity operation on a tableau, i.e., does not change the state at all.
+
+    :param tableau: Tableau of the state before gate action
+    :type tableau: CliffordTableau or StabilizerTableau
+    :return: the identical state
+    :rtype: CliffordTableau or StabilizerTableau
+    """
+    return tableau
+
+
 def hadamard_gate(tableau, qubit_position):
     """
     Apply Hadamard gate to a single qubit given its position in a stabilizer state.
@@ -145,7 +157,6 @@ def x_gate(tableau, qubit_position):
     :return: the resulting state after gate action
     :rtype: CliffordTableau or StabilizerTableau
     """
-
     tableau = hadamard_gate(tableau, qubit_position)
     tableau = z_gate(tableau, qubit_position)
     tableau = hadamard_gate(tableau, qubit_position)

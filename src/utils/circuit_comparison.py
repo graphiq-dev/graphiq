@@ -1,8 +1,8 @@
 """
 Functions to compare quantum circuits
 
-TODO: GED implementation requires further investigation.
 """
+# TODO: GED implementation requires further investigation.
 import networkx as nx
 
 
@@ -46,6 +46,10 @@ def direct(circuit1, circuit2):
     circuit1.unwrap_nodes()
     circuit2 = circuit2.copy()
     circuit2.unwrap_nodes()
+
+    circuit1.remove_identity()
+    circuit2.remove_identity()
+
     n_reg_match = circuit1.register == circuit2.register
     n_nodes_match = circuit1.dag.number_of_nodes() == circuit2.dag.number_of_nodes()
 
@@ -76,7 +80,6 @@ def direct(circuit1, circuit2):
                 control_match = (
                     op1.q_registers_type == op2.q_registers_type
                     and op1.q_registers == op2.q_registers
-                    and op1.c_registers == op2.c_registers
                 )
                 if isinstance(op1, type(op2)) and control_match:
                     pass
@@ -127,6 +130,9 @@ def ged(circuit1, circuit2, full=True):
     circuit1.unwrap_nodes()
     circuit2 = circuit2.copy()
     circuit2.unwrap_nodes()
+
+    circuit1.remove_identity()
+    circuit2.remove_identity()
     dag1 = circuit1.dag
     dag2 = circuit2.dag
 
@@ -134,7 +140,6 @@ def ged(circuit1, circuit2, full=True):
         reg_match = (
             n1["op"].q_registers_type == n2["op"].q_registers_type
             and n1["op"].q_registers == n2["op"].q_registers
-            and n1["op"].c_registers == n2["op"].c_registers
         )
         ops_match = isinstance(n1["op"], type(n2["op"]))
 

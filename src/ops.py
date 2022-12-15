@@ -2,9 +2,10 @@
 The Operation objects are objects which tell the compiler what gate to apply on which registers / qubits
 
 They serve two purposes:
-1. They are used to build our circuit: circuit.add(OperationObj). The circuit constructs the DAG structure from the
-connectivity information in OperationObj
-2. They are passed as an iterable to the compiler, such that the compiler can perform the correct series of information
+    1. They are used to build our circuit: circuit.add(OperationObj). The circuit constructs the DAG structure from the
+       connectivity information in OperationObj
+    2. They are passed as an iterable to the compiler, such that the compiler can perform the correct series of
+       information
 
 REGISTERS VS QUDITS/CBITS: following qiskit/openQASM and other softwares, we allow a distinction between registers
 and qudits/qubits (where one register can contain a number of qubits / qudits).
@@ -18,8 +19,8 @@ and qubit d of register c.
 We can also use a mixture of registers an qubits: q_registers=(a, (b, c)) means that the operation will be applied
 between EACH QUBIT of register a, and qubit c of register b
 
-TODO: consider refactoring register notation to not use tuples (which can be confusing).
 """
+# TODO: consider refactoring register notation to not use tuples (which can be confusing).
 from abc import ABC
 import itertools
 import numpy as np
@@ -45,6 +46,8 @@ class OperationBase(ABC):
         q_registers_type=tuple(),
         c_registers=tuple(),
         noise=nm.NoNoise(),
+        params=tuple(),
+        param_info=dict(),
     ):
         """
         Creates an Operation base object (which is largely responsible for holding the registers on which
@@ -63,6 +66,10 @@ class OperationBase(ABC):
         :type c_registers: tuple (tuple of: integers OR tuples of length 2)
         :param noise: Noise model
         :type noise: src.noise.noise_models.NoiseBase
+        :param params: an ordered list of parameter values for a parameterized gate
+        :type params: tuple
+        :param param_info: a dictionary that specifies all the information regarding parameters
+        :type param_info: dict
         :raises AssertionError: if photon_register, emitter_register, c_registers are not tuples,
                                OR if the elements of the tuple do not correspond to the notation described above
         :return: nothing
@@ -95,6 +102,8 @@ class OperationBase(ABC):
         self._c_registers = c_registers
         self._labels = []
         self.noise = noise
+        self.params = params
+        self.param_info = param_info
 
     @classmethod
     def openqasm_info(cls):
@@ -202,7 +211,7 @@ class OperationBase(ABC):
         :return: nothing
         :rtype: None
         """
-        if type(new_labels) is list:
+        if isinstance(new_labels, list):
             self._labels += new_labels
         else:
             self._labels.append(new_labels)
@@ -273,6 +282,34 @@ class OperationBase(ABC):
                 raise ValueError("Detected a non-supported quantum register type.")
 
         return type_description[:-1]
+
+    @staticmethod
+    def _validate_param_info(param_info, n_params):
+        """
+        Validate the param_info
+
+        :param param_info: param_info for a gate
+        :type param_info: None or dict
+        :param n_params: number of parameters
+        :type n_params: int
+        :return: whether the param_info is valid
+        :rtype: bool
+        """
+        if param_info is None:
+            return True
+        else:
+            if not isinstance(param_info, dict):
+                return False
+            else:
+                if ("bounds" not in param_info.keys()) or (
+                    "labels" not in param_info.keys()
+                ):
+                    return False
+                else:
+                    return (
+                        len(param_info["bounds"]) == n_params
+                        and len(param_info["labels"]) == n_params
+                    )
 
 
 class OneQubitOperationBase(OperationBase):
@@ -408,6 +445,11 @@ class ControlledPairOperationBase(OperationBase):
         :return: function returns nothing
         :rtype: None
         """
+
+        if isinstance(noise, list):
+            assert len(noise) == 2
+        else:
+            noise = 2 * [noise]
         super().__init__(
             q_registers=(control, target),
             q_registers_type=(control_type, target_type),
@@ -470,6 +512,10 @@ class ClassicalControlledPairOperationBase(OperationBase):
         :return: nothing
         :rtype: None
         """
+        if isinstance(noise, list):
+            assert len(noise) == 2
+        else:
+            noise = 2 * [noise]
         super().__init__(
             q_registers=(control, target),
             q_registers_type=(control_type, target_type),
@@ -547,13 +593,30 @@ class OneQubitGateWrapper(OneQubitOperationBase):
         :return: a sequence of base operations (i.e. operations which are not compositions of other operations)
         :rtype: list
         """
+        if isinstance(self.noise, list):
+            assert len(self.noise) == len(self.operations)
 
-        gates = [
-            self.operations[i](
-                register=self.register, reg_type=self.reg_type, noise=self.noise[i]
+            gates = [
+                self.operations[i](
+                    register=self.register, reg_type=self.reg_type, noise=self.noise[i]
+                )
+                for i in range(len(self.operations))
+            ]
+        else:
+
+            gates = [
+                self.operations[i](
+                    register=self.register, reg_type=self.reg_type, noise=nm.NoNoise()
+                )
+                for i in range(len(self.operations))
+            ]
+            noise = Identity(
+                register=self.register, reg_type=self.reg_type, noise=self.noise
             )
-            for i in range(len(self.operations))
-        ]
+            if self.noise.noise_parameters["After gate"]:
+                gates.insert(0, noise)
+            else:
+                gates.append(noise)
         return gates[::-1]
 
     def openqasm_info(self):
@@ -613,6 +676,172 @@ class Phase(OneQubitOperationBase):
 
     def __init__(self, register=0, reg_type="e", noise=nm.NoNoise()):
         super().__init__(register, reg_type, noise)
+
+
+class ParameterizedOneQubitRotation(OneQubitOperationBase):
+    """
+    Parameterized one qubit rotation.
+    """
+
+    _openqasm_info = (
+        oq_lib.parameterized_info()
+    )  # todo, change to appropriate openQASM info
+
+    def __init__(
+        self, register=0, reg_type="e", noise=nm.NoNoise(), params=None, param_info=None
+    ):
+        super().__init__(register, reg_type, noise)
+
+        if params is None:
+            params = (0.0, 0.0, 0.0)
+
+        else:
+            if len(params) != 3:
+                raise ValueError("Length of params must be 3")
+
+        if param_info is None:
+            param_info = {
+                "bounds": ((-np.pi, np.pi), (-np.pi, np.pi), (-np.pi, np.pi)),
+                "labels": ("theta", "phi", "lambda"),
+            }
+        else:
+            if not self._validate_param_info(param_info, 3):
+                raise ValueError("The data format of param_info is invalid.")
+
+        self.params = params
+        self.param_info = param_info
+
+
+class ParameterizedControlledRotationQubit(ControlledPairOperationBase):
+    """
+    Parameterized two qubit controlled gate,
+    """
+
+    _openqasm_info = (
+        oq_lib.cparameterized_info()
+    )  # todo, change to appropriate openQASM info
+
+    def __init__(
+        self,
+        control=0,
+        control_type="e",
+        target=0,
+        target_type="e",
+        noise=nm.NoNoise(),
+        params=None,
+        param_info=None,
+    ):
+        super().__init__(control, control_type, target, target_type, noise)
+        if params is None:
+            params = (0.0, 0.0, 0.0)
+        else:
+            if len(params) != 3:
+                raise ValueError("Length of params must be 3")
+
+        if param_info is None:
+            param_info = {
+                "bounds": ((-np.pi, np.pi), (-np.pi, np.pi), (-np.pi, np.pi)),
+                "labels": ("theta", "phi", "lambda"),
+            }
+        else:
+            if not self._validate_param_info(param_info, 3):
+                raise ValueError("The data format of param_info is invalid.")
+
+        self.params = params
+        self.param_info = param_info
+
+
+class RY(ParameterizedOneQubitRotation):
+    """
+    Rotation around the Y axis
+    """
+
+    _openqasm_info = oq_lib.ry_info()
+
+    def __init__(
+        self, register=0, reg_type="e", noise=nm.NoNoise(), params=None, param_info=None
+    ):
+        super().__init__(register, reg_type, noise)
+
+        if params is None:
+            params = (0.0,)
+        else:
+            if len(params) != 1:
+                raise ValueError("Length of params must be 1")
+        if param_info is None:
+            param_info = {
+                "bounds": (-np.pi, np.pi),
+                "labels": "theta",
+            }
+        else:
+            if not self._validate_param_info(param_info, 1):
+                raise ValueError("The data format of param_info is invalid.")
+
+        self.params = params
+        self.param_info = param_info
+
+
+class RX(ParameterizedOneQubitRotation):
+    """
+    Rotation around the X axis
+    """
+
+    _openqasm_info = oq_lib.rx_info()
+
+    def __init__(
+        self, register=0, reg_type="e", noise=nm.NoNoise(), params=None, param_info=None
+    ):
+        super().__init__(register, reg_type, noise)
+
+        if params is None:
+            params = (0.0,)
+
+        else:
+            if len(params) != 1:
+                raise ValueError("Length of params must be 1")
+
+        if param_info is None:
+            param_info = {
+                "bounds": (-np.pi, np.pi),
+                "labels": "theta",
+            }
+        else:
+            if not self._validate_param_info(param_info, 1):
+                raise ValueError("The data format of param_info is invalid.")
+
+        self.params = params
+        self.param_info = param_info
+
+
+class RZ(ParameterizedOneQubitRotation):
+    """
+    Rotation around the Z axis
+    """
+
+    _openqasm_info = oq_lib.rz_info()
+
+    def __init__(
+        self, register=0, reg_type="e", noise=nm.NoNoise(), params=None, param_info=None
+    ):
+        super().__init__(register, reg_type, noise)
+
+        if params is None:
+            params = (0.0,)
+
+        else:
+            if len(params) != 1:
+                raise ValueError("Length of params must be 1")
+        if param_info is None:
+            param_info = {
+                "bounds": (-np.pi, np.pi),
+                "labels": "phi",
+            }
+        else:
+            if not self._validate_param_info(param_info, 1):
+                raise ValueError("The data format of param_info is invalid.")
+
+        self.params = params
+        self.param_info = param_info
 
 
 class Identity(OneQubitOperationBase):
@@ -690,8 +919,9 @@ class MeasurementCNOTandReset(ClassicalControlledPairOperationBase):
 class MeasurementZ(OperationBase):
     """
     Z Measurement Operation
-    TODO: maybe create a base class for measurements in the future IFF we also want to support other measurements
     """
+
+    # TODO: maybe create a base class for measurements in the future IFF we also want to support other measurements
 
     _openqasm_info = oq_lib.z_measurement_info()
 

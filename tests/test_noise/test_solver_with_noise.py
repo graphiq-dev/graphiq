@@ -35,7 +35,6 @@ def generate_run_noise(
         n_emitter=n_emitter,
         n_photon=n_photon,
         noise_model_mapping=noise_model_mapping,
-        n_stop=100,
     )
     solver.seed(seed)
     solver.solve()
@@ -55,7 +54,6 @@ def generate_run_no_noise(n_photon, n_emitter, expected_triple, compiler, seed):
         compiler=compiler,
         n_emitter=n_emitter,
         n_photon=n_photon,
-        n_stop=100,
     )
     solver.seed(seed)
     solver.solve()
@@ -164,13 +162,22 @@ def linear3_run_trace_distance(
 
 @pytest.fixture(scope="module")
 def linear3_noise_model():
-    noise_model_mapping = {
+    noise_model_mapping = dict()
+    noise_model_mapping["e"] = {
+        "Identity": nm.OneQubitGateReplacement(
+            dmf.parameterized_one_qubit_unitary(np.pi / 180, 0, 0)
+        ),
+        "SigmaX": nm.DepolarizingNoise(0.01),
+    }
+    noise_model_mapping["ee"] = {
         "Identity": nm.OneQubitGateReplacement(
             dmf.parameterized_one_qubit_unitary(np.pi / 180, 0, 0)
         ),
         "SigmaX": nm.DepolarizingNoise(0.01),
         "CNOT": nm.DepolarizingNoise(0.01),
     }
+    noise_model_mapping["ep"] = {"CNOT": nm.DepolarizingNoise(0.01)}
+    noise_model_mapping["p"] = {}
     return noise_model_mapping
 
 
@@ -195,7 +202,7 @@ def linear3_expected_trace_distance():
 def linear4_run_noise(density_matrix_compiler, linear4_expected, linear4_noise_model):
     """
     Again, we set the fixture scope to module. Arguably, this is more important than last time because actually
-    running the solve takes (relatively) long.
+    running the solve function takes (relatively) long.
 
     Since we want to apply 2 separate tests on the same run (one visual, one non-visual), it makes sense to have a
     common fixture that only gets called once per module
@@ -209,7 +216,7 @@ def linear4_run_noise(density_matrix_compiler, linear4_expected, linear4_noise_m
 def linear4_run_no_noise(density_matrix_compiler, linear4_expected):
     """
     Again, we set the fixture scope to module. Arguably, this is more important than last time because actually
-    running the solve takes (relatively) long.
+    running the solve function takes (relatively) long.
 
     Since we want to apply 2 separate tests on the same run (one visual, one non-visual), it makes sense to have a
     common fixture that only gets called once per module
@@ -225,7 +232,7 @@ def linear4_run_trace_distance(
 ):
     """
     Again, we set the fixture scope to module. Arguably, this is more important than last time because actually
-    running the solve takes (relatively) long.
+    running the solve function takes (relatively) long.
 
     Since we want to apply 2 separate tests on the same run (one visual, one non-visual), it makes sense to have a
     common fixture that only gets called once per module
@@ -292,12 +299,21 @@ def test_solver_linear3_trace_distance(
 @pytest.fixture(scope="module")
 def linear3_noise_model_2():
     dp = 0.03
-    noise_model_mapping = {
-        "Hadamard": nm.DepolarizingNoise(dp),
-        "MeasurementCNOTandRest": nm.DepolarizingNoise(dp),
-        "CNOT": nm.DepolarizingNoise(dp),
+    noise_model_mapping = dict()
+    noise_model_mapping["e"] = {
         "Identity": nm.DepolarizingNoise(dp),
+        "Hadamard": nm.DepolarizingNoise(dp),
     }
+    noise_model_mapping["ee"] = {"CNOT": nm.DepolarizingNoise(dp)}
+    noise_model_mapping["ep"] = {
+        "CNOT": nm.DepolarizingNoise(dp),
+        "MeasurementCNOTandRest": nm.DepolarizingNoise(dp),
+    }
+    noise_model_mapping["p"] = {
+        "Identity": nm.DepolarizingNoise(dp),
+        "Hadamard": nm.DepolarizingNoise(dp),
+    }
+
     return noise_model_mapping
 
 
@@ -310,12 +326,22 @@ def test_solver_linear3_visualized(
 
 @pytest.fixture(scope="module")
 def linear4_noise_model():
-    noise_model_mapping = {
-        "Hadamard": nm.DepolarizingNoise(0.1),
-        "MeasurementCNOTandRest": nm.DepolarizingNoise(0.1),
+    dp = 0.1
+    noise_model_mapping = dict()
+    noise_model_mapping["e"] = {
+        "Identity": nm.DepolarizingNoise(dp),
+        "Hadamard": nm.DepolarizingNoise(dp),
         "Phase": nm.DepolarizingNoise(0.1),
-        "CNOT": nm.DepolarizingNoise(0.1),
-        "Identity": nm.DepolarizingNoise(0.1),
+    }
+    noise_model_mapping["ee"] = {"CNOT": nm.DepolarizingNoise(dp)}
+    noise_model_mapping["ep"] = {
+        "CNOT": nm.DepolarizingNoise(dp),
+        "MeasurementCNOTandRest": nm.DepolarizingNoise(dp),
+    }
+    noise_model_mapping["p"] = {
+        "Identity": nm.DepolarizingNoise(dp),
+        "Hadamard": nm.DepolarizingNoise(dp),
+        "Phase": nm.DepolarizingNoise(0.1),
     }
     return noise_model_mapping
 
@@ -339,12 +365,20 @@ def test_solver_linear4_visualized(
 
 @pytest.fixture(scope="module")
 def ghz3_noise_model():
-    noise_model_mapping = {
-        "Phase": nm.PhasePerturbedError(0, 0, np.pi / 180),
-        "SigmaX": nm.DepolarizingNoise(0.01),
-        "CNOT": nm.DepolarizingNoise(0.01),
+    noise_model_mapping = dict()
+    noise_model_mapping["e"] = {
         "Identity": nm.PauliError("X"),
+        "SigmaX": nm.DepolarizingNoise(0.01),
+        "Phase": nm.PhasePerturbedError(0, 0, np.pi / 180),
     }
+    noise_model_mapping["ee"] = {"CNOT": nm.DepolarizingNoise(0.01)}
+    noise_model_mapping["ep"] = {"CNOT": nm.DepolarizingNoise(0.01)}
+    noise_model_mapping["p"] = {
+        "Identity": nm.PauliError("X"),
+        "SigmaX": nm.DepolarizingNoise(0.01),
+        "Phase": nm.PhasePerturbedError(0, 0, np.pi / 180),
+    }
+
     return noise_model_mapping
 
 

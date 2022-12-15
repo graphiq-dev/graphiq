@@ -6,7 +6,10 @@ from abc import ABC, abstractmethod
 import numpy as np
 
 import src.backends.density_matrix.functions as dmf
+from src.backends.density_matrix.state import DensityMatrix
+
 import src.backends.stabilizer.functions.metric as sfm
+from src.backends.stabilizer.state import Stabilizer, MixedStabilizer
 
 
 class MetricBase(ABC):
@@ -69,8 +72,19 @@ class Infidelity(MetricBase):
 
     def evaluate(self, state, circuit):
         """
-        Evaluates the infidelity from a given state and circuit
+        Evaluates the infidelity between a state, :math:`\\rho`, and a target state, :math:`\\rho_{t}`.
 
+        The infidelity is :math:`1- F(\\rho, \\rho_{t})`
+
+        For density matrices the fidelity is:
+        :math:`F(\\rho, \\rho_{t}):=Tr[\\sqrt{\\sqrt{\\rho} \\rho_{t} \\sqrt{\\rho}}]^2`
+
+        or if either :math:`\\rho` or :math:`\\rho_{t}` is pure, then it simplifies to:
+        :math:`F(\\rho, \\rho_{t}):=Tr[\\rho \\rho_{t}]`
+
+        Using the branched mixed stabilizer representation, the fidelity is:
+        :math:`F(\\rho, \\mathcal{T}_t) := \\sum_i p_i F(\\mathcal{T}_i, \\mathcal{T}_{t})`
+        which assumes the target state is pure and represented by a single tableau :math:`\\mathcal{T}_t`.
 
         :param state: the state to evaluate
         :type state: QuantumState
@@ -82,12 +96,33 @@ class Infidelity(MetricBase):
         :rtype: float
         """
         # TODO: add check for the representation
-        if state._stabilizer is not None and self.target._stabilizer is not None:
-            fid = sfm.fidelity(self.target.stabilizer.data, state.stabilizer.data)
-        elif state._dm is not None and self.target._dm is not None:
+        if state.stabilizer is not None and self.target.stabilizer is not None:
+            if isinstance(self.target.stabilizer, MixedStabilizer):
+                assert len(self.target.stabilizer.mixture) == 1
+                assert self.target.stabilizer.mixture[0][0] == 1.0
+                tableau = self.target.stabilizer.mixture[0][1]
+            elif isinstance(self.target.stabilizer, Stabilizer):
+                tableau = self.target.stabilizer.tableau
+
+            if isinstance(state.stabilizer, Stabilizer):
+                fid = sfm.fidelity(tableau, state.stabilizer.data)
+            elif isinstance(state.stabilizer, MixedStabilizer):
+                fid = sum(
+                    [
+                        p_i * sfm.fidelity(tableau, t_i)
+                        for p_i, t_i in state.stabilizer.mixture
+                    ]
+                )
+
+        elif state.dm is not None and self.target.dm is not None:
+            # dmf.is_density_matrix(self.target.dm.data)
+            # dmf.is_density_matrix(state.dm.data)
+
             fid = dmf.fidelity(self.target.dm.data, state.dm.data)
+
         else:
             raise ValueError("Cannot compute the infidelity.")
+
         self.increment()
 
         if self._inc % self.log_steps == 0:
@@ -115,8 +150,12 @@ class TraceDistance(MetricBase):
 
     def evaluate(self, state, circuit):
         """
-        Evaluates the trace distance from a given state and circuit
+        Evaluates the trace distance between the state to the target state.
 
+        The trace distance is computed between two density matrices :math:`\\rho` and :math:`\\sigma` as:
+        :math:`T(\\rho, \\sigma) = \\frac{1}{2} Tr\\left( \\sqrt{ (\\rho - \\sigma)^2 } \\right)
+         = \\frac{1}{2} \\sum_i | \\lambda_i |
+         `
         :param state: the state to evaluate
         :type state: QuantumState
         :param circuit: circuit which generated state
@@ -137,12 +176,11 @@ class TraceDistance(MetricBase):
 
 class CircuitDepth(MetricBase):
     """
-    A Circuit Depth based metric object
+    A metric which calculates the circuit depth
     """
 
     def __init__(self, log_steps=1, depth_penalty=None, *args, **kwargs):
         """
-        Create CircuitDepth object
 
         :param log_steps: the metric values are computed at every log_steps optimization step
         :type log_steps: int

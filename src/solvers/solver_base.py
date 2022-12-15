@@ -15,6 +15,7 @@ from src.circuit import CircuitBase
 from src.backends.compiler_base import CompilerBase
 from src import ops
 from src.io import IO
+import src.noise.noise_models as nm
 
 
 class SolverBase(ABC):
@@ -27,9 +28,7 @@ class SolverBase(ABC):
 
     fixed_ops = [ops.Input, ops.Output]  # ops that should never be removed/swapped
 
-    one_qubit_ops = [
-        ops.Hadamard,
-    ]
+    one_qubit_ops = [ops.Hadamard, ops.Phase, ops.SigmaX, ops.SigmaY, ops.SigmaZ]
 
     two_qubit_ops = [
         ops.CNOT,
@@ -78,6 +77,108 @@ class SolverBase(ABC):
     def solver_info(self):
         return {}
 
+    def _wrap_noise(self, op, noise_model_mapping):
+        """
+        A helper function to consolidate noise models for OneQubitGateWrapper operation
+
+        :param op: a list of operations
+        :type op: list[ops.OperationBase]
+        :param noise_model_mapping: a dictionary that stores the mapping between an operation
+            and its associated noise model
+        :type noise_model_mapping: dict
+        :return: a list of noise models
+        :rtype: list[nm.NoiseBase]
+        """
+
+        if "OneQubitGateWrapper" in noise_model_mapping:
+            noise = noise_model_mapping["OneQubitGateWrapper"]
+        else:
+            noise = []
+            for each_op in op:
+                noise.append(
+                    self._identify_noise(each_op.__name__, noise_model_mapping)
+                )
+        return noise
+
+    def _identify_noise(self, op, noise_model_mapping):
+        """
+        A helper function to identify the noise model for an operation
+
+        :param op: an operation
+        :type op: ops.OperationBase
+        :param noise_model_mapping: a dictionary that stores the mapping between an operation
+            and its associated noise model
+        :type noise_model_mapping: dict
+        :return: a noise model
+        :rtype: nm.NoiseBase
+        """
+
+        if isinstance(op, ops.ControlledPairOperationBase) or isinstance(
+            op, ops.ClassicalControlledPairOperationBase
+        ):
+            op_control = type(op).__name__ + "_control"
+            op_target = type(op).__name__ + "_target"
+            if op_control in noise_model_mapping.keys():
+                control_noise = noise_model_mapping[op_control]
+            else:
+                control_noise = nm.NoNoise()
+            if op_target in noise_model_mapping.keys():
+                target_noise = noise_model_mapping[op_target]
+            else:
+                target_noise = nm.NoNoise()
+            return [control_noise, target_noise]
+        else:
+            op_name = type(op).__name__
+            if op_name in noise_model_mapping.keys():
+                return noise_model_mapping[op_name]
+            else:
+                return nm.NoNoise()
+
+
+class RandomSearchSolverSetting(ABC):
+    def __init__(
+        self,
+        n_hof=5,
+        n_stop=50,
+        n_pop=50,
+    ):
+        self._n_hof = n_hof
+        self._n_stop = n_stop
+        self._n_pop = n_pop
+
+    @property
+    def n_hof(self):
+        return self._n_hof
+
+    @n_hof.setter
+    def n_hof(self, value):
+        assert type(value) == int
+        self._n_hof = value
+
+    @property
+    def n_stop(self):
+        return self._n_stop
+
+    @n_stop.setter
+    def n_stop(self, value):
+        assert type(value) == int
+        self._n_stop = value
+
+    @property
+    def n_pop(self):
+        return self._n_hof
+
+    @n_pop.setter
+    def n_pop(self, value):
+        assert type(value) == int
+        self._n_pop = value
+
+    def __str__(self):
+        s = f"n_hof = {self.n_hof}\n"
+        s += f"n_pop = {self.n_pop}\n"
+        s += f"n_stop = {self.n_stop}\n"
+        return s
+
 
 class RandomSearchSolver(SolverBase):
     """
@@ -94,9 +195,7 @@ class RandomSearchSolver(SolverBase):
         compiler: CompilerBase,
         circuit: CircuitBase = None,
         io: IO = None,
-        n_hof=10,
-        n_pop=10,
-        n_stop=10,
+        solver_setting=RandomSearchSolverSetting(),
         *args,
         **kwargs,
     ):
@@ -104,17 +203,11 @@ class RandomSearchSolver(SolverBase):
         super().__init__(target, metric, compiler, circuit, io)
 
         # hof stores the best circuits and their scores in the form of: (scores, circuits)
-        self._n_hof = n_hof
-        self.n_pop = n_pop
-        self.n_stop = n_stop
-        self.hof = [(np.inf, None) for _ in range(self.n_hof)]
+        self.setting = solver_setting
+        self.hof = [(np.inf, None) for _ in range(self.setting.n_hof)]
         self.trans_probs = {None: None}
         self.transformations = list(self.trans_probs.keys())
         self.logs = {"population": [], "hof": []}
-
-    @property
-    def n_hof(self):
-        return self._n_hof
 
     def update_hof(self, population):
         """
@@ -125,7 +218,7 @@ class RandomSearchSolver(SolverBase):
         :return: nothing
         """
         for score, circuit in population:
-            for i in range(self.n_hof):
+            for i in range(self.setting.n_hof):
                 if np.isclose(score, self.hof[i][0]):
                     if len(circuit.dag.nodes) < len(self.hof[i][1].dag.nodes):
                         self.hof.insert(i, (score, circuit.copy()))
@@ -152,7 +245,7 @@ class RandomSearchSolver(SolverBase):
             return population
 
         population_new = []
-        for i in range(self.n_pop):
+        for i in range(self.setting.n_pop):
             # select the sub-population for the tournament with uniform random
             tourn_pop = random.choices(population, k=k)
 

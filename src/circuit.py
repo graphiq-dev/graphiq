@@ -3,11 +3,11 @@ Circuit class, which defines the sequence of operations and gates.
 Once a compiler is defined, the resulting quantum state can be simulated.
 
 The Circuit class can be:
-
-1. manually constructed, with new operations added to the end of the circuit or inserted at a specified location for CircuitDAG
-2. evaluated into a sequence of Operations, based on the topological ordering
+    1. manually constructed, with new operations added to the end of the circuit or inserted at a specified location
+       for CircuitDAG
+    2. evaluated into a sequence of Operations, based on the topological ordering
         Purpose (example): use at compilation step, use for compatibility with other software (e.g. openQASM)
-3. visualized or saved using, for example, openQASM
+    3. visualized or saved using, for example, openQASM
         Purpose: method of saving circuit (ideal), compatibility with other software, visualizers
 
 Further reading on DAG circuit representation:
@@ -15,20 +15,23 @@ https://qiskit.org/documentation/stubs/qiskit.converters.circuit_to_dag.html
 
 
 Experimental:
+
 REGISTER HANDLING (only for RegisterCircuitDAG):
 
 In qiskit and openQASM, for example, you can apply operations on either a specific qubit in a specific register OR
 on the full register (see ops.py for an explanation of how registers are applied).
-1. Each operation received (whether or not it applies to full registers) is broken down into a set of operations that
-apply between a specific number of qubits (i.e. an operation for each qubit of the register).
-2. Registers can be added/expanded via provided methods.
+
+    1. Each operation received (whether or not it applies to full registers) is broken down into a set of operations that
+       apply between a specific number of qubits (i.e. an operation for each qubit of the register).
+    2. Registers can be added/expanded via provided methods.
 
 USER WARNINGS:
-1. if you expand a register AFTER using an Operation which applied to the full register, the Operation will
-NOT retroactively apply to the added qubits
+    1. if you expand a register AFTER using an Operation which applied to the full register, the Operation will
+       NOT retroactively apply to the added qubits
 
 """
 import copy
+import random
 import networkx as nx
 import matplotlib.pyplot as plt
 from abc import ABC, abstractmethod
@@ -37,7 +40,6 @@ import functools
 import re
 import string
 import numpy as np
-
 import src.ops as ops
 import src.utils.openqasm_lib as oq_lib
 from src.visualizers.dag import dag_topology_pos
@@ -208,6 +210,10 @@ class CircuitBase(ABC):
         :rtype: None
         """
         self._registers = Register(reg_dict={"e": [], "p": [], "c": []})
+        self._parameters = {}
+
+        self._fmap = self._default_map
+        self._map = self._fmap()
 
         if openqasm_imports is None:
             self.openqasm_imports = {}
@@ -297,9 +303,24 @@ class CircuitBase(ABC):
         )
         for op in self.sequence():
             oq_info = op.openqasm_info()
-            gate_application = oq_info.use_gate(
-                op.q_registers, op.q_registers_type, op.c_registers
-            )
+            if isinstance(op, ops.ParameterizedOneQubitRotation):
+                gate_application = oq_info.use_gate(
+                    op.q_registers,
+                    op.q_registers_type,
+                    op.c_registers,
+                    params=op.params,
+                )
+            elif isinstance(op, ops.ParameterizedControlledRotationQubit):
+                gate_application = oq_info.use_gate(
+                    op.q_registers,
+                    op.q_registers_type,
+                    op.c_registers,
+                    params=op.params,
+                )
+            else:
+                gate_application = oq_info.use_gate(
+                    op.q_registers, op.q_registers_type, op.c_registers
+                )
 
             # set barrier, if necessary to split out multi-block Operations from each other
             if (opened_barrier or oq_info.multi_comp) and gate_application != "":
@@ -362,6 +383,7 @@ class CircuitBase(ABC):
         """
         Provides the index of the next emitter qubit in the provided quantum register. This allows the user to query
         which qubit they should add next, should they decide to expand the register
+
         :param register: the register index {0, ..., N - 1} for N emitter quantum registers
         :type register: int
         :return: the index of the next qubit
@@ -373,6 +395,7 @@ class CircuitBase(ABC):
         """
         Provides the index of the next photonic qubit in the provided quantum register. This allows the user to query
         which qubit they should add next, should they decide to expand the register
+
         :param register: the register index {0, ..., N - 1} for N photonic quantum registers
         :type register: int
         :return: the index of the next qubit
@@ -384,6 +407,7 @@ class CircuitBase(ABC):
         """
         Provides the index of the next cbit in the provided classical register. This allows the user to query
         which qubit they should add next, should they decide to expand the register
+
         :param register: the register index {0, ..., M - 1} for M classical registers
         :type register: int
         :return: the index of the next cbit
@@ -541,6 +565,91 @@ class CircuitBase(ABC):
         """
         return copy.deepcopy(self)
 
+    """ Mapping between each operation and parameter values """
+
+    @property
+    def parameters(self):
+        """
+        A dictionary of all parameters associated to the quantum circuit.
+
+        :return: a dictionary, of the form {parameter_key: [list of parameters values]}
+        """
+        return self._parameters
+
+    @parameters.setter
+    def parameters(self, parameters: dict):
+        self._parameters = parameters
+
+        for op in self.sequence(unwrapped=True):
+            op.params = self._parameters.get(self.map[id(op)], tuple())
+
+    @property
+    def fmap(self):
+        """
+        Provides a mapping *function* between an operation (Op) and its parameter list.
+
+        :return: function which returns a mapping dictionary (see `self.map`)
+        :rtype: func
+        """
+        return self._fmap
+
+    @fmap.setter
+    def fmap(self, func):
+        # todo, check function
+        self._fmap = func
+
+    @property
+    def map(self):
+        """
+        Dictionary which maps from an operation (Op) to a parameter list.
+        Each dictionary key:value pair is of the form `id(op): parameter_key`,
+        where `parameter_key` is the associated key for indexing into the `parameters` dictionary.
+
+        :return: op to parameter key mapping dictionary
+        :rtype: dict
+        """
+        return self._map
+
+    def _default_map(self):
+        """Default map, in which each op is mapped to itself (no parameter sharing, except for copied ops)"""
+        _map = {id(op): id(op) for op in self.sequence(unwrapped=True)}
+        return _map
+
+    def initialize_parameters(self, seed=None):
+        """
+        Randomly initializes all parameter lists from a uniform distribution between the parameter bounds
+        defined by the operation.
+
+        :param seed: seed value for randomly selecting circuit parameters
+        :type seed: int
+        :return: parameter dictionary
+        :rtype: dict
+        """
+        if seed is not None:
+            random.seed(seed)
+
+        self._map = self._fmap()
+        self._parameters = {}
+        for op in self.sequence(unwrapped=True):
+            if op.params:
+                key = self._map[id(op)]
+                if key is None:
+                    continue
+
+                elif key in self._parameters.keys():
+                    # parameter already added from previous operation (i.e. shared-weight)
+                    continue
+
+                else:
+                    pi = []
+                    for p, (lb, ub) in zip(op.params, op.param_info["bounds"]):
+                        pi.append(random.uniform(lb, ub))
+
+                    op.params = pi
+                    self._parameters[key] = pi
+
+        return self._parameters
+
 
 class CircuitDAG(CircuitBase):
     """
@@ -573,8 +682,9 @@ class CircuitDAG(CircuitBase):
         :return: nothing
         :rtype: None
         """
-        super().__init__(openqasm_imports=openqasm_imports, openqasm_defs=openqasm_defs)
         self.dag = nx.MultiDiGraph()
+        super().__init__(openqasm_imports=openqasm_imports, openqasm_defs=openqasm_defs)
+
         self._node_id = 0
         self.edge_dict = {}
         self.node_dict = {}
@@ -1348,11 +1458,25 @@ class CircuitDAG(CircuitBase):
         """
 
         if "OneQubitGateWrapper" in self.node_dict:
-            for node in self.node_dict["OneQubitGateWrapper"]:
+            wrapper_list = self.node_dict["OneQubitGateWrapper"].copy()
+            for node in wrapper_list:
                 op_list = self.dag.nodes[node]["op"].unwrap()
                 for op in op_list:
                     in_edge = list(self.dag.in_edges(node, keys=True))
                     self.insert_at(op, in_edge)
+                self.remove_op(node)
+
+    def remove_identity(self):
+        """
+        Remove all identity gates
+
+        :return: nothing
+        :rtype: None
+        """
+
+        if "Identity" in self.node_dict:
+            identity_list = self.node_dict["Identity"].copy()
+            for node in identity_list:
                 self.remove_op(node)
 
     def _max_depth(self, root_node):
@@ -1363,7 +1487,7 @@ class CircuitDAG(CircuitBase):
         :param root_node: root node that is used as starting point
         :type root_node: node
         :return: the max depth of the node
-        :r_type: int
+        :rtype: int
         """
         # Check if the node is the Input node
         # If Input node then return -1
@@ -1386,7 +1510,7 @@ class CircuitDAG(CircuitBase):
         :param reg_type: str indicates register type. Can be "e", "p", or "c"
         :type reg_type: str
         :return: the array of register indexes with depth from smallest to largest
-        :r_type: numpy.array
+        :rtype: numpy.array
         """
         return np.argsort(self.calculate_reg_depth(reg_type=reg_type))
 
@@ -1398,7 +1522,7 @@ class CircuitDAG(CircuitBase):
         :param reg_type: str indicates register type. Can be "e", "p", or "c"
         :type reg_type: str
         :return: the array of register depth of all register in the register type
-        :r_type: numpy.array
+        :rtype: numpy.array
         """
         if reg_type not in self._register_depth:
             raise ValueError(f"register type {reg_type} is not in this circuit")
@@ -1416,7 +1540,7 @@ class CircuitDAG(CircuitBase):
         :param reg_type: str indicates register type. Can be "e", "p", or "c"
         :type reg_type: str
         :return: the index of register with min depth within register type
-        :r_type: int
+        :rtype: int
         """
         return np.argmin(self.calculate_reg_depth(reg_type=reg_type))
 
@@ -1426,7 +1550,7 @@ class CircuitDAG(CircuitBase):
         Then return the register depth dict
 
         :return: register depth dict that has been calculated
-        :r_type: dict
+        :rtype: dict
         """
         for reg_type in self._register_depth:
             self.calculate_reg_depth(reg_type=reg_type)

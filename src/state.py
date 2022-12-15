@@ -2,28 +2,29 @@
 The QuantumState/GraphState classes mediates the interactions between different graph representations
 
 State representations that we support are:
-1. Density matrix
-2. Stabilizer
+    1. Density matrix
+    2. Stabilizer
 
 State representations that we intend to support in the near future are:
-1. Graph representation
+    1. Graph representation
 
-TODO: once we can convert more easily between different representations,
-we should REMOVE the requirement that data be a list the same length as the
-number of requested representations, and ideally just use a single data
-object to initialize all representations
 """
+# TODO: once we can convert more easily between different representations,
+#  we should REMOVE the requirement that data be a list the same length as the
+#  number of requested representations, and ideally just use a single data
+#  object to initialize all representations
 import warnings
 import networkx as nx
 
 from src.backends.graph.state import Graph
 from src.backends.density_matrix.state import DensityMatrix
-from src.backends.stabilizer.state import Stabilizer
+from src.backends.stabilizer.state import Stabilizer, MixedStabilizer
 import src.backends.density_matrix.functions as dmf
 import src.backends.stabilizer.functions.clifford as sfc
 
 # threshold above which density matrix representation is discouraged
 DENSITY_MATRIX_QUBIT_THRESH = 10
+STABILIZER_MIXED_REPRESENTATION = "branch"
 
 
 class QuantumState:
@@ -34,10 +35,11 @@ class QuantumState:
     It also should also be able to add (where possible) representation which were not present at
     initialization.
 
-    TODO: add a handle to delete specific representations (may be useful to clear out memory)
     """
 
-    def __init__(self, n_qubits, data, representation=None):
+    # TODO: add a handle to delete specific representations (may be useful to clear out memory)
+
+    def __init__(self, n_qubits, data, representation=None, mixed=False):
         """
         Creates the QuantumState class with certain initial representations
 
@@ -51,10 +53,13 @@ class QuantumState:
         :type data: list OR numpy.ndarray OR Graph OR nx.Graph
         :param representation: selected representations to initialize
         :type representation: str OR list of str
+        :param mixed: boolean flag to initialize as a mixed state or not (mainly used for Stabilizer representation)
+        :type mixed: boolean
         :return: function returns nothing
         :rtype: None
         """
         self.n_qubits = n_qubits
+        self.mixed = mixed
 
         self._dm = None
         self._graph = None
@@ -108,9 +113,17 @@ class QuantumState:
         if self._dm is not None:
             self.dm.data = dmf.partial_trace(self.dm.data, keep, dims)
         if self._stabilizer is not None:
-            self.stabilizer.data = sfc.partial_trace(
-                self._stabilizer.data, keep, dims, measurement_determinism
-            )
+            if isinstance(self._stabilizer, MixedStabilizer):
+                mixture = self._stabilizer.data
+                self.stabilizer.data = [
+                    (p_i, sfc.partial_trace(t_i, keep, dims, measurement_determinism))
+                    for (p_i, t_i) in mixture
+                ]
+            else:
+                self.stabilizer.data = sfc.partial_trace(
+                    self._stabilizer.data, keep, dims, measurement_determinism
+                )
+
         if self._graph is not None:
             raise NotImplementedError(
                 "Partial trace not yet implemented on graph state"
@@ -214,14 +227,14 @@ class QuantumState:
         :raises ValueError: if existing representations within the QuantumState object cannot be sent to a
                            stabilizer representation AND no stabilizer representation is saved
         :return: stabilizer representation
-        :rtype: Stabilizer
+        :rtype: Stabilizer or MixedStabilizer
         """
         if self._stabilizer is not None:
             return self._stabilizer
         # TODO: ATTEMPT TO CONVERT EXISTING REPRESENTATION to stabilizer. This should call on backend functions
-        raise ValueError(
-            "Cannot convert existing representation to stabilizer representation"
-        )
+        # raise ValueError(
+        #     "Cannot convert existing representation to stabilizer representation"
+        # )
 
     @stabilizer.setter
     def stabilizer(self, new_stabilizer):
@@ -303,7 +316,11 @@ class QuantumState:
         :return: nothing
         :rtype: None
         """
-        self._stabilizer = Stabilizer(data)
+        if not self.mixed:
+            self._stabilizer = Stabilizer(data)
+        else:
+            self._stabilizer = MixedStabilizer(data)
+
         assert self._stabilizer.n_qubit == self.n_qubits, (
             f"Expected {self.n_qubits} qubits, "
             f"Stabilizer representation has {self._stabilizer.n_qubit}"

@@ -12,7 +12,9 @@ def density_matrix_heatmap(rho, axs=None):
     Plots a density matrix as 2D heatmap, one for the real components and one for the imaginary
 
     :param rho: a complex numpy array representing the density matrix
-    :type rho: numpy.dnarray
+    :type rho: numpy.ndarray
+    :param axs:
+    :type axs:
     :return: fig (figure handle), axs (list of axes handles)
     :rtype: matplotlib.figure, matplotlib.axes
     """
@@ -40,28 +42,64 @@ def density_matrix_bars(rho):
 
     :param rho: a complex numpy array representing the density matrix
     :type rho: numpy.dnarray
+    :param ax: axis to plot on
+    :type ax: mpl.Axis
     :return: fig (figure handle), axs (list of axes handles)
     :rtype: matplotlib.figure, matplotlib.axes
     """
 
     def bar_plot(deltaz, ax):
+        if np.max(np.abs(deltaz)) < 0.25:
+            max_height, min_height = (
+                0.25,
+                -0.25,
+            )  # get range of colorbars so we can normalize
+        elif np.max(np.abs(deltaz)) < 0.5:
+            max_height, min_height = (
+                0.5,
+                -0.5,
+            )  # get range of colorbars so we can normalize
+        else:
+            max_height, min_height = (
+                1.0,
+                -1.0,
+            )  # get range of colorbars so we can normalize
         n = deltaz.shape[0]
+        n_qubits = int(np.log2(n))
         X, Y = np.meshgrid(np.arange(n), np.arange(n))
         x, y = X.flatten() - 0.5, Y.flatten() - 0.5
-        z = 1
+        z = 0
+        zlim = [min_height, max_height]
         dx, dy = 0.8, 0.8
         deltaz = deltaz.flatten()
-        max_height = 0.25  # get range of colorbars so we can normalize
-        min_height = -0.25
-        colors = cmap_div(deltaz.ravel() * 0.8, alpha=1 - deltaz.ravel())
-        ax.bar3d(x, y, z, dx, dy, deltaz, color=colors)
-        ax.set(zlim=[1 + min_height, 2 - max_height])
 
-        ax.set(
-            # xticks=[0, 1, 2, 3],
-            # yticks=[0, 1, 2, 3],
-            zticklabels=[]
+        colors = cmap_div(
+            deltaz.ravel() * 0.8, alpha=1 - 0.5 * (np.abs(deltaz.ravel()) / max_height)
         )
+        ax.bar3d(x, y, z, dx, dy, deltaz, color=colors)
+        ax.set(zlim=zlim)
+
+        ticks = [i for i in range(n)]
+        labels = ["" for tick in ticks]
+        if n_qubits < 3:
+            labels[0] = (
+                r"$\vert" + "".join(["0" for i in range(n_qubits)]) + r"\rangle$"
+            )
+            labels[-1] = (
+                r"$\vert" + "".join(["1" for i in range(n_qubits)]) + r"\rangle$"
+            )
+        else:
+            labels[0] = r"$\vert 00...0\rangle$"
+            labels[-1] = r"$\vert 1...1\rangle$"
+        ax.set(
+            xticks=ticks,  # todo, replace these with basis vectors, i.e., |00...0>, |00...1>, ...
+            xticklabels=labels,
+            yticks=ticks,
+            yticklabels=labels,
+            zticks=[min_height, max_height],
+        )
+        ax.set_xticklabels(labels, ha="right", va="center")
+        ax.set_yticklabels(labels, ha="left", va="center")
         return ax
 
     if type(rho) is qt.Qobj:

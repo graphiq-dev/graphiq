@@ -4,6 +4,7 @@ Compilation tools for simulating a circuit with a Stabilizer backend
 
 from src import ops as ops
 from src.backends.compiler_base import CompilerBase
+from src.backends.stabilizer.state import MixedStabilizer
 
 
 class StabilizerCompiler(CompilerBase):
@@ -11,9 +12,9 @@ class StabilizerCompiler(CompilerBase):
     Compiler which deals exclusively with the state representation of Stabilizer.
     Currently creates a Stabilizer object and applies the circuit Operations to it in order
 
+    """
 
     # TODO: [longer term] refactor to take a QuantumState object input instead of creating its own initial state?
-    """
 
     name = "stabilizer"
     ops = [  # the accepted operations for a given compiler
@@ -60,8 +61,10 @@ class StabilizerCompiler(CompilerBase):
         :rtype: None
         """
         state = state.stabilizer
+
+        # TODO: should think about the best way to handle inputs/outputs
         if type(op) is ops.Input:
-            return  # TODO: should think about best way to handle inputs/outputs
+            return
 
         elif type(op) is ops.Output:
             return
@@ -101,36 +104,66 @@ class StabilizerCompiler(CompilerBase):
         elif type(op) is ops.ClassicalCNOT:
 
             # apply an X gate on the target qubit conditioned on the measurement outcome = 1
-            outcome = state.apply_measurement(
-                q_index(op.control, op.control_type),
-                measurement_determinism=self.measurement_determinism,
-            )
+            if isinstance(state, MixedStabilizer):
+                outcome = state.apply_measurement(
+                    q_index(op.control, op.control_type),
+                    measurement_determinism=self.measurement_determinism,
+                )
+                print(outcome)
+                state.apply_conditioned_gate(
+                    q_index(op.target, op.target_type), outcome, gate="x"
+                )
 
-            if outcome == 1:
-                state.apply_sigmax(q_index(op.target, op.target_type))
+            else:
+                outcome = state.apply_measurement(
+                    q_index(op.control, op.control_type),
+                    measurement_determinism=self.measurement_determinism,
+                )
+                if outcome == 1:
+                    state.apply_sigmaz(q_index(op.target, op.target_type))
 
             classical_registers[op.c_register] = outcome
 
         elif type(op) is ops.ClassicalCZ:
             # apply an Z gate on the target qubit conditioned on the measurement outcome = 1
-            outcome = state.apply_measurement(
-                q_index(op.control, op.control_type),
-                measurement_determinism=self.measurement_determinism,
-            )
+            if isinstance(state, MixedStabilizer):
+                outcome = state.apply_measurement(
+                    q_index(op.control, op.control_type),
+                    measurement_determinism=self.measurement_determinism,
+                )
+                state.apply_conditioned_gate(
+                    q_index(op.target, op.target_type), outcome, gate="z"
+                )
+                classical_registers[op.c_register] = outcome[0]
 
-            if outcome == 1:
-                state.apply_sigmaz(q_index(op.target, op.target_type))
+            else:
+                outcome = state.apply_measurement(
+                    q_index(op.control, op.control_type),
+                    measurement_determinism=self.measurement_determinism,
+                )
+                if outcome == 1:
+                    state.apply_sigmaz(q_index(op.target, op.target_type))
 
             classical_registers[op.c_register] = outcome
 
         elif type(op) is ops.MeasurementCNOTandReset:
-            outcome = state.apply_measurement(
-                q_index(op.control, op.control_type),
-                measurement_determinism=self.measurement_determinism,
-            )
+            if isinstance(state, MixedStabilizer):
+                outcomes = state.apply_measurement(
+                    q_index(op.control, op.control_type),
+                    measurement_determinism=self.measurement_determinism,
+                )
+                state.apply_conditioned_gate(
+                    q_index(op.target, op.target_type), outcomes, gate="x"
+                )
 
-            if outcome == 1:
-                state.apply_sigmax(q_index(op.target, op.target_type))
+            else:
+                outcome = state.apply_measurement(
+                    q_index(op.control, op.control_type),
+                    measurement_determinism=self.measurement_determinism,
+                )
+
+                if outcome == 1:
+                    state.apply_sigmax(q_index(op.target, op.target_type))
 
             # reset the control qubit
             state.reset_qubit(
@@ -139,12 +172,19 @@ class StabilizerCompiler(CompilerBase):
             )
 
         elif type(op) is ops.MeasurementZ:
-            outcome = state.apply_measurement(
-                q_index(op.register, op.reg_type),
-                measurement_determinism=self.measurement_determinism,
-            )
+            if isinstance(state, MixedStabilizer):
+                outcomes = state.apply_measurement(
+                    q_index(op.register, op.reg_type),
+                    measurement_determinism=self.measurement_determinism,
+                )
+                classical_registers[op.c_register] = outcomes[0]
 
-            classical_registers[op.c_register] = outcome
+            else:
+                outcome = state.apply_measurement(
+                    q_index(op.register, op.reg_type),
+                    measurement_determinism=self.measurement_determinism,
+                )
+                classical_registers[op.c_register] = outcome
 
         else:
             raise ValueError(
@@ -156,7 +196,6 @@ class StabilizerCompiler(CompilerBase):
     ):
         """
         Compile one noisy gate
-        TODO: consolidate compile_one_gate and compile_one_noisy_gate to one function
 
         :param state: the QuantumState representation of the state to be evolved,
             where a stabilizer representation can be accessed
@@ -172,6 +211,7 @@ class StabilizerCompiler(CompilerBase):
         :return: nothing
         :rtype: None
         """
+        # TODO: consolidate compile_one_gate and compile_one_noisy_gate to one function
         if isinstance(op, ops.InputOutputOperationBase):
             pass
 

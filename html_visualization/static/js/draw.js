@@ -61,8 +61,6 @@ function draw_measurement(measurements) {
         qreg_pos =  visualization_info.registers.qreg[measurements[i].qreg]
         creg_pos =  visualization_info.registers.creg[measurements[i].creg]
         creg_pos = creg_pos - qreg_pos
-
-        // console.log(measurements[i])
         g = measure(measurements[i].x_pos, qreg_pos, creg_pos)
     }
 }
@@ -70,8 +68,6 @@ function draw_measurement(measurements) {
 function draw_resets(resets) {
     for (let i = 0; i < resets.length; i++) {
         qreg_pos =  visualization_info.registers.qreg[resets[i].qreg]
-
-        // console.log(measurements[i])
         g = reset(resets[i].x_pos, qreg_pos, resets[i].qreg)
     }
 }
@@ -79,8 +75,26 @@ function draw_resets(resets) {
 function draw_barriers(barriers) {
     for (let i = 0; i < barriers.length; i++) {
         qreg_pos =  visualization_info.registers.qreg[barriers[i].qreg]
-
-        // console.log(measurements[i])
         g = barrier(barriers[i].x_pos, qreg_pos, barriers[i].qreg)
+    }
+}
+
+function draw_classical_control(classical_controls) {
+    for (let i = 0; i < classical_controls.length; i++) {
+        creg_pos = visualization_info.registers.creg[classical_controls[i].creg]
+        qreg_pos = visualization_info.registers.qreg[classical_controls[i].gate_info.qargs]
+
+        gate = one_qubit_gate(
+            classical_controls[i].x_pos,
+            qreg_pos,
+            classical_controls[i].gate_info.gate_name,
+            classical_controls[i].gate_info.qargs,
+            classical_controls[i].gate_info.params,
+        )
+
+        x = gate.select("rect").attr("width") / 2
+        y1 = gate.select("rect").attr("height")
+        y2 = creg_pos - qreg_pos + y1/2
+        create_classical_control_at(gate, x, y1, y2)
     }
 }

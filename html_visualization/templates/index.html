@@ -8,10 +8,10 @@
     <script src="{{ url_for('static', filename='js/register.js') }}"></script>
     <script src="{{ url_for('static', filename='js/gates.js') }}"></script>
     <script src="{{ url_for('static', filename='js/draw.js') }}"></script>
-    <script>
-        let visualization_info = {{ visualization_info | safe }}
-        console.log(visualization_info)
-    </script>
+<!--    <script>-->
+<!--        let visualization_info = {{ visualization_info | safe }}-->
+<!--        console.log(visualization_info)-->
+<!--    </script>-->
 </head>
 <body>
     <div class="gate-panel">
@@ -28,10 +28,11 @@
         register_detail_init(1000, 350)
 
         draw_register_info(visualization_info.registers)
-        draw_gate_info(visualization_info.gates)
-        draw_measurement(visualization_info.measurements)
-        draw_resets(visualization_info.resets)
-        draw_barriers(visualization_info.barriers)
+<!--        draw_gate_info(visualization_info.gates)-->
+<!--        draw_measurement(visualization_info.measurements)-->
+<!--        draw_resets(visualization_info.resets)-->
+<!--        draw_barriers(visualization_info.barriers)-->
+        draw_classical_control(visualization_info.classical_controls)
     </script>
 </body>
 </html>

@@ -5,12 +5,7 @@ from src.metrics import Infidelity
 from src.io import IO
 
 from benchmarks.pipeline import benchmark
-from benchmarks.graph_states import lc_equivalence_demo
 from src.state import QuantumState
-
-
-def test_lc_equivalence_demo():
-    lc_equivalence_demo()
 
 
 def test_one_benchmarking_run():

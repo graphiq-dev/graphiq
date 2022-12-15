@@ -3,7 +3,7 @@ from qiskit import QuantumCircuit
 import matplotlib.pyplot as plt
 
 
-def draw_openqasm(qasm, show=False, ax=None, display_text=None, fold=20):
+def draw_openqasm(qasm, show=False, ax=None, display_text=None):
     """
     Draw a circuit diagram from an openqasm 2 script
 
@@ -28,26 +28,14 @@ def draw_openqasm(qasm, show=False, ax=None, display_text=None, fold=20):
     if display_text is None:
         display_text = {}
 
-    style = {
-        "displaytext": display_text,
-        "margin": [2, 2, 2, 2],
-    }
+    style = {"displaytext": display_text}
 
     qc = QuantumCircuit.from_qasm_str(qasm)
     if ax is None:
-        # Original code
-        # fig, ax = plt.subplots()
-        # qc.draw(output="mpl", ax=ax, plot_barriers=False, style=style, fold=-1)
-
-        # new code:
         fig, ax = plt.subplots()
-        # annot = ax.annotate("", xy=(1, -1), xytext=(20, 20), textcoords="offset points",
-        #                     bbox=dict(boxstyle="round", fc="w"),
-        #                     arrowprops=dict(arrowstyle="->"))
-
-        fig = qc.draw(output="mpl", ax=ax, plot_barriers=False, style=style, fold=fold)
+        qc.draw(output="mpl", ax=ax, plot_barriers=False, style=style)
     else:
-        fig = qc.draw(output="mpl", ax=ax, plot_barriers=False, style=style, fold=fold)
+        fig = qc.draw(output="mpl", ax=ax, plot_barriers=False, style=style)
     if show:
         # if the num_gates is small increase font size, if large decrease font size
         num_gates = len(qc.data)

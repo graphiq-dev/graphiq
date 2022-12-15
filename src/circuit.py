@@ -515,7 +515,7 @@ class CircuitBase(ABC):
             reg_type="c", register=register, new_size=new_size
         )
 
-    def draw_circuit(self, show=True, ax=None, fold=20):
+    def draw_circuit(self, show=True, ax=None):
         """
         Draw conventional circuit representation
 
@@ -531,7 +531,6 @@ class CircuitBase(ABC):
             show=show,
             ax=ax,
             display_text=self.openqasm_symbols,
-            fold=fold,
         )
 
     def _openqasm_update(self, op):

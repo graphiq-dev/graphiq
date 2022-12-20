@@ -3,8 +3,16 @@ from qiskit.qasm import Qasm
 from src.ops import *
 from src.utils.openqasm_parser import OpenQASMParser
 from src.circuit import CircuitDAG
-@pytest.mark.parametrize("qreg, expected",
-                         [("qreg q[5];", {"index": 5}), ("qreg q[3];", {"index": 3}), ("qreg q[10];", {"index": 10})])
+
+
+@pytest.mark.parametrize(
+    "qreg, expected",
+    [
+        ("qreg q[5];", {"index": 5}),
+        ("qreg q[3];", {"index": 3}),
+        ("qreg q[10];", {"index": 10}),
+    ],
+)
 def test_parser_parse_qreg(qreg, expected):
     # create a parser object
     parser = Qasm(data=qreg)
@@ -18,8 +26,14 @@ def test_parser_parse_qreg(qreg, expected):
     assert myparser._parse_qreg(ans) == expected
 
 
-@pytest.mark.parametrize("creg, expected",
-                         [("creg c[2];", {"index": 2}), ("creg c[4];", {"index": 4}), ("creg c[10];", {"index": 10})])
+@pytest.mark.parametrize(
+    "creg, expected",
+    [
+        ("creg c[2];", {"index": 2}),
+        ("creg c[4];", {"index": 4}),
+        ("creg c[10];", {"index": 10}),
+    ],
+)
 def test_parser_parse_creg(creg, expected):
     # create a parser object
     parser = Qasm(data=creg)
@@ -33,10 +47,16 @@ def test_parser_parse_creg(creg, expected):
     assert myparser._parse_creg(ans) == expected
 
 
-@pytest.mark.parametrize("gate, expected",
-                         [("gate h q {U(pi,0,pi) q;}", {'type': 'gate', 'params': [], 'qargs': ['q']}),
-                          ("gate rx(theta) q {U(pi/2,theta,pi/2) q;}",
-                           {'type': 'gate', 'params': ['theta'], 'qargs': ['q']})])
+@pytest.mark.parametrize(
+    "gate, expected",
+    [
+        ("gate h q {U(pi,0,pi) q;}", {"type": "gate", "params": [], "qargs": ["q"]}),
+        (
+            "gate rx(theta) q {U(pi/2,theta,pi/2) q;}",
+            {"type": "gate", "params": ["theta"], "qargs": ["q"]},
+        ),
+    ],
+)
 def test_parser_parse_gate(gate, expected):
     # create a parser object
     parser = Qasm(data=gate)
@@ -64,7 +84,7 @@ def test_parser_parse_barrier():
     ans = res.children[1]
     print(vars(ans))
 
-    expected = {'type': 'barrier', 'qreg': ['q']}
+    expected = {"type": "barrier", "qreg": ["q"]}
 
     myparser = OpenQASMParser(openqasm_str="")
     assert myparser._parse_barrier(ans) == expected
@@ -88,8 +108,16 @@ def test_parser_parse_measure():
     print((vars(ans1)))
     print((vars(ans2)))
 
-    expected1 = {'type': 'qreg', 'qreg': {'name': 'q', 'index': 3}, 'creg': {'name': 'q', 'index': 3}}
-    expected2 = {'type': 'creg', 'qreg': {'name': 'c', 'index': 3}, 'creg': {'name': 'c', 'index': 3}}
+    expected1 = {
+        "type": "qreg",
+        "qreg": {"name": "q", "index": 3},
+        "creg": {"name": "q", "index": 3},
+    }
+    expected2 = {
+        "type": "creg",
+        "qreg": {"name": "c", "index": 3},
+        "creg": {"name": "c", "index": 3},
+    }
 
     myparser = OpenQASMParser(openqasm_str="")
     assert myparser._parse_measure(ans1) == expected1
@@ -110,7 +138,7 @@ def test_parser_parse_reset():
     ans = res.children[1]
     print(vars(ans))
 
-    expected = {'type': 'reset', 'name': 'q', 'index': 1}
+    expected = {"type": "reset", "name": "q", "index": 1}
 
     myparser = OpenQASMParser(openqasm_str="")
     assert myparser._parse_reset(ans) == expected
@@ -133,7 +161,12 @@ def test_parser_parse_custom_unitary():
     ans = res.children[-1]
     print(vars(ans))
 
-    expected = {'type': 'custom_unitary', 'name': 'h', 'params': {}, 'qargs': [('p1', 0)]}
+    expected = {
+        "type": "custom_unitary",
+        "name": "h",
+        "params": {},
+        "qargs": [("p1", 0)],
+    }
 
     myparser = OpenQASMParser(openqasm_str=openqasm)
     myparser.parse()
@@ -158,7 +191,11 @@ def test_parser_parse_cnot():
     ans = res.children[-1]
     print(vars(ans))
 
-    expected = {'type': 'cnot', 'control': {'name': 'q', 'index': 1}, 'target': {'name': 'q', 'index': 2}}
+    expected = {
+        "type": "cnot",
+        "control": {"name": "q", "index": 1},
+        "target": {"name": "q", "index": 2},
+    }
 
     myparser = OpenQASMParser(openqasm_str="")
     assert myparser._parse_cnot(ans) == expected
@@ -181,7 +218,7 @@ def test_parser_parse_if():
     ans = res.children[-1]
     print(vars(ans))
 
-    expected = {'type': 'if'}
+    expected = {"type": "if"}
 
     myparser = OpenQASMParser(openqasm_str="")
     assert myparser._parse_if(ans) == expected

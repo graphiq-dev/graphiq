@@ -143,7 +143,7 @@ class OpenQASMParser:
         }
 
         qreg_node = measure_node.children[0]
-        creg_node = measure_node.children[0]
+        creg_node = measure_node.children[1]
 
         measure_info["qreg"] = {
             "name": qreg_node.name,

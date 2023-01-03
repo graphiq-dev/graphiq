@@ -11,7 +11,11 @@ standard_gate_width_mapping = {
 class Columns:
     def __init__(self, col_num: int, size: int = 1):
         self.size = size
-        self.columns = [[0] * size] * col_num
+        self.columns = []
+
+        for i in range(col_num):
+            self.columns.append([0] * size)
+
         self.col_width = [0] * col_num
 
     def add_new_column(self):
@@ -28,13 +32,13 @@ class Columns:
             self.col_width.append(0)
         else:
             for col in self.columns:
-                col.append(0 * size)
+                col.extend([0] * size)
         self.size += size
 
     def set_all_col_element(self, index: int, value: int = -1):
         if not isinstance(index, int):
             raise ValueError("Index parameter must be an integer")
-        for i in reversed(range(len(self.columns) - 1)):
+        for i in reversed(range(len(self.columns))):
             if not self.columns[i][index]:
                 self.columns[i][index] = value
         return
@@ -57,7 +61,7 @@ class Columns:
 
         to_index = to_index - 1
         if to_index != from_index:
-            for i in reversed(range(len(self.columns) - 1)):
+            for i in reversed(range(gate_col)):
                 if not self.columns[i][from_index]:
                     self.columns[i][from_index] = -1
                 if not self.columns[i][to_index]:
@@ -199,6 +203,8 @@ class Painter:
         to_reg = max(reg_pos) + 1
 
         barriers_col = self._columns.find_and_add_to_empty_col(from_reg, to_reg)
+        for i in range(from_reg, to_reg):
+            self._columns.set_all_col_element(i)
         self._columns.update_col_width(index=barriers_col, new_width=40)
 
         for reg in qreg:
@@ -303,9 +309,10 @@ class Painter:
             size = parser.ast["def"]["creg"][creg]["index"]
             self.add_register(creg, size, "creg")
 
+        print(self._columns.columns)
         # add ops to painter
         for op in parser.ast["ops"]:
-            print(op)
+            # print(op)
             if op["type"] == "custom_unitary":
                 qargs = [self.convert_qargs_tuple_to_str(qarg) for qarg in op["qargs"]]
                 self.add_gate(str.upper(op["name"]), qargs)
@@ -324,7 +331,7 @@ class Painter:
                 for reg in op['qreg']:
                     for i in range(parser.ast['def']['qreg'][reg]['index']):
                         qreg_list.append(f"{reg}{i}")
-                print(qreg_list)
+                self.add_multi_barriers(qreg_list)
             if op["type"] == "reset":
                 qreg = op["name"] + str(op["index"])
                 self.add_reset(qreg)
@@ -341,4 +348,5 @@ class Painter:
                     params=op["custom_unitary"]["params"],
                     qargs=qargs,
                 )
+        print(self._columns.columns)
         return

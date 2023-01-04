@@ -27,11 +27,7 @@ def test_expand_cols():
     columns.expand_cols(size=2)
 
     assert columns.size == 5
-    assert columns.columns == [
-        [0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0]
-    ]
+    assert columns.columns == [[0, 0, 0, 0, 0], [0, 0, 0, 0, 0], [0, 0, 0, 0, 0]]
     assert columns.col_width == [0, 0, 0]
 
 
@@ -40,9 +36,7 @@ def test_find_and_add_to_empty_col():
     columns.find_and_add_to_empty_col(from_index=0, to_index=2)
 
     assert columns.size == 3
-    assert columns.columns == [
-        [1, 1, 0], [0, 0, 0], [0, 0, 0]
-    ]
+    assert columns.columns == [[1, 1, 0], [0, 0, 0], [0, 0, 0]]
 
 
 # Test Painter class
@@ -50,4 +44,3 @@ def test_find_and_add_to_empty_col():
 #     painter = Painter()
 #
 #     pass
-

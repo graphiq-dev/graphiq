@@ -49,7 +49,7 @@ class Columns:
         for i, v in enumerate(self.columns):
             gate_pos = v[from_index:to_index]
 
-            if i == len(self.columns)-1 and not all(pos == 0 for pos in gate_pos):
+            if i == len(self.columns) - 1 and not all(pos == 0 for pos in gate_pos):
                 self.add_new_column()
                 self.columns[i + 1][from_index:to_index] = [value] * len(gate_pos)
                 gate_col = i + 1
@@ -115,21 +115,18 @@ class Painter:
             raise ValueError("Register type must be creg or qreg")
 
         # map register position to the correct coordinates
-        reg_pos = {}
         if reg_type == "qreg":
             for i in range(size):
-                curr_reg_pos = self.next_reg_position
-                self.next_reg_position += 50
-                reg_pos[f"{reg_name}{i}"] = self.registers_position[reg_type][
+                self.registers_position[reg_type][
                     f"{reg_name}{i}"
-                ] = curr_reg_pos
+                ] = self.next_reg_position
+                self.next_reg_position += 50
                 self.registers_mapping.append(f"{reg_name}{i}")
         else:
-            curr_reg_pos = self.next_reg_position
-            self.next_reg_position += 1
-            reg_pos[f"{reg_name}{size}"] = self.registers_position[reg_type][
+            self.registers_position[reg_type][
                 f"{reg_name}{size}"
-            ] = curr_reg_pos
+            ] = self.next_reg_position
+            self.next_reg_position += 50
             self.registers_mapping.append(f"{reg_name}{size}")
 
         # expand columns
@@ -138,11 +135,12 @@ class Painter:
         else:
             self._columns.expand_cols(size=1)
 
-        return reg_pos
-
+    # TODO: Fix and enable multi controls gate, right now multi-controls gate cause some weird drawing
     def add_gate(
         self, gate_name: str, qargs: list, params: dict = None, controls: list = None
     ):
+        if controls and len(controls) > 1:
+            raise ValueError("Multi-control gate is not supported yet.")
         # calculate which registers the gate will be on
         reg_pos = [self.registers_mapping.index(arg) for arg in qargs]
         control_pos = (
@@ -153,7 +151,9 @@ class Painter:
         gate_col = self._columns.find_and_add_to_empty_col(from_reg, to_reg)
 
         # calculate the col width
-        self._columns.update_col_width(index=gate_col, new_width=self._calculate_gate_width(gate_name, params))
+        self._columns.update_col_width(
+            index=gate_col, new_width=self._calculate_gate_width(gate_name, params)
+        )
 
         # gate info
         gate_info = {
@@ -229,7 +229,9 @@ class Painter:
         return reset_info
 
     # Classical control gate
-    def add_classical_control(self, creg, gate_name: str, qargs: list, params: dict = None):
+    def add_classical_control(
+        self, creg, gate_name: str, qargs: list, params: dict = None
+    ):
         if len(qargs) > 1:
             raise ValueError(
                 "Multiple qubits gate is not supported in classical control right now"
@@ -242,7 +244,9 @@ class Painter:
 
         # update col width
         gate_col = self._columns.find_and_add_to_empty_col(from_reg, to_reg)
-        self._columns.update_col_width(index=gate_col, new_width=self._calculate_gate_width(gate_name, params))
+        self._columns.update_col_width(
+            index=gate_col, new_width=self._calculate_gate_width(gate_name, params)
+        )
 
         classical_control_info = {
             "col": gate_col,
@@ -326,10 +330,10 @@ class Painter:
                     parser.ast["def"]["creg"][op["creg"]["name"]]["index"]
                 )
                 self.add_measurement(qreg=qreg, creg=creg, cbit=op["creg"]["index"])
-            if op['type'] == 'barrier':
+            if op["type"] == "barrier":
                 qreg_list = []
-                for reg in op['qreg']:
-                    for i in range(parser.ast['def']['qreg'][reg]['index']):
+                for reg in op["qreg"]:
+                    for i in range(parser.ast["def"]["qreg"][reg]["index"]):
                         qreg_list.append(f"{reg}{i}")
                 self.add_multi_barriers(qreg_list)
             if op["type"] == "reset":

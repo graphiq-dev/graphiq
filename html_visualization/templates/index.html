@@ -1,16 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <script src="https://d3js.org/d3.v5.min.js"></script>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
 
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    <script src="{{ url_for('static', filename='js/data.js') }}"></script>
+    <script src="{{ url_for('static', filename='data/data.js') }}"></script>
     <script src="{{ url_for('static', filename='js/register.js') }}"></script>
     <script src="{{ url_for('static', filename='js/gates.js') }}"></script>
     <script src="{{ url_for('static', filename='js/draw.js') }}"></script>
     <script>
         let visualization_info = {{ visualization_info | safe }}
-        console.log(visualization_info)
     </script>
 </head>
 <body>
@@ -24,15 +23,10 @@
             .style("opacity", 0);
     </script>
     <script>
-        register_label_init(70, 350)
-        register_detail_init(1000, 350)
+        register_detail_init(1000, 500)
 
         draw_register_info(visualization_info.registers)
-        draw_gate_info(visualization_info.gates)
-        draw_measurement(visualization_info.measurements)
-        draw_resets(visualization_info.resets)
-        draw_barriers(visualization_info.barriers)
-        draw_classical_control(visualization_info.classical_controls)
+        draw(visualization_info.ops)
     </script>
 </body>
 </html>

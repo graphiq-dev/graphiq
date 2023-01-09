@@ -1,12 +1,8 @@
-div.circuit-label-container {
-    position: absolute;
-}
-
 div.circuit-detail-container {
-    margin-left: 75px;
+    margin: 10px;
     width: 1000px;
-    overflow-x: auto;
-    white-space: nowrap;
+    height: 500px;
+    border: solid black 1px;
 }
 
 .register-label {
@@ -30,20 +26,20 @@ div.tooltip {
 
 div.data-panel {
     padding: 20px;
-    margin-top: 20px;
+    margin-top: 10px;
     border: 1px solid black;
 }
 
 div.gate-panel {
     position: absolute;
-    top: 50px;
-    right: 150px;
-    width: 200px;
+    top: 10px;
+    left: 1050px;
+    width: 300px;
     min-height: 120px;
     border: 1px solid black;
     padding: 10px;
 }
 
-div.circuit-container {
-    padding-top: 0px;
+body {
+    margin: 0px;
 }

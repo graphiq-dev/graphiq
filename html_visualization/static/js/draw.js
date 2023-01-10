@@ -5,12 +5,12 @@ function draw_register_info(registers) {
 
     for (reg in qreg) {
         draw_register_label(reg, 50, qreg[reg])
-        draw_quantum_register(60, qreg[reg])
+        draw_quantum_register(60, qreg[reg], visualization_info.width)
     }
 
     for (reg in creg) {
         draw_register_label(reg, 50, creg[reg])
-        draw_classical_register(60, creg[reg])
+        draw_classical_register(60, creg[reg], visualization_info.width)
     }
 }
 
@@ -31,8 +31,8 @@ function draw_classical_control(classical_control) {
 function draw_gate(gate) {
     register = visualization_info.registers.qreg[gate.qargs]
     if (gate.gate_name === "CX") {
-        y2 = visualization_info.registers.qreg[gate.controls[0]] - register
-        cnot(gate.x_pos, register, y2)
+        y2 = visualization_info.registers.qreg[gate.controls[0]]
+        cnot(gate.x_pos, register, y2, gate.controls, gate.qargs)
     }
     else if (gate.gate_name == 'CZ') {
         y2 = visualization_info.registers.qreg[gate.controls[0]] - register
@@ -45,8 +45,6 @@ function draw_gate(gate) {
 
 function draw(ops) {
     for (let i = 0; i < ops.length; i++) {
-        console.log(ops[i])
-
         if (ops[i].type == 'gate') {
             draw_gate(ops[i])
         }

@@ -36,7 +36,7 @@ function register_detail_init(width, height) {
 
 // draw function
 // draw the quantum register
-function draw_quantum_register(x, y) {
+function draw_quantum_register(x, y, width) {
     const register = d3.select("#circuit-detail-svg")
     g = register.append("g")
 
@@ -45,14 +45,14 @@ function draw_quantum_register(x, y) {
         .style("fill", "none")
         .attr("x1", x)
         .attr("y1", y)
-        .attr("x2", register.attr("width"))
+        .attr("x2", width)
         .attr("y2", y)
 
     return register
 }
 
 // draw the classical register
-function draw_classical_register(x, y) {
+function draw_classical_register(x, y, width) {
     const register = d3.select("#circuit-detail-svg")
     const g = register.append("g")
 
@@ -60,13 +60,13 @@ function draw_classical_register(x, y) {
         .style("stroke", "black")
         .attr("x1", x)
         .attr("y1", y-1)
-        .attr("x2", register.attr("width"))
+        .attr("x2", width)
         .attr("y2", y-1)
     g.append('line')
         .style("stroke", "black")
         .attr("x1", x)
         .attr("y1", y+2)
-        .attr("x2", register.attr("width"))
+        .attr("x2", width)
         .attr("y2", y+2)
     
     return register

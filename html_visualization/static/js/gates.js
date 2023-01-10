@@ -1,10 +1,25 @@
-function add_params_on_display(gate, params, controls) {
+function add_to_gate_info_panel(gate, gate_name, register, params, controls) {
     gate_info = d3.select(".gate-panel")
 
-    gate_info.append("p").html("Params:")
-    for (p in params) {
-        gate_info.append("p").html(`- ${p}: ${params[p]}`)
-    }
+    gate_info = d3.select(".gate-panel")
+    gate.on("mouseover", function(d) {
+        gate_info.append("p").html(`${gate_name} gate on ${register}`)
+        gate_info.append("p").html("Params:")
+        for (p in params) {
+            gate_info.append("p").html(`- ${p}: ${params[p]}`)
+        }
+
+        gate_info.append("p").html("Control:")
+        for (let i = 0; i < controls.length; i++) {
+            gate_info.append("p").html(`- ${controls[i]}`)
+        }
+        })
+    .on("mouseout", function(d) {
+        div.transition()
+            .duration(500)
+            .style("opacity", 0);
+        gate_info.html("Gate Info:")
+    });
 }
 
 function create_params_str(params) {
@@ -69,25 +84,8 @@ function one_qubit_gate(x, y, gate_name, register, params={}, controls=[], color
         .style("dominant-baseline", "middle")
     }
     
-    // add on display
-//    div = d3.select(".tooltip")
-//    gate_info = d3.select(".gate-panel")
-//    gate.on("mouseover", function(d) {
-//        div.transition()
-//            .duration(200)
-//            .style("opacity", .7);
-//        div.html(`${gate_name} gate on ${register}`)
-//            .style("left", (d3.event.pageX) + "px")
-//            .style("top", (d3.event.pageY) + "px");
-//        gate_info.append("p").html(`${gate_name} gate on ${register}`)
-//        add_params_on_display(gate, params)
-//        })
-//    .on("mouseout", function(d) {
-//        div.transition()
-//            .duration(500)
-//            .style("opacity", 0);
-//        gate_info.html("Gate Info:")
-//    });
+//     add on display
+    add_to_gate_info_panel(gate, gate_name, register, params, controls)
 
     return gate
 }
@@ -175,38 +173,23 @@ function cnot(x1, y1, y2, control, target) {
         .attr("y1", y1+10)
         .attr("y2", y1-10)
         .attr("stroke", "white")
+    add_to_gate_info_panel(gate, "CX", target, {}, control)
     return gate
 }
 
-function cz(x1, y1, y2) {
+function cz(x1, y1, y2, control, target) {
     gate = gate = d3.select("#circuit-detail-svg").append("g")
-        .attr("transform", `translate(${x1}, ${y1})`)
 
+    create_control_at(gate, x1, y1, y2)
     // draw a circle at (0, 0), then draw two line to form a cross in the middle
     gate.append("circle")
-        .attr("cx", 0)
-        .attr("cy", 0)
+        .attr("cx", x1)
+        .attr("cy", y1)
         .attr("r", 5)
         .attr("fill", "#002D9C")
 
-
     // draw the target register
-    create_control_at(gate, 0, 0, y2)
-
-    div = d3.select(".tooltip")
-    gate.on("mouseover", function(d) {
-        div.transition()
-            .duration(200)
-            .style("opacity", .7);
-        div.html(`CZ gate`)
-            .style("left", (d3.event.pageX) + "px")
-            .style("top", (d3.event.pageY) + "px");
-        })
-    .on("mouseout", function(d) {
-        div.transition()
-            .duration(500)
-            .style("opacity", 0);
-    });
+    add_to_gate_info_panel(gate, "CZ", target, {}, control)
 
     return gate
 }
@@ -214,7 +197,6 @@ function cz(x1, y1, y2) {
 // draw measurement
 function measure(x1, y1, y2, cbit=0) {
     let measure_z = d3.select("#circuit-detail-svg").append("g")
-//        .attr("transform", `translate(${x1 - 20}, ${y1 - 20})`)
 
     measure_z.append("rect")
         .attr("class", "measure")

@@ -19,36 +19,49 @@ class OpenQASMParser:
             "ops": [],
         }
 
+        # mapping parse functions
+        self._parse_mapping = {
+            'qreg': self._parse_qreg,
+            'creg': self._parse_creg,
+            'gate': self._parse_gate,
+            'barrier': self._parse_barrier,
+            'reset': self._parse_reset,
+            'measure': self._parse_measure,
+            'cnot': self._parse_cnot,
+            'custom_unitary': self._parse_custom_unitary,
+            'if': self._parse_if,
+        }
+
+    def use_parse(self, key):
+        return self._parse_mapping[key]
+
+    def get_register_size(self, reg_name, reg_type):
+        return self.ast['def'][reg_type][reg_name]['size']
+
     def parse(self):
         parser = Qasm(data=self.openqasm).parse()
+        def_arr = ['qreg', 'creg', 'gate']
 
         for node in parser.children:
             # add to def
-            if node.type == "qreg":
-                self._parse_qreg(node)
-            if node.type == "creg":
-                self._parse_creg(node)
-            if node.type == "gate":
-                self._parse_gate(node)
+            if node.type not in self._parse_mapping:
+                continue
+            parse_function = self.use_parse(key=node.type)
+            info = parse_function(node)
 
-            # add to ops
-            if node.type == "barrier":
-                self.ast["ops"].append(self._parse_barrier(node))
-            if node.type == "reset":
-                self.ast["ops"].append(self._parse_reset(node))
-            if node.type == "measure":
-                self.ast["ops"].append(self._parse_measure(node))
-            if node.type == "cnot":
-                self.ast["ops"].append(self._parse_cnot(node))
-            if node.type == "custom_unitary":
-                self.ast["ops"].append(self._parse_custom_unitary(node))
-            if node.type == "if":
-                self.ast["ops"].append(self._parse_if(node))
+            if node.type in def_arr:
+                self.ast["def"][node.type][node.name] = info
+            else:
+                self.ast["ops"].append(info)
+            yield info
 
-    # TODO: Maybe add parse body, because in the gate body there is a list of statement
+    # TODO: Maybe add parse body, because in the gate body there is a list of statements
+    #  The parser originally is created for visualization purpose, but right now parsing the body of a gate
+    #  doesn't help much. Therefore, in order to save computer resource, I just ignore parsing the body.
     def _parse_gate(self, gate_node):
         gate_info = {
             "type": gate_node.type,
+            "name": gate_node.name,
             "params": [],
             "qargs": [],
         }
@@ -60,28 +73,27 @@ class OpenQASMParser:
                 gate_info["qargs"].append(node.name)
             else:
                 gate_info["params"].append(node.name)
-        self.ast["def"]["gate"][gate_node.name] = gate_info
 
         # some qarg is in the 2nd children node, don't know why
         for node in gate_node.children[2].children:
             if node.type == "id":
                 gate_info["qargs"].append(node.name)
-
         return gate_info
 
     def _parse_creg(self, creg_node):
         creg_info = {
-            "index": creg_node.index,
+            "type": creg_node.type,
+            "size": creg_node.index,
+            "name": creg_node.name,
         }
-        self.ast["def"]["creg"][creg_node.name] = creg_info
         return creg_info
 
     def _parse_qreg(self, qreg_node):
         qreg_info = {
-            "index": qreg_node.index,
+            "type": qreg_node.type,
+            "size": qreg_node.index,
+            "name": qreg_node.name,
         }
-        self.ast["def"]["qreg"][qreg_node.name] = qreg_info
-
         return qreg_info
 
     def _parse_barrier(self, barrier_node):
@@ -183,3 +195,4 @@ class OpenQASMParser:
             "custom_unitary": self._parse_custom_unitary(if_node.children[2]),
         }
         return if_info
+

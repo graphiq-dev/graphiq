@@ -11,7 +11,11 @@ class OpenQASMParser:
         self.openqasm = openqasm_str
 
         self.ast = {
-            "def": {"qreg": {}, "creg": {}, "gate": {},},
+            "def": {
+                "qreg": {},
+                "creg": {},
+                "gate": {},
+            },
             "ops": [],
         }
 

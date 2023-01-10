@@ -11,36 +11,32 @@ class OpenQASMParser:
         self.openqasm = openqasm_str
 
         self.ast = {
-            "def": {
-                "qreg": {},
-                "creg": {},
-                "gate": {},
-            },
+            "def": {"qreg": {}, "creg": {}, "gate": {},},
             "ops": [],
         }
 
         # mapping parse functions
         self._parse_mapping = {
-            'qreg': self._parse_qreg,
-            'creg': self._parse_creg,
-            'gate': self._parse_gate,
-            'barrier': self._parse_barrier,
-            'reset': self._parse_reset,
-            'measure': self._parse_measure,
-            'cnot': self._parse_cnot,
-            'custom_unitary': self._parse_custom_unitary,
-            'if': self._parse_if,
+            "qreg": self._parse_qreg,
+            "creg": self._parse_creg,
+            "gate": self._parse_gate,
+            "barrier": self._parse_barrier,
+            "reset": self._parse_reset,
+            "measure": self._parse_measure,
+            "cnot": self._parse_cnot,
+            "custom_unitary": self._parse_custom_unitary,
+            "if": self._parse_if,
         }
 
     def use_parse(self, key):
         return self._parse_mapping[key]
 
     def get_register_size(self, reg_name, reg_type):
-        return self.ast['def'][reg_type][reg_name]['size']
+        return self.ast["def"][reg_type][reg_name]["size"]
 
     def parse(self):
         parser = Qasm(data=self.openqasm).parse()
-        def_arr = ['qreg', 'creg', 'gate']
+        def_arr = ["qreg", "creg", "gate"]
 
         for node in parser.children:
             # add to def
@@ -195,4 +191,3 @@ class OpenQASMParser:
             "custom_unitary": self._parse_custom_unitary(if_node.children[2]),
         }
         return if_info
-

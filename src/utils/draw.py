@@ -148,7 +148,7 @@ class Painter:
 
         # gate info
         gate_info = {
-            "type": 'gate',
+            "type": "gate",
             "gate_name": gate_name,
             "params": {} if params is None else params,
             "qargs": qargs,
@@ -167,7 +167,7 @@ class Painter:
         self._columns.update_col_width(index=measure_col, new_width=40)
 
         measurement_info = {
-            "type": 'measure',
+            "type": "measure",
             "col": measure_col,
             "qreg": qreg,
             "creg": creg,
@@ -188,7 +188,7 @@ class Painter:
 
         for reg in qreg:
             barrier_info = {
-                "type": 'barrier',
+                "type": "barrier",
                 "col": barriers_col,
                 "qreg": reg,
             }
@@ -256,7 +256,7 @@ class Painter:
             op["x_pos"] = cols_mid_point[op["col"]]
 
         visualization_dict = {
-            "width": self.ops[-1]['x_pos'] + 100,
+            "width": self.ops[-1]["x_pos"] + 100 if self.ops else 1000,
             "registers": self.registers_position,
             "ops": self.ops,
         }
@@ -276,35 +276,45 @@ class Painter:
         parser.parse()
 
         for node in parser.parse():
-            if node['type'] == 'qreg':
-                self.add_register(node['name'], node['size'], 'qreg')
-            if node['type'] == 'creg':
-                self.add_register(node['name'], node['size'], 'creg')
+            if node["type"] == "qreg":
+                self.add_register(node["name"], node["size"], "qreg")
+            if node["type"] == "creg":
+                self.add_register(node["name"], node["size"], "creg")
             if node["type"] == "custom_unitary":
                 qargs = [self.to_reg_label(qarg[0], qarg[1]) for qarg in node["qargs"]]
                 self.add_gate(str.upper(node["name"]), qargs)
             if node["type"] == "cnot":
-                qargs = node["target"]["name"] + "[" + str(node["target"]["index"]) + "]"
-                controls = node["control"]["name"] + "[" + str(node["control"]["index"]) + "]"
+                qargs = (
+                    node["target"]["name"] + "[" + str(node["target"]["index"]) + "]"
+                )
+                controls = (
+                    node["control"]["name"] + "[" + str(node["control"]["index"]) + "]"
+                )
                 self.add_gate(gate_name="CX", qargs=[qargs], controls=[controls])
             if node["type"] == "measure":
-                creg_size = parser.get_register_size(node["creg"]["name"], 'creg')
-                if hasattr(node, 'index'):
-                    qreg = self.to_reg_label(node["qreg"]["name"], node["qreg"]["index"])
+                creg_size = parser.get_register_size(node["creg"]["name"], "creg")
+                if hasattr(node, "index"):
+                    qreg = self.to_reg_label(
+                        node["qreg"]["name"], node["qreg"]["index"]
+                    )
                     creg = self.to_reg_label(node["creg"]["name"], creg_size)
-                    self.add_measurement(qreg=qreg, creg=creg, cbit=node["creg"]["index"])
+                    self.add_measurement(
+                        qreg=qreg, creg=creg, cbit=node["creg"]["index"]
+                    )
                 else:
-                    for i in range(parser.get_register_size(node['qreg']['name'], 'qreg')):
+                    for i in range(
+                        parser.get_register_size(node["qreg"]["name"], "qreg")
+                    ):
                         qreg = self.to_reg_label(node["qreg"]["name"], i)
                         creg = self.to_reg_label(node["creg"]["name"], creg_size)
                         self.add_measurement(qreg=qreg, creg=creg, cbit=i)
             if node["type"] == "reset":
                 if hasattr(node, "index"):
-                    qreg = self.to_reg_label(node['name'], node["index"])
+                    qreg = self.to_reg_label(node["name"], node["index"])
                     self.add_reset(qreg)
                 else:
-                    for i in range(parser.get_register_size(node['name'], 'qreg')):
-                        qreg = self.to_reg_label(node['name'], i)
+                    for i in range(parser.get_register_size(node["name"], "qreg")):
+                        qreg = self.to_reg_label(node["name"], i)
                         self.add_reset(qreg)
             if node["type"] == "barrier":
                 qreg_list = []
@@ -313,11 +323,17 @@ class Painter:
                         qreg_list.append(f"{reg}[{i}]")
                 self.add_barriers(qreg_list)
             if node["type"] == "if":
-                creg = node["creg"]["name"] + "[" + str(
-                    parser.ast["def"]["creg"][node["creg"]["name"]]["size"]
-                ) + "]"
+                creg = (
+                    node["creg"]["name"]
+                    + "["
+                    + str(parser.ast["def"]["creg"][node["creg"]["name"]]["size"])
+                    + "]"
+                )
                 qargs = [
-                    self.to_reg_label(node["custom_unitary"]["qargs"][0][0], node["custom_unitary"]["qargs"][0][1])
+                    self.to_reg_label(
+                        node["custom_unitary"]["qargs"][0][0],
+                        node["custom_unitary"]["qargs"][0][1],
+                    )
                 ]
                 self.add_classical_control(
                     creg=creg,
@@ -325,4 +341,3 @@ class Painter:
                     params=node["custom_unitary"]["params"],
                     qargs=qargs,
                 )
-

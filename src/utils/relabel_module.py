@@ -31,7 +31,7 @@ def iso_finder(adj_matrix, n_iso, rel_inc_thresh=0.2, allow_exhaustive=True, thr
     n_node = adj_matrix.shape[0]
     n_max = np.math.factorial(n_node)
     n_label = n_iso
-    labels_arr = _label_finer(n_label, n_node, seed=None, thresh=None)
+    labels_arr = _label_finder(n_label, n_node, seed=None, thresh=None)
     adj_arr = automorph_check(adj_matrix, labels_arr)
     if len(adj_arr) >= n_iso:
         adj_arr = adj_arr[:n_iso]
@@ -70,6 +70,22 @@ def iso_finder(adj_matrix, n_iso, rel_inc_thresh=0.2, allow_exhaustive=True, thr
         return adj_arr[:n_iso]
 
 
+def relabel(adj_matrix, new_labels):
+    """
+    This function relabels the vertices of a graph given the map to new labels. The initial graph's vertices is assumed
+    to have been labeled according to its adjacency matrix that is with the nodes labeled using consecutive integers.
+    :param adj_matrix: The adjacency matrix of the graph
+    :type adj_matrix: numpy.ndarray
+    :param new_labels: A permutation of the initial labels that is [0, 1, ..., n-1] where n is the number of vertices.
+    :type new_labels: numpy.ndarray
+    :return: Transformed adjacency matrix according to new labels
+    :rtype: numpy.ndarray
+    """
+    p_matrix = _perm2matrix(new_labels)
+    permuted_adj_matrix = p_matrix.T @ adj_matrix @ p_matrix
+    return permuted_adj_matrix.astype(int)
+
+
 def _perm2matrix(sequence):
     """
     Given a permutation of [0, 1, ..., n-1] where n is the number of vertices of the graph, this function returns the
@@ -87,7 +103,7 @@ def _perm2matrix(sequence):
     return permute_matrix
 
 
-def _label_finer(n_label, n_node, new_label_set=None, exhaustive=False, seed=None, thresh=None):
+def _label_finder(n_label, n_node, new_label_set=None, exhaustive=False, seed=None, thresh=None):
     """
     Finds n_label number of permutations for the sequence {0, 1, ..., n_node-1}. If exhaustive search is enabled the
     process happens through sampling from the total set of all possible permutations (size = n_node factorial).
@@ -114,10 +130,9 @@ def _label_finer(n_label, n_node, new_label_set=None, exhaustive=False, seed=Non
     if thresh is None:
         thresh = 5 * n_label
     assert n_label <= n_max, f"The input number of permutations is more than the maximum possible"
-    if n_node < 10 or exhaustive:
+    if n_node < 8 or exhaustive:
         perm = list(permutations([*range(n_node)]))
         labels_list = rng.choice(perm, n_label)
-        # print(type(labels_list))
         return labels_list
     else:
         if new_label_set is None:
@@ -153,8 +168,7 @@ def _add_labels(labels_arr, add_n, exhaustive=False, seed=None, thresh=None):
     n_max = np.math.factorial(n_node)
     n_total = add_n + n_label if add_n + n_label < n_max else n_max
     label_set = set([tuple(labels) for labels in labels_arr])
-    # print(n_node, n_total)
-    return _label_finer(n_total, n_node, new_label_set=label_set, exhaustive=exhaustive, thresh=thresh, seed=seed)
+    return _label_finder(n_total, n_node, new_label_set=label_set, exhaustive=exhaustive, thresh=thresh, seed=seed)
 
 
 def automorph_check(adj1, labels_arr):
@@ -185,22 +199,6 @@ def automorph_check(adj1, labels_arr):
     return np.array(adj_list)
 
 
-def relabel(adj_matrix, new_labels):
-    """
-    This function relabels the vertices of a graph given the map to new labels. The initial graph's vertices is assumed
-    to have been labeled according to its adjacency matrix that is with the nodes labeled using consecutive integers.
-    :param adj_matrix: The adjacency matrix of the graph
-    :type adj_matrix: numpy.ndarray
-    :param new_labels: A permutation of the initial labels that is [0, 1, ..., n-1] where n is the number of vertices.
-    :type new_labels: numpy.ndarray
-    :return: Transformed adjacency matrix according to new labels
-    :rtype: numpy.ndarray
-    """
-    p_matrix = _perm2matrix(new_labels)
-    permuted_adj_matrix = p_matrix.T @ adj_matrix @ p_matrix
-    return permuted_adj_matrix.astype(int)
-
-
 def _compare_graphs_visual(G, new_G, new_labels):
     """
     Visual demonstration of initial graph, the relabeled one.
@@ -223,23 +221,8 @@ def _compare_graphs_visual(G, new_G, new_labels):
     return
 
 
-# %% tests
-
-def random_connected_graph(n, p, mode=1, seed=None):
-    rnd_maker = nx.gnp_random_graph
-    G = nx.Graph()
-    G.add_edges_from(((0, 1), (2, 3)))
-    while not nx.is_connected(G):
-        G = rnd_maker(n, p, seed=seed, directed=False)
-    adj_G = nx.to_numpy_array(G)
-    return adj_G
 
 
-average_list = []
-m = 3
-for p in range(1, 10):
-    found = []
-    for i in range(40):
-        adj = random_connected_graph(m, p / 10)
-        found.append(len(iso_finder(adj, np.math.factorial(m))) / (np.math.factorial(m)))
-    average_list.append(sum(found) / 40)
+
+
+

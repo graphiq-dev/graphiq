@@ -6,7 +6,15 @@ from itertools import permutations
 import warnings
 
 
-def iso_finder(adj_matrix, n_iso, rel_inc_thresh=0.2, allow_exhaustive=True, sort_emit=False, thresh=None, seed=None):
+def iso_finder(
+    adj_matrix,
+    n_iso,
+    rel_inc_thresh=0.2,
+    allow_exhaustive=True,
+    sort_emit=False,
+    thresh=None,
+    seed=None,
+):
     """
     The function permutes the labels of the vertices of a graph to get n_iso distinct isomorphic graphs. The maximum
     number of possible distinct cases may be less than n_iso. The graph G with the nodes relabeled using consecutive integers.
@@ -50,12 +58,19 @@ def iso_finder(adj_matrix, n_iso, rel_inc_thresh=0.2, allow_exhaustive=True, sor
                 n_label = n_max
                 all_checked = True
                 if (not allow_exhaustive) and success_ratio < 0.5:
-                    warnings.warn(f"Only {len(adj_arr)} isomorphic graphs were found due to high symmetry."
-                                  f"This may not be the maximum value. Allow for exhaustive search to check")
+                    warnings.warn(
+                        f"Only {len(adj_arr)} isomorphic graphs were found due to high symmetry."
+                        f"This may not be the maximum value. Allow for exhaustive search to check"
+                    )
                     return adj_arr
 
-            labels_arr = _add_labels(labels_arr, add_n, exhaustive=allow_exhaustive * all_checked, seed=seed,
-                                     thresh=thresh)
+            labels_arr = _add_labels(
+                labels_arr,
+                add_n,
+                exhaustive=allow_exhaustive * all_checked,
+                seed=seed,
+                thresh=thresh,
+            )
             n1 = len(adj_arr)
             adj_arr = automorph_check(adj_matrix, labels_arr)
             n2 = len(adj_arr)
@@ -66,8 +81,10 @@ def iso_finder(adj_matrix, n_iso, rel_inc_thresh=0.2, allow_exhaustive=True, sor
         if all_checked:
             warnings.warn(f"Maximum of {n2} possible isomorphic graphs exist")
         elif rel_inc < rel_inc_thresh:
-            warnings.warn(f"Only {n2} isomorphic graph were found. Consider decreasing rel_inc_thresh to possibly "
-                          f"get more.")
+            warnings.warn(
+                f"Only {n2} isomorphic graph were found. Consider decreasing rel_inc_thresh to possibly "
+                f"get more."
+            )
         else:
             pass
         if sort_emit:
@@ -89,7 +106,7 @@ def emitter_sorted(adj_arr):
         g = nx.from_numpy_array(adj)
         n_emit = height_max(graph=g)
         tuple_list.append((adj, n_emit))
-    sorted_list = sorted(tuple_list, key=lambda x:x[1])
+    sorted_list = sorted(tuple_list, key=lambda x: x[1])
     return sorted_list
 
 
@@ -126,7 +143,9 @@ def _perm2matrix(sequence):
     return permute_matrix
 
 
-def _label_finder(n_label, n_node, new_label_set=None, exhaustive=False, seed=None, thresh=None):
+def _label_finder(
+    n_label, n_node, new_label_set=None, exhaustive=False, seed=None, thresh=None
+):
     """
     Finds n_label number of permutations for the sequence {0, 1, ..., n_node-1}. If exhaustive search is enabled the
     process happens through sampling from the total set of all possible permutations (size = n_node factorial).
@@ -152,7 +171,9 @@ def _label_finder(n_label, n_node, new_label_set=None, exhaustive=False, seed=No
     n_max = np.math.factorial(n_node)
     if thresh is None:
         thresh = 5 * n_label
-    assert n_label <= n_max, f"The input number of permutations is more than the maximum possible"
+    assert (
+        n_label <= n_max
+    ), f"The input number of permutations is more than the maximum possible"
     if n_node < 8 or exhaustive:
         perm = list(permutations([*range(n_node)]))
         labels_list = rng.choice(perm, n_label)
@@ -165,8 +186,10 @@ def _label_finder(n_label, n_node, new_label_set=None, exhaustive=False, seed=No
             new_label_set.add(tuple(rng.permutation(n_node)))
             count += 1
         if count == thresh:
-            warnings.warn(f'Only {len(new_label_set)} instead of {n_label} new permutations were found. If more'
-                          ' is needed consider increasing the threshold.')
+            warnings.warn(
+                f"Only {len(new_label_set)} instead of {n_label} new permutations were found. If more"
+                " is needed consider increasing the threshold."
+            )
         new_label_list = list([list(x) for x in new_label_set])
         return np.array(new_label_list)
 
@@ -191,7 +214,14 @@ def _add_labels(labels_arr, add_n, exhaustive=False, seed=None, thresh=None):
     n_max = np.math.factorial(n_node)
     n_total = add_n + n_label if add_n + n_label < n_max else n_max
     label_set = set([tuple(labels) for labels in labels_arr])
-    return _label_finder(n_total, n_node, new_label_set=label_set, exhaustive=exhaustive, thresh=thresh, seed=seed)
+    return _label_finder(
+        n_total,
+        n_node,
+        new_label_set=label_set,
+        exhaustive=exhaustive,
+        thresh=thresh,
+        seed=seed,
+    )
 
 
 def automorph_check(adj1, labels_arr):
@@ -234,16 +264,30 @@ def _compare_graphs_visual(G, new_G, new_labels):
     G_relabeled = nx.relabel_nodes(G, relabel_map_dict)
     assert list(new_labels) == G_relabeled.nodes()
 
-    nx.draw_networkx(G_relabeled, node_size=1000, font_size=25, with_labels=True, ax=ax2,
-                     pos=nx.kamada_kawai_layout(G_relabeled))
-    nx.draw_networkx(new_G, node_size=1000, font_size=25, with_labels=True, ax=ax3,
-                     pos=nx.kamada_kawai_layout(G_relabeled))
-    nx.draw_networkx(G, node_size=1000, node_color='#bcbd22', font_size=25, with_labels=True, ax=ax1,
-                     pos=nx.kamada_kawai_layout(G))
+    nx.draw_networkx(
+        G_relabeled,
+        node_size=1000,
+        font_size=25,
+        with_labels=True,
+        ax=ax2,
+        pos=nx.kamada_kawai_layout(G_relabeled),
+    )
+    nx.draw_networkx(
+        new_G,
+        node_size=1000,
+        font_size=25,
+        with_labels=True,
+        ax=ax3,
+        pos=nx.kamada_kawai_layout(G_relabeled),
+    )
+    nx.draw_networkx(
+        G,
+        node_size=1000,
+        node_color="#bcbd22",
+        font_size=25,
+        with_labels=True,
+        ax=ax1,
+        pos=nx.kamada_kawai_layout(G),
+    )
     plt.show()
     return
-
-
-
-
-

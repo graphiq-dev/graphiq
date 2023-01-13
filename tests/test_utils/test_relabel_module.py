@@ -24,7 +24,7 @@ def test_random_graph(n_node):
             adj = random_connected_graph(n_node, p / 10)
             iso_found = len(iso_finder(adj, n_iso)) / n_iso
             found.append(iso_found)
-        avg = (sum(found) / len(found))
+        avg = sum(found) / len(found)
         assert 0 <= avg <= 1
 
 
@@ -55,5 +55,7 @@ def test_emitter_sort():
         adj_arr = iso_finder(adj, 20)
         sorted_list = emitter_sorted(adj_arr)
         n_emit_list = [x[1] for x in sorted_list]
-        assert all(n_emit_list[i] <= n_emit_list[i + 1] for i in range(len(n_emit_list) - 1))
+        assert all(
+            n_emit_list[i] <= n_emit_list[i + 1] for i in range(len(n_emit_list) - 1)
+        )
         assert isinstance(sorted_list[0][0], np.ndarray)

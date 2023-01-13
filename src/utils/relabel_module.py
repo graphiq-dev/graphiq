@@ -19,6 +19,8 @@ def iso_finder(adj_matrix, n_iso, rel_inc_thresh=0.2, allow_exhaustive=True, sor
     :param allow_exhaustive: whether exhaustive search over all possible permutations is allowed or not. The runtime may
     become too long if this parameter is True.
     :type allow_exhaustive: bool
+    :param sort_emit: if True the outcome is sorted by the number of emitters needed to generate each graph
+    :type sort_emit: bool
     :param thresh: a threshold value that determines how many random trials is performed in search for new permutations.
     The default is 10 times the number of needed permutations (=n_iso).
     :type thresh: int

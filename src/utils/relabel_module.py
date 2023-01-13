@@ -6,7 +6,7 @@ from itertools import permutations
 import warnings
 
 
-def iso_finder(adj_matrix, n_iso, rel_inc_thresh=0.2, allow_exhaustive=True, thresh=None, seed=None):
+def iso_finder(adj_matrix, n_iso, rel_inc_thresh=0.2, allow_exhaustive=True, sort_emit=False, thresh=None, seed=None):
     """
     The function permutes the labels of the vertices of a graph to get n_iso distinct isomorphic graphs. The maximum
     number of possible distinct cases may be less than n_iso. The graph G with the nodes relabeled using consecutive integers.
@@ -68,6 +68,8 @@ def iso_finder(adj_matrix, n_iso, rel_inc_thresh=0.2, allow_exhaustive=True, thr
                           f"get more.")
         else:
             pass
+        if sort_emit:
+            adj_arr = np.ndarray([x[0] for x in emitter_sorted(adj_arr[:n_iso])])
         return adj_arr[:n_iso]
 
 

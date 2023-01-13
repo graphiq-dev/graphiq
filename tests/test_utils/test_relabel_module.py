@@ -63,3 +63,12 @@ def test_complete_graph():
         assert len(adj_arr) == 0
 
 
+def test_emitter_sort():
+    for n_node in range(4, 8):
+        adj = random_connected_graph(n_node, 0.5)
+        adj_arr = iso_finder(adj, 20)
+        sorted_list = emitter_sorted(adj_arr)
+        n_emit_list = [x[1] for x in sorted_list]
+        assert all(n_emit_list[i] <= n_emit_list[i + 1] for i in range(len(n_emit_list) - 1))
+        assert isinstance(sorted_list[0][0], np.ndarray)
+

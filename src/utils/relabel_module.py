@@ -1,6 +1,7 @@
 import networkx as nx
 import numpy as np
 import matplotlib.pyplot as plt
+from src.backends.stabilizer.functions.height import height_max
 from itertools import permutations
 import warnings
 
@@ -68,6 +69,24 @@ def iso_finder(adj_matrix, n_iso, rel_inc_thresh=0.2, allow_exhaustive=True, thr
         else:
             pass
         return adj_arr[:n_iso]
+
+
+def emitter_sorted(adj_arr):
+    """
+    Takes an iterable of adjacency matrices (ideally output of the <iso_finder> function) as input and sort them by number of
+    emitters needed to generate those graph states.
+    :param adj_arr: An array of adjacency matrices which can be the output of the <iso_finder> function
+    :type adj_arr: numpy.ndarray
+    :return: a list of tuples (adj matrices, n_emitter) sorted by number of emitters
+    :rtype: list
+    """
+    tuple_list = []
+    for adj in adj_arr:
+        g = nx.from_numpy_array(adj)
+        n_emit = height_max(graph=g)
+        tuple_list.append((adj, n_emit))
+    sorted_list = sorted(tuple_list, key=lambda x:x[1])
+    return sorted_list
 
 
 def relabel(adj_matrix, new_labels):
@@ -219,8 +238,6 @@ def _compare_graphs_visual(G, new_G, new_labels):
                      pos=nx.kamada_kawai_layout(G))
     plt.show()
     return
-
-
 
 
 

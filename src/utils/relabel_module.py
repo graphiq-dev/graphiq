@@ -88,7 +88,7 @@ def iso_finder(
         else:
             pass
         if sort_emit:
-            adj_arr = np.ndarray([x[0] for x in emitter_sorted(adj_arr[:n_iso])])
+            adj_arr = np.array([x[0] for x in emitter_sorted(adj_arr[:n_iso])])
         return adj_arr[:n_iso]
 
 

@@ -1,13 +1,20 @@
 from qiskit.qasm import Qasm
 
 
-# TODO: Add docstring
 class OpenQASMParser:
     """
-    This parser just use the Qiskit parser to parse the openqasm string, but the information is more readable.
+    This parser just use the Qiskit parser to parse the openqasm string, but the information is more readable. The parse
+    will have an AST(Abstract Syntax Tree), which makes it easier to manipulate the script parsed.
     """
 
     def __init__(self, openqasm_str: str):
+        """
+        The constructor of the class. The constructor receive a str which is the OpenQASM 2.0 script as a parameter. The
+        constructor create the ast for the class and create the mapping parse functions.
+
+        :param openqasm_str: OpenQASM 2.0 script string
+        :type: str
+        """
         self.openqasm = openqasm_str
 
         self.ast = {
@@ -33,12 +40,40 @@ class OpenQASMParser:
         }
 
     def use_parse(self, key):
+        """
+        A function that return a correct parse function for the key parameter provided
+
+        :param key: key of the parse function
+        :return: a parse function in the parse mapping
+        :rtype: function
+        """
         return self._parse_mapping[key]
 
     def get_register_size(self, reg_name, reg_type):
+        """
+        Get the register size of the register name and register type provided from the AST
+
+        :param reg_name: register name
+        :type reg_name: str
+        :param reg_type: register type (Can only be "qreg" or "creg")
+        :type reg_type: str
+        :return: the size of a register
+        :rtype: int
+        """
         return self.ast["def"][reg_type][reg_name]["size"]
 
     def parse(self):
+        """
+        This function is the main function of the parser. The parser will call the parse() function from qiskit.Qasm
+        class to parse the script to a list of node. Then, from there, the parser will call correct parsing function to
+        parse the correct node in the list from the node type.
+
+        Note: For faster data processing time, I used yield syntax here, which will return the parse info immediately
+        after each node parsed.
+
+        :return: parsed node info
+        :rtype: dict
+        """
         parser = Qasm(data=self.openqasm).parse()
         def_arr = ["qreg", "creg", "gate"]
 
@@ -55,10 +90,21 @@ class OpenQASMParser:
                 self.ast["ops"].append(info)
             yield info
 
-    # TODO: Maybe add parse body, because in the gate body there is a list of statements
+    # TODO: Maybe add parse gate definition body, because in the definition body there is a list of statements
     #  The parser originally is created for visualization purpose, but right now parsing the body of a gate
-    #  doesn't help much. Therefore, in order to save computer resource, I just ignore parsing the body.
+    #  doesn't help much. Therefore, in order to save computer resource, I just ignore parsing the body of the gate
+    #  definition.
     def _parse_gate(self, gate_node):
+        """
+        Helper function that parse the gate node.
+
+        Note: gate node is the node of gate definition.
+
+        :param gate_node: gate node
+        :type gate_node: Qasm.node
+        :return: gate info from the node
+        :rtype: dict
+        """
         gate_info = {
             "type": gate_node.type,
             "name": gate_node.name,
@@ -81,6 +127,14 @@ class OpenQASMParser:
         return gate_info
 
     def _parse_creg(self, creg_node):
+        """
+        Helper function to parse the creg node
+
+        :param creg_node: creg node
+        :type creg_node: Qasm.node
+        :return: creg info
+        :rtype: dict
+        """
         creg_info = {
             "type": creg_node.type,
             "size": creg_node.index,
@@ -89,6 +143,14 @@ class OpenQASMParser:
         return creg_info
 
     def _parse_qreg(self, qreg_node):
+        """
+        Helper function to parse the qreg node
+
+        :param qreg_node: qreg node
+        :type qreg_node: Qasm.node
+        :return: qreg info
+        :rtype: dict
+        """
         qreg_info = {
             "type": qreg_node.type,
             "size": qreg_node.index,
@@ -97,6 +159,14 @@ class OpenQASMParser:
         return qreg_info
 
     def _parse_barrier(self, barrier_node):
+        """
+        Helper function to parse barrier node
+
+        :param barrier_node: barrier node
+        :type barrier_node: Qasm.node
+        :return: barrier info
+        :rtype: dict
+        """
         barrier_info = {"type": barrier_node.type, "qreg": []}
         for node in barrier_node.children:
             for children_node in node.children:
@@ -104,6 +174,14 @@ class OpenQASMParser:
         return barrier_info
 
     def _parse_reset(self, reset_node):
+        """
+        Helper function to parse reset node
+
+        :param reset_node: reset node
+        :type reset_node: Qasm.node
+        :return: reset info
+        :rtype: dict
+        """
         reset_info = {
             "type": reset_node.type,
         }
@@ -114,6 +192,16 @@ class OpenQASMParser:
         return reset_info
 
     def _parse_expression(self, expression_node):
+        """
+        Helper function to parse expression node. Expression node is for the gate with params.
+        Ex: rx(pi/4) q[0];
+        Expression is "pi/4"
+
+        :param expression_node: expression node
+        :type expression_node: Qasm.node
+        :return: expression info
+        :rtype: dict
+        """
         expression_info = {}
         if expression_node.type == "binop":
             for binop_node in expression_node.children:
@@ -128,6 +216,14 @@ class OpenQASMParser:
         return expression_info
 
     def _parse_custom_unitary(self, custom_unitary_node):
+        """
+        Helper function to parse custom unitary node
+
+        :param custom_unitary_node: custom unitary node
+        :type custom_unitary_node: Qasm.node
+        :return: custom unitary info
+        :rtype: dict
+        """
         custom_unitary_info = {
             "type": custom_unitary_node.type,
             "name": custom_unitary_node.name,
@@ -150,6 +246,15 @@ class OpenQASMParser:
         return custom_unitary_info
 
     def _parse_measure(self, measure_node):
+        """
+        Helper function to parse measure node
+
+        :param measure_node: measure node
+        :type measure_node: Qasm.node
+        :return: measure node
+        :rtype: dict
+        """
+
         measure_info = {
             "type": measure_node.type,
         }
@@ -172,6 +277,15 @@ class OpenQASMParser:
         return measure_info
 
     def _parse_cnot(self, cnot_node):
+        """
+        Helper function to parse CX node
+
+        :param cnot_node: CX node
+        :type cnot_node: Qasm.node
+        :return: CX info
+        :rtype: dict
+        """
+
         cnot_info = {
             "type": cnot_node.type,
             "control": {
@@ -186,6 +300,15 @@ class OpenQASMParser:
         return cnot_info
 
     def _parse_if(self, if_node):
+        """
+        Helper function to parse if node (classical control node)
+
+        :param if_node: if node
+        :type if_node: Qasm.node
+        :return: if info
+        :rtype: dict
+        """
+
         if_info = {
             "type": if_node.type,
             "creg": {

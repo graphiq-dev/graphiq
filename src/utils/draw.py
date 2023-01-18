@@ -9,7 +9,27 @@ standard_gate_width_mapping = {
 
 
 class Columns:
+    """
+    This class is used to manage the positions of the operations in the Painter class below. When the Painter
+    class add operations, it will check for empty column and add operation there. This class is also used for manage the
+    width of each column.
+
+    The structure of the Columns class is a 2d array. First, it includes an array of columns since we will have multiple
+    columns on the figure. The size in each column is equal to the number of registers (qreg and creg).
+    """
+
     def __init__(self, col_num: int, size: int = 1):
+        """
+        The Columns class constructor. Initialize a number of columns according to the col_num parameter and each
+        column has the same size specified by the size parameter.
+
+        Also create a col_width variable to maintain the width of each column
+
+        :param col_num: The number of columns
+        :type col_num: int
+        :param size: The size for each column
+        :type size: int
+        """
         self.size = size
         self.columns = []
 
@@ -19,14 +39,41 @@ class Columns:
         self.col_width = [0] * col_num
 
     def add_new_column(self):
+        """
+        Add a column to the columns variable with the same size as other columns
+
+        :return: nothing
+        :rtype: None
+        """
         new_column = [0] * self.size
         self.columns.append(new_column)
         self.col_width.append(0)
 
     def update_col_width(self, index, new_width):
+        """
+        Update the column width of a column. Mostly used when encounter a gate that has bigger width to draw than
+        other gates.
+
+        :param index: index of the column that need to update the width
+        :type index: int
+        :param new_width: new width of the column
+        :type: new_width: int
+        :return: nothing
+        :rtype: None
+        """
+
         self.col_width[index] = max(self.col_width[index], new_width)
 
     def expand_cols(self, size: int = 1):
+        """
+        Expand all columns to a new size. It's used when the Painter add new register.
+
+        :param size: The size that all columns will be expanded
+        :type size: int
+        :return: nothing
+        :rtype: None
+        """
+
         if not self.columns:
             self.columns.append([0] * size)
             self.col_width.append(0)
@@ -36,6 +83,18 @@ class Columns:
         self.size += size
 
     def set_all_col_element(self, index: int, value: int = -1):
+        """
+        Set all the value in every column from first column to the index column. This function is used when add barrier,
+        since after add barriers new operations will be added after the barriers.
+
+        :param index: The index of the column
+        :type index: int
+        :param value: The value that all column value will be set to if current value is not 0
+        :type value: int
+        :return: nothing
+        :rtype: None
+        """
+
         if not isinstance(index, int):
             raise ValueError("Index parameter must be an integer")
         for i in reversed(range(len(self.columns))):
@@ -44,7 +103,19 @@ class Columns:
         return
 
     def find_and_add_to_empty_col(self, from_index: int, to_index: int, value: int = 1):
-        gate_col = 0
+        """
+        Find the column that the operation can be added to. If no column found, add new column at the end and set value
+        to that column.
+
+        :param from_index: The index the operation start from
+        :type from_index: int
+        :param to_index: The index the operation end at
+        :type to_index: int
+        :param value: The value that to be set at the correct column
+        :return: The column that the operation is added to
+        :rtype: int
+        """
+        col = 0
 
         for i, v in enumerate(self.columns):
             gate_pos = v[from_index:to_index]
@@ -52,25 +123,36 @@ class Columns:
             if i == len(self.columns) - 1 and not all(pos == 0 for pos in gate_pos):
                 self.add_new_column()
                 self.columns[i + 1][from_index:to_index] = [value] * len(gate_pos)
-                gate_col = i + 1
+                col = i + 1
                 break
             if all(pos == 0 for pos in gate_pos):
                 self.columns[i][from_index:to_index] = [value] * len(gate_pos)
-                gate_col = i
+                col = i
                 break
 
         to_index = to_index - 1
         if to_index != from_index:
-            for i in reversed(range(gate_col)):
+            for i in reversed(range(col)):
                 if not self.columns[i][from_index]:
                     self.columns[i][from_index] = -1
                 if not self.columns[i][to_index]:
                     self.columns[i][to_index] = -1
-        return gate_col
+        return col
 
 
 class Painter:
+    """
+    The Painter class's main goal is to create the visualization information that will be sent to the web app
+    """
+
     def __init__(self, gate_mapping=None):
+        """
+        Painter class constructor, it can take no argument or gate mapping.
+
+        :param gate_mapping: gate mapping to specify the gate width mapping
+        :type gate_mapping: dict
+        """
+
         self._columns = Columns(col_num=0)
         self.next_reg_position = 50
 
@@ -88,9 +170,30 @@ class Painter:
 
     @staticmethod
     def to_reg_label(reg_name, size):
+        """
+        A function that will generate the register label from register name and size
+
+        :param reg_name: register name
+        :type reg_name: str
+        :param size: the size of the register
+        :type size: int
+        :return: a string that represent the label mapping of the register
+        rtype: str
+        """
         return str(reg_name) + "[" + str(size) + "]"
 
     def _calculate_gate_width(self, gate_name, params):
+        """
+        A helper function that is used to calculate the gate width, since gate width long name or params, when draw will
+        have different width.
+
+        :param gate_name: gate name
+        :type gate_name: str
+        :param params: params of the gate
+        :type params: dict
+        :return: the calculated width of a gate
+        :rtype: int
+        """
         params_str = ""
         if params:
             params_str += "("
@@ -106,6 +209,19 @@ class Painter:
         return width
 
     def add_register(self, reg_name, size, reg_type="qreg"):
+        """
+        A function that add new register to the Painter. The function will create the correct register label to draw on
+        the html figure, with a position mapping to that label.
+
+        :param reg_name: register name
+        :type reg_type: str
+        :param size: size of the register
+        :type size: int
+        :param reg_type: type of the register (can only be "qreg" or "creg")
+        :type reg_type: str
+        :return: nothing
+        :rtype: None
+        """
         if reg_type != "qreg" and reg_type != "creg":
             raise ValueError("Register type must be creg or qreg")
 
@@ -126,10 +242,23 @@ class Painter:
             self.registers_mapping.append(f"{reg_name}[{size}]")
             self._columns.expand_cols(size=1)
 
-    # TODO: Fix and enable multi controls gate, right now multi-controls gate cause some weird drawing
     def add_gate(
         self, gate_name: str, qargs: list, params: dict = None, controls: list = None
     ):
+        """
+        Add a gate to in the Painter class. The function constructs the correct position to draw the gate on the
+        html figure.
+
+        :param gate_name: gate name
+        :type gate_name: str
+        :param qargs: qargs of thge gate
+        :type qargs: list
+        :param params: params of the gate
+        :type params: dict
+        :param controls: gate controls for gate like CX, it will specify where the control at
+        :return: visualization info of the gate
+        rtype: dict
+        """
         if len(qargs) > 1:
             raise ValueError("Gate that act on multi-qargs is not supported yet.")
         # calculate which registers the gate will be on
@@ -160,6 +289,20 @@ class Painter:
         return gate_info
 
     def add_measurement(self, qreg, creg, cbit=0):
+        """
+        Add measurement to the Painter class. The function constructs the correct position for the measurement, the
+        visualization info will include also the creg position to draw correctly on html figure.
+
+        :param qreg: qreg of the measurement
+        :type qreg: str
+        :param creg: creg of the measurement
+        :type creg: str
+        :param cbit: the cbit measure to in the creg
+        :type cbit: int
+        :return: measurement visualization info
+        :rtype: dict
+        """
+
         from_reg = self.registers_mapping.index(qreg)
         to_reg = self.registers_mapping.index(creg) + 1
 
@@ -177,6 +320,14 @@ class Painter:
         return measurement_info
 
     def add_barriers(self, qreg: list):
+        """
+        Add barriers to the Painter class. The function constructs correct positions for the barriers.
+
+        :param qreg: list of qreg
+        :type qreg: list
+        :return: nothing
+        :rtype: None
+        """
         reg_pos = [self.registers_mapping.index(arg) for arg in qreg]
         from_reg = min(reg_pos)
         to_reg = max(reg_pos) + 1
@@ -195,6 +346,16 @@ class Painter:
             self.ops.append(barrier_info)
 
     def add_reset(self, qreg):
+        """
+        Add reset to the Painter class. The function constructs correct position for the reset to draw on the html
+        figure.
+
+        :param qreg: qreg
+        :type qreg: str
+        :return: reset visualization info
+        :rtype: dict
+        """
+
         from_reg = self.registers_mapping.index(qreg)
         to_reg = from_reg + 1
 
@@ -213,6 +374,22 @@ class Painter:
     def add_classical_control(
         self, creg, gate_name: str, qargs: list, params: dict = None
     ):
+        """
+        Add classical control to the Painter class. The function constructs visualization info for classical control
+        operation.
+
+        :param creg: creg
+        :type creg: str
+        :param gate_name: gate name
+        :type gate_name: str
+        :param qargs: qargs of the gate
+        :type qargs: list
+        :param params: params of the gate
+        :type params: dict
+        :return: visualization info of the classical control
+        :rtype: dict
+        """
+
         if len(qargs) > 1:
             raise ValueError(
                 "Multiple qubits gate is not supported in classical control right now"
@@ -244,6 +421,13 @@ class Painter:
         return classical_control_info
 
     def build_visualization_info(self):
+        """
+        The function that construct visualization dict of the circuit including operations info. The function calculate
+        the x coordinate of the operations.
+
+        :return: visualization of the circuit
+        :rtype: dict
+        """
         # calculate x_pos for gates and columns
         start = 100
         cols_mid_point = []
@@ -263,6 +447,12 @@ class Painter:
         return visualization_dict
 
     def draw(self):
+        """
+        The function that send visualization info of the circuit to the web app.
+
+        :return: request response class indicate the status of the request
+        :rtype: requests.Response
+        """
         visualization_info = self.build_visualization_info()
         url = "http://127.0.0.1:5000/circuit_data"
 
@@ -272,6 +462,14 @@ class Painter:
         return result
 
     def load_openqasm_str(self, openqasm_str):
+        """
+        The function translate the OpenQASM 2.0 script to visualization info.
+
+        :param openqasm_str: OpenQASM 2.0 script string
+        :type openqasm_str: str
+        :return: nothing
+        :rtype: None
+        """
         parser = OpenQASMParser(openqasm_str)
         parser.parse()
 

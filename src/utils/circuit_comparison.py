@@ -175,55 +175,22 @@ def ged(circuit1, circuit2, full=True):
 
 
 def circuit_is_isomorphic(circuit1, circuit2):
-    emitter_mapping = {}
-
     def node_match(n1, n2):
         op1 = n1['op']
         op2 = n2['op']
-        op_match = type(op1) == type(op2) and op1.q_registers_type == op2.q_registers_type
+
+        if type(op1) != type(op2) or op1.q_registers_type != op2.q_registers_type:
+            return False
 
         if isinstance(op1, ControlledPairOperationBase):
-            op_match = op_match and op1.control_type == op2.control_type and op1.target_type == op2.target_type
+            if op1.control_type != op2.control_type or op1.target_type != op2.target_type:
+                return False
 
-            if op1.control_type == op2.control_type == 'p':
-                op_match = op_match and op1.control == op2.control
-            if op1.target_type == op2.target_type == 'p':
-                op_match = op_match and op1.target == op2.target
+        if type(op1) == type(op2) == OneQubitGateWrapper:
+            if op1.operations != op2.operations:
+                return False
 
-        return op_match
+        return True
 
-    def edge_match(e1, e2):
-        reg_match = True
+    return is_isomorphic(circuit1.dag, circuit2.dag, node_match=node_match)
 
-        for i in zip(e1, e2):
-            print(i)
-
-        return reg_match
-
-    # def edge_match(e1, e2):
-    #     reg_match = True
-    #
-    #     for i in zip(e1, e2):
-    #         reg1 = e1[i[0]]
-    #         reg2 = e2[i[1]]
-    #
-    #         reg_match = reg1 == reg2 if reg1['reg_type'] == reg2['reg_type'] == 'p' else reg1['reg_type'] == reg2[
-    #             'reg_type']
-    #
-    #         if reg1['reg_type'] == reg2['reg_type'] == 'e':
-    #             t1 = (reg1['reg_type'], reg1['reg'])
-    #             t2 = (reg2['reg_type'], reg2['reg'])
-    #
-    #             if t1 not in emitter_mapping:
-    #                 emitter_mapping[t1] = t2
-    #             if t2 not in emitter_mapping:
-    #                 emitter_mapping[t2] = t1
-    #
-    #             # Check for wrong relabeling:
-    #             print(t1, t2, emitter_mapping)
-    #             if t1 == t2 and emitter_mapping[t1] != t1:
-    #                 reg_match = False
-    #
-    #     return reg_match
-
-    return is_isomorphic(circuit1.dag, circuit2.dag, node_match=node_match, edge_match=edge_match)

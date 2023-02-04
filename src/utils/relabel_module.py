@@ -3,6 +3,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from src.backends.stabilizer.functions.height import height_max
 from itertools import permutations
+from networkx.algorithms import isomorphism
+
 import warnings
 
 
@@ -12,6 +14,7 @@ def iso_finder(
     rel_inc_thresh=0.2,
     allow_exhaustive=True,
     sort_emit=False,
+    label_map=False,
     thresh=None,
     seed=None,
 ):
@@ -29,6 +32,9 @@ def iso_finder(
     :type allow_exhaustive: bool
     :param sort_emit: if True the outcome is sorted by the number of emitters needed to generate each graph
     :type sort_emit: bool
+    :param label_map: if True, the function also returns a list of dictionaries, each representing the label mapping
+     between the original input graph and the one in the returned list.
+    :type label_map: bool
     :param thresh: a threshold value that determines how many random trials is performed in search for new permutations.
     The default is 10 times the number of needed permutations (=n_iso).
     :type thresh: int
@@ -36,8 +42,9 @@ def iso_finder(
     :type seed: int
     :return: An array of adjacency matrices. The length of the array may be less than n_iso since the maximum number of
     isomorphic graphs for the particular input may be reached. Or the function iteration is interrupted due to threshold
-    values.
-    :rtype: numpy.ndarray
+    values. If the label_map is True, function returns a tuple, the first item being the array of adjacency matrices and
+     the second one a list of dictionaries that are label maps between the original and relabeled graphs.
+    :rtype: numpy.ndarray or tuple (numpy.ndarray, list[dict])
     """
     n_node = adj_matrix.shape[0]
     n_max = np.math.factorial(n_node)
@@ -89,6 +96,11 @@ def iso_finder(
             pass
         if sort_emit:
             adj_arr = np.array([x[0] for x in emitter_sorted(adj_arr[:n_iso])])
+        if label_map:
+            mapping = []
+            for new_adj in adj_arr:
+                mapping.append(get_relabel_map(adj_matrix, new_adj))
+            return adj_arr[:n_iso], mapping
         return adj_arr[:n_iso]
 
 
@@ -250,6 +262,28 @@ def automorph_check(adj1, labels_arr):
         remade_adj = np.array(flat_adj)
         adj_list.append(remade_adj.reshape(n_node, n_node))
     return np.array(adj_list)
+
+
+def get_relabel_map(g1, g2):
+    """
+    Finds the map between nodes of g1 and g2 if they are isomorphic.
+    :param g1: networkx graph or adjacency matrix
+    :type g1: nx.Graph or np.ndarray
+    :param g2: networkx graph or adjacency matrix
+    :type g2: nx.Graph or np.ndarray
+    :return: a dictionary mapping each node of g1 to a node of g2. The map may not be unique.
+    :rtype: dict
+    """
+    # g1 and g2 can be adj matrices or nx graphs.
+    if not isinstance(g1, nx.Graph):
+        g1 = nx.from_numpy_array(g1)
+        assert isinstance(g1, nx.Graph)
+    if not isinstance(g2, nx.Graph):
+        g2 = nx.from_numpy_array(g2)
+        assert isinstance(g2, nx.Graph)
+    GM = isomorphism.GraphMatcher(g1, g2)
+    assert GM.is_isomorphic()
+    return GM.mapping
 
 
 def _compare_graphs_visual(G, new_G, new_labels):

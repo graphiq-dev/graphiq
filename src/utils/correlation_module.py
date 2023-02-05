@@ -37,18 +37,17 @@ def rnd_graph(n, p=None, m=None, seed=None, model="erdos"):
     return g
 
 
-def graph_to_state(graph):
+def graph_to_circ(graph, show=False):
+    if not isinstance(graph, nx.Graph):
+        graph = nx.from_numpy_array(graph)
+        assert isinstance(graph, nx.Graph), "input must be a networkx graph object or a numpy adjacency matrix"
     n = graph.number_of_nodes()
     c_tableau = CliffordTableau(n)
     c_tableau.stabilizer_from_labels(converter.graph_to_stabilizer(graph))
     ideal_state = QuantumState(n, c_tableau, representation="stabilizer")
-    return ideal_state
 
-
-def graph_to_depth(graph, show=False):
-    assert isinstance(graph, nx.Graph), "input must be a networkx graph object"
     compiler = StabilizerCompiler()
-    target = graph_to_state(graph)
+    target = ideal_state
     metric = Infidelity(target)
     solver = DeterministicSolver(
         target=target,
@@ -63,7 +62,31 @@ def graph_to_depth(graph, show=False):
             graph, with_labels=True, pos=nx.kamada_kawai_layout(graph), ax=ax1
         )
         circ.draw_circuit(ax=ax2)
+    return circ
+
+
+def graph_to_depth(graph, emit_depth=False, show=False):
+    # returns the longest path in DAG
+    circ = graph_to_circ(graph)
     return circ.depth
+
+
+def graph_to_emit_depth(graph):
+    # returns the maximum depth of an emitter qubit between all emitter qubits
+    assert isinstance(graph, nx.Graph)
+    circ = graph_to_circ(graph)
+    depth = {}
+    for e_i in range(circ.n_emitters):
+        depth[e_i] = len(circ.reg_gate_history(reg=e_i)[1])
+    return max(depth.values())
+
+
+def graph_to_cnot(graph):
+    # returns the number of emitter-emitter cnot gates in the circuit
+    circ = graph_to_circ(graph)
+    cnot_nodes = circ.get_node_by_labels(["Emitter-Emitter", "CNOT"])
+    return len(cnot_nodes)
+
 
 
 # %% initialize
@@ -216,8 +239,18 @@ class Node_corr:
             return dict(graph.degree)
         elif metric == "bet":
             return nx.betweenness_centrality(graph)
+        elif metric == "close":
+            return nx.closeness_centrality(graph)
+        elif metric == "eigen":
+            return nx.eigenvector_centrality(graph)
         elif metric == "nei_deg":
             return nx.average_neighbor_degree(graph)
+        elif metric == "eccentric":
+            return nx.eccentricity(graph)
+        elif metric == "cluster":
+            return nx.clustering(graph)
+        elif metric == "pagerank":
+            return nx.pagerank(graph)
         else:
             raise NotImplementedError(
                 f"Input metric {self.metric} not found. It may not be implemented"
@@ -564,25 +597,31 @@ class Graph_corr:
         """check correlation between the graph and circuit metric values for a set of graphs"""
         graph_met_list = []
         circ_met_list = []
-        for i in range(self.trials):
-            g = rnd_graph(n=kwargs[n], p=kwargs[p], model=graph_type)
-            adj = nx.to_numpy_array(g)
-            graph_value = self._graph_met_value(g)
-            circ_value = self._circ_met_value(g)
-            graph_met_list.append(graph_value)
-            circ_met_list.append(circ_value)
+        if graph_list is None:
+            for i in range(self.trials):
+                g = rnd_graph(n=kwargs[n], p=kwargs[p], model=graph_type)
+                graph_value = self._graph_met_value(g)
+                circ_value = self._circ_met_value(g)
+                graph_met_list.append(graph_value)
+                circ_met_list.append(circ_value)
+        else:
+            for g in graph_list:
+                graph_value = self._graph_met_value(g)
+                circ_value = self._circ_met_value(g)
+                graph_met_list.append(graph_value)
+                circ_met_list.append(circ_value)
         corr, _ = pearsonr(circ_met_list, graph_met_list)
         # average case
-        n_emit, avg_bet, std_bet = avg_maker(circ_met_list, graph_met_list)
-        avg_corr, _ = pearsonr(n_emit, avg_bet)
+        circ_met_uniq, avg_graph_met, std_graph_met = avg_maker(circ_met_list, graph_met_list)
+        avg_corr, _ = pearsonr(circ_met_uniq, avg_graph_met)
         if show_plot:
             fig, (ax1, ax2) = plt.subplots(2, figsize=(15, 25))
             ax1.scatter(circ_met_list, graph_met_list)
-            ax2.plot(n_emit, avg_bet)
+            ax2.plot(circ_met_uniq, avg_graph_met)
             ax2.errorbar(
-                n_emit,
-                avg_bet,
-                yerr=std_bet,
+                circ_met_uniq,
+                avg_graph_met,
+                yerr=std_graph_met,
                 fmt="bo",
                 ecolor="r",
                 capsize=4,
@@ -591,10 +630,7 @@ class Graph_corr:
             )
             plt.show()
         print("correlation=", corr, "avg correlation=", avg_corr)
-        return corr, avg_corr, (n_emit, avg_bet)
-
-    def _met_value(self, g):
-        pass
+        return corr, avg_corr, (circ_met_uniq, avg_graph_met)
 
     def _graph_met_value(self, g):
         if self.graph_metric == "max_between":
@@ -616,6 +652,22 @@ class Graph_corr:
             graph_value = nx.edge_connectivity(g)
         elif self.graph_metric == "assort":
             graph_value = nx.degree_assortativity_coefficient(g)
+        elif self.graph_metric == "radius":
+            graph_value = nx.radius(g)
+        elif self.graph_metric == "diameter":
+            graph_value = nx.diameter(g)
+        elif self.graph_metric == "periphery":
+            # num of nodes with distance equal to diameter
+            graph_value = len(nx.periphery(g))
+        elif self.graph_metric == "center":
+            # num of nodes with distance equal to radius
+            graph_value = len(nx.center(g))
+        elif self.graph_metric == "cluster":
+            graph_value = nx.average_clustering(g)
+        elif self.graph_metric == "local_efficiency":
+            graph_value = nx.local_efficiency(g)
+        elif self.graph_metric == "global_efficiency":
+            graph_value = nx.global_efficiency(g)
         else:
             raise NotImplementedError(
                 f"Graph metric {self.circ_metric} not found. It may not be implemented"
@@ -628,10 +680,14 @@ class Graph_corr:
             circ_value = height_max(graph=g)
         elif self.circ_metric == "depth":
             circ_value = graph_to_depth(graph=g)
-        elif self.circ_metric == "num_cnot":
-            raise NotImplementedError(
-                f"Circuit metric {self.circ_metric} not found. It may not be implemented"
-            )
+        elif self.circ_metric == "max_emit_depth":
+            circ_value = graph_to_emit_depth()
+        elif self.circ_metric == "cnot":
+            circ_value = graph_to_cnot(graph=g)
+        elif self.circ_metric == "cnot_per_photon":
+            circ_value = graph_to_cnot(graph=g)/len([g])
+        elif self.circ_metric == "cnot_per_emitter":
+            circ_value = graph_to_cnot(graph=g)/height_max(graph=g)
         else:
             raise NotImplementedError(
                 f"Circuit metric {self.circ_metric} not found. It may not be implemented"
@@ -647,7 +703,7 @@ class Graph_corr:
 # %%
 # max_bet_min_emit_corr(n, 0.9, n_samples=100, relabel_trials=100)
 # num_emit_vs_n((10, 40), 9, trials=80)
-graph_to_depth(rnd_graph(5, 0.3), show=1)
+graph_to_depth(rnd_graph(5, 0.3))
 
 # %% visual
 # fig, (ax1, ax2) = plt.subplots(2, figsize=(15, 25))
@@ -658,23 +714,21 @@ graph_to_depth(rnd_graph(5, 0.3), show=1)
 
 # %%
 import time
-
+graph = rnd_graph(16, 0.08)
 # get the start time
+
+circ = graph_to_circ(graph)
+
 st = time.time()
-g1 = rnd_graph(100, 0.5)
-map_list = []
-adj1 = nx.to_numpy_array(g1)
-adj_arr = adj_emit_list(adj1, count=1000)[0]
+dd = circ.calculate_reg_depth("e")
 et = time.time()
-for adj in adj_arr:
-    g = nx.from_numpy_array(adj)
-    GM = isomorphism.GraphMatcher(g1, g)
-    GM.is_isomorphic()
-    map_list.append(GM.mapping)
+d={}
+for i in range(circ.n_emitters):
+    d[i] = len(circ.reg_gate_history(reg=i)[1])
 et2 = time.time()
 elapsed_time1 = et - st
 elapsed_time2 = et2 - st
-print(
+print( d ,"\n", dd ,
     "Execution time without and with:",
     elapsed_time1,
     elapsed_time2,

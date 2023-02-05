@@ -1,6 +1,5 @@
 from src.utils.relabel_module import *
 import networkx as nx
-from networkx.algorithms import isomorphism
 import numpy as np
 from benchmarks.graph_states import (
     repeater_graph_states,
@@ -24,7 +23,7 @@ from src.solvers.deterministic_solver import DeterministicSolver
 # TODO: rnd graph generator class to make many graphs of certain types or classes or different random types
 def rnd_graph(n, p=None, m=None, seed=None, model="erdos"):
     # generates random connected graphs
-    if model == "erdos":
+    if model == "erdos" or model is None:
         rnd_maker = nx.gnp_random_graph
         x = p
     elif model == "albert":
@@ -539,7 +538,7 @@ class Graph_corr:
         else:
             raise ValueError("The input trial should be an integer")
         if relabel_trials is None:
-            self._relabel_trials = 1000
+            self._relabel_trials = 1
         elif isinstance(relabel_trials, int):
             self._relabel_trials = relabel_trials
         else:
@@ -599,7 +598,7 @@ class Graph_corr:
         circ_met_list = []
         if graph_list is None:
             for i in range(self.trials):
-                g = rnd_graph(n=kwargs[n], p=kwargs[p], model=graph_type)
+                g = rnd_graph(kwargs['n'], kwargs['p'], model=graph_type)
                 graph_value = self._graph_met_value(g)
                 circ_value = self._circ_met_value(g)
                 graph_met_list.append(graph_value)
@@ -615,9 +614,11 @@ class Graph_corr:
         circ_met_uniq, avg_graph_met, std_graph_met = avg_maker(circ_met_list, graph_met_list)
         avg_corr, _ = pearsonr(circ_met_uniq, avg_graph_met)
         if show_plot:
-            fig, (ax1, ax2) = plt.subplots(2, figsize=(15, 25))
+            fig, (ax1, ax2) = plt.subplots(2, figsize=(15, 15))
             ax1.scatter(circ_met_list, graph_met_list)
             ax2.plot(circ_met_uniq, avg_graph_met)
+            ax2.set_xlabel(f"{self.circ_metric}")
+            ax2.set_ylabel(f"average {self.graph_metric}")
             ax2.errorbar(
                 circ_met_uniq,
                 avg_graph_met,
@@ -625,7 +626,7 @@ class Graph_corr:
                 fmt="bo",
                 ecolor="r",
                 capsize=4,
-                errorevery=4,
+                errorevery=1,
                 capthick=2,
             )
             plt.show()
@@ -638,14 +639,14 @@ class Graph_corr:
             graph_value = max(dict_centrality.values())
         elif self.graph_metric == "mean_between":
             dict_centrality = nx.betweenness_centrality(g)
-            graph_value = np.mean(dict_centrality.values())
+            graph_value = np.mean(list(dict_centrality.values()))
         elif self.graph_metric == "mean_nei_deg":
             # the mean of the "average neighbors degree" over all nodes in graph
             dict_met = nx.average_neighbor_degree(g)
-            graph_value = np.mean(dict_met.values())
+            graph_value = np.mean(list(dict_met.values()))
         elif self.graph_metric == "mean_deg":
             dict_met = dict(g.nodes())
-            graph_value = np.mean(dict_met.values())
+            graph_value = np.mean(list(dict_met.values()))
         elif self.graph_metric == "node_connect":
             graph_value = nx.node_connectivity(g)
         elif self.graph_metric == "edge_connect":
@@ -668,6 +669,12 @@ class Graph_corr:
             graph_value = nx.local_efficiency(g)
         elif self.graph_metric == "global_efficiency":
             graph_value = nx.global_efficiency(g)
+        elif self.graph_metric == "node":
+            graph_value = g.number_of_nodes()
+        elif self.graph_metric == "pop":
+            nodes = g.number_of_nodes()
+            edges = g.size()
+            graph_value = edges/((nodes*(nodes-1))/2)
         else:
             raise NotImplementedError(
                 f"Graph metric {self.circ_metric} not found. It may not be implemented"
@@ -680,8 +687,10 @@ class Graph_corr:
             circ_value = height_max(graph=g)
         elif self.circ_metric == "depth":
             circ_value = graph_to_depth(graph=g)
+        elif self.circ_metric == "num_emit_per_photon":
+            circ_value = height_max(graph=g)/g.number_of_nodes()
         elif self.circ_metric == "max_emit_depth":
-            circ_value = graph_to_emit_depth()
+            circ_value = graph_to_emit_depth(graph=g)
         elif self.circ_metric == "cnot":
             circ_value = graph_to_cnot(graph=g)
         elif self.circ_metric == "cnot_per_photon":

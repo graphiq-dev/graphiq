@@ -87,7 +87,6 @@ def graph_to_cnot(graph):
     return len(cnot_nodes)
 
 
-
 # %% initialize
 m = 16
 # graph = lattice_cluster_state((3, 4)).data
@@ -106,6 +105,7 @@ n = len(g3)
 def adj_emit_list(adj, count=1000):
     # makes a number of isomorphic graphs out of the input one and returns both the adj list and #emitters list both
     # are sorted and there is one to one correspondence between the two lists.
+    n = adj.shape[0]
     iso_count = min(np.math.factorial(n), count)
     arr = iso_finder(adj, iso_count, allow_exhaustive=True)
     li11 = emitter_sorted(arr)
@@ -472,65 +472,18 @@ def depth_dist(n, p, trials=1000, show_plot=False):
 
 
 # %% graph based: max betweenness
-def _max_bet_min_emit(adj, trials=1000):
-    # returns max betweenness and min number of emitters among the limited number of relabeling trials
-    g = nx.from_numpy_array(adj)
-    _, emit_list = adj_emit_list(adj, count=trials)
-    dict_centrality = nx.betweenness_centrality(g)
-    max_bet = max(dict_centrality.values())
-    min_emit = emit_list[0]
-    return max_bet, min_emit
-
-
-def max_bet_min_emit_corr(n, p, n_samples=100, relabel_trials=100, show_plot=False):
-    max_bet_list = []
-    min_emit_list = []
-    for i in range(n_samples):
-        g = rnd_graph(n, p)
-        adj = nx.to_numpy_array(g)
-        max_bet, min_emit = _max_bet_min_emit(adj, trials=relabel_trials)
-        max_bet_list.append(max_bet)
-        min_emit_list.append(min_emit)
-    corr, _ = pearsonr(min_emit_list, max_bet_list)
-    # average case
-    n_emit, avg_bet, std_bet = avg_maker(min_emit_list, max_bet_list)
-    avg_corr, _ = pearsonr(n_emit, avg_bet)
-    if show_plot:
-        fig, (ax1, ax2) = plt.subplots(2, figsize=(15, 25))
-        ax1.scatter(min_emit_list, max_bet_list)
-        ax2.plot(n_emit, avg_bet)
-        ax2.errorbar(
-            n_emit,
-            avg_bet,
-            yerr=std_bet,
-            fmt="bo",
-            ecolor="r",
-            capsize=4,
-            errorevery=4,
-            capthick=2,
-        )
-        plt.show()
-    print("correlation=", corr, "avg correlation=", avg_corr)
-    return corr, avg_corr, (n_emit, avg_bet)
-
-
-def p_of_edge_dependence(n, n_samples=1000, relabel_trials=2):
-    # the max betweenness vs emitter number for different p values
-    for p in range(1, 10):
-        _, _, plot_pair = max_bet_min_emit_corr(
-            n, p / 10, n_samples=n_samples, relabel_trials=relabel_trials
-        )
-        plt.plot(plot_pair[0], plot_pair[1], label=f"p={p / 10}")
-    plt.legend(loc="best")
-    plt.yscale("log")
-    plt.show()
 
 
 # %%
 class Graph_corr:
     def __init__(
-        self, graph_metric=None, circ_metric=None, trials=None, relabel_trials=None
+            self, graph_metric=None, circ_metric=None, initial_graph=None, graph_list=None, trials=None,
+            relabel_trials=None, num_isomorph=1
     ):
+        # if we have an initial graph, correlations are found based on the relabeling of that graph. Otherwise, if a
+        # graph_list is given, metrics are analyzed for those graphs. If neither are present, correlations are found
+        # for random graphs based on n and p provided in the finder method input arguments.
+        self._num_isomorph = num_isomorph
         if trials is None:
             self._trials = 1000
         elif isinstance(trials, int):
@@ -538,7 +491,7 @@ class Graph_corr:
         else:
             raise ValueError("The input trial should be an integer")
         if relabel_trials is None:
-            self._relabel_trials = 1
+            self._relabel_trials = None
         elif isinstance(relabel_trials, int):
             self._relabel_trials = relabel_trials
         else:
@@ -550,11 +503,39 @@ class Graph_corr:
         else:
             raise ValueError("The graph metric should be a valid string")
         if circ_metric is None:
-            self._circ_metric = "emit"
+            self._circ_metric = "num_emit"
         elif isinstance(circ_metric, str):
             self._circ_metric = circ_metric
         else:
             raise ValueError("The circuit metric should be a valid string")
+
+        if initial_graph is None:
+            self.graph_list = graph_list
+            assert isinstance(graph_list[0], nx.Graph), "graph_list must be a list of networkx graphs"
+        else:
+            self._initial_graph = initial_graph
+            assert isinstance(initial_graph, nx.Graph), "initial graph must be a networkx graph object"
+            self.graph_list = self._graph_list_maker(self._initial_graph, count=self._num_isomorph)
+
+    @property
+    def initial_graph(self):
+        return self._initial_graph
+
+    @initial_graph.setter
+    def initial_graph(self, g):
+        assert isinstance(g, nx.Graph), "initial graph must be a networkx graph object"
+        self._initial_graph = g
+        self.graph_list = self._graph_list_maker(self._initial_graph, count=self._num_isomorph)
+
+    @property
+    def num_isomorph(self):
+        return self._num_isomorph
+
+    @num_isomorph.setter
+    def num_isomoprh(self, num):
+        assert isinstance(num, int)
+        self._num_isomorph = num
+        self.graph_list = self._graph_list_maker(self._initial_graph, count=num)
 
     @property
     def relabel_trials(self):
@@ -562,7 +543,7 @@ class Graph_corr:
 
     @relabel_trials.setter
     def relabel_trials(self, trials):
-        assert isinstance(trials, int)
+        assert isinstance(trials, int) or trials is None
         self._relabel_trials = trials
 
     @property
@@ -592,21 +573,21 @@ class Graph_corr:
         assert isinstance(new_met, str)
         self._circ_metric = new_met
 
-    def finder(self, graph_type=None, graph_list=None, show_plot=False, **kwargs):
+    def finder(self, graph_type=None, show_plot=False, **kwargs):
         """check correlation between the graph and circuit metric values for a set of graphs"""
         graph_met_list = []
         circ_met_list = []
-        if graph_list is None:
+        if self.graph_list is None:
             for i in range(self.trials):
                 g = rnd_graph(kwargs['n'], kwargs['p'], model=graph_type)
                 graph_value = self._graph_met_value(g)
-                circ_value = self._circ_met_value(g)
+                circ_value = self._min_circ_met_over_relabel(g)
                 graph_met_list.append(graph_value)
                 circ_met_list.append(circ_value)
         else:
-            for g in graph_list:
+            for g in self.graph_list:
                 graph_value = self._graph_met_value(g)
-                circ_value = self._circ_met_value(g)
+                circ_value = self._min_circ_met_over_relabel(g)
                 graph_met_list.append(graph_value)
                 circ_met_list.append(circ_value)
         corr, _ = pearsonr(circ_met_list, graph_met_list)
@@ -630,8 +611,103 @@ class Graph_corr:
                 capthick=2,
             )
             plt.show()
-        print("correlation=", corr, "avg correlation=", avg_corr)
+            print("correlation=", corr, "avg correlation=", avg_corr)
         return corr, avg_corr, (circ_met_uniq, avg_graph_met)
+
+    def corr_p_dependence(self, n, p_step=0.1):
+        p_list = [x * p_step for x in range(ceil(0.1 / p_step), int(1 / p_step))]
+        for p in p_list:
+            _, _, plot_pair = self.finder(n=n, p=p)
+            plt.plot(plot_pair[0], plot_pair[1], label=f"p={round(p, 2)}")
+        plt.title(f"the {self.graph_metric} - {self.circ_metric} correlation for different p values")
+        plt.legend(loc="best")
+        plt.yscale("log")
+        plt.show()
+
+    def corr_n_dependence(self, p, n_step=10):
+        # number of nodes starting from 5 and going up to at least 100, or possibly 10 times the chosen n_step
+        n_list = [*range(5, max(10 * n_step, 100) + 1, n_step)]
+        for n in n_list:
+            _, _, plot_pair = self.finder(n=n, p=p)
+            plt.plot(plot_pair[0], plot_pair[1], label=f"n={n}")
+        plt.title(f"the {self.graph_metric} - {self.circ_metric} correlation for different n values")
+        plt.legend(loc="best")
+        plt.yscale("log")
+        plt.show()
+
+    def met_distribution(self, n=10, p=0.5, which_met="circ", show_plot=False):
+        met_list = []
+        if self.graph_list is None:
+            for i in range(self.trials):
+                g = rnd_graph(n, p)
+                if which_met == "graph":
+                    met_value = self._graph_met_value(g)
+                elif which_met == "circ":
+                    met_value = self._min_circ_met_over_relabel(g)
+                else:
+                    raise ValueError("Choose between 'graph' or 'circ' options for which_met")
+                met_list.append(met_value)
+        else:
+            for g in self.graph_list:
+                if which_met == "graph":
+                    met_value = self._graph_met_value(g)
+                elif which_met == "circ":
+                    met_value = self._min_circ_met_over_relabel(g)
+                else:
+                    raise ValueError("Choose between 'graph' or 'circ' options for which_met")
+                met_list.append(met_value)
+        met_set = set(met_list)
+        count_percent_list = [(met_list.count(x) / self.trials) * 100 for x in met_set]
+        dist_dict = dict(zip(met_set, count_percent_list))  # {num_emit: its count}
+        avg = np.mean(met_list)
+        std = np.std(met_list)
+        print("mean and standard deviation:", avg, ",", std)
+        if show_plot:
+            fig = plt.figure(figsize=(8, 6), dpi=300)
+            fig.tight_layout()
+            plt.scatter(dist_dict.keys(), dist_dict.values())
+            plt.figtext(
+                0.75,
+                0.70,
+                f"n: {n}\np: {p}\navg: {round(avg, 2)}\nstd: {round(std, 2)}\ntrials: "
+                f"{'{:.0e}'.format(self.trials)}",
+            )
+            if which_met == "circ":
+                plt.title(f"{self.circ_metric} for random graphs")
+                plt.xlabel(f"{self.circ_metric}")
+            else:
+                plt.title(f"{self.graph_metric} for random graphs")
+                plt.xlabel(f"{self.graph_metric}")
+            plt.ylabel("% percentage")
+            plt.xticks(range(min(met_set), max(met_set) + 1))
+            plt.ylim(0, max(count_percent_list) * 1.25)
+            plt.show()
+        return avg, std
+
+    @staticmethod
+    def _graph_list_maker(g, count):
+        # makes a list of relabeled graphs out of the initial one. List size = count
+        adj = nx.to_numpy_array(g)
+        nod = g.number_of_nodes()
+        iso_count = min(np.math.factorial(nod), count)
+        adj_arr = iso_finder(adj, iso_count, allow_exhaustive=True)
+        graph_list = [g]
+        for adj_i in adj_arr:
+            g_i = nx.from_numpy_array(adj_i)
+            graph_list.append(g_i)
+        return graph_list
+
+    def _min_circ_met_over_relabel(self, g):
+        """Find the circuit metric over a number of isomorphic graphs and return the minimum value found."""
+        if self.relabel_trials:
+            circ_value_list = []
+            g_list = self._graph_list_maker(g, count=self.num_isomorph)
+            for g_i in g_list:
+                circ_value_list.append(self._circ_met_value(g_i))
+            circ_value = min(circ_value_list)
+            return circ_value
+        else:
+            return self._circ_met_value(g)
 
     def _graph_met_value(self, g):
         if self.graph_metric == "max_between":
@@ -674,13 +750,16 @@ class Graph_corr:
         elif self.graph_metric == "pop":
             nodes = g.number_of_nodes()
             edges = g.size()
-            graph_value = edges/((nodes*(nodes-1))/2)
+            graph_value = edges / ((nodes * (nodes - 1)) / 2)
         else:
-            raise NotImplementedError(
-                f"Graph metric {self.circ_metric} not found. It may not be implemented"
+            raise ValueError(
+                f"Graph metric {self.graph_metric} not found. It may not be implemented"
             )
 
         return graph_value
+
+    def met_met_plot(self, met1, met2):
+        #TODO
 
     def _circ_met_value(self, g):
         if self.circ_metric == "num_emit":
@@ -688,17 +767,17 @@ class Graph_corr:
         elif self.circ_metric == "depth":
             circ_value = graph_to_depth(graph=g)
         elif self.circ_metric == "num_emit_per_photon":
-            circ_value = height_max(graph=g)/g.number_of_nodes()
+            circ_value = height_max(graph=g) / g.number_of_nodes()
         elif self.circ_metric == "max_emit_depth":
             circ_value = graph_to_emit_depth(graph=g)
         elif self.circ_metric == "cnot":
             circ_value = graph_to_cnot(graph=g)
         elif self.circ_metric == "cnot_per_photon":
-            circ_value = graph_to_cnot(graph=g)/len([g])
+            circ_value = graph_to_cnot(graph=g) / len([g])
         elif self.circ_metric == "cnot_per_emitter":
-            circ_value = graph_to_cnot(graph=g)/height_max(graph=g)
+            circ_value = graph_to_cnot(graph=g) / height_max(graph=g)
         else:
-            raise NotImplementedError(
+            raise ValueError(
                 f"Circuit metric {self.circ_metric} not found. It may not be implemented"
             )
         return circ_value
@@ -712,7 +791,7 @@ class Graph_corr:
 # %%
 # max_bet_min_emit_corr(n, 0.9, n_samples=100, relabel_trials=100)
 # num_emit_vs_n((10, 40), 9, trials=80)
-graph_to_depth(rnd_graph(5, 0.3))
+# graph_to_depth(rnd_graph(5, 0.3))
 
 # %% visual
 # fig, (ax1, ax2) = plt.subplots(2, figsize=(15, 25))
@@ -723,6 +802,7 @@ graph_to_depth(rnd_graph(5, 0.3))
 
 # %%
 import time
+
 graph = rnd_graph(16, 0.08)
 # get the start time
 
@@ -731,17 +811,16 @@ circ = graph_to_circ(graph)
 st = time.time()
 dd = circ.calculate_reg_depth("e")
 et = time.time()
-d={}
+d = {}
 for i in range(circ.n_emitters):
     d[i] = len(circ.reg_gate_history(reg=i)[1])
 et2 = time.time()
 elapsed_time1 = et - st
 elapsed_time2 = et2 - st
-print( d ,"\n", dd ,
-    "Execution time without and with:",
-    elapsed_time1,
-    elapsed_time2,
-    elapsed_time2 / elapsed_time1,
-    "seconds",
-)
-
+print(d, "\n", dd,
+      "Execution time without and with:",
+      elapsed_time1,
+      elapsed_time2,
+      elapsed_time2 / elapsed_time1,
+      "seconds",
+      )

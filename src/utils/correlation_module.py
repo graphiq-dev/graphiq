@@ -39,7 +39,9 @@ def rnd_graph(n, p=None, m=None, seed=None, model="erdos"):
 def graph_to_circ(graph, show=False):
     if not isinstance(graph, nx.Graph):
         graph = nx.from_numpy_array(graph)
-        assert isinstance(graph, nx.Graph), "input must be a networkx graph object or a numpy adjacency matrix"
+        assert isinstance(
+            graph, nx.Graph
+        ), "input must be a networkx graph object or a numpy adjacency matrix"
     n = graph.number_of_nodes()
     c_tableau = CliffordTableau(n)
     c_tableau.stabilizer_from_labels(converter.graph_to_stabilizer(graph))
@@ -99,7 +101,7 @@ g2 = nx.from_numpy_array(g1)
 g3 = nx.convert_node_labels_to_integers(g2)
 adj = nx.to_numpy_array(g3)
 n = len(g3)
-
+gg = repeater_graph_states(8)
 
 # %% Utils
 def adj_emit_list(adj, count=1000):
@@ -488,8 +490,14 @@ def depth_dist(n, p, trials=1000, show_plot=False):
 # %%
 class Graph_corr:
     def __init__(
-            self, graph_metric=None, circ_metric=None, initial_graph=None, graph_list=None, trials=None,
-            relabel_trials=None, num_isomorph=1,
+        self,
+        graph_metric=None,
+        circ_metric=None,
+        initial_graph=None,
+        graph_list=None,
+        trials=None,
+        relabel_trials=None,
+        num_isomorph=1,
     ):
         # if we have an initial graph, correlations are found based on the relabeling of that graph. Otherwise, if a
         # graph_list is given, metrics are analyzed for those graphs. If neither are present, correlations are found
@@ -523,11 +531,17 @@ class Graph_corr:
         if initial_graph is None:
             self.graph_list = graph_list
             if graph_list:
-                assert isinstance(graph_list[0], nx.Graph), "graph_list must be a non-empty list of networkx graphs"
+                assert isinstance(
+                    graph_list[0], nx.Graph
+                ), "graph_list must be a non-empty list of networkx graphs"
         else:
             self._initial_graph = initial_graph
-            assert isinstance(initial_graph, nx.Graph), "initial graph must be a networkx graph object"
-            self.graph_list = self._graph_list_maker(self._initial_graph, count=self._num_isomorph)
+            assert isinstance(
+                initial_graph, nx.Graph
+            ), "initial graph must be a networkx graph object"
+            self.graph_list = self._graph_list_maker(
+                self._initial_graph, count=self._num_isomorph
+            )
 
     @property
     def initial_graph(self):
@@ -535,9 +549,13 @@ class Graph_corr:
 
     @initial_graph.setter
     def initial_graph(self, g):
-        assert isinstance(g, nx.Graph), "initial graph must be a networkx graph object"
+        assert isinstance(g, nx.Graph) or (
+            g is None
+        ), "initial graph must be a networkx graph object"
         self._initial_graph = g
-        self.graph_list = self._graph_list_maker(self._initial_graph, count=self._num_isomorph)
+        self.graph_list = self._graph_list_maker(
+            self._initial_graph, count=self._num_isomorph
+        )
 
     @property
     def num_isomorph(self):
@@ -604,7 +622,7 @@ class Graph_corr:
         circ_met_list = []
         if self.graph_list is None:
             for i in range(self.trials):
-                g = rnd_graph(kwargs['n'], kwargs['p'], model=graph_type)
+                g = rnd_graph(kwargs["n"], kwargs["p"], model=graph_type)
                 graph_value = self._graph_met_value(g)
                 circ_value = self._min_circ_met_over_relabel(g)
                 graph_met_list.append(graph_value)
@@ -617,7 +635,9 @@ class Graph_corr:
                 circ_met_list.append(circ_value)
         corr, _ = pearsonr(circ_met_list, graph_met_list)
         # average case
-        circ_met_uniq, avg_graph_met, std_graph_met = avg_maker(circ_met_list, graph_met_list)
+        circ_met_uniq, avg_graph_met, std_graph_met = avg_maker(
+            circ_met_list, graph_met_list
+        )
         avg_corr, _ = pearsonr(circ_met_uniq, avg_graph_met)
         if show_plot:
             fig, (ax1, ax2) = plt.subplots(2, figsize=(15, 15))
@@ -644,7 +664,9 @@ class Graph_corr:
         for p in p_list:
             _, _, plot_pair = self.finder(n=n, p=p)
             plt.plot(plot_pair[0], plot_pair[1], label=f"p={round(p, 2)}")
-        plt.title(f"the {self.graph_metric} - {self.circ_metric} correlation for different p values")
+        plt.title(
+            f"the {self.graph_metric} - {self.circ_metric} correlation for different p values"
+        )
         plt.legend(loc="best")
         plt.yscale("log")
         plt.show()
@@ -654,20 +676,28 @@ class Graph_corr:
         # if a constant_np is determined, then it is used to adjust p values such that this condition is hold
         n_list = [*range(5, max(10 * n_step, 100) + 1, n_step)]
         if constant_np:
-            assert constant_np > 1, "constant_np must be number larger than 1, equal to intended average degree of " \
-                                    "each node"
-            p_list = [constant_np/n for n in n_list]
-            assert min(p_list)>0.05, "the constant_np is too low to get connected graphs for large graph size"
+            assert constant_np > 1, (
+                "constant_np must be number larger than 1, equal to intended average degree of "
+                "each node"
+            )
+            p_list = [constant_np / n for n in n_list]
+            assert (
+                min(p_list) > 0.05
+            ), "the constant_np is too low to get connected graphs for large graph size"
         for i, n in enumerate(n_list):
             p = p_list[i] if constant_np else p
             _, _, plot_pair = self.finder(n=n, p=p)
             plt.plot(plot_pair[0], plot_pair[1], label=f"n={n}")
-        plt.title(f"the {self.graph_metric} - {self.circ_metric} correlation for different n values")
+        plt.title(
+            f"the {self.graph_metric} - {self.circ_metric} correlation for different n values"
+        )
         plt.legend(loc="best")
         plt.yscale("log")
         plt.show()
 
-    def met_distribution(self, n=10, p=0.5, met="num_emit", hist_bins=False, show_plot=False):
+    def met_distribution(
+        self, n=10, p=0.5, met="num_emit", hist_bins=False, show_plot=False
+    ):
         met_list = []
         if self.graph_list is None:
             for i in range(self.trials):
@@ -736,14 +766,14 @@ class Graph_corr:
         if show_plot:
             fig = plt.figure(figsize=(8, 6), dpi=300)
             fig.tight_layout()
-            plt.scatter(x_data, y_data, s=10*count)
+            plt.scatter(x_data, y_data, s=10 * count)
             plt.figtext(
                 0.75,
                 0.70,
                 f"trials:{'{:.0e}'.format(sum(count))}",
             )
 
-            plt.title(f"{met2}vs{met1} for a sample of graphs")
+            plt.title(f"{met2} vs. {met1} for a sample of graphs")
             plt.xlabel(f"{met1}")
             plt.ylabel(f"{met2}")
             plt.xticks(range(min(x_data), max(x_data) + 1))
@@ -762,7 +792,9 @@ class Graph_corr:
                 self.circ_metric = met
                 met_value = self._min_circ_met_over_relabel(graph)
             except:
-                raise ValueError("Metric not found. The indicated metric should be a valid graph or circuit metric")
+                raise ValueError(
+                    "Metric not found. The indicated metric should be a valid graph or circuit metric"
+                )
         self.graph_metric = met_tuple[0]
         self.circ_metric = met_tuple[1]
         return met_value
@@ -884,10 +916,13 @@ for i in range(circ.n_emitters):
 et2 = time.time()
 elapsed_time1 = et - st
 elapsed_time2 = et2 - st
-print(d, "\n", dd,
-      "Execution time without and with:",
-      elapsed_time1,
-      elapsed_time2,
-      elapsed_time2 / elapsed_time1,
-      "seconds",
-      )
+print(
+    d,
+    "\n",
+    dd,
+    "Execution time without and with:",
+    elapsed_time1,
+    elapsed_time2,
+    elapsed_time2 / elapsed_time1,
+    "seconds",
+)

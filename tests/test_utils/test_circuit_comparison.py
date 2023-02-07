@@ -103,6 +103,25 @@ def test_circuit_is_isomorphic_5():
 
 
 def test_circuit_is_isomorphic_6():
+    # Same dag but different control target on node
+    circuit_1 = CircuitDAG(n_emitter=2, n_photon=1, n_classical=0)
+    circuit_1.add(Hadamard(register=0, reg_type="e"))
+    circuit_1.add(Hadamard(register=1, reg_type="e"))
+    circuit_1.add(CNOT(control=0, control_type="e", target=0, target_type="p"))
+    circuit_1.add(CNOT(control=0, control_type="e", target=1, target_type="e"))
+    circuit_1.add(CNOT(control=1, control_type="e", target=1, target_type="p"))
+
+    circuit_2 = CircuitDAG(n_emitter=2, n_photon=1, n_classical=0)
+    circuit_2.add(Hadamard(register=0, reg_type="e"))
+    circuit_2.add(Hadamard(register=1, reg_type="e"))
+    circuit_2.add(CNOT(control=0, control_type="e", target=0, target_type="p"))
+    circuit_2.add(CNOT(control=1, control_type="e", target=0, target_type="e"))
+    circuit_2.add(CNOT(control=1, control_type="e", target=1, target_type="p"))
+
+    assert not circuit_is_isomorphic(circuit_1, circuit_2)
+
+
+def test_circuit_is_isomorphic_7():
     # swap e0 -> e1, e1 -> e2
     circuit_1 = CircuitDAG(n_emitter=3, n_photon=3, n_classical=0)
     circuit_1.add(Hadamard(register=0, reg_type="e"))
@@ -125,3 +144,29 @@ def test_circuit_is_isomorphic_6():
     circuit_2.add(CNOT(control=0, control_type="e", target=2, target_type="p"))
 
     assert circuit_is_isomorphic(circuit_1, circuit_2)
+
+
+def test_circuit_is_isomorphic_8():
+    # swap e0 -> e1, e1 -> e2
+    # Same dag but different control target on node
+    circuit_1 = CircuitDAG(n_emitter=3, n_photon=3, n_classical=0)
+    circuit_1.add(Hadamard(register=0, reg_type="e"))
+    circuit_1.add(Hadamard(register=1, reg_type="e"))
+    circuit_1.add(Hadamard(register=2, reg_type="e"))
+    circuit_1.add(CNOT(control=0, control_type="e", target=0, target_type="p"))
+    circuit_1.add(CNOT(control=0, control_type="e", target=1, target_type="e"))
+    circuit_1.add(CNOT(control=1, control_type="e", target=1, target_type="p"))
+    circuit_1.add(CNOT(control=1, control_type="e", target=2, target_type="e"))
+    circuit_1.add(CNOT(control=2, control_type="e", target=2, target_type="p"))
+
+    circuit_2 = CircuitDAG(n_emitter=3, n_photon=3, n_classical=0)
+    circuit_2.add(Hadamard(register=0, reg_type="e"))
+    circuit_2.add(Hadamard(register=1, reg_type="e"))
+    circuit_2.add(Hadamard(register=2, reg_type="e"))
+    circuit_2.add(CNOT(control=1, control_type="e", target=0, target_type="p"))
+    circuit_2.add(CNOT(control=2, control_type="e", target=1, target_type="e"))
+    circuit_2.add(CNOT(control=2, control_type="e", target=1, target_type="p"))
+    circuit_2.add(CNOT(control=2, control_type="e", target=0, target_type="e"))
+    circuit_2.add(CNOT(control=0, control_type="e", target=2, target_type="p"))
+
+    assert not circuit_is_isomorphic(circuit_1, circuit_2)

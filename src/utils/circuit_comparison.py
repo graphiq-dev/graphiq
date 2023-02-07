@@ -175,6 +175,9 @@ def ged(circuit1, circuit2, full=True):
 
 
 def circuit_is_isomorphic(circuit1, circuit2):
+    add_control_target_to_dag(circuit1)
+    add_control_target_to_dag(circuit2)
+
     def node_match(n1, n2):
         op1 = n1["op"]
         op2 = n2["op"]
@@ -218,12 +221,13 @@ def _create_edge_control_target_attr(operation, reg_type, reg):
         return ""
 
 
-def add_control_target_to_dag(circuit):
-    def edge_from_reg(t_edges, t_register):
-        for e in t_edges:
-            if e[-1] == t_register:
-                return e
+def edge_from_reg(t_edges, t_register):
+    for e in t_edges:
+        if e[-1] == t_register:
+            return e
 
+
+def add_control_target_to_dag(circuit):
     for node in circuit.node_dict["Input"]:
         op = circuit.dag.nodes[node]["op"]
         reg_type = op.reg_type
@@ -238,10 +242,12 @@ def add_control_target_to_dag(circuit):
             op = circuit.dag.nodes[next_node]["op"]
             control_target = _create_edge_control_target_attr(op, reg_type, register)
             circuit.dag[node][next_node][label]["control_target"] = control_target
-            print(circuit.dag[node][next_node])
 
             node = next_node
             out_edges = circuit.dag.out_edges(nbunch=node, keys=True)
             edge = edge_from_reg(out_edges, f"{reg_type}{register}")
             next_node = edge[1]
             label = edge[2]
+
+        control_target = _create_edge_control_target_attr(op, reg_type, register)
+        circuit.dag[node][next_node][label]["control_target"] = control_target

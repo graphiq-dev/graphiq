@@ -832,16 +832,6 @@ class CircuitDAG(CircuitBase):
 
         return set.union(set([first_edge]), set(ancestor_edges), set(descendant_edges))
 
-    @staticmethod
-    def _get_edge_control_target_attr(operation, reg_type, reg):
-        if isinstance(operation, ops.ControlledPairOperationBase):
-            if reg_type == operation.control_type and reg == operation.control:
-                return "c"
-            else:
-                return "t"
-        else:
-            return ""
-
     def _add_node(self, node_id, operation: ops.OperationBase):
         """
         Helper function for adding a node to the DAG representation
@@ -894,7 +884,7 @@ class CircuitDAG(CircuitBase):
         self._node_dict_remove(operation.parse_q_reg_types(), node)
         self.dag.remove_node(node)
 
-    def _add_edge(self, in_node, out_node, label, reg_type, reg, control_target=""):
+    def _add_edge(self, in_node, out_node, label, reg_type, reg):
         """
         Helper function for adding an edge in the DAG representation
         :param in_node: the incoming node
@@ -916,7 +906,6 @@ class CircuitDAG(CircuitBase):
             key=label,
             reg_type=reg_type,
             reg=reg,
-            control_target=control_target,
         )
         self._edge_dict_append(reg_type, (in_node, out_node, label))
 
@@ -1373,7 +1362,6 @@ class CircuitDAG(CircuitBase):
                 key=f"{reg_type}{register}",
                 reg=register,
                 reg_type=reg_type,
-                control_target="",
             )
             self._edge_dict_append(
                 reg_type,
@@ -1410,9 +1398,6 @@ class CircuitDAG(CircuitBase):
                 # Add edge from preceding node to the new operation node
                 reg_type = self.dag.edges[edge]["reg_type"]
                 reg = self.dag.edges[edge]["reg"]
-                control_target = self._get_edge_control_target_attr(
-                    operation, reg_type, reg
-                )
 
                 self._add_edge(
                     edge[0],
@@ -1420,7 +1405,6 @@ class CircuitDAG(CircuitBase):
                     edge[2],
                     reg=reg,
                     reg_type=reg_type,
-                    control_target=control_target,
                 )
                 self._add_edge(
                     new_id,
@@ -1428,7 +1412,6 @@ class CircuitDAG(CircuitBase):
                     edge[2],
                     reg=reg,
                     reg_type=reg_type,
-                    control_target=control_target,
                 )
 
                 self._remove_edge(edge)  # remove the unnecessary edges
@@ -1453,9 +1436,6 @@ class CircuitDAG(CircuitBase):
         for reg_edge in reg_edges:
             reg = self.dag.edges[reg_edge]["reg"]
             reg_type = self.dag.edges[reg_edge]["reg_type"]
-            control_target = self._get_edge_control_target_attr(
-                operation, reg_type, reg
-            )
             label = reg_edge[2]
 
             self._add_edge(
@@ -1464,7 +1444,6 @@ class CircuitDAG(CircuitBase):
                 label,
                 reg_type=reg_type,
                 reg=reg,
-                control_target=control_target,
             )
             self._add_edge(
                 new_id,
@@ -1472,7 +1451,6 @@ class CircuitDAG(CircuitBase):
                 label,
                 reg_type=reg_type,
                 reg=reg,
-                control_target=control_target,
             )
             self._remove_edge(reg_edge)  # remove the edge
 

@@ -176,14 +176,17 @@ def ged(circuit1, circuit2, full=True):
 
 def circuit_is_isomorphic(circuit1, circuit2):
     def node_match(n1, n2):
-        op1 = n1['op']
-        op2 = n2['op']
+        op1 = n1["op"]
+        op2 = n2["op"]
 
         if type(op1) != type(op2) or op1.q_registers_type != op2.q_registers_type:
             return False
 
         if isinstance(op1, ControlledPairOperationBase):
-            if op1.control_type != op2.control_type or op1.target_type != op2.target_type:
+            if (
+                op1.control_type != op2.control_type
+                or op1.target_type != op2.target_type
+            ):
                 return False
 
         if type(op1) == type(op2) == OneQubitGateWrapper:
@@ -192,5 +195,53 @@ def circuit_is_isomorphic(circuit1, circuit2):
 
         return True
 
-    return is_isomorphic(circuit1.dag, circuit2.dag, node_match=node_match)
+    def edge_match(e1, e2):
+        val1 = next(iter(e1))
+        val2 = next(iter(e2))
 
+        if e1[val1]["control_target"] != e2[val2]["control_target"]:
+            return False
+        return True
+
+    return is_isomorphic(
+        circuit1.dag, circuit2.dag, node_match=node_match, edge_match=edge_match
+    )
+
+
+def _create_edge_control_target_attr(operation, reg_type, reg):
+    if isinstance(operation, ControlledPairOperationBase):
+        if reg_type == operation.control_type and reg == operation.control:
+            return "c"
+        else:
+            return "t"
+    else:
+        return ""
+
+
+def add_control_target_to_dag(circuit):
+    def edge_from_reg(t_edges, t_register):
+        for e in t_edges:
+            if e[-1] == t_register:
+                return e
+
+    for node in circuit.node_dict["Input"]:
+        op = circuit.dag.nodes[node]["op"]
+        reg_type = op.reg_type
+        register = op.register
+
+        out_edges = circuit.dag.out_edges(nbunch=node, keys=True)
+        edge = edge_from_reg(out_edges, f"{reg_type}{register}")
+        next_node = edge[1]
+        label = edge[2]
+
+        while next_node not in circuit.node_dict["Output"]:
+            op = circuit.dag.nodes[next_node]["op"]
+            control_target = _create_edge_control_target_attr(op, reg_type, register)
+            circuit.dag[node][next_node][label]["control_target"] = control_target
+            print(circuit.dag[node][next_node])
+
+            node = next_node
+            out_edges = circuit.dag.out_edges(nbunch=node, keys=True)
+            edge = edge_from_reg(out_edges, f"{reg_type}{register}")
+            next_node = edge[1]
+            label = edge[2]

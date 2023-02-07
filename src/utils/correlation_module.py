@@ -115,7 +115,7 @@ def adj_emit_list(adj, count=1000):
 
 
 def avg_maker(x_data, y_data):
-    # for all similar items in data1 find the average of corresponding values in data2.
+    # for all similar items in x_data find the average of corresponding values in y_data.
     data_dict = (
         {}
     )  # key is item in data1 and value is tuple (avg_so_far, count_of_items) from data2
@@ -137,6 +137,17 @@ def avg_maker(x_data, y_data):
         y_data_avg.append(np.mean(item[1]))
         y_data_std.append(np.std(item[1]))
     return x_data_uniq, y_data_avg, y_data_std
+
+
+def _rep_counter(x_data, y_data):
+    # repetition counter. Repetition count of each point (x, y) for x in x_data and y in y_data.
+    assert len(x_data) == len(y_data), "two data sets must be of same size"
+    xy_list = [(x_data[i], y_data[i]) for i in range(len(x_data))]
+    xy_set = set(xy_list)
+    count_array = np.array([xy_list.count(xy) for xy in xy_set])
+    x_list = [xy[0] for xy in xy_set]
+    y_list = [xy[1] for xy in xy_set]
+    return x_list, y_list, count_array
 
 
 # %% node based
@@ -478,7 +489,7 @@ def depth_dist(n, p, trials=1000, show_plot=False):
 class Graph_corr:
     def __init__(
             self, graph_metric=None, circ_metric=None, initial_graph=None, graph_list=None, trials=None,
-            relabel_trials=None, num_isomorph=1
+            relabel_trials=None, num_isomorph=1,
     ):
         # if we have an initial graph, correlations are found based on the relabeling of that graph. Otherwise, if a
         # graph_list is given, metrics are analyzed for those graphs. If neither are present, correlations are found
@@ -511,7 +522,8 @@ class Graph_corr:
 
         if initial_graph is None:
             self.graph_list = graph_list
-            assert isinstance(graph_list[0], nx.Graph), "graph_list must be a list of networkx graphs"
+            if graph_list:
+                assert isinstance(graph_list[0], nx.Graph), "graph_list must be a non-empty list of networkx graphs"
         else:
             self._initial_graph = initial_graph
             assert isinstance(initial_graph, nx.Graph), "initial graph must be a networkx graph object"
@@ -532,7 +544,7 @@ class Graph_corr:
         return self._num_isomorph
 
     @num_isomorph.setter
-    def num_isomoprh(self, num):
+    def num_isomorph(self, num):
         assert isinstance(num, int)
         self._num_isomorph = num
         self.graph_list = self._graph_list_maker(self._initial_graph, count=num)
@@ -572,6 +584,19 @@ class Graph_corr:
     def circ_metric(self, new_met):
         assert isinstance(new_met, str)
         self._circ_metric = new_met
+
+    @staticmethod
+    def _graph_list_maker(g, count):
+        # makes a list of relabeled graphs out of the initial one. List size = count
+        adj = nx.to_numpy_array(g)
+        nod = g.number_of_nodes()
+        iso_count = min(np.math.factorial(nod), count)
+        adj_arr = iso_finder(adj, iso_count, allow_exhaustive=True)
+        graph_list = [g]
+        for adj_i in adj_arr:
+            g_i = nx.from_numpy_array(adj_i)
+            graph_list.append(g_i)
+        return graph_list
 
     def finder(self, graph_type=None, show_plot=False, **kwargs):
         """check correlation between the graph and circuit metric values for a set of graphs"""
@@ -624,10 +649,17 @@ class Graph_corr:
         plt.yscale("log")
         plt.show()
 
-    def corr_n_dependence(self, p, n_step=10):
+    def corr_n_dependence(self, p, n_step=10, constant_np=None):
         # number of nodes starting from 5 and going up to at least 100, or possibly 10 times the chosen n_step
+        # if a constant_np is determined, then it is used to adjust p values such that this condition is hold
         n_list = [*range(5, max(10 * n_step, 100) + 1, n_step)]
-        for n in n_list:
+        if constant_np:
+            assert constant_np > 1, "constant_np must be number larger than 1, equal to intended average degree of " \
+                                    "each node"
+            p_list = [constant_np/n for n in n_list]
+            assert min(p_list)>0.05, "the constant_np is too low to get connected graphs for large graph size"
+        for i, n in enumerate(n_list):
+            p = p_list[i] if constant_np else p
             _, _, plot_pair = self.finder(n=n, p=p)
             plt.plot(plot_pair[0], plot_pair[1], label=f"n={n}")
         plt.title(f"the {self.graph_metric} - {self.circ_metric} correlation for different n values")
@@ -635,26 +667,16 @@ class Graph_corr:
         plt.yscale("log")
         plt.show()
 
-    def met_distribution(self, n=10, p=0.5, which_met="circ", show_plot=False):
+    def met_distribution(self, n=10, p=0.5, met="num_emit", hist_bins=False, show_plot=False):
         met_list = []
         if self.graph_list is None:
             for i in range(self.trials):
                 g = rnd_graph(n, p)
-                if which_met == "graph":
-                    met_value = self._graph_met_value(g)
-                elif which_met == "circ":
-                    met_value = self._min_circ_met_over_relabel(g)
-                else:
-                    raise ValueError("Choose between 'graph' or 'circ' options for which_met")
+                met_value = self._determine_met_value(met, g)
                 met_list.append(met_value)
         else:
             for g in self.graph_list:
-                if which_met == "graph":
-                    met_value = self._graph_met_value(g)
-                elif which_met == "circ":
-                    met_value = self._min_circ_met_over_relabel(g)
-                else:
-                    raise ValueError("Choose between 'graph' or 'circ' options for which_met")
+                met_value = self._determine_met_value(met, g)
                 met_list.append(met_value)
         met_set = set(met_list)
         count_percent_list = [(met_list.count(x) / self.trials) * 100 for x in met_set]
@@ -665,37 +687,85 @@ class Graph_corr:
         if show_plot:
             fig = plt.figure(figsize=(8, 6), dpi=300)
             fig.tight_layout()
-            plt.scatter(dist_dict.keys(), dist_dict.values())
-            plt.figtext(
-                0.75,
-                0.70,
-                f"n: {n}\np: {p}\navg: {round(avg, 2)}\nstd: {round(std, 2)}\ntrials: "
-                f"{'{:.0e}'.format(self.trials)}",
-            )
-            if which_met == "circ":
-                plt.title(f"{self.circ_metric} for random graphs")
-                plt.xlabel(f"{self.circ_metric}")
+            if not hist_bins:
+
+                plt.scatter(dist_dict.keys(), dist_dict.values())
+                if self.graph_list is None:
+                    plt.figtext(
+                        0.75,
+                        0.70,
+                        f"n: {n}\np: {p}\navg: {round(avg, 2)}\nstd: {round(std, 2)}\ntrials: "
+                        f"{'{:.0e}'.format(self.trials)}",
+                    )
+                else:
+                    plt.figtext(
+                        0.75,
+                        0.70,
+                        f"avg: {round(avg, 2)}\nstd: {round(std, 2)}\ntrials: "
+                        f"{'{:.0e}'.format(self.trials)}",
+                    )
+                plt.ylim(0, max(count_percent_list) * 1.25)
+                plt.xticks(range(min(met_set), max(met_set) + 1))
+                plt.ylabel("percentage")
             else:
-                plt.title(f"{self.graph_metric} for random graphs")
-                plt.xlabel(f"{self.graph_metric}")
-            plt.ylabel("% percentage")
-            plt.xticks(range(min(met_set), max(met_set) + 1))
-            plt.ylim(0, max(count_percent_list) * 1.25)
+                plt.hist(met_list, density=True, bins=hist_bins)
+                plt.ylabel("probability density")
+
+            plt.title(f"{met} for a sample of graphs")
+            plt.xlabel(f"{met}")
             plt.show()
         return avg, std
 
-    @staticmethod
-    def _graph_list_maker(g, count):
-        # makes a list of relabeled graphs out of the initial one. List size = count
-        adj = nx.to_numpy_array(g)
-        nod = g.number_of_nodes()
-        iso_count = min(np.math.factorial(nod), count)
-        adj_arr = iso_finder(adj, iso_count, allow_exhaustive=True)
-        graph_list = [g]
-        for adj_i in adj_arr:
-            g_i = nx.from_numpy_array(adj_i)
-            graph_list.append(g_i)
-        return graph_list
+    def met_met(self, met1, met2, n=10, p=0.5, show_plot=True):
+        met1_list = []
+        met2_list = []
+        if self.graph_list is None:
+            for i in range(self.trials):
+                g = rnd_graph(n, p)
+                met1_value = self._determine_met_value(met1, g)
+                met2_value = self._determine_met_value(met2, g)
+                met1_list.append(met1_value)
+                met2_list.append(met2_value)
+        else:
+            for g in self.graph_list:
+                met1_value = self._determine_met_value(met1, g)
+                met2_value = self._determine_met_value(met2, g)
+                met1_list.append(met1_value)
+                met2_list.append(met2_value)
+        x_data, y_data, count = _rep_counter(met1_list, met2_list)
+        if show_plot:
+            fig = plt.figure(figsize=(8, 6), dpi=300)
+            fig.tight_layout()
+            plt.scatter(x_data, y_data, s=10*count)
+            plt.figtext(
+                0.75,
+                0.70,
+                f"trials:{'{:.0e}'.format(sum(count))}",
+            )
+
+            plt.title(f"{met2}vs{met1} for a sample of graphs")
+            plt.xlabel(f"{met1}")
+            plt.ylabel(f"{met2}")
+            plt.xticks(range(min(x_data), max(x_data) + 1))
+            plt.ylim(min(y_data), max(y_data) * 1.25)
+            plt.show()
+        return x_data, y_data, count
+
+    def _determine_met_value(self, met, graph):
+        # evaluates met not knowing whether it is a graph_met or circ_met
+        met_tuple = (self.graph_metric, self.circ_metric)
+        try:
+            self.graph_metric = met
+            met_value = self._graph_met_value(graph)
+        except:
+            try:
+                self.circ_metric = met
+                met_value = self._min_circ_met_over_relabel(graph)
+            except:
+                raise ValueError("Metric not found. The indicated metric should be a valid graph or circuit metric")
+        self.graph_metric = met_tuple[0]
+        self.circ_metric = met_tuple[1]
+        return met_value
 
     def _min_circ_met_over_relabel(self, g):
         """Find the circuit metric over a number of isomorphic graphs and return the minimum value found."""
@@ -757,9 +827,6 @@ class Graph_corr:
             )
 
         return graph_value
-
-    def met_met_plot(self, met1, met2):
-        #TODO
 
     def _circ_met_value(self, g):
         if self.circ_metric == "num_emit":

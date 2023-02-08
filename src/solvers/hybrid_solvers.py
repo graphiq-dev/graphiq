@@ -219,19 +219,27 @@ class HybridGraphSearchSolver(SolverBase):
         compiler: CompilerBase,
         circuit: CircuitDAG = None,
         io: IO = None,
-        solver_setting=HybridGraphSearchSolverSetting(),
+        graph_solver_setting=None,
         noise_model_mapping=None,
         base_solver=HybridEvolutionarySolver,
+        base_solver_setting=EvolutionarySearchSolverSetting(),
         *args,
         **kwargs,
     ):
+        if graph_solver_setting is None:
+            graph_solver_setting = HybridGraphSearchSolverSetting(
+                base_solver_setting,
+                1,
+                1,
+                pre.graph_metric_lists[0],
+            )
         super().__init__(
             target=target,
             metric=metric,
             compiler=compiler,
             circuit=circuit,
             io=io,
-            solver_setting=solver_setting,
+            solver_setting=graph_solver_setting,
             *args,
             **kwargs,
         )
@@ -243,7 +251,7 @@ class HybridGraphSearchSolver(SolverBase):
         :return:
         :rtype:
         """
-
+        circuit_list = []
         # construct the adjacent matrix from the user-input target graph state
         target_graph = stabilizer_to_graph(
             self.target.stabilizer.tableau.stabilizer_to_labels()
@@ -279,9 +287,7 @@ class HybridGraphSearchSolver(SolverBase):
 
             for graph in lc_graphs:
                 # solve the noise-free scenario
-                tableau = get_clifford_tableau_from_graph(
-                    nx.from_numpy_array(each_graph)
-                )
+                tableau = get_clifford_tableau_from_graph(nx.from_numpy_array(graph))
                 lc_stabilizer = Stabilizer(tableau)
                 solver_target_state = QuantumState(
                     n_qubits, lc_stabilizer, "stabilizer"
@@ -302,13 +308,32 @@ class HybridGraphSearchSolver(SolverBase):
 
                 # store score and circuit for further analysis
                 # code for storing the necessary information
+                circuit_list.append(circuit)
 
             # code for circuit equivalency check
+            # TODO: fill in the code
 
             # code to run each circuit in the noisy scenario and evaluate the cost function
+            self.circuit_evaluation(circuit_list, self.metric)
 
     def circuit_evaluation(self, circuit_list, metric):
-        pass
+        # TODO: finish the implementation of this function
+        self.compiler.noise_simulation = self.noise_simulation
+        score_list = []
+        for circuit in circuit_list:
+            compiled_state = self.compiler.compile(circuit)
+            # trace out emitter qubits
+            compiled_state.partial_trace(
+                keep=list(range(self.n_photon)),
+                dims=(self.n_photon + self.n_emitter) * [2],
+            )
+            # evaluate the metric
+            score = metric.evaluate(compiled_state, circuit)
+            score_list.append(score)
+
+        index_list = np.argsort(score_list)
+        sorted_circuit_list = [circuit_list[index] for index in index_list]
+        return sorted_circuit_list
 
     """
     Code that seems duplicate from deterministic solver with minor modifications

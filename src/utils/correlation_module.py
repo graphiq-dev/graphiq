@@ -1,6 +1,7 @@
 from src.utils.relabel_module import *
 import networkx as nx
 import numpy as np
+import random
 from benchmarks.graph_states import (
     repeater_graph_states,
     star_graph_state,
@@ -103,6 +104,7 @@ adj = nx.to_numpy_array(g3)
 n = len(g3)
 gg = repeater_graph_states(8)
 
+
 # %% Utils
 def adj_emit_list(adj, count=1000):
     # makes a number of isomorphic graphs out of the input one and returns both the adj list and #emitters list both
@@ -114,6 +116,15 @@ def adj_emit_list(adj, count=1000):
     emit_list = [x[1] for x in li11]
     adj_list = [x[0] for x in li11]
     return adj_list, emit_list
+
+
+def adj_met_list(adj, circ_met="num_emit", count=1000):
+    # TODO: implement this for arbitrary metrics other than num_emit
+    adj_list = []
+    met_list = []
+    if circ_met == "num_emit":
+        adj_list, met_list = adj_emit_list(adj, count=count)
+    return adj_list, met_list
 
 
 def avg_maker(x_data, y_data):
@@ -157,7 +168,7 @@ def _rep_counter(x_data, y_data):
 
 
 class Node_corr:
-    def __init__(self, graph, relabel_trials=None, metric=None):
+    def __init__(self, graph, relabel_trials=None, metric=None, circ_met="num_emit"):
         if isinstance(graph, nx.Graph):
             self._graph = graph
             self._adj = nx.to_numpy_array(graph)
@@ -180,10 +191,27 @@ class Node_corr:
             self._metric = metric
         else:
             raise ValueError("The metric should be a valid string")
+        self._circ_met = circ_met
+        self.adj_list, self.met_list = adj_met_list(self._adj, circ_met=self._circ_met, count=self._relabel_trials)
 
     @property
     def graph(self):
         return self._graph
+
+    @graph.setter
+    def graph(self, g):
+        assert isinstance(g, nx.Graph)
+        self._graph = g
+        self.adj_list, self.met_list = adj_met_list(self._adj, circ_met=self._circ_met, count=self._relabel_trials)
+
+    @property
+    def circ_met(self):
+        return self._circ_met
+
+    @circ_met.setter
+    def circ_met(self, met):
+        self._circ_met = met
+        self.adj_list, self.met_list = adj_met_list(self._adj, circ_met=self._circ_met, count=self._relabel_trials)
 
     @property
     def adj(self):
@@ -197,6 +225,7 @@ class Node_corr:
     def relabel_trials(self, trials):
         assert isinstance(trials, int)
         self._relabel_trials = trials
+        self.adj_list, self.met_list = adj_met_list(self._adj, circ_met=self._circ_met, count=self._relabel_trials)
 
     @property
     def metric(self):
@@ -208,36 +237,86 @@ class Node_corr:
         self._metric = new_met
 
     def order_corr(self):
-        adj_list, emit_list = adj_emit_list(self.adj, count=self.relabel_trials)
+        adj_list, circ_met_list = self.adj_list, self.met_list
         data1 = [*range(self.adj.shape[0])]
         pear_corr_list = []
         for new_adj in adj_list:
             new_g = nx.from_numpy_array(new_adj)
-            # dict_centrality = nx.betweenness_centrality(new_g)
-            dict_centrality = self.metric_node_dict(new_g)
-            data2 = [dict_centrality[x] for x in data1]
+            node_met_dict = self.metric_node_dict(new_g)
+            data2 = [node_met_dict[x] for x in data1]
             # calculate Pearson's correlation
             corr, _ = pearsonr(data1, data2)
             pear_corr_list.append(abs(corr))
-        overall_corr, _ = pearsonr(emit_list, pear_corr_list)
+        overall_corr, _ = pearsonr(circ_met_list, pear_corr_list)
         print("correlation:", overall_corr)
         # retry with average values over all cases with the same number of emitters
-        emits_no_repeat, avg_corrs, std_corrs = avg_maker(emit_list, pear_corr_list)
-        overall_avg_corr, _ = pearsonr(emits_no_repeat, avg_corrs)
+        uniq_num_emit, avg_corrs, std_corrs = avg_maker(circ_met_list, pear_corr_list)
+        overall_avg_corr, _ = pearsonr(uniq_num_emit, avg_corrs)
         print("avg correlation:", overall_avg_corr)
-        plt.scatter(emits_no_repeat, avg_corrs)
+        plt.scatter(uniq_num_emit, avg_corrs)
         plt.errorbar(
-            emits_no_repeat,
+            uniq_num_emit,
             avg_corrs,
             yerr=std_corrs,
             fmt="bo",
             ecolor="r",
             capsize=4,
-            errorevery=None,
+            errorevery=1,
             capthick=2,
         )
+        plt.ylabel(f"average emission-metric correlation\nmetric:{self.metric}")
+        plt.xlabel("number of emitters")
+        plt.title("emission-metric correlation vs number of emitters")
         plt.show()
-        return emits_no_repeat, avg_corrs, std_corrs
+        return uniq_num_emit, avg_corrs, std_corrs
+
+    def met_order_error(self):
+        adj_list, circ_met_list = self.adj_list, self.met_list
+        n = self.adj.shape[0]
+        err_list = []
+        for new_adj in adj_list:
+            new_g = nx.from_numpy_array(new_adj)
+            sorted_nodes = self._metric_sorted_nodes(new_g)
+            sum_sqrd_err = sum([(sorted_nodes[i] - i) ** 2 for i in range(n)])
+            err_list.append(sum_sqrd_err)
+        uniq_num_emit, sqrd_err, count = _rep_counter(circ_met_list, err_list)
+        plt.scatter(uniq_num_emit, sqrd_err, s=10 * count)
+        plt.title("emission order vs metric order Error\nfor different number of emitters")
+        plt.ylabel(f"sum squared difference\nmetric:{self.metric}")
+        plt.xlabel("number of emitters")
+        plt.show()
+        return uniq_num_emit, sqrd_err, count
+
+    def next_node_corr(self):
+        # based on discarding the part of the graph state that has been emitted so far.
+        adj_list, circ_met_list = self.adj_list, self.met_list
+        err_list = []
+        for new_adj in adj_list:
+            new_g = nx.from_numpy_array(new_adj)
+            err_list.append(self._next_node_error(new_g))
+        uniq_num_emit, sqrd_err, count = _rep_counter(circ_met_list, err_list)
+        plt.scatter(uniq_num_emit, sqrd_err, s=10 * count)
+        plt.title("emission order vs node_metric_rank Error\nfor different number of emitters")
+        plt.ylabel(f"sum squared difference\nmetric:{self.metric}")
+        plt.xlabel("number of emitters")
+        plt.show()
+        return uniq_num_emit, sqrd_err, count
+
+    def _metric_sorted_nodes(self, g):
+        node_met_dict = self.metric_node_dict(g)
+        node_met_list = list(node_met_dict.items())
+        met_sorted_tuples = sorted(node_met_list, key=lambda x: x[1])
+        met_sorted_nodes = [x[0] for x in met_sorted_tuples]
+        return met_sorted_nodes
+
+    def _next_node_error(self, g):
+        sum_squared = 0
+        for i in range(g.number_of_nodes() - 1):
+            sorted_nodes = self._metric_sorted_nodes(g)
+            error = sorted_nodes.index(i)
+            sum_squared += error ** 2
+            g.remove_node(i)
+        return sum_squared
 
     def metric_node_dict(self, graph):
         """
@@ -490,14 +569,14 @@ def depth_dist(n, p, trials=1000, show_plot=False):
 # %%
 class Graph_corr:
     def __init__(
-        self,
-        graph_metric=None,
-        circ_metric=None,
-        initial_graph=None,
-        graph_list=None,
-        trials=None,
-        relabel_trials=None,
-        num_isomorph=1,
+            self,
+            graph_metric=None,
+            circ_metric=None,
+            initial_graph=None,
+            graph_list=None,
+            trials=None,
+            relabel_trials=None,
+            num_isomorph=1,
     ):
         # if we have an initial graph, correlations are found based on the relabeling of that graph. Otherwise, if a
         # graph_list is given, metrics are analyzed for those graphs. If neither are present, correlations are found
@@ -516,7 +595,7 @@ class Graph_corr:
         else:
             raise ValueError("The input relabel trial should be an integer")
         if graph_metric is None:
-            self._graph_metric = "deg"
+            self._graph_metric = "node"
         elif isinstance(graph_metric, str):
             self._graph_metric = graph_metric
         else:
@@ -550,7 +629,7 @@ class Graph_corr:
     @initial_graph.setter
     def initial_graph(self, g):
         assert isinstance(g, nx.Graph) or (
-            g is None
+                g is None
         ), "initial graph must be a networkx graph object"
         self._initial_graph = g
         self.graph_list = self._graph_list_maker(
@@ -616,13 +695,33 @@ class Graph_corr:
             graph_list.append(g_i)
         return graph_list
 
-    def finder(self, graph_type=None, show_plot=False, **kwargs):
+    @staticmethod
+    def _rnd_graph_list_maker(count, n=None, p=None, n_limit=(5, 99)):
+        # makes a list of relabeled graphs out of the initial one. List size = count
+        graph_list = []
+        if n is None:
+            n_list = [random.randint(n_limit[0], n_limit[1]) for iter in range(count)]
+        else:
+            n_list = count * [n]
+        if p is None:
+            p_list = [random.randint(5, 95) / 100 for iter in range(count)]
+        else:
+            p_list = count * [p]
+
+        for i in range(count):
+            graph_list.append(rnd_graph(n_list[i], p_list[i]))
+
+        return graph_list
+
+    def finder(self, graph_type=None, show_plot=True, n=None, p=None, swap_axes=False):
         """check correlation between the graph and circuit metric values for a set of graphs"""
         graph_met_list = []
         circ_met_list = []
+        if n is None or p is None:
+            self.graph_list = self._rnd_graph_list_maker(count=self.trials, n=n, p=p, n_limit=(5, 99))
         if self.graph_list is None:
             for i in range(self.trials):
-                g = rnd_graph(kwargs["n"], kwargs["p"], model=graph_type)
+                g = rnd_graph(n, p, model=graph_type)
                 graph_value = self._graph_met_value(g)
                 circ_value = self._min_circ_met_over_relabel(g)
                 graph_met_list.append(graph_value)
@@ -633,6 +732,10 @@ class Graph_corr:
                 circ_value = self._min_circ_met_over_relabel(g)
                 graph_met_list.append(graph_value)
                 circ_met_list.append(circ_value)
+        if swap_axes:
+            temp = [x for x in graph_met_list]
+            graph_met_list = circ_met_list
+            circ_met_list = temp
         corr, _ = pearsonr(circ_met_list, graph_met_list)
         # average case
         circ_met_uniq, avg_graph_met, std_graph_met = avg_maker(
@@ -643,8 +746,9 @@ class Graph_corr:
             fig, (ax1, ax2) = plt.subplots(2, figsize=(15, 15))
             ax1.scatter(circ_met_list, graph_met_list)
             ax2.plot(circ_met_uniq, avg_graph_met)
-            ax2.set_xlabel(f"{self.circ_metric}")
-            ax2.set_ylabel(f"average {self.graph_metric}")
+            ax2.set_xlabel(f"{self.circ_metric}") if not swap_axes else ax2.set_xlabel(f"{self.graph_metric}")
+            ax2.set_ylabel(f"average {self.graph_metric}") if not swap_axes else ax2.set_ylabel(
+                f"average {self.circ_metric}")
             ax2.errorbar(
                 circ_met_uniq,
                 avg_graph_met,
@@ -662,7 +766,7 @@ class Graph_corr:
     def corr_p_dependence(self, n, p_step=0.1):
         p_list = [x * p_step for x in range(ceil(0.1 / p_step), int(1 / p_step))]
         for p in p_list:
-            _, _, plot_pair = self.finder(n=n, p=p)
+            _, _, plot_pair = self.finder(n=n, p=p, show_plot=False)
             plt.plot(plot_pair[0], plot_pair[1], label=f"p={round(p, 2)}")
         plt.title(
             f"the {self.graph_metric} - {self.circ_metric} correlation for different p values"
@@ -682,11 +786,11 @@ class Graph_corr:
             )
             p_list = [constant_np / n for n in n_list]
             assert (
-                min(p_list) > 0.05
+                    min(p_list) > 0.05
             ), "the constant_np is too low to get connected graphs for large graph size"
         for i, n in enumerate(n_list):
             p = p_list[i] if constant_np else p
-            _, _, plot_pair = self.finder(n=n, p=p)
+            _, _, plot_pair = self.finder(n=n, p=p, show_plot=False)
             plt.plot(plot_pair[0], plot_pair[1], label=f"n={n}")
         plt.title(
             f"the {self.graph_metric} - {self.circ_metric} correlation for different n values"
@@ -696,9 +800,11 @@ class Graph_corr:
         plt.show()
 
     def met_distribution(
-        self, n=10, p=0.5, met="num_emit", hist_bins=False, show_plot=False
+            self, n=None, p=None, met="num_emit", hist_bins=False, show_plot=False
     ):
         met_list = []
+        if n is None or p is None:
+            self.graph_list = self._rnd_graph_list_maker(count=self.trials, n=n, p=p, n_limit=(5, 99))
         if self.graph_list is None:
             for i in range(self.trials):
                 g = rnd_graph(n, p)
@@ -746,9 +852,11 @@ class Graph_corr:
             plt.show()
         return avg, std
 
-    def met_met(self, met1, met2, n=10, p=0.5, show_plot=True):
+    def met_met(self, met1, met2, n=None, p=None, show_plot=True):
         met1_list = []
         met2_list = []
+        if n is None or p is None:
+            self.graph_list = self._rnd_graph_list_maker(count=self.trials, n=n, p=p, n_limit=(5, 99))
         if self.graph_list is None:
             for i in range(self.trials):
                 g = rnd_graph(n, p)
@@ -776,7 +884,7 @@ class Graph_corr:
             plt.title(f"{met2} vs. {met1} for a sample of graphs")
             plt.xlabel(f"{met1}")
             plt.ylabel(f"{met2}")
-            plt.xticks(range(min(x_data), max(x_data) + 1))
+            plt.xticks(range(int(min(x_data)), int(max(x_data)) + 1))
             plt.ylim(min(y_data), max(y_data) * 1.25)
             plt.show()
         return x_data, y_data, count

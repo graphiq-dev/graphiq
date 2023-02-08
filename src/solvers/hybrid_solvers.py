@@ -1,17 +1,31 @@
 """
 Contains various hybrid solvers
 """
+import networkx as nx
 import numpy as np
+import src.ops as ops
+
+import src.utils.preprocessing as pre
+import src.backends.lc_equivalence_check as lc
 
 from src.solvers.evolutionary_solver import (
     EvolutionarySolver,
     EvolutionarySearchSolverSetting,
 )
+
+from src.solvers.solver_base import SolverBase
 from src.solvers.deterministic_solver import DeterministicSolver
 from src.backends.compiler_base import CompilerBase
 from src.circuit import CircuitDAG
 from src.metrics import MetricBase
+from src.state import QuantumState
 from src.io import IO
+from src.utils.relabel_module import iso_finder
+from src.backends.state_representation_conversion import stabilizer_to_graph
+from src.backends.stabilizer.functions.rep_conversion import (
+    get_clifford_tableau_from_graph,
+)
+from src.backends.stabilizer.state import Stabilizer
 
 
 class HybridEvolutionarySolver(EvolutionarySolver):
@@ -147,3 +161,274 @@ class HybridEvolutionarySolver(EvolutionarySolver):
             perturbed_circuit = self.randomize_circuit(ideal_circuit)
             population.append((np.inf, perturbed_circuit))
         return population
+
+
+class HybridGraphSearchSolverSetting:
+    """
+    A class to store the solver setting of a HybridGraphSearchSolver
+
+    """
+
+    def __init__(
+        self,
+        base_solver_setting,
+        n_iso_graphs,
+        n_lc_graphs,
+        graph_metric,
+        verbose=False,
+        lc_method="max edge",
+        save_openqasm: str = "none",
+    ):
+        self._n_iso_graphs = n_iso_graphs
+        self._n_lc_graphs = n_lc_graphs
+        self._verbose = verbose
+        self._save_openqasm = save_openqasm
+        self.base_solver_setting = base_solver_setting
+        self.lc_method = lc_method
+        self.graph_metric = graph_metric
+
+    @property
+    def verbose(self):
+        return self._verbose
+
+    @verbose.setter
+    def verbose(self, value):
+        assert type(value) == bool
+        self._verbose = value
+
+    @property
+    def save_openqasm(self):
+        return self._save_openqasm
+
+    @save_openqasm.setter
+    def save_openqasm(self, value):
+        assert type(value) == str
+        self._save_openqasm = value
+
+    def __str__(self):
+        s = f"verbose = {self._verbose}\n"
+        s += f"save_openqasm = {self.save_openqasm}\n"
+        return s
+
+
+class HybridGraphSearchSolver(SolverBase):
+    def __init__(
+        self,
+        target,
+        metric: MetricBase,
+        compiler: CompilerBase,
+        circuit: CircuitDAG = None,
+        io: IO = None,
+        solver_setting=HybridGraphSearchSolverSetting(),
+        noise_model_mapping=None,
+        base_solver=HybridEvolutionarySolver,
+        *args,
+        **kwargs,
+    ):
+        super().__init__(
+            target=target,
+            metric=metric,
+            compiler=compiler,
+            circuit=circuit,
+            io=io,
+            solver_setting=solver_setting,
+            *args,
+            **kwargs,
+        )
+        self.base_solver = base_solver
+
+    def solve(self):
+        """
+
+        :return:
+        :rtype:
+        """
+
+        # construct the adjacent matrix from the user-input target graph state
+        target_graph = stabilizer_to_graph(
+            self.target.stabilizer.tableau.stabilizer_to_labels()
+        )
+        n_qubits = self.target.n_qubits
+        adj_matrix = nx.to_numpy_array(target_graph)
+
+        # retrieve parameters for relabelling module and local complementation module
+        n_iso = self.solver_setting.n_iso_graphs
+        n_graphs = self.solver_setting.n_lc_graphs
+        graph_metric = self.solver_setting.graph_metric
+        iso_graphs = iso_finder(adj_matrix, n_iso, label_map=True)
+
+        for each_graph in iso_graphs:
+            if self.solver_setting.lc_method == "max neighbor edge":
+                lc_graphs = pre.get_lc_equivalent_graph_max_neighbor_edge(
+                    each_graph, n_graphs, graph_metric
+                )
+            elif self.solver_setting.lc_method == "max edge":
+                lc_graphs = pre.get_lc_equivalent_graph_max_edge(
+                    each_graph, n_graphs, graph_metric
+                )
+            else:
+                raise ValueError(
+                    f"The method {self.solver_setting.lc_method} is not valid."
+                )
+
+            # reset the target state in the metric
+            tableau = get_clifford_tableau_from_graph(nx.from_numpy_array(each_graph))
+            stabilizer = Stabilizer(tableau)
+            target_state = QuantumState(n_qubits, stabilizer, "stabilizer")
+            self.metric.target = target_state
+
+            for graph in lc_graphs:
+                # solve the noise-free scenario
+                tableau = get_clifford_tableau_from_graph(
+                    nx.from_numpy_array(each_graph)
+                )
+                lc_stabilizer = Stabilizer(tableau)
+                solver_target_state = QuantumState(
+                    n_qubits, lc_stabilizer, "stabilizer"
+                )
+                solver = self.base_solver(
+                    target=solver_target_state,
+                    metric=self.metric,
+                    compiler=self.compiler,
+                    solver_setting=self.solver_setting.base_solver_setting,
+                )
+                # compile the output state of the circuit
+                solver.solve()
+                score, circuit = solver.result
+
+                # need to modify the local Clifford equivalency code to allow stabilizer comparisons
+                op_list = lc.find_lc_operations(stabilizer, lc_stabilizer)
+                self._add_gates_from_Str(circuit, op_list)
+
+                # store score and circuit for further analysis
+                # code for storing the necessary information
+
+            # code for circuit equivalency check
+
+            # code to run each circuit in the noisy scenario and evaluate the cost function
+
+    def circuit_evaluation(self, circuit_list, metric):
+        pass
+
+    """
+    Code that seems duplicate from deterministic solver with minor modifications
+    """
+
+    def _add_gates_from_str(self, circuit, gate_str_list):
+        """
+        Add gates to disentangle all emitter qubits. This is used in the last step.
+
+        :param circuit: a quantum circuit
+        :type circuit: CircuitDAG
+        :param gate_str_list: a list of gates to be applied
+        :type gate_str_list: list[(str, int) or (str, int, int)]
+        :return: nothing
+        :rtype: None
+        """
+
+        for gate in gate_str_list:
+            if gate[0] == "H":
+                self._add_one_qubit_gate(circuit, [ops.Hadamard], gate[1])
+
+            elif gate[0] == "P":
+                # add the inverse of the phase gate
+                self._add_one_qubit_gate(circuit, [ops.SigmaZ, ops.Phase], gate[1])
+
+            elif gate[0] == "X":
+                self._add_one_qubit_gate(circuit, [ops.SigmaX], gate[1])
+
+            elif gate[0] == "CNOT":
+                self._add_one_emitter_cnot(
+                    circuit, gate[1] - self.n_photon, gate[2] - self.n_photon
+                )
+
+            elif gate[0] == "CZ":
+                self._add_one_qubit_gate(circuit, [ops.Hadamard], gate[2])
+
+                self._add_one_emitter_cnot(
+                    circuit, gate[1] - self.n_photon, gate[2] - self.n_photon
+                )
+
+                self._add_one_qubit_gate(circuit, [ops.Hadamard], gate[2])
+
+            else:
+                raise ValueError("Invalid gate in the list.")
+
+    def _add_one_emitter_cnot(self, circuit, control_emitter, target_emitter):
+        """
+        Add a CNOT between two emitter qubits
+
+        :param circuit: a quantum circuit
+        :type circuit: CircuitDAG
+        :param control_emitter: register index of the control emitter
+        :type control_emitter: int
+        :param target_emitter: register index of the target emitter
+        :type target_emitter: int
+        :return: nothing
+        :rtype: None
+        """
+
+        control_edge = circuit.dag.out_edges(nbunch=f"e{control_emitter}_in", keys=True)
+        edge0 = list(control_edge)[0]
+        target_edge = circuit.dag.out_edges(nbunch=f"e{target_emitter}_in", keys=True)
+        edge1 = list(target_edge)[0]
+        gate = ops.CNOT(
+            control=circuit.dag.edges[edge0]["reg"],
+            control_type="e",
+            target=circuit.dag.edges[edge1]["reg"],
+            target_type="e",
+            noise=self._identify_noise(ops.CNOT, self.noise_model_mapping["ee"]),
+        )
+        circuit.insert_at(gate, [edge0, edge1])
+
+    def _add_one_qubit_gate(self, circuit, gate_list, index):
+        """
+        Add a one-qubit gate to the circuit
+
+        :param circuit: a quantum circuit
+        :type circuit: CircuitDAG
+        :param gate_list: a list of one-qubit gates to be added to the circuit
+        :type gate_list: list[ops.OperationBase]
+        :param index: the qubit position where this one-qubit gate is applied
+        :type index: int
+        :return: nothing
+        :rtype: None
+        """
+
+        if index >= self.n_photon:
+            reg_type = "e"
+            reg = index - self.n_photon
+        else:
+            reg_type = "p"
+            reg = index
+
+        edge = circuit.dag.out_edges(nbunch=f"{reg_type}{reg}_in", keys=True)
+        edge = list(edge)[0]
+        next_node = circuit.dag.nodes[edge[1]]
+        next_op = next_node["op"]
+        if isinstance(next_op, ops.OneQubitGateWrapper):
+            # if two OneQubitGateWrapper gates are next to each other, combine them
+            gate_list = next_op.operations + gate_list
+            gate_list = ops.simplify_local_clifford(gate_list)
+            if gate_list == [ops.Identity, ops.Identity]:
+                circuit.remove_op(edge[1])
+                return
+        else:
+            # simplify the gate to be one of the 24 local Clifford gates
+            gate_list = ops.simplify_local_clifford(gate_list)
+            if gate_list == [ops.Identity, ops.Identity]:
+                return
+        if reg_type == "e":
+            noise = self._wrap_noise(gate_list, self.noise_model_mapping["e"])
+        else:
+            noise = self._wrap_noise(gate_list, self.noise_model_mapping["p"])
+        gate = ops.OneQubitGateWrapper(
+            gate_list,
+            reg_type=reg_type,
+            register=reg,
+            noise=noise,
+        )
+        if isinstance(next_op, ops.OneQubitGateWrapper):
+            circuit.replace_op(edge[1], gate)
+        else:
+            circuit.insert_at(gate, [edge])

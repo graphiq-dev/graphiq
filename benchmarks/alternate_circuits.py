@@ -115,27 +115,33 @@ def report_alternate_circuits(results):
         f"The circuit (first one drawn) returned by the deterministic solver has a score of {results[0][0]},\
                and probability of not losing any photon: {results[0][1]}"
     )
-    results[0][2].draw_circuit()
+    circuit = results[0][2]
+    circuit.draw_circuit()
+    emitter_depth = circuit.calculate_reg_depth("e")
+    print(f"emitter depths of circuit 1 are {emitter_depth}")
     if len(results) > 1:
         for i in range(1, len(results)):
             print(
                 f"Circuit {i} has a score of {results[i][0]}, and a probability of not losing any photon: {results[i][1]}"
             )
-            results[i][2].draw_circuit()
+            alt_circuit = results[i][2]
+            alt_circuit.draw_circuit()
+            emitter_depth = alt_circuit.calculate_reg_depth("e")
+            print(f"emitter depths of circuit {i} are {emitter_depth}")
     else:
         print("There is no alternative circuit found.")
 
 
 def noise_model_loss_and_depolarizing(depolarizing_prob, loss_rate):
     """
-    An example of noise model with photon losses and depolarizing noise
+    An example of noise model with photon losses and depolarizing noises
 
     :param depolarizing_prob: the depolarizing probability
     :type depolarizing_prob: float
     :param loss_rate: the probability of losing one photon
     :type loss_rate: float
-    :return:
-    :rtype:
+    :return: a dictionary that specifies the noise model with photon losses and depolarizing noises
+    :rtype: dict
     """
     emitter_noise = noise.DepolarizingNoise(depolarizing_prob)
     photon_loss = noise.PhotonLoss(loss_rate)
@@ -201,6 +207,29 @@ def noise_model_pure_loss(loss_rate):
     return noise_model_mapping
 
 
+def exemplary_run(graph, noise_model_mapping, solver_setting=None, random_seed=1):
+    """
+    Run one exemplary test to search alternative circuits for an input graph state.
+
+    :param graph: an input graph that represents a graph state
+    :type graph: networkX.Graph
+    :param noise_model_mapping: a way to map noises to gates
+    :type noise_model_mapping: dict
+    :param solver_setting: specifies the setting of the chosen solver
+    :type solver_setting: RandomSearchSolverSetting or EvolutionarySearchSolverSetting
+    :param random_seed: a random seed
+    :type random_seed: int
+    :return: results are stored in terms of (score, survival probability, circuit)
+    :rtype: list[tuple(float, float, CircuitDAG)]
+    """
+    if solver_setting is None:
+        solver_setting = EvolutionarySearchSolverSetting()
+    results = search_for_alternative_circuits(
+        graph, noise_model_mapping, Infidelity, solver_setting, random_seed
+    )
+    return results
+
+
 def exemplary_test(graph, noise_model_mapping, solver_setting=None, random_seed=1):
     """
     Run one exemplary test to search alternative circuits for an input graph state.
@@ -216,11 +245,7 @@ def exemplary_test(graph, noise_model_mapping, solver_setting=None, random_seed=
     :return: nothing
     :rtype: None
     """
-    if solver_setting is None:
-        solver_setting = EvolutionarySearchSolverSetting()
-    results = search_for_alternative_circuits(
-        graph, noise_model_mapping, Infidelity, solver_setting, random_seed
-    )
+    results = exemplary_run(graph, noise_model_mapping, solver_setting, random_seed)
     report_alternate_circuits(results)
 
 

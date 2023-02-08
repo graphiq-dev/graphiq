@@ -545,6 +545,15 @@ def lc_graph_operations(adj_matrix, solution):
     return g_list
 
 
+def find_lc_operations(adj_matrix1, adj_matrix2, mode="deterministic", seed=0):
+    equivalency, solution = is_lc_equivalent(adj_matrix1, adj_matrix2, mode, seed)
+    if equivalency:
+        op_list = lc_graph_operations(adj_matrix2, solution)
+        return op_list
+    else:
+        raise ValueError("These two graphs are not local-Clifford equivalent.")
+
+
 def iso_equal_check(graph1, graph2):
     """
     Checks if the graph1 is local-Clifford equivalent to any graph that is isomorphic to graph2

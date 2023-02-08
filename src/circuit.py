@@ -773,6 +773,7 @@ class CircuitDAG(CircuitBase):
     def replace_op(self, node, new_operation: ops.OperationBase):
         """
         Replaces an operation by a new one with the same set of registers it acts on.
+
         :param node: the node where the new operation is placed
         :type node: int
         :param new_operation: the new operation
@@ -806,6 +807,7 @@ class CircuitDAG(CircuitBase):
     def find_incompatible_edges(self, first_edge):
         """
         Find all incompatible edges of first_edge for which one cannot add any two-qubit operation
+
         :param first_edge: the edge under consideration
         :type first_edge: tuple
         :return: a set of incompatible edges
@@ -835,6 +837,7 @@ class CircuitDAG(CircuitBase):
     def _add_node(self, node_id, operation: ops.OperationBase):
         """
         Helper function for adding a node to the DAG representation
+
         :param node_id: the node to be added
         :type node_id: int
         :param operation: the operation for the node
@@ -852,6 +855,7 @@ class CircuitDAG(CircuitBase):
     def _remove_node(self, node):
         """
         Helper function for removing a node in the DAG representation
+
         :param node: the node to be removed
         :type node: int
         :return: nothing
@@ -887,6 +891,7 @@ class CircuitDAG(CircuitBase):
     def _add_edge(self, in_node, out_node, label, reg_type, reg):
         """
         Helper function for adding an edge in the DAG representation
+
         :param in_node: the incoming node
         :type in_node: int or str
         :param out_node: the outgoing node
@@ -906,6 +911,7 @@ class CircuitDAG(CircuitBase):
     def _remove_edge(self, edge_to_remove):
         """
         Helper function for removing an edge in the DAG representation
+
         :param edge_to_remove: the edge to be removed
         :type edge_to_remove: tuple
         :return: nothing
@@ -1033,6 +1039,7 @@ class CircuitDAG(CircuitBase):
     def _node_dict_append(self, key, value):
         """
         Helper function to add an entry to the node_dict
+
         :param key: key for the node_dict
         :type key: str
         :param value: value to be appended to the list corresponding to the key
@@ -1047,6 +1054,7 @@ class CircuitDAG(CircuitBase):
     def _node_dict_remove(self, key, value):
         """
         Helper function to remove an entry in the list corresponding to the key in node_dict
+
         :param key: key for the node_dict
         :type key: str
         :param value: value to be removed from the list corresponding to the key
@@ -1062,6 +1070,7 @@ class CircuitDAG(CircuitBase):
     def _edge_dict_append(self, key, value):
         """
         Helper function to add an entry to the edge_dict
+
         :param key: key for edge_dict
         :type key: str
         :param value: the edge tuple that contains in_node id, out_node id, and the label for the edge (register)
@@ -1076,7 +1085,8 @@ class CircuitDAG(CircuitBase):
 
     def _edge_dict_remove(self, key, value):
         """
-         Helper function to remove an entry in the list corresponding to the key in edge_dict
+        Helper function to remove an entry in the list corresponding to the key in edge_dict
+
         :param key: key for edge_dict
         :type key: str
         :param value: the edge tuple that contains in_node id, out_node id, and the label for the edge (register)
@@ -1320,6 +1330,7 @@ class CircuitDAG(CircuitBase):
     def _add_reg_if_absent(self, register, reg_type):
         """
         Adds a register to our list of registers and to our graph, if said registers are absent
+
         :param register: Index of the new register
         :type register: int
         :param reg_type: str indicates register type. Can be "e", "p", or "c"
@@ -1368,6 +1379,7 @@ class CircuitDAG(CircuitBase):
         """
         Add an operation to the circuit
         This function assumes that all registers used by operation are already built
+
         :param operation: Operation (gate and register) to add to the graph
         :type operation: OperationBase (or a subclass thereof)
         :return: nothing
@@ -1403,6 +1415,7 @@ class CircuitDAG(CircuitBase):
         """
         Add an operation to the circuit at a specified position
         This function assumes that all registers used by operation are already built
+
         :param operation: Operation (gate and register) to add to the graph
         :type operation: OperationBase (or a subclass thereof)
         :param reg_edges: a list of edges relevant for the operation
@@ -1428,6 +1441,7 @@ class CircuitDAG(CircuitBase):
     def _unique_node_id(self):
         """
         Internally used to provide a unique ID to each node. Note that this assumes a single thread assigning IDs
+
         :return: a new, unique node ID
         :rtype: int
         """

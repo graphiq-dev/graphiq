@@ -200,3 +200,11 @@ def get_lc_equivalent_graph_max_neighbor_edge(graph, n_graphs, graph_metric):
             )
 
     return candidate_graphs
+
+
+graph_metric_lists = [
+    graph_max_eccentricity,
+    graph_max_centrality,
+    graph_betweenness_centrality,
+    graph_closeness_centrality,
+]

@@ -96,7 +96,7 @@ m = 16
 # graph = star_graph_state(m).data
 # graph = repeater_graph_states(m)
 # graph = nx.random_tree(m)
-graph = rnd_graph(m, 0.95, seed=None)
+graph = rnd_graph(m, 0.75, seed=None)
 g1 = (nx.to_numpy_array(graph)).astype(int)
 g2 = nx.from_numpy_array(g1)
 g3 = nx.convert_node_labels_to_integers(g2)
@@ -346,224 +346,6 @@ class Node_corr:
             raise NotImplementedError(
                 f"Input metric {self.metric} not found. It may not be implemented"
             )
-
-
-def between_corr(adj, count=10000):
-    adj_list, emit_list = adj_emit_list(adj, count=count)
-    data1 = [*range(n)]
-    pear_corr_list = []
-    for new_adj in adj_list:
-        new_g = nx.from_numpy_array(new_adj)
-        dict_centrality = nx.betweenness_centrality(new_g)
-        # dict_centrality = nx.load_centrality(new_g)
-        data2 = [dict_centrality[x] for x in data1]
-        # calculate Pearson's correlation
-        corr, _ = pearsonr(data1, data2)
-        pear_corr_list.append(abs(corr))
-    overall_corr, _ = pearsonr(emit_list, pear_corr_list)
-    print("correlation:", overall_corr)
-    # retry with average values over all cases with the same number of emitters
-    emits_no_repeat, avg_corrs, std_corrs = avg_maker(emit_list, pear_corr_list)
-    overall_avg_corr, _ = pearsonr(emits_no_repeat, avg_corrs)
-    print("avg correlation:", overall_avg_corr)
-    plt.scatter(emits_no_repeat, avg_corrs)
-    plt.errorbar(
-        emits_no_repeat,
-        avg_corrs,
-        yerr=std_corrs,
-        fmt="bo",
-        ecolor="r",
-        capsize=4,
-        errorevery=4,
-        capthick=2,
-    )
-    plt.show()
-    return emits_no_repeat, avg_corrs
-
-
-def nei_deg_corr(adj, count=1000):
-    # metric used: mean neighbors degree.
-    return
-
-
-# %%
-def num_emit_vs_p(n, trials=1000, p_step=0.1):
-    # Average num of emitters vs “p” for random graphs of a certain size “n”
-    num_emit_list = []
-    avg_emit = []
-    avg_emit_std = []
-    p_list = [x * p_step for x in range(ceil(0.1 / p_step), int(1 / p_step))]
-    for p in p_list:
-        for i in range(trials):
-            g = rnd_graph(n, p)
-            n_emit = height_max(graph=g)
-            num_emit_list.append(n_emit)
-
-        avg_emit.append(np.mean(num_emit_list))
-        avg_emit_std.append(np.std(num_emit_list))
-        num_emit_list = []
-    fig = plt.figure(figsize=(7.5, 5.5), dpi=300)
-    fig.tight_layout()
-    plt.scatter(p_list, avg_emit)
-    plt.errorbar(
-        p_list,
-        avg_emit,
-        yerr=list(avg_emit_std),
-        fmt="bo",
-        ecolor="r",
-        capsize=4,
-        errorevery=4,
-        capthick=2,
-    )
-    plt.title("Number of emitters vs Edge probability for a graph")
-    plt.figtext(0.77, 0.79, f"n: {n}\ntrials:{'{:.0e}'.format(trials)}")
-    plt.xlabel("Edge probability")
-    plt.ylabel("Number of emitters")
-    plt.ylim(0, max(avg_emit) * 1.25)
-    plt.show()
-    return p_list, avg_emit, avg_emit_std
-
-
-def num_emit_dist(n, p, trials=1000, show_plot=False):
-    num_emit_list = []
-    for i in range(trials):
-        g = rnd_graph(n, p)
-        n_emit = height_max(graph=g)
-        num_emit_list.append(n_emit)
-    num_emit_set = set(num_emit_list)
-    count_percent_list = [(num_emit_list.count(x) / trials) * 100 for x in num_emit_set]
-    dist_dict = dict(zip(num_emit_set, count_percent_list))  # {num_emit: its count}
-    avg = np.mean(num_emit_list)
-    std = np.std(num_emit_list)
-    print("mean and standard deviation:", avg, ",", std)
-    if show_plot:
-        fig = plt.figure(figsize=(8, 6), dpi=300)
-        fig.tight_layout()
-        plt.scatter(dist_dict.keys(), dist_dict.values())
-        plt.figtext(
-            0.75,
-            0.70,
-            f"n: {n}\np: {p}\navg: {round(avg, 2)}\nstd: {round(std, 2)}\ntrials: "
-            f"{'{:.0e}'.format(trials)}",
-        )
-        plt.title("Number of emitters for random graphs")
-        plt.xlabel("Number of emitters")
-        plt.ylabel("% percentage")
-        plt.xticks(range(min(num_emit_set), max(num_emit_set) + 1))
-        plt.ylim(0, max(count_percent_list) * 1.25)
-        plt.show()
-    return avg, std
-
-
-def num_emit_vs_n(n_range, n_p, trials=100):  # for constant n*p in the erdos models
-    # n_range is a tuple (min num of nodes, max num of nodes) to cover
-    num_emit_list = []
-    avg_emit = []
-    avg_emit_std = []
-    assert n_p / n_range[0] <= 1
-    n_list = [*range(n_range[0], n_range[1])]
-    for n in n_list:
-        for i in range(trials):
-            g = rnd_graph(n, n_p / n)
-            n_emit = height_max(graph=g)
-            num_emit_list.append(n_emit)
-        avg_emit.append(np.mean(num_emit_list))
-        avg_emit_std.append(np.std(num_emit_list))
-        num_emit_list = []
-    fig = plt.figure(figsize=(7.5, 5.5), dpi=300)
-    fig.tight_layout()
-    plt.scatter(n_list, avg_emit)
-    plt.errorbar(
-        n_list,
-        avg_emit,
-        yerr=list(avg_emit_std),
-        fmt="bo",
-        ecolor="r",
-        capsize=4,
-        errorevery=4,
-        capthick=2,
-    )
-    plt.title("Number of emitters vs Size\nfor constant degree")
-    plt.figtext(0.76, 0.79, f"n*p: {n_p}\ntrials:{'{:.0e}'.format(trials)}")
-    plt.xlabel("Number of nodes")
-    plt.ylabel("Number of emitters")
-    plt.ylim(0, max(avg_emit) * 1.25)
-    plt.show()
-    return n_list, avg_emit, avg_emit_std
-
-
-# %% circ depth vs n and p and constant np
-
-
-def depth_vs_p(n, trials=1000, p_step=0.1):
-    # Average num of emitters vs “p” for random graphs of a certain size “n”
-    depth_list = []
-    avg_depth = []
-    avg_depth_std = []
-    p_list = [x * p_step for x in range(ceil(0.1 / p_step), int(1 / p_step))]
-    for p in p_list:
-        for i in range(trials):
-            g = rnd_graph(n, p)
-            depth = graph_to_depth(graph=g)
-            depth_list.append(depth)
-
-        avg_depth.append(np.mean(depth_list))
-        avg_depth_std.append(np.std(depth_list))
-        depth_list = []
-    fig = plt.figure(figsize=(7.5, 5.5), dpi=300)
-    fig.tight_layout()
-    plt.scatter(p_list, avg_depth)
-    plt.errorbar(
-        p_list,
-        avg_depth,
-        yerr=list(avg_depth_std),
-        fmt="bo",
-        ecolor="r",
-        capsize=4,
-        errorevery=4,
-        capthick=2,
-    )
-    plt.title("Depth vs Edge probability for a graph")
-    plt.figtext(0.77, 0.79, f"n: {n}\ntrials:{'{:.0e}'.format(trials)}")
-    plt.xlabel("Edge probability")
-    plt.ylabel("Circuit depth")
-    plt.ylim(0, max(avg_depth) * 1.25)
-    plt.show()
-    return p_list, avg_depth, avg_depth_std
-
-
-def depth_dist(n, p, trials=1000, show_plot=False):
-    depth_list = []
-    for i in range(trials):
-        g = rnd_graph(n, p)
-        depth = graph_to_depth(graph=g)
-        depth_list.append(depth)
-    num_emit_set = set(depth_list)
-    count_percent_list = [(depth_list.count(x) / trials) * 100 for x in num_emit_set]
-    dist_dict = dict(zip(num_emit_set, count_percent_list))  # {num_emit: its count}
-    avg = np.mean(depth_list)
-    std = np.std(depth_list)
-    print("mean and standard deviation:", avg, ",", std)
-    if show_plot:
-        fig = plt.figure(figsize=(8, 6), dpi=300)
-        fig.tight_layout()
-        plt.scatter(dist_dict.keys(), dist_dict.values())
-        plt.figtext(
-            0.75,
-            0.70,
-            f"n: {n}\np: {p}\navg: {round(avg, 2)}\nstd: {round(std, 2)}\ntrials: "
-            f"{'{:.0e}'.format(trials)}",
-        )
-        plt.title("Depth for random graphs")
-        plt.xlabel("Circuit depth")
-        plt.ylabel("% percentage")
-        plt.xticks(range(min(num_emit_set), max(num_emit_set) + 1))
-        plt.ylim(0, max(count_percent_list) * 1.25)
-        plt.show()
-    return avg, std
-
-
-# %% graph based: max betweenness
 
 
 # %%
@@ -990,16 +772,6 @@ class Graph_corr:
         return circ_value
 
 
-# %%
-# between_corr(adj, count=1000)
-
-# %% whole graph based
-# p_of_edge_dependence(24, n_samples=500, relabel_trials=4)
-# %%
-# max_bet_min_emit_corr(n, 0.9, n_samples=100, relabel_trials=100)
-# num_emit_vs_n((10, 40), 9, trials=80)
-# graph_to_depth(rnd_graph(5, 0.3))
-
 # %% visual
 # fig, (ax1, ax2) = plt.subplots(2, figsize=(15, 25))
 # fig.tight_layout()
@@ -1010,27 +782,8 @@ class Graph_corr:
 # %%
 import time
 
-graph = rnd_graph(16, 0.08)
-# get the start time
-
-circ = graph_to_circ(graph)
-
 st = time.time()
-dd = circ.calculate_reg_depth("e")
 et = time.time()
-d = {}
-for i in range(circ.n_emitters):
-    d[i] = len(circ.reg_gate_history(reg=i)[1])
-et2 = time.time()
+
 elapsed_time1 = et - st
-elapsed_time2 = et2 - st
-print(
-    d,
-    "\n",
-    dd,
-    "Execution time without and with:",
-    elapsed_time1,
-    elapsed_time2,
-    elapsed_time2 / elapsed_time1,
-    "seconds",
-)
+print("Execution time without and with:", elapsed_time1)

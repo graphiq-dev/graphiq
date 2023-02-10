@@ -302,3 +302,36 @@ def add_control_target_to_dag(circuit):
 
         control_target = _create_edge_control_target_attr(op, reg_type, register)
         circuit.dag[node][next_node][label]["control_target"] = control_target
+
+
+def remove_redundant_circuits(circuit_list):
+    """
+    The function will remove redundant circuit in a list of circuits by running the circuit_is_isomorphic() function.
+    The function returns a new list of circuits with redundant circuits are removed.
+
+    :param circuit_list: a list of circuits
+    :type circuit_list: list
+    :return: a new list of circuits
+    :rtype: list
+    """
+    new_circuit_list = []
+
+    for new_circuit in circuit_list:
+        if new_circuit_list:
+            check_isomorphic = False
+
+            for circuit in new_circuit_list:
+                circuit.unwrap_nodes()
+                circuit.remove_identity()
+                new_circuit.unwrap_nodes()
+                new_circuit.remove_identity()
+
+                if circuit_is_isomorphic(circuit, new_circuit):
+                    check_isomorphic = True
+                    break
+            if not check_isomorphic:
+                new_circuit_list.append(new_circuit)
+        else:
+            new_circuit_list.append(new_circuit)
+
+    return new_circuit_list

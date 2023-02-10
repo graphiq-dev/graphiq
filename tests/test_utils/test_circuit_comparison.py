@@ -2,9 +2,10 @@ import pytest
 from src.circuit import CircuitDAG
 from benchmarks.circuits import *
 from src.ops import *
-from src.utils.circuit_comparison import circuit_is_isomorphic
+from src.utils.circuit_comparison import *
 
 
+# Test circuit_is_isomorphic()
 def test_circuit_is_isomorphic_ghz3():
     circuit1, state1 = ghz3_state_circuit()
     circuit2, state2 = ghz3_state_circuit()
@@ -170,3 +171,64 @@ def test_circuit_is_isomorphic_8():
     circuit_2.add(CNOT(control=0, control_type="e", target=2, target_type="p"))
 
     assert not circuit_is_isomorphic(circuit_1, circuit_2)
+
+
+# Test remove_redundant_circuits()
+def test_remove_redundant_circuits_1():
+    circuit_1 = CircuitDAG(n_emitter=2, n_photon=1, n_classical=0)
+    circuit_1.add(Hadamard(register=0, reg_type="e"))
+    circuit_1.add(Hadamard(register=1, reg_type="e"))
+    circuit_1.add(CNOT(control=0, control_type="e", target=0, target_type="p"))
+    circuit_1.add(CNOT(control=0, control_type="e", target=1, target_type="e"))
+    circuit_1.add(CNOT(control=1, control_type="e", target=1, target_type="p"))
+
+    circuit_2 = CircuitDAG(n_emitter=2, n_photon=1, n_classical=0)
+    circuit_2.add(Hadamard(register=1, reg_type="e"))
+    circuit_2.add(Hadamard(register=0, reg_type="e"))
+    circuit_2.add(CNOT(control=1, control_type="e", target=0, target_type="p"))
+    circuit_2.add(CNOT(control=1, control_type="e", target=0, target_type="e"))
+    circuit_2.add(CNOT(control=0, control_type="e", target=1, target_type="p"))
+    circuit_2.validate()
+
+    circuit_list = [circuit_1, circuit_2]
+    new_list = remove_redundant_circuits(circuit_list)
+
+    assert len(new_list) == 1
+    assert new_list[0] == circuit_1
+
+
+def test_remove_redundant_circuits_2():
+    circuit_1 = CircuitDAG(n_emitter=2, n_photon=1, n_classical=0)
+    circuit_1.add(Hadamard(register=0, reg_type="e"))
+    circuit_1.add(Hadamard(register=1, reg_type="e"))
+    circuit_1.add(CNOT(control=0, control_type="e", target=0, target_type="p"))
+    circuit_1.add(CNOT(control=0, control_type="e", target=1, target_type="e"))
+    circuit_1.add(CNOT(control=1, control_type="e", target=1, target_type="p"))
+
+    circuit_2 = CircuitDAG(n_emitter=2, n_photon=1, n_classical=0)
+    circuit_2.add(Hadamard(register=1, reg_type="e"))
+    circuit_2.add(Hadamard(register=0, reg_type="e"))
+    circuit_2.add(CNOT(control=1, control_type="e", target=0, target_type="p"))
+    circuit_2.add(CNOT(control=1, control_type="e", target=0, target_type="e"))
+    circuit_2.add(CNOT(control=0, control_type="e", target=1, target_type="p"))
+
+    circuit_3 = CircuitDAG(n_emitter=2, n_photon=1, n_classical=0)
+    circuit_3.add(Hadamard(register=0, reg_type="e"))
+    circuit_3.add(Hadamard(register=1, reg_type="e"))
+    circuit_3.add(CNOT(control=0, control_type="e", target=0, target_type="p"))
+    circuit_3.add(CNOT(control=1, control_type="e", target=0, target_type="e"))
+    circuit_3.add(CNOT(control=1, control_type="e", target=1, target_type="p"))
+
+    circuit_4 = CircuitDAG(n_emitter=2, n_photon=1, n_classical=0)
+    circuit_4.add(Hadamard(register=1, reg_type="e"))
+    circuit_4.add(Hadamard(register=0, reg_type="e"))
+    circuit_4.add(CNOT(control=1, control_type="e", target=1, target_type="p"))
+    circuit_4.add(CNOT(control=1, control_type="e", target=0, target_type="e"))
+    circuit_4.add(CNOT(control=0, control_type="e", target=0, target_type="p"))
+
+    circuit_list = [circuit_1, circuit_2, circuit_3, circuit_4]
+    new_list = remove_redundant_circuits(circuit_list)
+
+    assert len(new_list) == 2
+    assert new_list[0] == circuit_1
+    assert new_list[1] == circuit_3

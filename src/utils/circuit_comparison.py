@@ -4,6 +4,8 @@ Functions to compare quantum circuits
 """
 # TODO: GED implementation requires further investigation.
 import networkx as nx
+from networkx.algorithms.isomorphism import is_isomorphic
+from src.ops import *
 
 
 def compare_circuits(circuit1, circuit2, method="direct"):
@@ -27,6 +29,8 @@ def compare_circuits(circuit1, circuit2, method="direct"):
         return ged(circuit1, circuit2, full=False)
     elif method == "GED_adaptive":
         return ged_adaptive(circuit1, circuit2)
+    elif method == "is_isomorphic":
+        return circuit_is_isomorphic(circuit1, circuit2)
     else:
         raise ValueError(f"Method {method} is not supported.")
 
@@ -170,3 +174,164 @@ def ged(circuit1, circuit2, full=True):
         sim = next(sim)
 
     return sim == 0
+
+
+def circuit_is_isomorphic(circuit1, circuit2):
+    """
+    Compare 2 circuits using nx.is_isomorphic from their DAG.
+
+    :param circuit1: circuit 1
+    :type circuit1: CircuitDAG
+    :param circuit2: circuit 2
+    :type circuit2: CircuitDAG
+    :return: True if 2 circuits is isomorphic, False otherwise.
+    :rtype: Boolean
+    """
+    add_control_target_to_dag(circuit1)
+    add_control_target_to_dag(circuit2)
+
+    def node_match(n1, n2):
+        # get operation for node 1 and node 2
+        op1 = n1["op"]
+        op2 = n2["op"]
+
+        # Compare the type of the 2 operations and the q_register_type tuple
+        if type(op1) != type(op2) or op1.q_registers_type != op2.q_registers_type:
+            return False
+
+        # For ControlledPairOperationBase, compare the control_type and target_type
+        if isinstance(op1, ControlledPairOperationBase):
+            if (
+                op1.control_type != op2.control_type
+                or op1.target_type != op2.target_type
+            ):
+                return False
+
+        # For OneQubitGateWrapper, compare the operations list
+        if type(op1) == type(op2) == OneQubitGateWrapper:
+            if op1.operations != op2.operations:
+                return False
+
+        return True
+
+    def edge_match(e1, e2):
+        # Get the first key of the edge dict, normally only 1 key per edge unless we have 2 nodes that are connected by
+        #  2 edges
+        val1 = next(iter(e1))
+        val2 = next(iter(e2))
+
+        # Check for the control_target attribute
+        if e1[val1]["control_target"] != e2[val2]["control_target"]:
+            return False
+        return True
+
+    return is_isomorphic(
+        circuit1.dag, circuit2.dag, node_match=node_match, edge_match=edge_match
+    )
+
+
+def _create_edge_control_target_attr(operation, reg_type, reg):
+    """
+    Helper function that return the correct control_target attribute for the edge, base on reg_type, reg, and operation.
+    If the operation is ControlledPairOperationBase return either 'c' or 't' else return empty string.
+
+    :param operation: operation
+    :type operation: OperationBase
+    :param reg_type: register type
+    :type reg_type: str
+    :param reg: register
+    :type reg: int
+    :return: control_target attribute. Can be 'c', 't' or ''
+    :rtype: str
+    """
+    if isinstance(operation, ControlledPairOperationBase):
+        if reg_type == operation.control_type and reg == operation.control:
+            return "c"
+        else:
+            return "t"
+    else:
+        return ""
+
+
+def edge_from_reg(t_edges, t_register):
+    """
+    Helper function to return correct edge from edges that map to the correct register.
+
+    :param t_edges: input edge
+    :type t_edges: edge
+    :param t_register: register
+    :type t_register: str
+    :return: correct edge
+    :rtype: edge
+    """
+    for e in t_edges:
+        if e[-1] == t_register:
+            return e
+
+
+def add_control_target_to_dag(circuit):
+    """
+    Process the input circuit DAG and add control_target attribute to edges.
+
+    :param circuit: circuit
+    :type circuit: CircuitDAG
+    :return: nothing
+    :rtype: None
+    """
+
+    for node in circuit.node_dict["Input"]:
+        op = circuit.dag.nodes[node]["op"]
+        reg_type = op.reg_type
+        register = op.register
+
+        out_edges = circuit.dag.out_edges(nbunch=node, keys=True)
+        edge = edge_from_reg(out_edges, f"{reg_type}{register}")
+        next_node = edge[1]
+        label = edge[2]
+
+        while next_node not in circuit.node_dict["Output"]:
+            op = circuit.dag.nodes[next_node]["op"]
+            control_target = _create_edge_control_target_attr(op, reg_type, register)
+            circuit.dag[node][next_node][label]["control_target"] = control_target
+
+            node = next_node
+            out_edges = circuit.dag.out_edges(nbunch=node, keys=True)
+            edge = edge_from_reg(out_edges, f"{reg_type}{register}")
+            next_node = edge[1]
+            label = edge[2]
+
+        control_target = _create_edge_control_target_attr(op, reg_type, register)
+        circuit.dag[node][next_node][label]["control_target"] = control_target
+
+
+def remove_redundant_circuits(circuit_list):
+    """
+    The function will remove redundant circuit in a list of circuits by running the circuit_is_isomorphic() function.
+    The function returns a new list of circuits with redundant circuits are removed.
+
+    :param circuit_list: a list of circuits
+    :type circuit_list: list
+    :return: a new list of circuits
+    :rtype: list
+    """
+    new_circuit_list = []
+
+    for new_circuit in circuit_list:
+        if new_circuit_list:
+            check_isomorphic = False
+
+            for circuit in new_circuit_list:
+                circuit.unwrap_nodes()
+                circuit.remove_identity()
+                new_circuit.unwrap_nodes()
+                new_circuit.remove_identity()
+
+                if circuit_is_isomorphic(circuit, new_circuit):
+                    check_isomorphic = True
+                    break
+            if not check_isomorphic:
+                new_circuit_list.append(new_circuit)
+        else:
+            new_circuit_list.append(new_circuit)
+
+    return new_circuit_list

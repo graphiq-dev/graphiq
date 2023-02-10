@@ -905,7 +905,13 @@ class CircuitDAG(CircuitBase):
         :return: nothing
         :rtype: None
         """
-        self.dag.add_edge(in_node, out_node, key=label, reg_type=reg_type, reg=reg)
+        self.dag.add_edge(
+            in_node,
+            out_node,
+            key=label,
+            reg_type=reg_type,
+            reg=reg,
+        )
         self._edge_dict_append(reg_type, (in_node, out_node, label))
 
     def _remove_edge(self, edge_to_remove):
@@ -1404,10 +1410,21 @@ class CircuitDAG(CircuitBase):
                 # Add edge from preceding node to the new operation node
                 reg_type = self.dag.edges[edge]["reg_type"]
                 reg = self.dag.edges[edge]["reg"]
-                self._add_edge(edge[0], new_id, edge[2], reg=reg, reg_type=reg_type)
 
-                # Add edge from the new operation node to the final node
-                self._add_edge(new_id, edge[1], edge[2], reg=reg, reg_type=reg_type)
+                self._add_edge(
+                    edge[0],
+                    new_id,
+                    edge[2],
+                    reg=reg,
+                    reg_type=reg_type,
+                )
+                self._add_edge(
+                    new_id,
+                    edge[1],
+                    edge[2],
+                    reg=reg,
+                    reg_type=reg_type,
+                )
 
                 self._remove_edge(edge)  # remove the unnecessary edges
 
@@ -1434,8 +1451,20 @@ class CircuitDAG(CircuitBase):
             reg_type = self.dag.edges[reg_edge]["reg_type"]
             label = reg_edge[2]
 
-            self._add_edge(reg_edge[0], new_id, label, reg_type=reg_type, reg=reg)
-            self._add_edge(new_id, reg_edge[1], label, reg_type=reg_type, reg=reg)
+            self._add_edge(
+                reg_edge[0],
+                new_id,
+                label,
+                reg_type=reg_type,
+                reg=reg,
+            )
+            self._add_edge(
+                new_id,
+                reg_edge[1],
+                label,
+                reg_type=reg_type,
+                reg=reg,
+            )
             self._remove_edge(reg_edge)  # remove the edge
 
     def _unique_node_id(self):
@@ -1592,3 +1621,42 @@ class CircuitDAG(CircuitBase):
             ordered_nodes.append(next_node)
         ops_list = [self.dag.nodes[nod]["op"] for nod in ordered_nodes]
         return ops_list, ordered_nodes
+
+    def group_one_qubit_gates(self):
+        def edge_from_reg(t_edges, t_register):
+            for e in t_edges:
+                if e[-1] == t_register:
+                    return e
+
+        for node in self.node_dict["Output"]:
+            reg_type = self.dag.nodes[node]["op"].reg_type
+            register = self.dag.nodes[node]["op"].register
+            gate_list = []
+
+            in_edges = self.dag.in_edges(nbunch=node, keys=True)
+            next_node = edge_from_reg(in_edges, f"{reg_type}{register}")[0]
+
+            while next_node not in self.node_dict["Input"]:
+                node = next_node
+                in_edges = self.dag.in_edges(nbunch=node, keys=True)
+                edge = edge_from_reg(in_edges, f"{reg_type}{register}")
+                next_node = edge[0]
+
+                if node in self.node_dict["one-qubit"]:
+                    node_info = self.dag.nodes[node]
+                    op = node_info["op"]
+
+                    if isinstance(op, ops.OneQubitGateWrapper):
+                        gate_list += op.operations
+                    else:
+                        gate_list.append(op.__class__)
+                    self.remove_op(node)
+                if next_node not in self.node_dict["one-qubit"] and gate_list:
+                    # insert new op here
+                    out_edges = self.dag.out_edges(nbunch=next_node, keys=True)
+                    insert_edge = edge_from_reg(out_edges, f"{reg_type}{register}")
+                    self.insert_at(
+                        ops.OneQubitGateWrapper(gate_list, register, reg_type),
+                        [insert_edge],
+                    )
+                    gate_list = []

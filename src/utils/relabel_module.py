@@ -183,6 +183,8 @@ def _label_finder(
     n_max = np.math.factorial(n_node)
     if thresh is None:
         thresh = 5 * n_label
+    else:
+        thresh = max(thresh, n_label+1)
     assert (
         n_label <= n_max
     ), f"The input number of permutations is more than the maximum possible"

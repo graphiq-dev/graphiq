@@ -522,9 +522,12 @@ class Node_corr:
                                                            count=self._relabel_trials)
 
 
-
 # %%
 class Graph_corr:
+    """
+    A class to figure out whether there is a correlation between different graph and circuit metrics. The graph metrics
+     used here assign a single value to a whole graph.
+    """
     def __init__(
             self,
             graph_metric=None,
@@ -535,6 +538,43 @@ class Graph_corr:
             relabel_trials=None,
             num_isomorph=1,
     ):
+        """
+
+        Initialize a correlation object for a graph and a circuit metric, a pre-determined or random sample of
+        graphs, and the given size of the sample (number of graphs in the sample). If we have an initial graph,
+        correlations are found based on the relabeling of that graph. Otherwise, if a graph_list is given, metrics are
+        analyzed for those graphs. If neither are provided, correlations are found for random graphs based on number of
+        nodes and edge probability provided in the designated methods input arguments. If no such information is
+        provided then all parameters of the graphs in the sample will be random.
+
+        :param graph_metric: the main graph metric to be used; options are: Maximum and mean betweenness: "max_between”,
+         "mean_between", Mean of the average neighbours’ degree over the whole graph:"mean_nei_deg" Mean degree of all
+         nodes: “mean_deg” Node and edge connectivity: "node_connect", “edge_connect" Assortativity coefficient:
+         “assort” Radius, diameter, size of the centre, and periphery of the graph: “radius”, “diameter”, “centre”,
+         “periphery” Average clustering coefficient: “cluster” Local and global efficiency of the graph:
+         "local_efficiency”, “global_efficiency" Size or number of nodes: “node” and average probability of having an
+         edge between two nodes “pop”
+        :type graph_metric: str
+        :param circ_metric: the circuit metric to study; options are number of emitter "num_emit", number of CNOT gates
+        between emitters "cnot", number of CNOTs per number of photons and per number of emitters in the circuit
+        "cnot_per_photon" and "cnot_per_emitter", maximum depth of the circuit "depth".
+        :type circ_metric: str
+        :param initial_graph: a graph; if provided by the user, the sample to study would be made of graphs acquired
+        from relabeling of the initial graph. The size of the sample is determined by the 'num_isomorph' parameter.
+        :type initial_graph: networkx.Graph
+        :param graph_list: a list of graphs; if provided the sample to study would be this set of given graphs
+        :type graph_list: list[networkx.Graph]
+        :param trials: the size of the random graph sample to analyze
+        :param relabel_trials: if provided, is used to evaluate the circuit metric over this number of different
+        relabeling of each graph in the sample, such that the final circuit metric value is the minimum or maximum over
+         all these relabeling trials. This is done to make the metric value somewhat labeling-agnostic, since the graph
+         metrics used here are independent of the labeling too.
+        :type relabel_trials: int
+        :param num_isomorph: if an initial graph is provided to work with, this parameter determines the size of the
+        sample that is acquired by relabeling of the initial graph. The actual sample size might be less than this
+        parameter if the maximum number of isomorphism is reached.
+        :type num_isomorph: int
+        """
         # if we have an initial graph, correlations are found based on the relabeling of that graph. Otherwise, if a
         # graph_list is given, metrics are analyzed for those graphs. If neither are present, correlations are found
         # for random graphs based on n and p provided in the finder method input arguments.
@@ -641,7 +681,15 @@ class Graph_corr:
 
     @staticmethod
     def _graph_list_maker(g, count):
-        # makes a list of relabeled graphs out of the initial one. List size = count
+        """
+        makes a list of relabeled graphs out of the initial one. List size = count.
+        :param g: initial input graph
+        :type g: nx.Graph
+        :param count: size of the list, if enough new graphs are found
+        :type count: int
+        :return: a list of isomorphisms of the initial graph
+        :rtype: list
+        """
         adj = nx.to_numpy_array(g)
         nod = g.number_of_nodes()
         iso_count = min(np.math.factorial(nod), count)
@@ -654,7 +702,21 @@ class Graph_corr:
 
     @staticmethod
     def _rnd_graph_list_maker(count, n=None, p=None, n_limit=(5, 99)):
-        # makes a list of relabeled graphs out of the initial one. List size = count
+        """
+        makes a list of random (Erdos-Renyi) graphs based on provided parameters. If n and p are not given, they will be
+         chosen randomly. List size = count.
+
+        :param count: the number of graphs in the list
+        :type count: int
+        :param n: number of nodes
+        :type n: int
+        :param p: probability of edge between each two node
+        :type p: float
+        :param n_limit: the range of possible number of nodes if n is not determined and is chosen randomly
+        :type n_limit: tuple
+        :return: a list of random graphs
+        :rtype: list
+        """
         graph_list = []
         if n is None:
             n_list = [random.randint(n_limit[0], n_limit[1]) for iter in range(count)]
@@ -670,9 +732,32 @@ class Graph_corr:
 
         return graph_list
 
-    def finder(self, graph_type=None, show_plot=True, n=None, p=None, swap_axes=False):
-        """check correlation between one graph and one circuit metric values for a set of graphs. For correlation
-        between two graph or circuit metrics try the met_met method. """
+    def finder(self, show_plot=True, n=None, p=None, swap_axes=False, graph_type=None,):
+        """
+        finds and plots correlation between one graph and one circuit metric for a set of graphs. For all the graphs in
+        the sample that have the same metric value, it takes the average of their graph metric value and returns the
+        average values alongside the standard deviation of corresponding to each bunch of graphs that share the same
+        circuit metric value. For instance, for all graph with the same number of emitters, take the average of their
+        graph metric, say connectivity, and plot this data point (num_emitter, avg_connect) on a diagram. The standard
+        deviation is taken for the graph metric of those graphs with the same circuit metric.
+
+        For correlation between two graph or circuit metrics try the 'met_met' method instead. "
+        :param show_plot: if True a plot of graph metric vs circuit metric will be shown
+        :type show_plot: bool
+        :param n: if given, the number of nodes of all the graphs in the sample of random graphs
+        :type n: int
+        :param p: if given, the edge probability of all the graphs in the sample of random graphs
+        :type p: float
+        :param swap_axes: if True, circ_metric vs graph_metric is considered instead of the vice versa
+        :type swap_axes: bool
+        :param graph_type: a choice between Erdos-Renyi: "erdos" and Barabasi-Albert: "albert" models for the random
+        graphs used in the sample; default value = "erdos"
+        :type graph_type: str
+        :return: pearson correlation between all graph metric vs circuit metric values, pearson correaltion for the
+        average graph metric values vs unique circuit metric values, and a tuple of lists containing the x and y data
+         point of the plot, corresponding to the average graph metric values and unique circuit metric values.
+        :rtype: float, float, tuple:(list, list)
+        """
         graph_met_list = []
         circ_met_list = []
         if n is None or p is None:
@@ -722,6 +807,15 @@ class Graph_corr:
         return corr, avg_corr, (circ_met_uniq, avg_graph_met)
 
     def corr_p_dependence(self, n, p_step=0.1):
+        """
+        Looks into the behavior of the correlation between the two metrics while changing the p (edge probability). For
+        each p, a correlation plot is drawn on the same figure.
+        :param n: if given, the number of nodes of all the graphs in the sample of random graphs
+        :type n: int
+        :param p_step: the step with which the p is changed
+        :type p_step: float
+        :return: nothing
+        """
         p_list = [x * p_step for x in range(ceil(0.1 / p_step), int(1 / p_step))]
         for p in p_list:
             _, _, plot_pair = self.finder(n=n, p=p, show_plot=False)
@@ -734,6 +828,19 @@ class Graph_corr:
         plt.show()
 
     def corr_n_dependence(self, p, n_step=10, constant_np=None):
+        """
+        Looks into the behavior of the correlation between the two metrics while changing the n (number of nodes). For
+        each n, a correlation plot is drawn on the same figure.
+        :param p: if given, the edge probability of all the graphs in the sample of random graphs
+        :type p: float
+        :param n_step: the step with which the n is changed, at least 10 steps will be considered.
+        :type n_step: int
+        :param constant_np: if True, for each n, p is chosen such that the value of n*p remains constant, meaning that
+        the average degree of each node in the graph remains the same even if the sizes of the graphs in the sample
+        change
+        :type constant_np: bool
+        :return: nothing
+        """
         # number of nodes starting from 5 and going up to at least 100, or possibly 10 times the chosen n_step
         # if a constant_np is determined, then it is used to adjust p values such that this condition is hold
         n_list = [*range(5, max(10 * n_step, 100) + 1, n_step)]
@@ -760,6 +867,23 @@ class Graph_corr:
     def met_distribution(
             self, n=None, p=None, met="num_emit", hist_bins=False, show_plot=False
     ):
+        """
+        plots the distribution and calculates the average and standard deviation of a certain metric for the graphs in
+        the sample.
+        :param n: if given, the number of nodes of all the graphs in the sample of random graphs
+        :type n: int
+        :param p: if given, the edge probability of all the graphs in the sample of random graphs
+        :type p: float
+        :param met: the metric to be investigated
+        :type met: str
+        :param hist_bins: the number of the bins in the histogram; if given, instead of a scatter chart, a histogram
+        will be plotted to show the distribution of the graphs based on their metric value
+        :type hist_bins: int
+        :param show_plot: if True a distribution diagram is shown
+        :type show_plot: bool
+        :return: average and standard deviation of metric values of the graphs in the sample
+        :rtype: float, float
+        """
         met_list = []
         if n is None or p is None:
             self.graph_list = self._rnd_graph_list_maker(count=self.trials, n=n, p=p, n_limit=(5, 99))
@@ -811,6 +935,25 @@ class Graph_corr:
         return avg, std
 
     def met_met(self, met1, met2, n=None, p=None, show_plot=True):
+        """
+        For all the graphs in the sample, determines the values of two given metrics and plots them on a diagram of
+        met2 vs met1. If a data point is repeated, meaning that more than one graph in the sample had same value for the
+         both metrics, then the size of the data point on the chart would increase accordingly. The output plot can be
+         used to figure out correlations between the two metrics.
+        :param met1: one of the metric to be investigated
+        :type met1: str
+        :param met2: the other metric to be investigated
+        :type met2: str
+        :param n: if given, the number of nodes of all the graphs in the sample of random graphs
+        :type n: int
+        :param p: if given, the edge probability of all the graphs in the sample of random graphs
+        :type p: float
+        :param show_plot: if True a distribution diagram is shown
+        :type show_plot: bool
+        :return: all pairs of (fist, second) metric values of all graphs, in two separate lists and their respective
+        repetition count over the sample in a third list.
+        :rtype: list, list, list
+        """
         met1_list = []
         met2_list = []
         if n is None or p is None:
@@ -848,7 +991,16 @@ class Graph_corr:
         return x_data, y_data, count
 
     def _determine_met_value(self, met, graph):
-        # evaluates met not knowing whether it is a graph_met or circ_met
+        """
+        Evaluates metric not knowing whether it is a graph_met or a circ_met.
+
+        :param met: metric to be evaluated for the graph
+        :type met: str
+        :param graph: the graph at study
+        :type graph: nx.Graph
+        :return: metric value
+        :rtype: int or float
+        """
         met_tuple = (self.graph_metric, self.circ_metric)
         try:
             self.graph_metric = met
@@ -866,7 +1018,13 @@ class Graph_corr:
         return met_value
 
     def _min_circ_met_over_relabel(self, g):
-        """Find the circuit metric over a number of isomorphic graphs and return the minimum value found."""
+        """
+        Finds the circuit metric over a number of isomorphic graphs and return the minimum value found.
+        :param g: graph at study
+        :type g: nx.Graph
+        :return: minimum of circuit metric value over some relabeled graphs
+        :rtype: int or float
+        """
         if self.relabel_trials:
             circ_value_list = []
             g_list = self._graph_list_maker(g, count=self.num_isomorph)
@@ -878,6 +1036,13 @@ class Graph_corr:
             return self._circ_met_value(g)
 
     def _graph_met_value(self, g):
+        """
+        Evaluates the graph metric for the given graph.
+        :param g: graph at study
+        :type g: nx.Graph
+        :return: the graph metric value
+        :rtype: int or float
+        """
         if self.graph_metric == "max_between":
             dict_centrality = nx.betweenness_centrality(g)
             graph_value = max(dict_centrality.values())
@@ -927,6 +1092,13 @@ class Graph_corr:
         return graph_value
 
     def _circ_met_value(self, g):
+        """
+        Evaluates the circuit metric for the given graph.
+        :param g: graph at study
+        :type g: nx.Graph
+        :return: the circuit metric value
+        :rtype: int or float
+        """
         if self.circ_metric == "num_emit":
             circ_value = height_max(graph=g)
         elif self.circ_metric == "depth":
@@ -948,12 +1120,7 @@ class Graph_corr:
         return circ_value
 
 
-# %% visual
-# fig, (ax1, ax2) = plt.subplots(2, figsize=(15, 25))
-# fig.tight_layout()
-# nx.draw_networkx(g3, with_labels=1, ax=ax1, pos=nx.kamada_kawai_layout(g3))
-# nx.draw_networkx(new_g, with_labels=1, ax=ax2, pos=nx.kamada_kawai_layout(new_g))
-# plt.show()
+
 
 # %%
 import time

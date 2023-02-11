@@ -131,6 +131,8 @@ def graph_to_cnot(graph):
     :rtype: int
     """
     # returns the number of emitter-emitter cnot gates in the circuit
+    if height_max(graph=graph) == 1:
+        return 0
     circ = graph_to_circ(graph)
     cnot_nodes = circ.get_node_by_labels(["Emitter-Emitter", "CNOT"])
     return len(cnot_nodes)
@@ -271,7 +273,8 @@ class Node_corr:
      is based on taking samples form the list of all possible node label permutations (different emission ordering for
      photons) of a graph.
     """
-    def __init__(self, graph, relabel_trials=None, metric=None, circ_met="num_emit"):
+
+    def __init__(self, graph, relabel_trials=None, metric=None, circ_met="num_emit", show_plot=True):
         """
         Initialize a node correlation object for a specific graph (state), number of relabeling, and metrics to be used.
         :param graph: the graph at study to find correlations for
@@ -285,6 +288,8 @@ class Node_corr:
         between emitters "cnot", number of CNOTs per number of photons and per number of emitters in the circuit
         "cnot_per_photon" and "cnot_per_emitter", maximum depth of the circuit "depth".
         :type circ_met: str
+        :param show_plot: if false, the plots will not be shown
+        :type show_plot: bool
         """
         if isinstance(graph, nx.Graph):
             self._graph = graph
@@ -309,7 +314,9 @@ class Node_corr:
         else:
             raise ValueError("The metric should be a valid string")
         self._circ_met = circ_met
-        self.adj_list, self.met_list = adj_met_sorted_list(self._adj, circ_met=self._circ_met, count=self._relabel_trials)
+        self.adj_list, self.met_list = adj_met_sorted_list(self._adj, circ_met=self._circ_met,
+                                                           count=self._relabel_trials)
+        self.show_plot = show_plot
 
     @property
     def graph(self):
@@ -320,6 +327,7 @@ class Node_corr:
         assert isinstance(g, nx.Graph)
         self._graph = g
         self._update_data()
+
     @property
     def circ_met(self):
         return self._circ_met
@@ -328,6 +336,7 @@ class Node_corr:
     def circ_met(self, met):
         self._circ_met = met
         self._update_data()
+
     @property
     def adj(self):
         return self._adj
@@ -341,6 +350,7 @@ class Node_corr:
         assert isinstance(trials, int)
         self._relabel_trials = trials
         self._update_data()
+
     @property
     def metric(self):
         return self._metric
@@ -368,29 +378,39 @@ class Node_corr:
             node_met_dict = self.metric_node_dict(new_g)
             data2 = [node_met_dict[x] for x in data1]
             # calculate Pearson's correlation
-            corr, _ = pearsonr(data1, data2)
+            try:
+                corr = pearsonr(data1, data2).statistic
+            except:
+                corr = 0
             pear_corr_list.append(abs(corr))
-        overall_corr, _ = pearsonr(circ_met_list, pear_corr_list)
+        try:
+            overall_corr = pearsonr(circ_met_list, pear_corr_list).statistic
+        except:
+            overall_corr = 0
         print("correlation:", overall_corr)
         # retry with average values over all cases with the same number of emitters
         uniq_met_val, avg_corrs, std_corrs = avg_maker(circ_met_list, pear_corr_list)
-        overall_avg_corr, _ = pearsonr(uniq_met_val, avg_corrs)
+        try:
+            overall_avg_corr = pearsonr(uniq_met_val, avg_corrs).statistic
+        except:
+            overall_avg_corr = 0
         print("avg correlation:", overall_avg_corr)
-        plt.scatter(uniq_met_val, avg_corrs)
-        plt.errorbar(
-            uniq_met_val,
-            avg_corrs,
-            yerr=std_corrs,
-            fmt="bo",
-            ecolor="r",
-            capsize=4,
-            errorevery=1,
-            capthick=2,
-        )
-        plt.ylabel(f"average emission-metric correlation\nmetric:{self.metric}")
-        plt.xlabel(f"{self.circ_met}")
-        plt.title(f"emission-{self.metric} correlation vs {self.circ_met}")
-        plt.show()
+        if self.show_plot:
+            plt.scatter(uniq_met_val, avg_corrs)
+            plt.errorbar(
+                uniq_met_val,
+                avg_corrs,
+                yerr=std_corrs,
+                fmt="bo",
+                ecolor="r",
+                capsize=4,
+                errorevery=1,
+                capthick=2,
+            )
+            plt.ylabel(f"average emission-metric correlation\nmetric:{self.metric}")
+            plt.xlabel(f"{self.circ_met}")
+            plt.title(f"emission-{self.metric} correlation vs {self.circ_met}")
+            plt.show()
         return uniq_met_val, avg_corrs, std_corrs
 
     def met_order_error(self):
@@ -399,6 +419,8 @@ class Node_corr:
         sample of isomorph graphs. For instance, if the ranking of nodes based on metric is the same as the emission
         ordering the error would be zero. The sum squared error is plotted vs the circuit metric for each graph. The
         correlation would be visible if small-error data points are concentrated at some specific circuit metric values.
+        The larger the data point is plotted, the more the number of graphs in the sample that had the same
+        metric and error values.
         :return: three lists, the list of unique metric values, the list of sum squared errors, the list of repetition
         count for each of the data points over the whole sample.
         :rtype: list, list, list
@@ -412,11 +434,12 @@ class Node_corr:
             sum_sqrd_err = sum([(sorted_nodes[i] - i) ** 2 for i in range(n)])
             err_list.append(sum_sqrd_err)
         uniq_met_val, sqrd_err, count = _rep_counter(circ_met_list, err_list)
-        plt.scatter(uniq_met_val, sqrd_err, s=10 * count)
-        plt.title(f"emission order vs {self.metric} order Error\nfor different {self.circ_met}")
-        plt.ylabel(f"sum squared difference\nmetric:{self.metric}")
-        plt.xlabel(f"{self.circ_met}")
-        plt.show()
+        if self.show_plot:
+            plt.scatter(uniq_met_val, sqrd_err, s=10 * count)
+            plt.title(f"emission order vs {self.metric} order Error\nfor different {self.circ_met}")
+            plt.ylabel(f"sum squared difference\nmetric:{self.metric}")
+            plt.xlabel(f"{self.circ_met}")
+            plt.show()
         return uniq_met_val, sqrd_err, count
 
     def next_node_corr(self):
@@ -432,6 +455,8 @@ class Node_corr:
           emission rank is zero since all previous nodes are now removed)
         This is a measure of how accurate we can determine the next node to be emitted by choosing the minimum/maximum
         value node in the remaining part of the graph.
+        The larger the data point is plotted, the more the number of graphs in the sample that had the same
+        metric and error values.
         :return: three lists, the list of unique metric values, the list of sum squared errors, the list of repetition
         count for each of the data points over the whole sample.
         :rtype: list, list, list
@@ -443,11 +468,12 @@ class Node_corr:
             new_g = nx.from_numpy_array(new_adj)
             err_list.append(self._next_node_error(new_g))
         uniq_met_val, sqrd_err, count = _rep_counter(circ_met_list, err_list)
-        plt.scatter(uniq_met_val, sqrd_err, s=10 * count)
-        plt.title(f"emission order vs {self.metric}_rank Error\nfor different {self.circ_met}")
-        plt.ylabel(f"sum squared difference\nmetric:{self.metric}")
-        plt.xlabel(f"{self.circ_met}")
-        plt.show()
+        if self.show_plot:
+            plt.scatter(uniq_met_val, sqrd_err, s=10 * count)
+            plt.title(f"emission order vs {self.metric}_rank Error\nfor different {self.circ_met}")
+            plt.ylabel(f"sum squared difference\nmetric:{self.metric}")
+            plt.xlabel(f"{self.circ_met}")
+            plt.show()
         return uniq_met_val, sqrd_err, count
 
     def _metric_sorted_nodes(self, g):
@@ -528,6 +554,7 @@ class Graph_corr:
     A class to figure out whether there is a correlation between different graph and circuit metrics. The graph metrics
      used here assign a single value to a whole graph.
     """
+
     def __init__(
             self,
             graph_metric=None,
@@ -547,13 +574,13 @@ class Graph_corr:
         nodes and edge probability provided in the designated methods input arguments. If no such information is
         provided then all parameters of the graphs in the sample will be random.
 
-        :param graph_metric: the main graph metric to be used; options are: Maximum and mean betweenness: "max_between”,
+        :param graph_metric: the main graph metric to be used; options are: Maximum and mean betweenness: "max_between",
          "mean_between", Mean of the average neighbours’ degree over the whole graph:"mean_nei_deg" Mean degree of all
-         nodes: “mean_deg” Node and edge connectivity: "node_connect", “edge_connect" Assortativity coefficient:
-         “assort” Radius, diameter, size of the centre, and periphery of the graph: “radius”, “diameter”, “centre”,
-         “periphery” Average clustering coefficient: “cluster” Local and global efficiency of the graph:
-         "local_efficiency”, “global_efficiency" Size or number of nodes: “node” and average probability of having an
-         edge between two nodes “pop”
+         nodes: "mean_deg" Node and edge connectivity: "node_connect", “edge_connect" Assortativity coefficient:
+         "assort" Radius, diameter, size of the centre, and periphery of the graph: "radius", "diameter", "center",
+         "periphery" Average clustering coefficient: "cluster" Local and global efficiency of the graph:
+         "local_efficiency", "global_efficiency" Size or number of nodes: "node" and average probability of having an
+         edge between two nodes "pop"
         :type graph_metric: str
         :param circ_metric: the circuit metric to study; options are number of emitter "num_emit", number of CNOT gates
         between emitters "cnot", number of CNOTs per number of photons and per number of emitters in the circuit
@@ -732,7 +759,7 @@ class Graph_corr:
 
         return graph_list
 
-    def finder(self, show_plot=True, n=None, p=None, swap_axes=False, graph_type=None,):
+    def finder(self, show_plot=True, n=None, p=None, swap_axes=False, graph_type=None):
         """
         finds and plots correlation between one graph and one circuit metric for a set of graphs. For all the graphs in
         the sample that have the same metric value, it takes the average of their graph metric value and returns the
@@ -760,7 +787,7 @@ class Graph_corr:
         """
         graph_met_list = []
         circ_met_list = []
-        if n is None or p is None:
+        if (n is None or p is None) and (self.graph_list is None):
             self.graph_list = self._rnd_graph_list_maker(count=self.trials, n=n, p=p, n_limit=(5, 99))
         if self.graph_list is None:
             for i in range(self.trials):
@@ -779,12 +806,18 @@ class Graph_corr:
             temp = [x for x in graph_met_list]
             graph_met_list = circ_met_list
             circ_met_list = temp
-        corr, _ = pearsonr(circ_met_list, graph_met_list)
+        try:
+            corr = pearsonr(circ_met_list, graph_met_list).statistic
+        except:
+            corr = 0
         # average case
         circ_met_uniq, avg_graph_met, std_graph_met = avg_maker(
             circ_met_list, graph_met_list
         )
-        avg_corr, _ = pearsonr(circ_met_uniq, avg_graph_met)
+        try:
+            avg_corr = pearsonr(circ_met_uniq, avg_graph_met).statistic
+        except:
+            avg_corr = 0
         if show_plot:
             fig, (ax1, ax2) = plt.subplots(2, figsize=(15, 15))
             ax1.scatter(circ_met_list, graph_met_list)
@@ -885,7 +918,7 @@ class Graph_corr:
         :rtype: float, float
         """
         met_list = []
-        if n is None or p is None:
+        if (n is None or p is None) and (self.graph_list is None):
             self.graph_list = self._rnd_graph_list_maker(count=self.trials, n=n, p=p, n_limit=(5, 99))
         if self.graph_list is None:
             for i in range(self.trials):
@@ -956,7 +989,7 @@ class Graph_corr:
         """
         met1_list = []
         met2_list = []
-        if n is None or p is None:
+        if (n is None or p is None) and (self.graph_list is None):
             self.graph_list = self._rnd_graph_list_maker(count=self.trials, n=n, p=p, n_limit=(5, 99))
         if self.graph_list is None:
             for i in range(self.trials):
@@ -1054,7 +1087,7 @@ class Graph_corr:
             dict_met = nx.average_neighbor_degree(g)
             graph_value = np.mean(list(dict_met.values()))
         elif self.graph_metric == "mean_deg":
-            dict_met = dict(g.nodes())
+            dict_met = dict(g.degree())
             graph_value = np.mean(list(dict_met.values()))
         elif self.graph_metric == "node_connect":
             graph_value = nx.node_connectivity(g)
@@ -1118,8 +1151,6 @@ class Graph_corr:
                 f"Circuit metric {self.circ_metric} not found. It may not be implemented"
             )
         return circ_value
-
-
 
 
 # %%

@@ -1,6 +1,8 @@
 from src.utils.preprocessing import *
 from benchmarks.graph_states import *
 from benchmarks.alternate_circuits import exemplary_run
+from src.solvers.hybrid_solvers import HybridGraphSearchSolver
+from src.backends.stabilizer.compiler import StabilizerCompiler
 
 
 def run_candidate_graphs(original_graph, candidate_graphs):

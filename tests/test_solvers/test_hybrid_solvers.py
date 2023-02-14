@@ -8,8 +8,13 @@ from src.backends.stabilizer.compiler import StabilizerCompiler
 from src.backends.stabilizer.functions.rep_conversion import (
     get_clifford_tableau_from_graph,
 )
+from src.solvers.deterministic_solver import DeterministicSolver
 from src.solvers.evolutionary_solver import EvolutionarySearchSolverSetting
-from src.solvers.hybrid_solvers import HybridEvolutionarySolver
+from src.solvers.hybrid_solvers import (
+    HybridEvolutionarySolver,
+    HybridGraphSearchSolver,
+    HybridGraphSearchSolverSetting,
+)
 from benchmarks.circuits import *
 from src.metrics import Infidelity
 from src.state import QuantumState
@@ -124,3 +129,30 @@ def test_alternate_circuits_w_noise3():
     graph = nx.star_graph(3)
     noise_model = noise_model_loss_and_depolarizing(error_rate, loss_rate)
     exemplary_test(graph, noise_model, None, 1000)
+
+
+def test_graph_based_search_solver():
+    error_rate = 0.01
+    loss_rate = 0.01
+    target_graph = nx.star_graph(3)
+    target_tableau = get_clifford_tableau_from_graph(target_graph)
+    n_photon = target_tableau.n_qubits
+    target_state = QuantumState(n_photon, target_tableau, representation="stabilizer")
+    compiler = StabilizerCompiler()
+    noise_model = noise_model_loss_and_depolarizing(error_rate, loss_rate)
+
+    metric = Infidelity(target=target_state)
+    solver_setting = HybridGraphSearchSolverSetting(n_iso_graphs=2, n_lc_graphs=2)
+
+    solver = HybridGraphSearchSolver(
+        target=target_state,
+        metric=metric,
+        compiler=compiler,
+        graph_solver_setting=solver_setting,
+        noise_model_mapping=noise_model,
+        base_solver=DeterministicSolver,
+    )
+    solver.solve()
+    score, circuit = solver.result
+    print(f"The best score is {score}.")
+    circuit.draw_circuit()

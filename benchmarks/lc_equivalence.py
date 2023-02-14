@@ -71,7 +71,7 @@ def heuristic_example1():
     result = exemplary_run(graph, None)
     report_alternate_circuits(result)
 
-    graph2 = get_lc_equivalent_graph_max_edge(graph, 10)
+    graph2 = get_lc_graph_by_max_edge(graph, 10)
     nx.draw(graph2, with_labels=True)
     result = exemplary_run(graph2, None)
     report_alternate_circuits(result)
@@ -83,7 +83,7 @@ def heuristic_example2():
     result = exemplary_run(graph, None)
     report_alternate_circuits(result)
 
-    graph2 = get_lc_equivalent_graph_max_edge(graph, 3)
+    graph2 = get_lc_graph_by_max_edge(graph, 3)
     # nx.draw(graph2, with_labels=True)
     # result = exemplary_run(graph2, None)
     # report_alternate_circuits(result)
@@ -100,7 +100,7 @@ def heuristic_example3():
     report_alternate_circuits(result)
 
     # graph2 = candidate_graphs(graph, 3)
-    graph2 = get_lc_equivalent_graph_max_neighbor_edge(graph, 3)
+    graph2 = get_lc_graph_by_max_neighbor_edge(graph, 3)
     nx.draw(graph2, with_labels=True)
     result = exemplary_run(graph2, None)
     report_alternate_circuits(result)

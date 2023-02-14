@@ -135,8 +135,26 @@ def _select_graphs(candidate_graphs, new_graph, limit, metric_value):
     return candidate_graphs
 
 
-def get_lc_equivalent_graph_max_edge(graph, n_graphs, graph_metric):
-    n_trial = 5
+def get_lc_graph_by_max_edge(graph, n_graphs, graph_metric, n_trial=5):
+    """
+
+    :param graph:
+    :type graph:
+    :param n_graphs:
+    :type n_graphs:
+    :param graph_metric:
+    :type graph_metric:
+    :param n_trial:
+    :type n_trial:
+    :return:
+    :rtype:
+    """
+    if type(graph) == np.ndarray:
+        graph = nx.from_numpy_array(graph)
+    elif type(graph) == nx.Graph:
+        pass
+    else:
+        raise TypeError(f"The type {type(graph)} is not supported.")
     score = graph_metric(graph)
     candidate_graphs = [(score, graph)]
 
@@ -177,8 +195,27 @@ def _count_n_neighbor(adj_matrix):
     return neighbor_count_list
 
 
-def get_lc_equivalent_graph_max_neighbor_edge(graph, n_graphs, graph_metric):
-    n_trial = 5
+def get_lc_graph_by_max_neighbor_edge(graph, n_graphs, graph_metric, n_trial=5):
+    """
+
+    :param graph:
+    :type graph:
+    :param n_graphs:
+    :type n_graphs:
+    :param graph_metric:
+    :type graph_metric:
+    :param n_trial:
+    :type n_trial:
+    :return:
+    :rtype:
+    """
+
+    if type(graph) == np.ndarray:
+        graph = nx.from_numpy_array(graph)
+    elif type(graph) == nx.Graph:
+        pass
+    else:
+        raise TypeError(f"The type {type(graph)} is not supported.")
     score = graph_metric(graph)
     candidate_graphs = [(score, graph)]
 

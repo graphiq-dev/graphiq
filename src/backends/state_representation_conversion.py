@@ -61,8 +61,8 @@ def _graph_finder(x_matrix, z_matrix, get_ops_data=False):
 
     assert np.array_equal(final_z, final_z.T), "final Z matrix in not a graph yet"
     assert (
-               np.linalg.det(x_matrix)
-           ) % 2 != 0, "Stabilizer generators are not independent."
+        np.linalg.det(x_matrix)
+    ) % 2 != 0, "Stabilizer generators are not independent."
     x_inverse = np.linalg.inv(x_matrix)
     x_matrix, z_matrix = (
         np.matmul(x_inverse, x_matrix) % 2,
@@ -91,7 +91,7 @@ def density_to_graph(input_matrix, threshold=0.1):
     :rtype: numpy.ndarray
     """
     if isinstance(
-            input_matrix, (np.ndarray, dmnp.ndarray)
+        input_matrix, (np.ndarray, dmnp.ndarray)
     ):  # check if numpy array or numpy/jax array
         rho = input_matrix
     else:
@@ -198,10 +198,10 @@ def stabilizer_to_density(input_stabilizer):
     n_generators = len(input_stabilizer)
     n_qubits = len(input_stabilizer[0])
     assert n_generators == n_qubits
-    rho = np.eye(2 ** n_qubits)
+    rho = np.eye(2**n_qubits)
     for generator in input_stabilizer:
         stabilizer_elem = sfu.get_stabilizer_element_by_string(generator)
-        rho = np.matmul(rho, (stabilizer_elem + np.eye(2 ** n_qubits)) / 2)
+        rho = np.matmul(rho, (stabilizer_elem + np.eye(2**n_qubits)) / 2)
 
     return rho
 

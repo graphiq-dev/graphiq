@@ -3,6 +3,11 @@ from src.backends.lc_equivalence_check import *
 import matplotlib.pyplot as plt
 import numpy as np
 import benchmarks.graph_states as gs
+from src.backends.stabilizer.functions.transformation import run_circuit
+from src.backends.stabilizer.functions.rep_conversion import (
+    get_stabilizer_tableau_from_graph,
+)
+from src.backends.stabilizer.functions.local_cliff_equi_check import lc_check
 
 
 def _tester(n):
@@ -104,3 +109,33 @@ def test_equivalence_random_lc_lattice_debug_2(seed):
     graph = gs.lattice_cluster_state((2, 3))
     fig, ax = plt.subplots(figsize=(10, 10))
     _lc_equiv_test(graph, seed, n_graphs=1, max_transform_path=4)
+
+
+@pytest.mark.parametrize("seed", [2, 3, 4, 5, 6])
+def test_random_state_converter(seed):
+    g = nx.random_tree(12, seed)
+    # also use the parameter seed to determine which node to apply local complementation on
+    gg = local_comp_graph(g, seed)
+    tab1 = get_stabilizer_tableau_from_graph(g)
+    tab2 = get_stabilizer_tableau_from_graph(gg)
+    random_tab1 = run_circuit(
+        tab1.copy(),
+        [("X", 2), ("Y", 3), ("H", 1), ("P_dag", 3), ("X", 4), ("X", 0), ("P", 1)],
+    )
+    random_tab2 = run_circuit(
+        tab2.copy(),
+        [
+            ("P_dag", 0),
+            ("Y", 2),
+            ("P_dag", 2),
+            ("Y", 1),
+            ("H", 4),
+            ("P_dag", 3),
+            ("Z", 4),
+            ("X", 0),
+            ("P", 1),
+            ("H", 3),
+            ("X", 0),
+        ],
+    )
+    print(lc_check(random_tab1, random_tab2))

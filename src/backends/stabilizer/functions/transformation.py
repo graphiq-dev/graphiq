@@ -246,14 +246,23 @@ def run_circuit(tableau, circuit_list, reverse=False):
                 tableau = phase_dagger_gate(tableau, ops[1])
             else:
                 tableau = phase_gate(tableau, ops[1])
+        elif ops[0] == "P_dag":
+            if reverse:
+                tableau = phase_gate(tableau, ops[1])
+            else:
+                tableau = phase_dagger_gate(tableau, ops[1])
         elif ops[0] == "X":
             tableau = x_gate(tableau, ops[1])
         elif ops[0] == "Y":
             tableau = y_gate(tableau, ops[1])
         elif ops[0] == "Z":
             tableau = z_gate(tableau, ops[1])
+        elif ops[0] == "I":
+            pass
         elif ops[0] == "CNOT":
             tableau = cnot_gate(tableau, ops[1], ops[2])
         elif ops[0] == "CZ":
             tableau = control_z_gate(tableau, ops[1], ops[2])
+        else:
+            raise ValueError("unsupported operation in the circuit list")
     return tableau

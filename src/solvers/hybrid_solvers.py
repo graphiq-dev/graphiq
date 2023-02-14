@@ -8,7 +8,7 @@ import src.ops as ops
 import src.utils.preprocessing as pre
 import src.utils.circuit_comparison as comp
 import src.backends.lc_equivalence_check as lc
-
+import src.backends.stabilizer.functions.local_cliff_equi_check as slc
 from src.solvers.evolutionary_solver import (
     EvolutionarySolver,
     EvolutionarySearchSolverSetting,
@@ -363,7 +363,7 @@ class HybridGraphSearchSolver(SolverBase):
 
             for score_graph in lc_graphs:
                 # solve the noise-free scenario
-                print(f"graph is {score_graph[1]}")
+
                 lc_tableau = get_clifford_tableau_from_graph(score_graph[1])
 
                 solver_target_state = QuantumState(n_qubits, lc_tableau, "stabilizer")
@@ -391,8 +391,11 @@ class HybridGraphSearchSolver(SolverBase):
                 score, circuit = solver.result
 
                 # TODO: need to modify the local Clifford equivalency code to allow stabilizer comparisons
-                op_list = lc.find_lc_operations(relabel_tableau, lc_tableau)
-                self._add_gates_from_str(circuit, op_list)
+                equivalency, op_list = slc.lc_check(relabel_tableau, lc_tableau)
+                if equivalency:
+                    self._add_gates_from_str(circuit, op_list)
+                else:
+                    raise Exception("The solver malfunctions")
 
                 # store score and circuit for further analysis
                 # code for storing the necessary information
@@ -405,7 +408,7 @@ class HybridGraphSearchSolver(SolverBase):
 
             # code to run each circuit in the noisy scenario and evaluate the cost function
             sorted_result_list = self.circuit_evaluation(circuit_list, self.metric)
-            solver.result = (sorted_result_list[0][0], sorted_result_list[0][1].copy())
+            self.result = (sorted_result_list[0][0], sorted_result_list[0][1].copy())
 
     def circuit_evaluation(self, circuit_list, metric):
         """
@@ -425,8 +428,8 @@ class HybridGraphSearchSolver(SolverBase):
             compiled_state = self.compiler.compile(circuit)
             # trace out emitter qubits
             compiled_state.partial_trace(
-                keep=list(range(self.n_photon)),
-                dims=(self.n_photon + self.n_emitter) * [2],
+                keep=list(range(circuit.n_photons)),
+                dims=(circuit.n_photons + circuit.n_emitters) * [2],
             )
             # evaluate the metric
             score = metric.evaluate(compiled_state, circuit)
@@ -455,7 +458,9 @@ class HybridGraphSearchSolver(SolverBase):
         """
 
         for gate in gate_str_list:
-            if gate[0] == "H":
+            if gate[0] == "I":
+                continue
+            elif gate[0] == "H":
                 self._add_one_qubit_gate(circuit, [ops.Hadamard], gate[1])
 
             elif gate[0] == "P":

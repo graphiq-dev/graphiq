@@ -41,6 +41,7 @@ class SolverBase(ABC):
         compiler: CompilerBase,
         circuit: CircuitBase = None,
         io: IO = None,
+        solver_setting=None,
     ):
         self.target = target
         self.metric = metric
@@ -48,7 +49,7 @@ class SolverBase(ABC):
         self.io = io
 
         self.circuit = circuit
-
+        self.solver_setting = solver_setting
         self.last_seed = None
         self.logs = {}
         self.result = None

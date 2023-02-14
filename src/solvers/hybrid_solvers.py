@@ -172,7 +172,7 @@ class HybridGraphSearchSolverSetting:
 
     def __init__(
         self,
-        base_solver_setting,
+        base_solver_setting=None,
         allow_relabel=True,
         n_iso_graphs=10,
         rel_inc_thresh=0.5,
@@ -203,6 +203,24 @@ class HybridGraphSearchSolverSetting:
         self.iso_thresh = iso_thresh
 
     @property
+    def n_iso_graphs(self):
+        return self._n_iso_graphs
+
+    @n_iso_graphs.setter
+    def n_iso_graphs(self, value):
+        assert type(value) == int
+        self._n_iso_graphs = value
+
+    @property
+    def n_lc_graphs(self):
+        return self._n_lc_graphs
+
+    @n_lc_graphs.setter
+    def n_lc_graphs(self, value):
+        assert type(value) == int
+        self._n_lc_graphs = value
+
+    @property
     def verbose(self):
         return self._verbose
 
@@ -221,7 +239,10 @@ class HybridGraphSearchSolverSetting:
         self._save_openqasm = value
 
     def __str__(self):
-        s = f"verbose = {self._verbose}\n"
+        s = f"base_solver_setting = {self.base_solver_setting}\n"
+        s += f"n_iso_graphs = {self._n_iso_graphs}\n"
+        s += f"n_lc_graphs = {self._n_lc_graphs}\n"
+        s += f"verbose = {self._verbose}\n"
         s += f"save_openqasm = {self.save_openqasm}\n"
         return s
 
@@ -243,10 +264,10 @@ class HybridGraphSearchSolver(SolverBase):
     ):
         if graph_solver_setting is None:
             graph_solver_setting = HybridGraphSearchSolverSetting(
-                base_solver_setting,
-                1,
-                1,
-                pre.graph_metric_lists[0],
+                base_solver_setting=base_solver_setting,
+                n_iso_graphs=1,
+                n_lc_graphs=1,
+                graph_metric=pre.graph_metric_lists[0],
             )
         super().__init__(
             target=target,
@@ -259,6 +280,7 @@ class HybridGraphSearchSolver(SolverBase):
             **kwargs,
         )
         self.base_solver = base_solver
+        self.n_photon = target.n_qubits
         if noise_model_mapping is None:
             noise_model_mapping = {"e": dict(), "p": dict(), "ee": dict(), "ep": dict()}
             self.noise_simulation = False
@@ -287,33 +309,40 @@ class HybridGraphSearchSolver(SolverBase):
         adj_matrix = nx.to_numpy_array(target_graph)
 
         # retrieve parameters for relabelling module and local complementation module
-        n_iso = self.solver_setting.n_iso_graphs
-        n_graphs = self.solver_setting.n_lc_graphs
-        graph_metric = self.solver_setting.graph_metric
+        setting = self.solver_setting
+        n_iso = setting.n_iso_graphs
+        n_graphs = setting.n_lc_graphs
+        graph_metric = setting.graph_metric
 
+        # user can disable relabelling module
         if self.solver_setting.allow_relabel:
 
-            iso_graphs = iso_finder(adj_matrix, n_iso, label_map=True)
+            iso_graphs = iso_finder(
+                adj_matrix,
+                n_iso,
+                rel_inc_thresh=setting.rel_inc_thresh,
+                allow_exhaustive=setting.allow_exhaustive,
+                sort_emit=setting.sort_emitter,
+                label_map=setting.label_map,
+                thresh=setting.iso_thresh,
+            )
             iso_graph_tuples = emitter_sorted(iso_graphs)
         else:
             n_emitter = DeterministicSolver.determine_n_emitters(
                 self.target.stabilizer.tableau.stabilizer
             )
-            (iso_graph_tuples,) = [(target_graph, n_emitter)]
+            iso_graph_tuples = [(target_graph, n_emitter)]
 
-        # add necessary parameters for both modules
-        # TODO: postselect those graphs based on either emitter number or some other metrics
-        # get the emitter number and pass to the solver
-        # TODO: whether user can disable relabeling module
         for i in range(len(iso_graph_tuples)):
-
+            # user can disable local complementation module
             if self.solver_setting.allow_lc:
+
                 if self.solver_setting.lc_method == "max neighbor edge":
-                    lc_graphs = pre.get_lc_equivalent_graph_max_neighbor_edge(
+                    lc_graphs = pre.get_lc_graph_by_max_neighbor_edge(
                         iso_graph_tuples[i][0], n_graphs, graph_metric
                     )
                 elif self.solver_setting.lc_method == "max edge":
-                    lc_graphs = pre.get_lc_equivalent_graph_max_edge(
+                    lc_graphs = pre.get_lc_graph_by_max_edge(
                         iso_graph_tuples[i][0], n_graphs, graph_metric
                     )
                 else:
@@ -321,52 +350,75 @@ class HybridGraphSearchSolver(SolverBase):
                         f"The method {self.solver_setting.lc_method} is not valid."
                     )
             else:
+                # simply give back the original graph
                 lc_graphs = [iso_graph_tuples[i][0]]
 
             # reset the target state in the metric
-            tableau = get_clifford_tableau_from_graph(
+            relabel_tableau = get_clifford_tableau_from_graph(
                 nx.from_numpy_array(iso_graph_tuples[i][0])
             )
-            stabilizer = Stabilizer(tableau)
-            target_state = QuantumState(n_qubits, stabilizer, "stabilizer")
+
+            target_state = QuantumState(n_qubits, relabel_tableau, "stabilizer")
             self.metric.target = target_state
 
-            for graph in lc_graphs:
+            for score_graph in lc_graphs:
                 # solve the noise-free scenario
-                tableau = get_clifford_tableau_from_graph(nx.from_numpy_array(graph))
-                lc_stabilizer = Stabilizer(tableau)
-                solver_target_state = QuantumState(
-                    n_qubits, lc_stabilizer, "stabilizer"
-                )
-                solver = self.base_solver(
-                    target=solver_target_state,
-                    metric=self.metric,
-                    compiler=self.compiler,
-                    n_photon=self.n_photon,
-                    n_emitter=iso_graph_tuples[i][1],
-                    solver_setting=self.solver_setting.base_solver_setting,
-                )
+                print(f"graph is {score_graph[1]}")
+                lc_tableau = get_clifford_tableau_from_graph(score_graph[1])
+
+                solver_target_state = QuantumState(n_qubits, lc_tableau, "stabilizer")
+                # create an instance of the base solver
+                if self.base_solver == DeterministicSolver:
+                    solver = self.base_solver(
+                        target=solver_target_state,
+                        metric=self.metric,
+                        compiler=self.compiler,
+                        solver_setting=setting.base_solver_setting,
+                    )
+                else:
+                    solver = self.base_solver(
+                        target=solver_target_state,
+                        metric=self.metric,
+                        compiler=self.compiler,
+                        n_photon=self.n_photon,
+                        n_emitter=iso_graph_tuples[i][1],
+                        solver_setting=setting.base_solver_setting,
+                    )
                 # run the solver without noise
                 solver.noise_simulation = False
                 solver.solve()
+                # retrieve the best circuit
                 score, circuit = solver.result
 
                 # TODO: need to modify the local Clifford equivalency code to allow stabilizer comparisons
-                op_list = lc.find_lc_operations(stabilizer, lc_stabilizer)
+                op_list = lc.find_lc_operations(relabel_tableau, lc_tableau)
                 self._add_gates_from_str(circuit, op_list)
 
                 # store score and circuit for further analysis
                 # code for storing the necessary information
                 circuit_list.append(circuit)
 
+            # If any, add additional postselection module below
+
             # code for circuit equivalency check
             comp.remove_redundant_circuits(circuit_list)
 
             # code to run each circuit in the noisy scenario and evaluate the cost function
-            self.circuit_evaluation(circuit_list, self.metric)
+            sorted_result_list = self.circuit_evaluation(circuit_list, self.metric)
+            solver.result = (sorted_result_list[0][0], sorted_result_list[0][1].copy())
 
     def circuit_evaluation(self, circuit_list, metric):
-        # TODO: finish the implementation of this function
+        """
+
+        :param self:
+        :type self:
+        :param circuit_list:
+        :type circuit_list:
+        :param metric:
+        :type metric:
+        :return:
+        :rtype:
+        """
         self.compiler.noise_simulation = True
         score_list = []
         for circuit in circuit_list:
@@ -381,8 +433,10 @@ class HybridGraphSearchSolver(SolverBase):
             score_list.append(score)
 
         index_list = np.argsort(score_list)
-        sorted_circuit_list = [circuit_list[index] for index in index_list]
-        return sorted_circuit_list
+        sorted_result_list = [
+            (score_list[index], circuit_list[index]) for index in index_list
+        ]
+        return sorted_result_list
 
     """
     Code that seems duplicate from deterministic solver with minor modifications

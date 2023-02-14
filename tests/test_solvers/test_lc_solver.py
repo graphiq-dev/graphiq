@@ -36,10 +36,8 @@ def test_random_graph():
         graph = random_graph_state(n_qubit, edge_prob)
         graph = graph.data
 
-        candidate_graphs_1 = get_lc_equivalent_graph_max_edge(
-            graph, 3, graph_max_eccentricity
-        )
-        candidate_graphs_2 = get_lc_equivalent_graph_max_neighbor_edge(
+        candidate_graphs_1 = get_lc_graph_by_max_edge(graph, 3, graph_max_eccentricity)
+        candidate_graphs_2 = get_lc_graph_by_max_neighbor_edge(
             graph, 3, graph_max_eccentricity
         )
         print("running the max edge approach")
@@ -56,10 +54,8 @@ def random_graph_run_setup(n_qubit, n_test, graph_metric):
         graph = random_graph_state(n_qubit, edge_prob)
         graph = graph.data
         benchmark_statistics = graph_circuit_depth(graph)
-        candidate_graphs_1 = get_lc_equivalent_graph_max_edge(graph, 5, graph_metric)
-        candidate_graphs_2 = get_lc_equivalent_graph_max_neighbor_edge(
-            graph, 5, graph_metric
-        )
+        candidate_graphs_1 = get_lc_graph_by_max_edge(graph, 5, graph_metric)
+        candidate_graphs_2 = get_lc_graph_by_max_neighbor_edge(graph, 5, graph_metric)
 
         statistics_1 = run_candidate_graphs_statistics(candidate_graphs_1)
         if min(statistics_1) < benchmark_statistics:

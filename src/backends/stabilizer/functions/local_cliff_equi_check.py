@@ -119,11 +119,11 @@ def _to_graph(state):
             )
         z_matrix = stabilizer.tableau.stabilizer_z
         x_matrix = stabilizer.tableau.stabilizer_x
-        tab = StabilizerTableau(x_matrix, z_matrix)
+        tab = StabilizerTableau([x_matrix, z_matrix])
     elif isinstance(state, CliffordTableau):
         z_matrix = state.stabilizer_z
         x_matrix = state.stabilizer_x
-        tab = StabilizerTableau(x_matrix, z_matrix)
+        tab = StabilizerTableau([x_matrix, z_matrix])
     elif isinstance(state, StabilizerTableau):
         z_matrix = state.z_matrix
         x_matrix = state.x_matrix

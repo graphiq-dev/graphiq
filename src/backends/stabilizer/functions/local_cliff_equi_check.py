@@ -9,7 +9,7 @@ from src.backends.stabilizer.tableau import CliffordTableau
 from src.backends.stabilizer.functions.transformation import run_circuit
 from src.backends.stabilizer.functions.stabilizer import canonical_form
 from src.backends.stabilizer.functions.rep_conversion import (
-    get_stabilizer_tableau_from_graph,
+    get_stabilizer_tableau_from_graph, stabilizer_from_clifford
 )
 from src.backends.lc_equivalence_check import is_lc_equivalent, local_clifford_ops
 
@@ -44,6 +44,8 @@ def lc_check(state1, state2, validate=True):
     for gate in gates2:
         if gate[0] == "P_dag":
             inversed_gates2.append(("P", gate[1]))
+        elif gate[0] == "P":
+            inversed_gates2.append(("P_dag", gate[1]))
         else:
             inversed_gates2.append(gate)
     # reverse the order too
@@ -112,18 +114,18 @@ def _to_graph(state):
             pass
     elif isinstance(state, QuantumState):
         try:
-            stabilizer = state.stabilizer
+            clifford = state.stabilizer.tableau
         except:
             raise ValueError(
                 "the QuantumState provided has no active stabilizer representation"
             )
-        z_matrix = stabilizer.tableau.stabilizer_z
-        x_matrix = stabilizer.tableau.stabilizer_x
-        tab = StabilizerTableau([x_matrix, z_matrix])
+        z_matrix = clifford.stabilizer_z
+        x_matrix = clifford.stabilizer_x
+        tab = stabilizer_from_clifford(clifford)
     elif isinstance(state, CliffordTableau):
         z_matrix = state.stabilizer_z
         x_matrix = state.stabilizer_x
-        tab = StabilizerTableau([x_matrix, z_matrix])
+        tab = stabilizer_from_clifford(state)
     elif isinstance(state, StabilizerTableau):
         z_matrix = state.z_matrix
         x_matrix = state.x_matrix
@@ -133,9 +135,6 @@ def _to_graph(state):
             "input data should either be a adjacency matrix, graph, Clifford or Stabilizer tableau or a "
             "quantum state with stabilizer representation"
         )
-    graph, (h_pos, xp_dag_pos) = graph_finder(x_matrix, z_matrix, get_ops_data=True)
-    gate_list = [("H", pos) for pos in h_pos]
-    for pos in xp_dag_pos:
-        gate_list.append(("P_dag", pos))
-        gate_list.append(("X", pos))
+    graph, (h_pos, p_dag_pos) = graph_finder(x_matrix, z_matrix, get_ops_data=True)
+    gate_list = [("H", pos) for pos in h_pos] + [("P_dag", pos) for pos in p_dag_pos]
     return graph, tab, gate_list

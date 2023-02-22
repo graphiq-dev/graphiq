@@ -30,7 +30,7 @@ def _graph_finder(x_matrix, z_matrix, get_ops_data=False):
         symplectic binary representation of the stabilizer generators
     :type z_matrix: numpy.ndarray
     :param get_ops_data: if True, the function also returns the position (qubits) of the applied "Hadamard"
-     gates and the position of the applied "X P_dagger" gates in a tuple.
+     gates and the position of the applied "P_dag" gates in a tuple.
     :type get_ops_data: bool
     :raises AssertionError: if stabilizer generators are not independent,
         or if the final X part is not the identity matrix

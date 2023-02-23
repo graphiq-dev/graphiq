@@ -193,7 +193,7 @@ def get_two_qubit_controlled_gate(n_qubits, control_qubit, target_qubit, target_
     assert n_qubits > 1
     if control_qubit < target_qubit:
         final_gate = np.kron(
-            np.kron(np.eye(2 ** control_qubit), np.eye(2) - sigmaz()),
+            np.kron(np.eye(2**control_qubit), np.eye(2) - sigmaz()),
             np.eye(2 ** (target_qubit - control_qubit - 1)),
         )
         final_gate = np.kron(
@@ -203,7 +203,7 @@ def get_two_qubit_controlled_gate(n_qubits, control_qubit, target_qubit, target_
 
     elif control_qubit > target_qubit:
         final_gate = np.kron(
-            np.kron(np.eye(2 ** target_qubit), target_gate - np.eye(2)),
+            np.kron(np.eye(2**target_qubit), target_gate - np.eye(2)),
             np.eye(2 ** (control_qubit - target_qubit - 1)),
         )
         final_gate = np.kron(
@@ -212,7 +212,7 @@ def get_two_qubit_controlled_gate(n_qubits, control_qubit, target_qubit, target_
         )
     else:
         raise ValueError("Control qubit and target qubit cannot be the same qubit!")
-    final_gate = np.eye(2 ** n_qubits) + final_gate / 2
+    final_gate = np.eye(2**n_qubits) + final_gate / 2
     return final_gate
 
 
@@ -231,7 +231,7 @@ def get_one_qubit_gate(n_qubits, qubit_position, target_gate):
     """
     if n_qubits == 1:
         return target_gate
-    final_gate = np.kron(np.identity(2 ** qubit_position), target_gate)
+    final_gate = np.kron(np.identity(2**qubit_position), target_gate)
     final_gate = np.kron(final_gate, np.identity(2 ** (n_qubits - qubit_position - 1)))
     return final_gate
 
@@ -822,7 +822,7 @@ def full_one_qubit_unitary(n_qubits, qubit_position, theta, phi, lam):
 
 
 def full_two_qubit_controlled_unitary(
-        n_qubits, ctr_qubit, target_qubit, theta, phi, lam, gamma
+    n_qubits, ctr_qubit, target_qubit, theta, phi, lam, gamma
 ):
     """
     Define a generic 4-parameter two-qubit gate that is a controlled unitary gate.
@@ -892,7 +892,7 @@ def check_equivalent_unitaries(unitary_op1, unitary_op2):
     # differ by a global phase
     global_phase = unitary_op1[row, column] / unitary_op2[row, column]
     if np.allclose(unitary_op1, global_phase * unitary_op2) and np.allclose(
-            np.abs(global_phase), 1.0
+        np.abs(global_phase), 1.0
     ):
         return True
     else:

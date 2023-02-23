@@ -7,7 +7,10 @@ from src.backends.stabilizer.functions.transformation import run_circuit
 from src.backends.stabilizer.functions.rep_conversion import (
     get_stabilizer_tableau_from_graph,
 )
-from src.backends.stabilizer.functions.local_cliff_equi_check import lc_check
+from src.backends.stabilizer.functions.local_cliff_equi_check import (
+    lc_check,
+    state_converter_circuit,
+)
 
 
 def _tester(n):
@@ -139,3 +142,5 @@ def test_random_state_converter(seed):
         ],
     )
     assert lc_check(random_tab1, random_tab2)[0]
+    c1 = state_converter_circuit(g, gg, validate=True)
+    c2 = state_converter_circuit(random_tab1, random_tab2, validate=True)

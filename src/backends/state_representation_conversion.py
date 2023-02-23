@@ -23,12 +23,12 @@ def _graph_finder(x_matrix, z_matrix, get_ops_data=False):
     A helper function to obtain the (closest) local Clifford-equivalent graph to the stabilizer representation The
     local Clifford equivalency needs to be checked via the stabilizer of the resulting graph and the initial stabilizer
 
-    :param x_mat: binary matrix for representing Pauli X part of the symplectic binary
+    :param x_matrix: binary matrix for representing Pauli X part of the symplectic binary
         representation of the stabilizer generators
-    :type x_mat: numpy.ndarray
-    :param z_mat:binary matrix for representing Pauli Z part of the
+    :type x_matrix: numpy.ndarray
+    :param z_matrix:binary matrix for representing Pauli Z part of the
         symplectic binary representation of the stabilizer generators
-    :type z_mat: numpy.ndarray
+    :type z_matrix: numpy.ndarray
     :param get_ops_data: if True, the function also returns the position (qubits) of the applied "Hadamard"
      gates and the position of the applied "P_dag" gates in a tuple.
     :type get_ops_data: bool
@@ -47,7 +47,9 @@ def _graph_finder(x_matrix, z_matrix, get_ops_data=False):
     h_positions = _position_finder(x_mat)
 
     x_mat, z_mat = slinalg.hadamard_transform(x_mat, z_mat, h_positions)
-    assert (np.linalg.det(x_mat)) % 2 != 0, "Stabilizer generators are not independent."
+    assert (np.linalg.det(x_mat)).astype(
+        int
+    ) % 2 != 0, "Stabilizer generators are not independent."
     x_inv = (np.linalg.det(x_mat.T) * np.linalg.inv(x_mat.T) % 2).astype(int)
     final_z = (z_mat.T @ x_inv) % 2
 

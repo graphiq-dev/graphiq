@@ -1,15 +1,16 @@
 import numpy as np
 import networkx as nx
-import warnings
 
 from src.state import QuantumState
+import src.ops as ops
 from src.backends.state_representation_conversion import _graph_finder as graph_finder
 from src.backends.stabilizer.tableau import StabilizerTableau
 from src.backends.stabilizer.tableau import CliffordTableau
 from src.backends.stabilizer.functions.transformation import run_circuit
 from src.backends.stabilizer.functions.stabilizer import canonical_form
 from src.backends.stabilizer.functions.rep_conversion import (
-    get_stabilizer_tableau_from_graph, stabilizer_from_clifford
+    get_stabilizer_tableau_from_graph,
+    stabilizer_from_clifford,
 )
 from src.backends.lc_equivalence_check import is_lc_equivalent, local_clifford_ops
 
@@ -31,6 +32,7 @@ def lc_check(state1, state2, validate=True):
     # if validate is True, function which check the gate list's
     graph1, tab1, gates1 = _to_graph(state1)
     graph2, tab2, gates2 = _to_graph(state2)
+
     try:
         gate_list = converter_circuit_list(graph1, graph2)
     except:
@@ -50,18 +52,20 @@ def lc_check(state1, state2, validate=True):
             inversed_gates2.append(gate)
     # reverse the order too
     inversed_gates2 = inversed_gates2[::-1]
+
     total_gate_list = gates1 + gate_list + inversed_gates2
 
     # validate
     if validate:
-        new_tab = run_circuit(tab1, total_gate_list)
         # check if new_tab is the same as the stabilizer tableau for state2
-        new_tab_can = canonical_form(new_tab)
-        tab2_can = canonical_form(tab2)
-        z_equal = np.array_equal(new_tab_can.z_matrix, tab2_can.z_matrix)
-        x_equal = np.array_equal(new_tab_can.x_matrix, tab2_can.x_matrix)
-        if not (z_equal and x_equal):
-            warnings.warn(
+        tab2_can = canonical_form(tab2.copy())
+        final_tab = run_circuit(tab1.copy(), total_gate_list)
+        final_tab_can = canonical_form(final_tab)
+        z_equal = np.array_equal(final_tab_can.z_matrix, tab2_can.z_matrix)
+        x_equal = np.array_equal(final_tab_can.x_matrix, tab2_can.x_matrix)
+        phase_equal = np.array_equal(final_tab_can.phase, tab2_can.phase)
+        if not (z_equal and x_equal and phase_equal):
+            raise Warning(
                 "the gate sequence is not converting the state1's stabilizer tableau into state2's"
             )
 
@@ -88,7 +92,34 @@ def converter_circuit_list(g1, g2):
     for i, ops in enumerate(lc_ops):
         for op in ops.split()[::-1]:
             circ_list.append((op, i))
+    tab1 = get_stabilizer_tableau_from_graph(g1)
+    tab2 = get_stabilizer_tableau_from_graph(g2)
+    phase_correction = _phase_correction(tab1, tab2, circ_list)
+    circ_list += phase_correction
     return circ_list
+
+
+def str_to_op(gate_tuple):
+    """
+    Converts a gate list, made up of gate tuples ("gate name", qubit index) used in the stabilizer backend into a list
+    of opeartions ready to be added to a circuit.
+    :param gate_tuple:
+    :return:
+    """
+    # converts the (single qubit gate name, qubit index) into an OneQubitOperationBase object.
+    # input gate is a tuple (name, qubit index)
+    name_list = ["I", "H", "X", "P", "P_dag", "Z"]
+    ops_list = [
+        ops.Identity,
+        ops.Hadamard,
+        ops.SigmaX,
+        ops.Phase,
+        ops.PhaseDagger,
+        ops.SigmaZ,
+    ]
+    op_index = name_list.index(gate_tuple[0])
+    operation = ops_list[op_index](register=gate_tuple[1], reg_type="p")
+    return operation
 
 
 def _to_graph(state):
@@ -97,7 +128,7 @@ def _to_graph(state):
      to the initial state, and the gate sequence needed to convert the state into a graph-state.
     :param state: the state to be converted to graph
     :type state: QuantumState or StabilizerTableau or CliffordTableau or nx.Graph or np.ndarray
-    :return: tuple (graph, stabilizer tableau, gate_list)
+    :return: tuple (graph, input state's stabilizer tableau, gate_list)
     :rtype: tup;e (nx.Graph, StabilizerTableau, list)
     """
 
@@ -137,4 +168,25 @@ def _to_graph(state):
         )
     graph, (h_pos, p_dag_pos) = graph_finder(x_matrix, z_matrix, get_ops_data=True)
     gate_list = [("H", pos) for pos in h_pos] + [("P_dag", pos) for pos in p_dag_pos]
+
+    # phase correction; adding Z gates at the end to make the phase of the transformed state equal to an ideal graph
+    g_tab = get_stabilizer_tableau_from_graph(graph)
+    phase_correction = _phase_correction(tab, g_tab, gate_list)
+
+    gate_list += phase_correction
     return graph, tab, gate_list
+
+
+def _phase_correction(stabilizer_tab1, stabilizer_tab2, gate_list):
+    # if gate list transforms stabilizer generators of state 1 to state 2, then this function finds the list of gates
+    # needed to be added to the gate list to also have the phase of the 2 states exactly the same.
+    # output is a set of Z gates applied on appropriate qubits in the format of list of tuples [("Z", qubit_index)]
+    tab1 = canonical_form(stabilizer_tab1)
+    tab2 = canonical_form(stabilizer_tab2)
+    new_tab = canonical_form(run_circuit(tab1.copy(), gate_list))
+    phase_diff = (tab2.phase - new_tab.phase) % 2
+    x_mat = np.copy(new_tab.x_matrix)
+    x_inv = ((np.linalg.det(x_mat) * np.linalg.inv(x_mat)) % 2).astype(int)
+    z_ops = (x_inv @ phase_diff) % 2
+    phase_correction = [("Z", index) for index, z in enumerate(z_ops) if z]
+    return phase_correction

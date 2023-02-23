@@ -23,12 +23,12 @@ def _graph_finder(x_matrix, z_matrix, get_ops_data=False):
     A helper function to obtain the (closest) local Clifford-equivalent graph to the stabilizer representation The
     local Clifford equivalency needs to be checked via the stabilizer of the resulting graph and the initial stabilizer
 
-    :param x_matrix: binary matrix for representing Pauli X part of the symplectic binary
+    :param x_mat: binary matrix for representing Pauli X part of the symplectic binary
         representation of the stabilizer generators
-    :type x_matrix: numpy.ndarray
-    :param z_matrix:binary matrix for representing Pauli Z part of the
+    :type x_mat: numpy.ndarray
+    :param z_mat:binary matrix for representing Pauli Z part of the
         symplectic binary representation of the stabilizer generators
-    :type z_matrix: numpy.ndarray
+    :type z_mat: numpy.ndarray
     :param get_ops_data: if True, the function also returns the position (qubits) of the applied "Hadamard"
      gates and the position of the applied "P_dag" gates in a tuple.
     :type get_ops_data: bool
@@ -37,20 +37,22 @@ def _graph_finder(x_matrix, z_matrix, get_ops_data=False):
     :return: a networkx.Graph object that represents the graph corresponding to the stabilizer
     :rtype: networkX.Graph
     """
-    n_row, n_column = x_matrix.shape
-    org_x_matrix, org_z_matrix = x_matrix.copy(), z_matrix.copy()
-    x_matrix, z_matrix, rank = slinalg.row_reduction(x_matrix, z_matrix)
-
-    if x_matrix[rank][n_column - 1] == 0:
+    x_mat = np.copy(x_matrix)
+    z_mat = np.copy(z_matrix)
+    n_row, n_column = x_mat.shape
+    x_mat, z_mat, rank = slinalg.row_reduction(x_mat, z_mat)
+    if x_mat[rank][n_column - 1] == 0:
         rank = rank - 1
 
-    positions = _position_finder(x_matrix)
+    h_positions = _position_finder(x_mat)
+
+    x_mat, z_mat = slinalg.hadamard_transform(x_mat, z_mat, h_positions)
+    assert (np.linalg.det(x_mat)) % 2 != 0, "Stabilizer generators are not independent."
+    x_inv = (np.linalg.det(x_mat.T) * np.linalg.inv(x_mat.T) % 2).astype(int)
+    final_z = (z_mat.T @ x_inv) % 2
+
     # get position of non-zero diagonal elements in the final Z matrix to find qubits to apply clifford operations on
     # to remove those diagonal elements and make Z matrix a valid adjacency matrix
-    x_matrix, z_matrix = slinalg.hadamard_transform(x_matrix, z_matrix, positions)
-    x_inv = np.linalg.inv(x_matrix.T) % 2
-    final_z = (z_matrix.T @ x_inv) % 2
-
     final_z_diag = list(np.diag(final_z))
     z_diag_pos = [i for i, d in enumerate(final_z_diag) if d != 0]
     # remove diagonal parts of z_matrix
@@ -60,21 +62,13 @@ def _graph_finder(x_matrix, z_matrix, get_ops_data=False):
     state_graph = nx.from_numpy_array(final_z)
 
     assert np.array_equal(final_z, final_z.T), "final Z matrix in not a graph yet"
-    assert (
-        np.linalg.det(x_matrix)
-    ) % 2 != 0, "Stabilizer generators are not independent."
-    x_inverse = np.linalg.inv(x_matrix)
-    x_matrix, z_matrix = (
-        np.matmul(x_inverse, x_matrix) % 2,
-        np.matmul(x_inverse, z_matrix) % 2,
-    )
-
-    assert (x_matrix.shape[0] == x_matrix.shape[1]) and (
-        np.allclose(x_matrix, np.eye(x_matrix.shape[0]))
+    x_mat = (x_inv @ x_mat.T) % 2
+    assert (x_mat.shape[0] == x_mat.shape[1]) and (
+        np.allclose(x_mat, np.eye(x_mat.shape[0]))
     ), "Unexpected X matrix."
 
     if get_ops_data:
-        return state_graph, (positions, z_diag_pos)
+        return state_graph, (h_positions, z_diag_pos)
     return state_graph
 
 

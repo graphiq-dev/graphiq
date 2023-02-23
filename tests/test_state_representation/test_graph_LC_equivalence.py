@@ -111,7 +111,7 @@ def test_equivalence_random_lc_lattice_debug_2(seed):
     _lc_equiv_test(graph, seed, n_graphs=1, max_transform_path=4)
 
 
-@pytest.mark.parametrize("seed", [2, 3, 4, 5, 6])
+@pytest.mark.parametrize("seed", [0, 2, 4, 6, 8, 10, 11])
 def test_random_state_converter(seed):
     g = nx.random_tree(12, seed)
     # also use the parameter seed to determine which node to apply local complementation on
@@ -138,4 +138,4 @@ def test_random_state_converter(seed):
             ("X", 0),
         ],
     )
-    print(lc_check(random_tab1, random_tab2))
+    assert lc_check(random_tab1, random_tab2)[0]

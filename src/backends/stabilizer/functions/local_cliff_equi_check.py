@@ -99,15 +99,17 @@ def converter_circuit_list(g1, g2):
     return circ_list
 
 
-def str_to_op(gate_tuple):
+def str_to_op(gate_tuples):
     """
-    Converts a gate list, made up of gate tuples ("gate name", qubit index) used in the stabilizer backend into a list
-    of opeartions ready to be added to a circuit.
-    :param gate_tuple:
-    :return:
+    Converts a gate list, made up of gate tuples ("gate name", qubit index) used in the stabilizer backend, into a list
+    of operations ready to be added to a circuit. Qubits are photons by default, not emitters.
+    :param gate_tuples: a gate tuple or list of tuples
+    :type gate_tuples: tuple or list
+    :return: an operation or list of operations
+    :rtype: ops.OneQubitOperationBase or list
     """
     # converts the (single qubit gate name, qubit index) into an OneQubitOperationBase object.
-    # input gate is a tuple (name, qubit index)
+    # input gate is a tuple (name, qubit index) or a list of them
     name_list = ["I", "H", "X", "P", "P_dag", "Z"]
     ops_list = [
         ops.Identity,
@@ -117,9 +119,20 @@ def str_to_op(gate_tuple):
         ops.PhaseDagger,
         ops.SigmaZ,
     ]
-    op_index = name_list.index(gate_tuple[0])
-    operation = ops_list[op_index](register=gate_tuple[1], reg_type="p")
-    return operation
+    if isinstance(gate_tuples, tuple) and len(gate_tuples) == 2:
+        op_index = name_list.index(gate_tuples[0])
+        operation = ops_list[op_index](register=gate_tuples[1], reg_type="p")
+        return operation
+    elif isinstance(gate_tuples, list):
+        ops_list = []
+        for gate in gate_tuples:
+            op_index = name_list.index(gate[0])
+            ops_list.append(ops_list[op_index](register=gate[1], reg_type="p"))
+        return ops_list
+    else:
+        raise ValueError(
+            "input should be gate tuples ('gate name', qubit index) or a list of them"
+        )
 
 
 def _to_graph(state):
@@ -178,9 +191,21 @@ def _to_graph(state):
 
 
 def _phase_correction(stabilizer_tab1, stabilizer_tab2, gate_list):
-    # if gate list transforms stabilizer generators of state 1 to state 2, then this function finds the list of gates
-    # needed to be added to the gate list to also have the phase of the 2 states exactly the same.
-    # output is a set of Z gates applied on appropriate qubits in the format of list of tuples [("Z", qubit_index)]
+    """
+    If gate list transforms stabilizer generators of state 1 to state 2, then this function finds the list of gates
+     needed to be added to the gate list to also have the phase of the 2 states exactly the same.
+    The second state's stabilizer generators must represent a graph state.
+     Returns a set of Z gates applied on appropriate qubits in the format of list of tuples [("Z", qubit_index)]
+    :param stabilizer_tab1: stabilizer tableau for the initial state
+    :type stabilizer_tab1: StabilizerTableau
+    :param stabilizer_tab2: stabilizer tableau for the final state
+    :type stabilizer_tab2: StabilizerTableau
+    :param gate_list: a gate list, made up of gate tuples ("gate name", qubit index) that transforms initial state's
+     stabilizer
+    :type gate_list: list
+    :return: a list of tuples [("Z", qubit_index)] to correct phase
+    """
+
     tab1 = canonical_form(stabilizer_tab1)
     tab2 = canonical_form(stabilizer_tab2)
     new_tab = canonical_form(run_circuit(tab1.copy(), gate_list))

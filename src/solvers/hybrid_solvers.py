@@ -516,9 +516,9 @@ class HybridGraphSearchSolver(SolverBase):
         :rtype: None
         """
 
-        control_edge = circuit.dag.out_edges(nbunch=f"e{control_emitter}_in", keys=True)
+        control_edge = circuit.dag.in_edges(nbunch=f"e{control_emitter}_out", keys=True)
         edge0 = list(control_edge)[0]
-        target_edge = circuit.dag.out_edges(nbunch=f"e{target_emitter}_in", keys=True)
+        target_edge = circuit.dag.in_edges(nbunch=f"e{target_emitter}_out", keys=True)
         edge1 = list(target_edge)[0]
         gate = ops.CNOT(
             control=circuit.dag.edges[edge0]["reg"],
@@ -550,7 +550,7 @@ class HybridGraphSearchSolver(SolverBase):
             reg_type = "p"
             reg = index
 
-        edge = circuit.dag.out_edges(nbunch=f"{reg_type}{reg}_in", keys=True)
+        edge = circuit.dag.in_edges(nbunch=f"{reg_type}{reg}_out", keys=True)
         edge = list(edge)[0]
         next_node = circuit.dag.nodes[edge[1]]
         next_op = next_node["op"]

@@ -300,7 +300,7 @@ class HybridGraphSearchSolver(SolverBase):
         :return:
         :rtype:
         """
-        circuit_list = []
+        circuit_target_list = []
         # construct the adjacent matrix from the user-input target graph state
         target_graph = stabilizer_to_graph(
             self.target.stabilizer.tableau.stabilizer_to_labels()
@@ -359,14 +359,13 @@ class HybridGraphSearchSolver(SolverBase):
             )
 
             target_state = QuantumState(n_qubits, relabel_tableau, "stabilizer")
-            self.metric.target = target_state
-
+            circuit_list = []
             for score_graph in lc_graphs:
                 # solve the noise-free scenario
-
                 lc_tableau = get_clifford_tableau_from_graph(score_graph[1])
 
                 solver_target_state = QuantumState(n_qubits, lc_tableau, "stabilizer")
+                self.metric.target = solver_target_state
                 # create an instance of the base solver
                 if self.base_solver == DeterministicSolver:
                     solver = self.base_solver(
@@ -390,8 +389,7 @@ class HybridGraphSearchSolver(SolverBase):
                 # retrieve the best circuit
                 score, circuit = solver.result
 
-                # TODO: need to modify the local Clifford equivalency code to allow stabilizer comparisons
-                equivalency, op_list = slc.lc_check(relabel_tableau, lc_tableau)
+                equivalency, op_list = slc.lc_check(lc_tableau, relabel_tableau)
                 if equivalency:
                     self._add_gates_from_str(circuit, op_list)
                 else:
@@ -404,42 +402,55 @@ class HybridGraphSearchSolver(SolverBase):
             # If any, add additional postselection module below
 
             # code for circuit equivalency check
-            comp.remove_redundant_circuits(circuit_list)
+            circuit_target_list.append(
+                (comp.remove_redundant_circuits(circuit_list), target_state)
+            )
 
-            # code to run each circuit in the noisy scenario and evaluate the cost function
-            sorted_result_list = self.circuit_evaluation(circuit_list, self.metric)
-            self.result = (sorted_result_list[0][0], sorted_result_list[0][1].copy())
+        # end of relabelling loop
+        # code to run each circuit in the noisy scenario and evaluate the cost function
 
-    def circuit_evaluation(self, circuit_list, metric):
+        sorted_result_list = self.circuit_evaluation(circuit_target_list, self.metric)
+        self.result = (
+            sorted_result_list[0][0][0][0],
+            sorted_result_list[0][0][0][1].copy(),
+        )
+        self.sorted_result = sorted_result_list
+
+    def circuit_evaluation(self, circuit_target_list, metric):
         """
 
         :param self:
         :type self:
-        :param circuit_list:
-        :type circuit_list:
+        :param circuit_target_list:
+        :type circuit_target_list:
         :param metric:
         :type metric:
         :return:
         :rtype:
         """
         self.compiler.noise_simulation = True
-        score_list = []
-        for circuit in circuit_list:
-            compiled_state = self.compiler.compile(circuit)
-            # trace out emitter qubits
-            compiled_state.partial_trace(
-                keep=list(range(circuit.n_photons)),
-                dims=(circuit.n_photons + circuit.n_emitters) * [2],
-            )
-            # evaluate the metric
-            score = metric.evaluate(compiled_state, circuit)
-            score_list.append(score)
 
-        index_list = np.argsort(score_list)
-        sorted_result_list = [
-            (score_list[index], circuit_list[index]) for index in index_list
-        ]
-        return sorted_result_list
+        sorted_circuit_target_list = []
+        for circuit_list, target in circuit_target_list:
+            score_list = []
+            for circuit in circuit_list:
+                compiled_state = self.compiler.compile(circuit)
+                # trace out emitter qubits
+                compiled_state.partial_trace(
+                    keep=list(range(circuit.n_photons)),
+                    dims=(circuit.n_photons + circuit.n_emitters) * [2],
+                )
+                # evaluate the metric
+                metric.target = target
+                score = metric.evaluate(compiled_state, circuit)
+                score_list.append(score)
+
+            index_list = np.argsort(score_list)
+            sorted_result_list = [
+                (score_list[index], circuit_list[index]) for index in index_list
+            ]
+            sorted_circuit_target_list.append((sorted_result_list, target))
+        return sorted_circuit_target_list
 
     """
     Code that seems duplicate from deterministic solver with minor modifications
@@ -465,10 +476,14 @@ class HybridGraphSearchSolver(SolverBase):
 
             elif gate[0] == "P":
                 # add the inverse of the phase gate
-                self._add_one_qubit_gate(circuit, [ops.SigmaZ, ops.Phase], gate[1])
+                self._add_one_qubit_gate(circuit, [ops.Phase], gate[1])
 
             elif gate[0] == "X":
                 self._add_one_qubit_gate(circuit, [ops.SigmaX], gate[1])
+
+            elif gate[0] == "P_dag":
+                # add the inverse of the phase dagger gate, which is the phase gate itself
+                self._add_one_qubit_gate(circuit, [ops.SigmaZ, ops.Phase], gate[1])
 
             elif gate[0] == "CNOT":
                 self._add_one_emitter_cnot(

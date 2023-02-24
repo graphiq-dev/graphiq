@@ -321,16 +321,18 @@ def remove_redundant_circuits(circuit_list):
             check_isomorphic = False
 
             for circuit in new_circuit_list:
-                circuit.unwrap_nodes()
-                circuit.remove_identity()
+                current_circuit = circuit.copy()
+                current_circuit.unwrap_nodes()
+                current_circuit.remove_identity()
+                to_add_circuit = new_circuit.copy()
                 new_circuit.unwrap_nodes()
                 new_circuit.remove_identity()
 
-                if circuit_is_isomorphic(circuit, new_circuit):
+                if circuit_is_isomorphic(current_circuit, new_circuit):
                     check_isomorphic = True
                     break
             if not check_isomorphic:
-                new_circuit_list.append(new_circuit)
+                new_circuit_list.append(to_add_circuit)
         else:
             new_circuit_list.append(new_circuit)
 

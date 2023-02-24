@@ -132,8 +132,8 @@ def test_alternate_circuits_w_noise3():
 
 
 def test_graph_based_search_solver():
-    error_rate = 0.01
-    loss_rate = 0.01
+    error_rate = 0.00
+    loss_rate = 0.00
     target_graph = nx.star_graph(3)
     target_tableau = get_clifford_tableau_from_graph(target_graph)
     n_photon = target_tableau.n_qubits
@@ -156,3 +156,4 @@ def test_graph_based_search_solver():
     score, circuit = solver.result
     print(f"The best score is {score}.")
     circuit.draw_circuit()
+    print(solver.sorted_result)

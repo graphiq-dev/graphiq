@@ -83,6 +83,16 @@ def phase():
     return np.diag(np.array([1.0, 1.0j]))
 
 
+def phase_dag():
+    """
+    Return the phase matrix :math:`P^{\\dag} = \\begin{bmatrix} 1 & 0 \\\ 0 & -i \\end{bmatrix}`
+
+    :return: the phase dagger matrix
+    :rtype: numpy.ndarray
+    """
+    return np.diag(np.array([1.0, -1.0j]))
+
+
 def state_ketx0():
     """
     Return normalized eigenvector of :math:`\\sigma_x` matrix with eigenvalue +1

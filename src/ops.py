@@ -678,6 +678,17 @@ class Phase(OneQubitOperationBase):
         super().__init__(register, reg_type, noise)
 
 
+class PhaseDagger(OneQubitOperationBase):
+    """
+    Phase gate operation, P_dag = diag(1, -i)
+    """
+
+    _openqasm_info = oq_lib.phase_dagger_info()
+
+    def __init__(self, register=0, reg_type="e", noise=nm.NoNoise()):
+        super().__init__(register, reg_type, noise)
+
+
 class ParameterizedOneQubitRotation(OneQubitOperationBase):
     """
     Parameterized one qubit rotation.

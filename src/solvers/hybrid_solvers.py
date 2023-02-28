@@ -293,6 +293,72 @@ class HybridGraphSearchSolver(SolverBase):
             self.noise_simulation = True
 
         self.noise_model_mapping = noise_model_mapping
+        self.sorted_result = []
+
+    def get_iso_graph_from_setting(self, adj_matrix):
+        """
+        Helper function to get iso graphs according to solver setting
+
+        :param adj_matrix:
+        :return:
+        """
+
+        setting = self.solver_setting
+        n_iso = setting.n_iso_graphs
+
+        if self.solver_setting.allow_relabel:
+
+            iso_graphs = iso_finder(
+                adj_matrix,
+                n_iso,
+                rel_inc_thresh=setting.rel_inc_thresh,
+                allow_exhaustive=setting.allow_exhaustive,
+                sort_emit=setting.sort_emitter,
+                label_map=setting.label_map,
+                thresh=setting.iso_thresh,
+            )
+            iso_graph_tuples = emitter_sorted(iso_graphs)
+        else:
+            target_graph = stabilizer_to_graph(
+                self.target.stabilizer.tableau.stabilizer_to_labels()
+            )
+            n_emitter = DeterministicSolver.determine_n_emitters(
+                self.target.stabilizer.tableau.stabilizer
+            )
+            iso_graph_tuples = [(target_graph, n_emitter)]
+
+        return iso_graph_tuples
+
+    def get_lc_graph_from_setting(self, iso_graph):
+        """
+        Helper function to get lc graphs according to solver setting
+
+        :param iso_graph:
+        :return:
+        """
+        setting = self.solver_setting
+        n_graphs = setting.n_lc_graphs
+        graph_metric = setting.graph_metric
+
+        if self.solver_setting.allow_lc:
+
+            if self.solver_setting.lc_method == "max neighbor edge":
+                lc_graphs = pre.get_lc_graph_by_max_neighbor_edge(
+                    iso_graph, n_graphs, graph_metric
+                )
+            elif self.solver_setting.lc_method == "max edge":
+                lc_graphs = pre.get_lc_graph_by_max_edge(
+                    iso_graph, n_graphs, graph_metric
+                )
+            else:
+                raise ValueError(
+                    f"The method {self.solver_setting.lc_method} is not valid."
+                )
+        else:
+            # simply give back the original graph
+            lc_graphs = [iso_graph]
+
+        return lc_graphs
 
     def solve(self):
         """
@@ -310,48 +376,14 @@ class HybridGraphSearchSolver(SolverBase):
 
         # retrieve parameters for relabelling module and local complementation module
         setting = self.solver_setting
-        n_iso = setting.n_iso_graphs
-        n_graphs = setting.n_lc_graphs
-        graph_metric = setting.graph_metric
 
         # user can disable relabelling module
-        if self.solver_setting.allow_relabel:
-
-            iso_graphs = iso_finder(
-                adj_matrix,
-                n_iso,
-                rel_inc_thresh=setting.rel_inc_thresh,
-                allow_exhaustive=setting.allow_exhaustive,
-                sort_emit=setting.sort_emitter,
-                label_map=setting.label_map,
-                thresh=setting.iso_thresh,
-            )
-            iso_graph_tuples = emitter_sorted(iso_graphs)
-        else:
-            n_emitter = DeterministicSolver.determine_n_emitters(
-                self.target.stabilizer.tableau.stabilizer
-            )
-            iso_graph_tuples = [(target_graph, n_emitter)]
+        iso_graph_tuples = self.get_iso_graph_from_setting(adj_matrix)
 
         for i in range(len(iso_graph_tuples)):
             # user can disable local complementation module
-            if self.solver_setting.allow_lc:
-
-                if self.solver_setting.lc_method == "max neighbor edge":
-                    lc_graphs = pre.get_lc_graph_by_max_neighbor_edge(
-                        iso_graph_tuples[i][0], n_graphs, graph_metric
-                    )
-                elif self.solver_setting.lc_method == "max edge":
-                    lc_graphs = pre.get_lc_graph_by_max_edge(
-                        iso_graph_tuples[i][0], n_graphs, graph_metric
-                    )
-                else:
-                    raise ValueError(
-                        f"The method {self.solver_setting.lc_method} is not valid."
-                    )
-            else:
-                # simply give back the original graph
-                lc_graphs = [iso_graph_tuples[i][0]]
+            iso_graph = iso_graph_tuples[i][0]
+            lc_graphs = self.get_lc_graph_from_setting(iso_graph)
 
             # reset the target state in the metric
             relabel_tableau = get_clifford_tableau_from_graph(
@@ -415,6 +447,8 @@ class HybridGraphSearchSolver(SolverBase):
             sorted_result_list[0][0][0][1].copy(),
         )
         self.sorted_result = sorted_result_list
+
+        return sorted_result_list
 
     def circuit_evaluation(self, circuit_target_list, metric):
         """
@@ -485,19 +519,8 @@ class HybridGraphSearchSolver(SolverBase):
                 # add the inverse of the phase dagger gate, which is the phase gate itself
                 self._add_one_qubit_gate(circuit, [ops.SigmaZ, ops.Phase], gate[1])
 
-            elif gate[0] == "CNOT":
-                self._add_one_emitter_cnot(
-                    circuit, gate[1] - self.n_photon, gate[2] - self.n_photon
-                )
-
-            elif gate[0] == "CZ":
-                self._add_one_qubit_gate(circuit, [ops.Hadamard], gate[2])
-
-                self._add_one_emitter_cnot(
-                    circuit, gate[1] - self.n_photon, gate[2] - self.n_photon
-                )
-
-                self._add_one_qubit_gate(circuit, [ops.Hadamard], gate[2])
+            elif gate[0] == 'Z':
+                self._add_one_qubit_gate(circuit, [ops.SigmaZ], gate[1])
 
             else:
                 raise ValueError("Invalid gate in the list.")

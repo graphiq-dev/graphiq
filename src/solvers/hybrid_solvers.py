@@ -4,6 +4,7 @@ Contains various hybrid solvers
 import networkx as nx
 import numpy as np
 import src.ops as ops
+import matplotlib.pyplot as plt
 
 import src.utils.preprocessing as pre
 import src.utils.circuit_comparison as comp
@@ -26,6 +27,8 @@ from src.backends.state_representation_conversion import stabilizer_to_graph
 from src.backends.stabilizer.functions.rep_conversion import (
     get_clifford_tableau_from_graph,
 )
+from src.backends.stabilizer.compiler import StabilizerCompiler
+from src.metrics import Infidelity
 from src.backends.stabilizer.state import Stabilizer
 
 
@@ -600,6 +603,7 @@ class AlternateGraphSolver:
         )
         iso_graphs = [nx.from_numpy_array(adj) for adj in iso_adjs]
 
+    @staticmethod
     def lc_orbit_finder(graph: nx.Graph, comp_depth=None, orbit_size_thresh=None):
         """
         Given a graph this functions tries all possible local-complementation sequences of length up to comp_depth to
@@ -643,7 +647,7 @@ class AlternateGraphSolver:
             i += 1
         return orbit_list
 
-
+    @staticmethod
     def remove_iso(g_list):
         """
         Takes an input list of graphs and removes all the isomorphic cases, returning a list of distinct graphs
@@ -666,7 +670,7 @@ class AlternateGraphSolver:
             j = 1
         return non_iso
 
-
+    @staticmethod
     def check_isomorphism(graph, g_list):
         """
         check if the provided graph is isomorphic to any graph in the g_list
@@ -683,5 +687,41 @@ class AlternateGraphSolver:
                 iso = True
                 break
         return iso
+
+    def graph_to_circ(graph, show=False):
+        """
+        Find a circuit that generates the input graph. This function calls the deterministic solver. The outcome is not
+        unique.
+        :param graph: The graph to generate
+        :type graph: networkx.Graph
+        :param show: If true draws the corresponding circuit
+        :type show: bool
+        :return: A circuit corresponding to the input graph
+        :rtype: CircuitDAG
+        """
+        if not isinstance(graph, nx.Graph):
+            graph = nx.from_numpy_array(graph)
+            assert isinstance(
+                graph, nx.Graph
+            ), "input must be a networkx graph object or a numpy adjacency matrix"
+        n = graph.number_of_nodes()
+        c_tableau = get_clifford_tableau_from_graph(graph)
+        ideal_state = QuantumState(n, c_tableau, representation="stabilizer")
+
+        target = ideal_state
+        solver = DeterministicSolver(
+            target=target,
+            metric=Infidelity(target),
+            compiler=StabilizerCompiler(),
+        )
+        solver.solve()
+        score, circ = solver.result
+        if show:
+            fig, (ax1, ax2) = plt.subplots(2, 1, dpi=300)
+            nx.draw_networkx(
+                graph, with_labels=True, pos=nx.kamada_kawai_layout(graph), ax=ax1
+            )
+            circ.draw_circuit(ax=ax2)
+        return circ
 
 

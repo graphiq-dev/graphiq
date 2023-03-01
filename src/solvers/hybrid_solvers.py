@@ -393,7 +393,8 @@ class HybridGraphSearchSolver(SolverBase):
                 # TODO: need to modify the local Clifford equivalency code to allow stabilizer comparisons
                 equivalency, op_list = slc.lc_check(relabel_tableau, lc_tableau)
                 if equivalency:
-                    self._add_gates_from_str(circuit, op_list)
+                    for gate in slc.str_to_op(op_list):
+                        circuit.add(gate)
                 else:
                     raise Exception("The solver malfunctions")
 
@@ -422,7 +423,7 @@ class HybridGraphSearchSolver(SolverBase):
         :return:
         :rtype:
         """
-        self.compiler.noise_simulation = True
+        self.compiler.noise_simulation = self.noise_simulation
         score_list = []
         for circuit in circuit_list:
             compiled_state = self.compiler.compile(circuit)
@@ -565,3 +566,36 @@ class HybridGraphSearchSolver(SolverBase):
             circuit.replace_op(edge[1], gate)
         else:
             circuit.insert_at(gate, [edge])
+
+
+class AlternateGraphSolver:
+    def __init__(
+        self,
+        target_graph,
+        io: IO = None,
+        graph_solver_setting=None,
+    ):
+        if graph_solver_setting is None:
+            graph_solver_setting = HybridGraphSearchSolverSetting(
+                n_iso_graphs=1,
+                n_lc_graphs=1,
+                graph_metric=pre.graph_metric_lists[0],
+            )
+
+        setting = self.solver_setting
+        n_iso = setting.n_iso_graphs
+        n_lc = setting.n_lc_graphs
+        adj_matrix = nx.to_numpy_array(target_graph)
+        iso_adjs = iso_finder(
+            adj_matrix,
+            n_iso,
+            rel_inc_thresh=setting.rel_inc_thresh,
+            allow_exhaustive=setting.allow_exhaustive,
+            sort_emit=setting.sort_emitter,
+            label_map=setting.label_map,
+            thresh=setting.iso_thresh,
+        )
+        iso_graphs = [nx.from_numpy_array(adj) for adj in iso_adjs]
+
+
+

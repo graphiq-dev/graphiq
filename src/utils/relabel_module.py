@@ -4,6 +4,8 @@ import matplotlib.pyplot as plt
 from src.backends.stabilizer.functions.height import height_max
 from itertools import permutations
 from networkx.algorithms import isomorphism
+from src.backends.lc_equivalence_check import local_comp_graph
+
 
 import warnings
 

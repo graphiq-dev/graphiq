@@ -22,13 +22,14 @@ from src.circuit import CircuitDAG
 from src.metrics import MetricBase
 from src.state import QuantumState
 from src.io import IO
-from src.utils.relabel_module import iso_finder, emitter_sorted
+from src.utils.relabel_module import iso_finder, emitter_sorted, lc_orbit_finder
 from src.backends.state_representation_conversion import stabilizer_to_graph
 from src.backends.stabilizer.functions.rep_conversion import (
     get_clifford_tableau_from_graph,
 )
 from src.backends.stabilizer.compiler import StabilizerCompiler
 from src.metrics import Infidelity
+from src.backends.lc_equivalence_check import local_comp_graph
 from src.backends.stabilizer.state import Stabilizer
 
 
@@ -42,15 +43,15 @@ class HybridEvolutionarySolver(EvolutionarySolver):
     name = "hybrid evolutionary-search"
 
     def __init__(
-        self,
-        target,
-        metric: MetricBase,
-        compiler: CompilerBase,
-        io: IO = None,
-        solver_setting=EvolutionarySearchSolverSetting(),
-        noise_model_mapping=None,
-        *args,
-        **kwargs,
+            self,
+            target,
+            metric: MetricBase,
+            compiler: CompilerBase,
+            io: IO = None,
+            solver_setting=EvolutionarySearchSolverSetting(),
+            noise_model_mapping=None,
+            *args,
+            **kwargs,
     ):
         """
         Initialize a hybrid solver based on DeterministicSolver and EvolutionarySolver
@@ -174,21 +175,21 @@ class HybridGraphSearchSolverSetting:
     """
 
     def __init__(
-        self,
-        base_solver_setting=None,
-        allow_relabel=True,
-        n_iso_graphs=10,
-        rel_inc_thresh=0.5,
-        allow_exhaustive=False,
-        sort_emit=True,
-        label_map=False,
-        iso_thresh=5,
-        allow_lc=True,
-        n_lc_graphs=10,
-        graph_metric=pre.graph_metric_lists[0],
-        lc_method="max edge",
-        verbose=False,
-        save_openqasm: str = "none",
+            self,
+            base_solver_setting=None,
+            allow_relabel=True,
+            n_iso_graphs=10,
+            rel_inc_thresh=0.5,
+            allow_exhaustive=False,
+            sort_emit=True,
+            label_map=False,
+            iso_thresh=5,
+            allow_lc=True,
+            n_lc_graphs=10,
+            graph_metric=pre.graph_metric_lists[0],
+            lc_method="max edge",
+            verbose=False,
+            save_openqasm: str = "none",
     ):
         self.allow_relabel = allow_relabel
         self.allow_lc = allow_lc
@@ -252,18 +253,18 @@ class HybridGraphSearchSolverSetting:
 
 class HybridGraphSearchSolver(SolverBase):
     def __init__(
-        self,
-        target,
-        metric: MetricBase,
-        compiler: CompilerBase,
-        circuit: CircuitDAG = None,
-        io: IO = None,
-        graph_solver_setting=None,
-        noise_model_mapping=None,
-        base_solver=HybridEvolutionarySolver,
-        base_solver_setting=EvolutionarySearchSolverSetting(),
-        *args,
-        **kwargs,
+            self,
+            target,
+            metric: MetricBase,
+            compiler: CompilerBase,
+            circuit: CircuitDAG = None,
+            io: IO = None,
+            graph_solver_setting=None,
+            noise_model_mapping=None,
+            base_solver=HybridEvolutionarySolver,
+            base_solver_setting=EvolutionarySearchSolverSetting(),
+            *args,
+            **kwargs,
     ):
         if graph_solver_setting is None:
             graph_solver_setting = HybridGraphSearchSolverSetting(
@@ -573,10 +574,10 @@ class HybridGraphSearchSolver(SolverBase):
 
 class AlternateGraphSolver:
     def __init__(
-        self,
-        target_graph,
-        io: IO = None,
-        graph_solver_setting=None,
+            self,
+            target_graph,
+            io: IO = None,
+            graph_solver_setting=None,
     ):
         if graph_solver_setting is None:
             graph_solver_setting = HybridGraphSearchSolverSetting(
@@ -601,127 +602,59 @@ class AlternateGraphSolver:
             label_map=setting.label_map,
             thresh=setting.iso_thresh,
         )
+        iso_lc_circuit_dict = {}  # a dictionary {iso_graph: {lc_graph: circuit}}
         iso_graphs = [nx.from_numpy_array(adj) for adj in iso_adjs]
+        for iso_graph in iso_graphs:
+            lc_graphs = lc_orbit_finder(iso_graph, comp_depth=None, orbit_size_thresh=n_lc)
+            lc_circ_list = []
+            for lc_graph in lc_graphs:
+                circuit = graph_to_circ(lc_graph)
+                success, conversion_gates = slc.lc_check(lc_graph, iso_graph, validate=True)
+                try:
+                    assert success, "LC graphs are not actually LC equivalent!"
+                    slc.state_converter_circuit(lc_graph, iso_graph, validate=True)
+                except:
+                    raise UserWarning("LC conversion gates failure")
+                conversion_ops = slc.str_to_op(conversion_gates)
+                for op in conversion_ops:
+                    circuit.add(op)
+                lc_circ_list.append(circuit)
+            iso_lc_circuit_dict[iso_graph] = dict(zip(lc_graphs, lc_circ_list))
+        return iso_lc_circuit_dict
 
-    @staticmethod
-    def lc_orbit_finder(graph: nx.Graph, comp_depth=None, orbit_size_thresh=None):
-        """
-        Given a graph this functions tries all possible local-complementation sequences of length up to comp_depth to
-        come up with new distinct graphs in the orbit of the input graph. The comp_depth determines the maximum depth of the
-         orbit explored.
-        :param graph: original graph
-        :type graph: nx.Graph
-        :param comp_depth: the maximum length of the sequence of local-complementations applied on the graph; if None,
-                            continue till the required number of graphs are found, or no new graphs are found.
-        :type comp_depth: int
-        :param orbit_size_thresh: sets a limit on the maximum number of orbit graphs to look for
-        :type orbit_size_thresh: int
-        :return: list of distinct graphs in the orbit of original graph
-        :rtype: list[nx.Graph]
-        """
-        orbit_list = [graph]
-        new_graphs = 1
-        i = 0
-        if comp_depth is None:
-            cond = lambda x: True
-        else:
-            cond = lambda x: bool(x < comp_depth)
 
-        while cond(i):
-            len_before = len(orbit_list)
-            # iterate over the new graphs appended to the end of the orbit list
-            for graph in orbit_list[-new_graphs:]:
-                for node in graph.nodes:
-                    if graph.degree(node) > 1:
-                        g_lc = local_comp_graph(graph, node)
-                        if not check_isomorphism(g_lc, orbit_list):
-                            orbit_list.append(g_lc)
-            # orbit_list = remove_iso(orbit_list)
-            len_after = len(orbit_list)
-            new_graphs = len_after - len_before
-            print("new graphs", new_graphs)
-            if orbit_size_thresh and len_after > orbit_size_thresh:
-                return orbit_list[:orbit_size_thresh]
-            if new_graphs == 0:
-                break
-            i += 1
-        return orbit_list
+def graph_to_circ(graph, show=False):
+    """
+    Find a circuit that generates the input graph. This function calls the deterministic solver. The outcome is not
+    unique.
+    :param graph: The graph to generate
+    :type graph: networkx.Graph
+    :param show: If true draws the corresponding circuit
+    :type show: bool
+    :return: A circuit corresponding to the input graph
+    :rtype: CircuitDAG
+    """
+    if not isinstance(graph, nx.Graph):
+        graph = nx.from_numpy_array(graph)
+        assert isinstance(
+            graph, nx.Graph
+        ), "input must be a networkx graph object or a numpy adjacency matrix"
+    n = graph.number_of_nodes()
+    c_tableau = get_clifford_tableau_from_graph(graph)
+    ideal_state = QuantumState(n, c_tableau, representation="stabilizer")
 
-    @staticmethod
-    def remove_iso(g_list):
-        """
-        Takes an input list of graphs and removes all the isomorphic cases, returning a list of distinct graphs
-        :param g_list: list of graphs
-        :type g_list: list[nx.Graph]
-        :return: list of distinct graphs
-        :rtype: list[nx.Graph]
-        """
-        non_iso = [*g_list]
-        i, j = 0, 1
-        while i < len(non_iso):
-            g = non_iso[i]
-            while i + j < len(non_iso):
-                gg = non_iso[i + j]
-                if nx.is_isomorphic(g, gg):
-                    del non_iso[i + j]
-                else:
-                    j += 1
-            i += 1
-            j = 1
-        return non_iso
-
-    @staticmethod
-    def check_isomorphism(graph, g_list):
-        """
-        check if the provided graph is isomorphic to any graph in the g_list
-        :param graph: graph to check
-        :type graph: nx.Graph
-        :param g_list: graph list to check against
-        :type g_list: list
-        :return: True of False, if an isomorphism case was detected.
-        :rtype: bool
-        """
-        iso = False
-        for g in g_list:
-            if nx.is_isomorphic(graph, g):
-                iso = True
-                break
-        return iso
-
-    def graph_to_circ(graph, show=False):
-        """
-        Find a circuit that generates the input graph. This function calls the deterministic solver. The outcome is not
-        unique.
-        :param graph: The graph to generate
-        :type graph: networkx.Graph
-        :param show: If true draws the corresponding circuit
-        :type show: bool
-        :return: A circuit corresponding to the input graph
-        :rtype: CircuitDAG
-        """
-        if not isinstance(graph, nx.Graph):
-            graph = nx.from_numpy_array(graph)
-            assert isinstance(
-                graph, nx.Graph
-            ), "input must be a networkx graph object or a numpy adjacency matrix"
-        n = graph.number_of_nodes()
-        c_tableau = get_clifford_tableau_from_graph(graph)
-        ideal_state = QuantumState(n, c_tableau, representation="stabilizer")
-
-        target = ideal_state
-        solver = DeterministicSolver(
-            target=target,
-            metric=Infidelity(target),
-            compiler=StabilizerCompiler(),
+    target = ideal_state
+    solver = DeterministicSolver(
+        target=target,
+        metric=Infidelity(target),
+        compiler=StabilizerCompiler(),
+    )
+    solver.solve()
+    score, circ = solver.result
+    if show:
+        fig, (ax1, ax2) = plt.subplots(2, 1, dpi=300)
+        nx.draw_networkx(
+            graph, with_labels=True, pos=nx.kamada_kawai_layout(graph), ax=ax1
         )
-        solver.solve()
-        score, circ = solver.result
-        if show:
-            fig, (ax1, ax2) = plt.subplots(2, 1, dpi=300)
-            nx.draw_networkx(
-                graph, with_labels=True, pos=nx.kamada_kawai_layout(graph), ax=ax1
-            )
-            circ.draw_circuit(ax=ax2)
-        return circ
-
-
+        circ.draw_circuit(ax=ax2)
+    return circ

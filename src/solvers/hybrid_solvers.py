@@ -664,7 +664,6 @@ class AlternateGraphSolver:
         redundant_indices = [index for s in set_list for index in list(s)[1:]]
         for i, circ in enumerate(results_dict.copy()):
             if i in redundant_indices:
-                print(i)
                 del results_dict[circ]
         self.result = results_dict
         return results_dict

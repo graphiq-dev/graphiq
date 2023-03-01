@@ -492,13 +492,13 @@ def local_clifford_ops(solution):
     # allowed operations on single qubits in binary symplectic representation
     identity = np.array([[1, 0], [0, 1]])
     hadamard = np.array([[0, 1], [1, 0]])
-    phase = np.array([[1, 1], [0, 1]])
+    p = np.array([[1, 1], [0, 1]])
     ph = np.array([[1, 1], [1, 0]])
     hp_dagger = np.array([[0, 1], [1, 1]])
     php = np.array([[1, 0], [1, 1]])
 
-    ops_list = [identity, hadamard, phase, ph, hp_dagger, php]
-    ops_list_str = ["I", "H", "P", "PH", "H P_dag", "PHP"]
+    ops_list = [identity, hadamard, p, ph, hp_dagger, php]
+    ops_list_str = ["I", "H", "P", "P H", "H P_dag", "P H P"]
     ops_dict = zip(list(range(len(ops_list))), ops_list_str)
     ops_dict = dict(ops_dict)
     ops_names = []

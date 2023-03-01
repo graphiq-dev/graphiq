@@ -361,12 +361,12 @@ def lc_orbit_finder(graph: nx.Graph, comp_depth=None, orbit_size_thresh=None):
                     g_lc = local_comp_graph(graph, node)
                     if not check_isomorphism(g_lc, orbit_list):
                         orbit_list.append(g_lc)
+                if orbit_size_thresh and len(orbit_list) > orbit_size_thresh:
+                    return orbit_list
         # orbit_list = remove_iso(orbit_list)
         len_after = len(orbit_list)
         new_graphs = len_after - len_before
-        print("new graphs", new_graphs)
-        if orbit_size_thresh and len_after > orbit_size_thresh:
-            return orbit_list[:orbit_size_thresh]
+        # print("new graphs", new_graphs)
         if new_graphs == 0:
             break
         i += 1

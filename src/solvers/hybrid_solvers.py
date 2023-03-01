@@ -577,6 +577,7 @@ class AlternateGraphSolver:
             target_graph,
             io: IO = None,
             graph_solver_setting=None,
+            seed=None,
     ):
         if graph_solver_setting is None:
             graph_solver_setting = HybridGraphSearchSolverSetting(
@@ -586,6 +587,8 @@ class AlternateGraphSolver:
             )
         self.target_graph = target_graph
         self.solver_setting = graph_solver_setting
+        self.seed = seed
+        self.result = None
 
     def solve(self):
         """
@@ -609,13 +612,15 @@ class AlternateGraphSolver:
             sort_emit=setting.sort_emitter,
             label_map=setting.label_map,
             thresh=setting.iso_thresh,
+            seed=self.seed
         )
         results_dict = {}  # a dictionary {circuit: {'g': graph used to find circuit, 'map': relabel map with target}}
         iso_graphs = [nx.from_numpy_array(adj) for adj in iso_adjs]
         for iso_graph in iso_graphs:
-            lc_graphs = lc_orbit_finder(iso_graph, comp_depth=None, orbit_size_thresh=n_lc)
 
+            lc_graphs = lc_orbit_finder(iso_graph, comp_depth=None, orbit_size_thresh=n_lc)
             lc_circ_list = []
+
             for lc_graph in lc_graphs:
                 circuit = graph_to_circ(lc_graph)
                 success, conversion_gates = slc.lc_check(lc_graph, iso_graph, validate=True)
@@ -630,31 +635,34 @@ class AlternateGraphSolver:
                 lc_circ_list.append(circuit)
 
             rmap = get_relabel_map(self.target_graph, iso_graph)
-            results_dict = {circ: {"g": lc_graphs[i], "map": rmap} for i, circ in enumerate(lc_circ_list)}
+            for i, circ in enumerate(lc_circ_list):
+                results_dict[circ] = {"g": lc_graphs[i], "map": rmap}
             # iso_lc_circuit_dict[get_relabel_map(self.target_graph, iso_graph)] = dict(zip(lc_graphs, lc_circ_list))
-            print("len before", len(results_dict))
-            # remove redundant auto-morph graphs
-            adj_list = [nx.to_numpy_array(val['g']) for val in results_dict.values()]
-            set_list = []
-            for i in range(len(adj_list)):
-                already_found = False
-                for s in set_list:
-                    if i in s:
-                        already_found = True
-                        break
-                if not already_found:
-                    s = set([i])
-                    for j in range(i+1, len(adj_list)):
-                        if np.array_equal(adj_list[i], adj_list[j]):
-                            s.add(j)
-                    set_list.append(s)
-            # set_list now contains the equivalent group of graphs in the result's dict
-            # remove redundant items of the dict
-            redundant_indices = [index for s in set_list for index in list(s)[1:]]
-            for i, circ in enumerate(results_dict):
-                if i in redundant_indices:
-                    del results_dict[circ]
-
+        print("len before", len(results_dict))
+        # remove redundant auto-morph graphs
+        adj_list = [nx.to_numpy_array(val['g']) for val in results_dict.values()]
+        set_list = []
+        for i in range(len(adj_list)):
+            already_found = False
+            for s in set_list:
+                if i in s:
+                    already_found = True
+                    break
+            if not already_found:
+                s = set([i])
+                for j in range(i+1, len(adj_list)):
+                    if np.array_equal(adj_list[i], adj_list[j]):
+                        s.add(j)
+                set_list.append(s)
+        # set_list now contains the equivalent group of graphs in the result's dict
+        # remove redundant items of the dict
+        redundant_indices = [index for s in set_list for index in list(s)[1:]]
+        print(len(redundant_indices))
+        for i, circ in enumerate(results_dict):
+            if i in redundant_indices:
+                del results_dict[circ]
+        print(results_dict)
+        self.result = results_dict
         return results_dict
 
 

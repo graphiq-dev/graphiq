@@ -51,7 +51,7 @@ def iso_finder(
     n_node = adj_matrix.shape[0]
     n_max = np.math.factorial(n_node)
     n_label = n_iso
-    labels_arr = _label_finder(n_label, n_node, seed=None, thresh=None)
+    labels_arr = _label_finder(n_label, n_node, seed=seed, thresh=thresh)
     adj_arr = automorph_check(adj_matrix, labels_arr)
     if len(adj_arr) >= n_iso:
         adj_arr = adj_arr[:n_iso]

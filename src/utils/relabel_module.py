@@ -195,6 +195,7 @@ def _label_finder(
     else:
         if new_label_set is None:
             new_label_set = set()
+            new_label_set.add(tuple([*range(n_node)]))
         count = 0
         while len(new_label_set) < n_label and count < thresh:
             new_label_set.add(tuple(rng.permutation(n_node)))

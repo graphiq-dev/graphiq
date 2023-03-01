@@ -574,7 +574,7 @@ class HybridGraphSearchSolver(SolverBase):
 class AlternateGraphSolver:
     def __init__(
             self,
-            target_graph,
+            target_graph: nx.Graph or QuantumState = None,
             io: IO = None,
             graph_solver_setting=None,
             seed=None,
@@ -585,7 +585,13 @@ class AlternateGraphSolver:
                 n_lc_graphs=1,
                 graph_metric=pre.graph_metric_lists[0],
             )
-        self.target_graph = target_graph
+        if isinstance(target_graph, nx.Graph):
+            self.target_graph = target_graph
+        elif isinstance(target_graph, QuantumState):
+            self.target = QuantumState
+            self.target_graph = stabilizer_to_graph(
+                self.target_graph.stabilizer.tableau.stabilizer_to_labels()
+            )
         self.solver_setting = graph_solver_setting
         self.seed = seed
         self.result = None
@@ -638,7 +644,6 @@ class AlternateGraphSolver:
             for i, circ in enumerate(lc_circ_list):
                 results_dict[circ] = {"g": lc_graphs[i], "map": rmap}
             # iso_lc_circuit_dict[get_relabel_map(self.target_graph, iso_graph)] = dict(zip(lc_graphs, lc_circ_list))
-        print("len before", len(results_dict))
         # remove redundant auto-morph graphs
         adj_list = [nx.to_numpy_array(val['g']) for val in results_dict.values()]
         set_list = []
@@ -657,11 +662,10 @@ class AlternateGraphSolver:
         # set_list now contains the equivalent group of graphs in the result's dict
         # remove redundant items of the dict
         redundant_indices = [index for s in set_list for index in list(s)[1:]]
-        print(len(redundant_indices))
-        for i, circ in enumerate(results_dict):
+        for i, circ in enumerate(results_dict.copy()):
             if i in redundant_indices:
+                print(i)
                 del results_dict[circ]
-        print(results_dict)
         self.result = results_dict
         return results_dict
 

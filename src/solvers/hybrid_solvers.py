@@ -632,9 +632,28 @@ class AlternateGraphSolver:
             rmap = get_relabel_map(self.target_graph, iso_graph)
             results_dict = {circ: {"g": lc_graphs[i], "map": rmap} for i, circ in enumerate(lc_circ_list)}
             # iso_lc_circuit_dict[get_relabel_map(self.target_graph, iso_graph)] = dict(zip(lc_graphs, lc_circ_list))
-
-            # remove redundant graphs
-            g_list = [val['g'] for val in results_dict.values()]
+            print("len before", len(results_dict))
+            # remove redundant auto-morph graphs
+            adj_list = [nx.to_numpy_array(val['g']) for val in results_dict.values()]
+            set_list = []
+            for i in range(len(adj_list)):
+                already_found = False
+                for s in set_list:
+                    if i in s:
+                        already_found = True
+                        break
+                if not already_found:
+                    s = set([i])
+                    for j in range(i+1, len(adj_list)):
+                        if np.array_equal(adj_list[i], adj_list[j]):
+                            s.add(j)
+                    set_list.append(s)
+            # set_list now contains the equivalent group of graphs in the result's dict
+            # remove redundant items of the dict
+            redundant_indices = [index for s in set_list for index in list(s)[1:]]
+            for i, circ in enumerate(results_dict):
+                if i in redundant_indices:
+                    del results_dict[circ]
 
         return results_dict
 

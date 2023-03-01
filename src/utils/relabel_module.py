@@ -325,3 +325,129 @@ def _compare_graphs_visual(G, new_G, new_labels):
     )
     plt.show()
     return
+
+
+def lc_orbit_finder(graph: nx.Graph, comp_depth=None, orbit_size_thresh=None):
+    """
+    Given a graph this functions tries all possible local-complementation sequences of length up to comp_depth to
+    come up with new distinct graphs in the orbit of the input graph. The comp_depth determines the maximum depth of the
+     orbit explored.
+    :param graph: original graph
+    :type graph: nx.Graph
+    :param comp_depth: the maximum length of the sequence of local-complementations applied on the graph; if None,
+                        continue till the required number of graphs are found, or no new graphs are found.
+    :type comp_depth: int
+    :param orbit_size_thresh: sets a limit on the maximum number of orbit graphs to look for
+    :type orbit_size_thresh: int
+    :return: list of distinct graphs in the orbit of original graph
+    :rtype: list[nx.Graph]
+    """
+    orbit_list = [graph]
+    new_graphs = 1
+    i = 0
+    if comp_depth is None:
+        cond = lambda x: True
+    else:
+        cond = lambda x: bool(x < comp_depth)
+
+    while cond(i):
+        len_before = len(orbit_list)
+        # iterate over the new graphs appended to the end of the orbit list
+        for graph in orbit_list[-new_graphs:]:
+            for node in graph.nodes:
+                if graph.degree(node) > 1:
+                    g_lc = local_comp_graph(graph, node)
+                    if not check_isomorphism(g_lc, orbit_list):
+                        orbit_list.append(g_lc)
+        # orbit_list = remove_iso(orbit_list)
+        len_after = len(orbit_list)
+        new_graphs = len_after - len_before
+        print("new graphs", new_graphs)
+        if orbit_size_thresh and len_after > orbit_size_thresh:
+            return orbit_list[:orbit_size_thresh]
+        if new_graphs == 0:
+            break
+        i += 1
+    return orbit_list
+
+
+def remove_iso(g_list):
+    """
+    Takes an input list of graphs and removes all the isomorphic cases, returning a list of distinct graphs
+    :param g_list: list of graphs
+    :type g_list: list[nx.Graph]
+    :return: list of distinct graphs
+    :rtype: list[nx.Graph]
+    """
+    non_iso = [*g_list]
+    i, j = 0, 1
+    while i < len(non_iso):
+        g = non_iso[i]
+        while i + j < len(non_iso):
+            gg = non_iso[i + j]
+            if nx.is_isomorphic(g, gg):
+                del non_iso[i + j]
+            else:
+                j += 1
+        i += 1
+        j = 1
+    return non_iso
+
+
+def check_isomorphism(graph, g_list):
+    """
+    check if the provided graph is isomorphic to any graph in the g_list
+    :param graph: graph to check
+    :type graph: nx.Graph
+    :param g_list: graph list to check against
+    :type g_list: list
+    :return: True of False, if an isomorphism case was detected.
+    :rtype: bool
+    """
+    iso = False
+    for g in g_list:
+        if nx.is_isomorphic(graph, g):
+            iso = True
+            break
+    return iso
+
+
+def _compare_graphs_visual(G, new_G, new_labels):
+    """
+    Visual demonstration of initial graph, the relabeled one.
+    """
+    nx.draw_networkx(G, with_labels=True, pos=nx.kamada_kawai_layout(G))
+    fig, (ax1, ax2, ax3) = plt.subplots(3, figsize=(15, 25))
+    fig.tight_layout()
+    n = len(new_labels)
+    relabel_map_dict = dict(zip([*range(n)], new_labels))
+    G_relabeled = nx.relabel_nodes(G, relabel_map_dict)
+    assert list(new_labels) == G_relabeled.nodes()
+
+    nx.draw_networkx(
+        G_relabeled,
+        node_size=1000,
+        font_size=25,
+        with_labels=True,
+        ax=ax2,
+        pos=nx.kamada_kawai_layout(G_relabeled),
+    )
+    nx.draw_networkx(
+        new_G,
+        node_size=1000,
+        font_size=25,
+        with_labels=True,
+        ax=ax3,
+        pos=nx.kamada_kawai_layout(G_relabeled),
+    )
+    nx.draw_networkx(
+        G,
+        node_size=1000,
+        node_color="#bcbd22",
+        font_size=25,
+        with_labels=True,
+        ax=ax1,
+        pos=nx.kamada_kawai_layout(G),
+    )
+    plt.show()
+    return

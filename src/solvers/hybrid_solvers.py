@@ -22,14 +22,13 @@ from src.circuit import CircuitDAG
 from src.metrics import MetricBase
 from src.state import QuantumState
 from src.io import IO
-from src.utils.relabel_module import iso_finder, emitter_sorted, lc_orbit_finder
+from src.utils.relabel_module import iso_finder, emitter_sorted, lc_orbit_finder, get_relabel_map
 from src.backends.state_representation_conversion import stabilizer_to_graph
 from src.backends.stabilizer.functions.rep_conversion import (
     get_clifford_tableau_from_graph,
 )
 from src.backends.stabilizer.compiler import StabilizerCompiler
 from src.metrics import Infidelity
-from src.backends.lc_equivalence_check import local_comp_graph
 from src.backends.stabilizer.state import Stabilizer
 
 
@@ -589,6 +588,15 @@ class AlternateGraphSolver:
         self.solver_setting = graph_solver_setting
 
     def solve(self):
+        """
+        Finds alternative circuits to generate the target graph or a relabeled version of it by searching through
+        alternative isomorphic and LC-equivalent graphs. Notice that the returned circuits generate the target state
+        up to relabeling if this feature is enabled in the setting. Otherwise, user's exact target graph is produced.
+        :return: a dictionary where keys are the circuits and values are themselves dictionaries containing the LC graph
+         used as the intermediate states and relabeling map between the actual target and the graph the circuit
+         generates. {circuit: {'g':graph, 'map': relabel_map}}
+        :rtype: dict
+        """
         setting = self.solver_setting
         n_iso = setting.n_iso_graphs
         n_lc = setting.n_lc_graphs
@@ -602,10 +610,11 @@ class AlternateGraphSolver:
             label_map=setting.label_map,
             thresh=setting.iso_thresh,
         )
-        iso_lc_circuit_dict = {}  # a dictionary {iso_graph: {lc_graph: circuit}}
+        results_dict = {}  # a dictionary {circuit: {'g': graph used to find circuit, 'map': relabel map with target}}
         iso_graphs = [nx.from_numpy_array(adj) for adj in iso_adjs]
         for iso_graph in iso_graphs:
             lc_graphs = lc_orbit_finder(iso_graph, comp_depth=None, orbit_size_thresh=n_lc)
+
             lc_circ_list = []
             for lc_graph in lc_graphs:
                 circuit = graph_to_circ(lc_graph)
@@ -614,13 +623,20 @@ class AlternateGraphSolver:
                     assert success, "LC graphs are not actually LC equivalent!"
                     slc.state_converter_circuit(lc_graph, iso_graph, validate=True)
                 except:
-                    raise UserWarning("LC conversion gates failure")
+                    raise UserWarning("LC conversion failed")
                 conversion_ops = slc.str_to_op(conversion_gates)
                 for op in conversion_ops:
                     circuit.add(op)
                 lc_circ_list.append(circuit)
-            iso_lc_circuit_dict[iso_graph] = dict(zip(lc_graphs, lc_circ_list))
-        return iso_lc_circuit_dict
+
+            rmap = get_relabel_map(self.target_graph, iso_graph)
+            results_dict = {circ: {"g": lc_graphs[i], "map": rmap} for i, circ in enumerate(lc_circ_list)}
+            # iso_lc_circuit_dict[get_relabel_map(self.target_graph, iso_graph)] = dict(zip(lc_graphs, lc_circ_list))
+
+            # remove redundant graphs
+            g_list = [val['g'] for val in results_dict.values()]
+
+        return results_dict
 
 
 def graph_to_circ(graph, show=False):

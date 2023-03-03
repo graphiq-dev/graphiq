@@ -337,3 +337,43 @@ def remove_redundant_circuits(circuit_list):
             new_circuit_list.append(new_circuit)
 
     return new_circuit_list
+
+
+class CircuitStorage:
+    """
+    Class for storing circuits, check if circuit is duplicate before adding to circuit list
+    """
+
+    def __init__(self):
+        self.circuit_list = []
+
+    def add_new_circuit(self, new_circuit):
+        """
+        Function to add new circuit to circuit list, check if new circuit is redundant.
+
+        :param new_circuit: new circuit to be added
+        :type new_circuit: CircuitDAG
+        :return: Return True if added, False otherwise.
+        :rtype: bool
+        """
+        if self.is_redundant(new_circuit):
+            return False
+
+        self.circuit_list.append(new_circuit)
+        return True
+
+    def is_redundant(self, circuit):
+        """
+        Function to check if circuit is redundant.
+
+        :param circuit: circuit to be checked
+        :type circuit: CircuitDAG
+        :return: True if redundant, False otherwise.
+        :rtype: bool
+        """
+        if self.circuit_list:
+            for c_circuit in self.circuit_list:
+                if circuit_is_isomorphic(c_circuit, circuit):
+                    return True
+
+        return False

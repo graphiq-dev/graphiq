@@ -294,6 +294,7 @@ class HybridGraphSearchSolver(SolverBase):
 
         self.noise_model_mapping = noise_model_mapping
         self.sorted_result = []
+        self.circuit_storage = comp.CircuitStorage()
 
     def get_iso_graph_from_setting(self, adj_matrix):
         """
@@ -367,15 +368,16 @@ class HybridGraphSearchSolver(SolverBase):
         :rtype:
         """
         circuit_target_list = []
+
+        # retrieve parameters for relabelling module and local complementation module
+        setting = self.solver_setting
+
         # construct the adjacent matrix from the user-input target graph state
         target_graph = stabilizer_to_graph(
             self.target.stabilizer.tableau.stabilizer_to_labels()
         )
         n_qubits = self.target.n_qubits
         adj_matrix = nx.to_numpy_array(target_graph)
-
-        # retrieve parameters for relabelling module and local complementation module
-        setting = self.solver_setting
 
         # user can disable relabelling module
         iso_graph_tuples = self.get_iso_graph_from_setting(adj_matrix)
@@ -391,7 +393,7 @@ class HybridGraphSearchSolver(SolverBase):
             )
 
             target_state = QuantumState(n_qubits, relabel_tableau, "stabilizer")
-            circuit_list = []
+
             for score_graph in lc_graphs:
                 # solve the noise-free scenario
                 lc_tableau = get_clifford_tableau_from_graph(score_graph[1])
@@ -429,26 +431,34 @@ class HybridGraphSearchSolver(SolverBase):
 
                 # store score and circuit for further analysis
                 # code for storing the necessary information
-                circuit_list.append(circuit)
-
-            # If any, add additional postselection module below
-
-            # code for circuit equivalency check
-            circuit_target_list.append(
-                (comp.remove_redundant_circuits(circuit_list), target_state)
-            )
+                if self.circuit_storage.add_new_circuit(circuit):
+                    circuit_target_list.append([circuit, target_state])
 
         # end of relabelling loop
         # code to run each circuit in the noisy scenario and evaluate the cost function
 
-        sorted_result_list = self.circuit_evaluation(circuit_target_list, self.metric)
-        self.result = (
-            sorted_result_list[0][0][0][0],
-            sorted_result_list[0][0][0][1].copy(),
-        )
-        self.sorted_result = sorted_result_list
+        for i in circuit_target_list:
+            score = self.circuit_evaluation_v2(i[0], i[1], self.metric)
+            i.append(score)
 
-        return sorted_result_list
+        self.result = circuit_target_list
+        return circuit_target_list
+
+    def circuit_evaluation_v2(self, circuit, target, metric):
+        # no noise
+        self.compiler.noise_simulation = False
+
+        compiled_state = self.compiler.compile(circuit)
+        compiled_state.partial_trace(
+            keep=list(range(circuit.n_photons)),
+            dims=(circuit.n_photons + circuit.n_emitters) * [2],
+        )
+
+        # evaluation
+        metric.target = target
+        score = metric.evaluate(compiled_state, circuit)
+
+        return score
 
     def circuit_evaluation(self, circuit_target_list, metric):
         """
@@ -519,7 +529,7 @@ class HybridGraphSearchSolver(SolverBase):
                 # add the inverse of the phase dagger gate, which is the phase gate itself
                 self._add_one_qubit_gate(circuit, [ops.SigmaZ, ops.Phase], gate[1])
 
-            elif gate[0] == 'Z':
+            elif gate[0] == "Z":
                 self._add_one_qubit_gate(circuit, [ops.SigmaZ], gate[1])
 
             else:

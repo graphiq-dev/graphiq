@@ -38,7 +38,7 @@ def iso_finder(
      between the original input graph and the one in the returned list.
     :type label_map: bool
     :param thresh: a threshold value that determines how many random trials is performed in search for new permutations.
-    The default is 10 times the number of needed permutations (=n_iso).
+    The default is 5 times the number of needed permutations (=n_iso).
     :type thresh: int
     :param seed: the seed for random sampling of labels
     :type seed: int
@@ -73,6 +73,8 @@ def iso_finder(
                     )
                     return adj_arr
 
+            # update the seed used in _add_labels to get new values when we repeat it in the loop
+            seed = seed + 1 if (seed is not None) else None
             labels_arr = _add_labels(
                 labels_arr,
                 add_n,
@@ -185,12 +187,16 @@ def _label_finder(
     n_max = np.math.factorial(n_node)
     if thresh is None:
         thresh = 5 * n_label
+    elif thresh < n_label:
+        thresh = n_label + 1
     assert (
         n_label <= n_max
     ), f"The input number of permutations is more than the maximum possible"
     if n_node < 8 or exhaustive:
         perm = list(permutations([*range(n_node)]))
-        labels_list = rng.choice(perm, n_label)
+        initial_perm = np.array([[*range(n_node)]])
+        labels_list = rng.choice(perm[1:], n_label - 1)
+        labels_list = np.concatenate((initial_perm, labels_list), axis=0)
         return labels_list
     else:
         if new_label_set is None:

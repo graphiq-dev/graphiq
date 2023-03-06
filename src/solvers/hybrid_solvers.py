@@ -620,7 +620,8 @@ class AlternateGraphSolver:
             thresh=setting.iso_thresh,
             seed=self.seed
         )
-        results_dict = {}  # a dictionary {circuit: {'g': graph used to find circuit, 'map': relabel map with target}}
+        results_list = []
+        # list of tuples [(circuit, dict={'g': graph used to find circuit, 'map': relabel map with target})]
         iso_graphs = [nx.from_numpy_array(adj) for adj in iso_adjs]
         for iso_graph in iso_graphs:
 
@@ -642,10 +643,10 @@ class AlternateGraphSolver:
 
             rmap = get_relabel_map(self.target_graph, iso_graph)
             for i, circ in enumerate(lc_circ_list):
-                results_dict[circ] = {"g": lc_graphs[i], "map": rmap}
+                results_list.append((circ, {"g": lc_graphs[i], "map": rmap}))
             # iso_lc_circuit_dict[get_relabel_map(self.target_graph, iso_graph)] = dict(zip(lc_graphs, lc_circ_list))
         # remove redundant auto-morph graphs
-        adj_list = [nx.to_numpy_array(val['g']) for val in results_dict.values()]
+        adj_list = [nx.to_numpy_array(result[1]['g']) for result in results_list]
         set_list = []
         for i in range(len(adj_list)):
             already_found = False
@@ -655,18 +656,18 @@ class AlternateGraphSolver:
                     break
             if not already_found:
                 s = set([i])
-                for j in range(i+1, len(adj_list)):
+                for j in range(i + 1, len(adj_list)):
                     if np.array_equal(adj_list[i], adj_list[j]):
                         s.add(j)
                 set_list.append(s)
         # set_list now contains the equivalent group of graphs in the result's dict
         # remove redundant items of the dict
         redundant_indices = [index for s in set_list for index in list(s)[1:]]
-        for i, circ in enumerate(results_dict.copy()):
-            if i in redundant_indices:
-                del results_dict[circ]
-        self.result = results_dict
-        return results_dict
+        redundant_indices.sort()
+        for index in redundant_indices[::-1]:
+            del results_list[index]
+        self.result = results_list
+        return results_list
 
 
 def graph_to_circ(graph, show=False):

@@ -352,6 +352,8 @@ def lc_orbit_finder(graph: nx.Graph, comp_depth=None, orbit_size_thresh=None):
     :rtype: list[nx.Graph]
     """
     orbit_list = [graph]
+    if orbit_size_thresh == 1:
+        return orbit_list
     new_graphs = 1
     i = 0
     if comp_depth is None:
@@ -368,8 +370,8 @@ def lc_orbit_finder(graph: nx.Graph, comp_depth=None, orbit_size_thresh=None):
                     g_lc = local_comp_graph(graph, node)
                     if not check_isomorphism(g_lc, orbit_list):
                         orbit_list.append(g_lc)
-                if orbit_size_thresh and len(orbit_list) >= orbit_size_thresh:
-                    return orbit_list
+                if orbit_size_thresh is not None and len(orbit_list) >= orbit_size_thresh:
+                    return orbit_list[:orbit_size_thresh]
         # orbit_list = remove_iso(orbit_list)
         len_after = len(orbit_list)
         new_graphs = len_after - len_before

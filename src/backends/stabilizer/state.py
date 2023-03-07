@@ -566,6 +566,20 @@ class MixedStabilizer(StateRepresentationBase):
             for (p_i, t_i) in self._mixture
         ]
 
+    def apply_phase_dagger(self, qubit_position):
+        """
+        Apply the phase dagger gate to the Stabilizer
+
+        :param qubit_position: the qubit position where the gate is applied
+        :type qubit_position: int
+        :return: nothing
+        :rtype: None
+        """
+        self._mixture = [
+            (p_i, transform.phase_dagger_gate(t_i, qubit_position))
+            for (p_i, t_i) in self._mixture
+        ]
+
     def apply_sigmax(self, qubit_position):
         """
         Apply the X gate to the Stabilizer

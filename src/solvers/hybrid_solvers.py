@@ -6,6 +6,8 @@ import numpy as np
 import src.ops as ops
 import matplotlib.pyplot as plt
 
+from src.backends.stabilizer.functions.stabilizer import canonical_form
+
 import src.utils.preprocessing as pre
 import src.utils.circuit_comparison as comp
 import src.noise.noise_models as nm
@@ -23,10 +25,17 @@ from src.circuit import CircuitDAG
 from src.metrics import MetricBase
 from src.state import QuantumState
 from src.io import IO
-from src.utils.relabel_module import iso_finder, emitter_sorted, lc_orbit_finder, get_relabel_map, relabel
+from src.utils.relabel_module import (
+    iso_finder,
+    emitter_sorted,
+    lc_orbit_finder,
+    get_relabel_map,
+    relabel,
+)
 from src.backends.state_representation_conversion import stabilizer_to_graph
 from src.backends.stabilizer.functions.rep_conversion import (
     get_clifford_tableau_from_graph,
+    stabilizer_from_clifford,
 )
 from src.backends.stabilizer.compiler import StabilizerCompiler
 from src.backends.density_matrix.compiler import DensityMatrixCompiler
@@ -45,15 +54,15 @@ class HybridEvolutionarySolver(EvolutionarySolver):
     name = "hybrid evolutionary-search"
 
     def __init__(
-            self,
-            target,
-            metric: MetricBase,
-            compiler: CompilerBase,
-            io: IO = None,
-            solver_setting=EvolutionarySearchSolverSetting(),
-            noise_model_mapping=None,
-            *args,
-            **kwargs,
+        self,
+        target,
+        metric: MetricBase,
+        compiler: CompilerBase,
+        io: IO = None,
+        solver_setting=EvolutionarySearchSolverSetting(),
+        noise_model_mapping=None,
+        *args,
+        **kwargs,
     ):
         """
         Initialize a hybrid solver based on DeterministicSolver and EvolutionarySolver
@@ -177,22 +186,22 @@ class HybridGraphSearchSolverSetting:
     """
 
     def __init__(
-            self,
-            base_solver_setting=None,
-            allow_relabel=True,
-            n_iso_graphs=10,
-            rel_inc_thresh=0.5,
-            allow_exhaustive=False,
-            sort_emit=True,
-            label_map=False,
-            iso_thresh=None,
-            allow_lc=True,
-            n_lc_graphs=10,
-            lc_orbit_depth=None,
-            graph_metric=pre.graph_metric_lists[0],
-            lc_method="max edge",
-            verbose=False,
-            save_openqasm: str = "none",
+        self,
+        base_solver_setting=None,
+        allow_relabel=True,
+        n_iso_graphs=10,
+        rel_inc_thresh=0.5,
+        allow_exhaustive=False,
+        sort_emit=True,
+        label_map=False,
+        iso_thresh=None,
+        allow_lc=True,
+        n_lc_graphs=10,
+        lc_orbit_depth=None,
+        graph_metric=pre.graph_metric_lists[0],
+        lc_method="max edge",
+        verbose=False,
+        save_openqasm: str = "none",
     ):
         self.allow_relabel = allow_relabel
         self.allow_lc = allow_lc
@@ -257,18 +266,18 @@ class HybridGraphSearchSolverSetting:
 
 class HybridGraphSearchSolver(SolverBase):
     def __init__(
-            self,
-            target,
-            metric: MetricBase,
-            compiler: CompilerBase,
-            circuit: CircuitDAG = None,
-            io: IO = None,
-            graph_solver_setting=None,
-            noise_model_mapping=None,
-            base_solver=HybridEvolutionarySolver,
-            base_solver_setting=EvolutionarySearchSolverSetting(),
-            *args,
-            **kwargs,
+        self,
+        target,
+        metric: MetricBase,
+        compiler: CompilerBase,
+        circuit: CircuitDAG = None,
+        io: IO = None,
+        graph_solver_setting=None,
+        noise_model_mapping=None,
+        base_solver=HybridEvolutionarySolver,
+        base_solver_setting=EvolutionarySearchSolverSetting(),
+        *args,
+        **kwargs,
     ):
         if graph_solver_setting is None:
             graph_solver_setting = HybridGraphSearchSolverSetting(
@@ -578,15 +587,15 @@ class HybridGraphSearchSolver(SolverBase):
 
 class AlternateGraphSolver:
     def __init__(
-            self,
-            target_graph: nx.Graph or QuantumState = None,
-            metric: MetricBase = Infidelity,
-            compiler: CompilerBase = StabilizerCompiler(),
-            noise_compiler: CompilerBase = StabilizerCompiler(),
-            io: IO = None,
-            noise_model_mapping=None,
-            graph_solver_setting=None,
-            seed=None,
+        self,
+        target_graph: nx.Graph or QuantumState = None,
+        metric: MetricBase = Infidelity,
+        compiler: CompilerBase = StabilizerCompiler(),
+        noise_compiler: CompilerBase = StabilizerCompiler(),
+        io: IO = None,
+        noise_model_mapping=None,
+        graph_solver_setting=None,
+        seed=None,
     ):
         if noise_model_mapping is None:
             noise_model_mapping = {"e": dict(), "p": dict(), "ee": dict(), "ep": dict()}
@@ -646,21 +655,27 @@ class AlternateGraphSolver:
             sort_emit=setting.sort_emitter,
             label_map=setting.label_map,
             thresh=setting.iso_thresh,
-            seed=self.seed
+            seed=self.seed,
         )
         results_list = []
         # list of tuples [(circuit, dict={'g': graph used to find circuit, 'map': relabel map with target})]
         iso_graphs = [nx.from_numpy_array(adj) for adj in iso_adjs]
         for iso_graph in iso_graphs:
 
-            lc_graphs = lc_orbit_finder(iso_graph, comp_depth=setting.lc_orbit_depth, orbit_size_thresh=n_lc)
+            lc_graphs = lc_orbit_finder(
+                iso_graph, comp_depth=setting.lc_orbit_depth, orbit_size_thresh=n_lc
+            )
             lc_circ_list = []
             lc_score_list = []
             rmap = get_relabel_map(self.target_graph, iso_graph)
 
             for lc_graph in lc_graphs:
-                circuit = graph_to_circ(lc_graph, noise_model_mapping=self.noise_model_mapping)
-                success, conversion_gates = slc.lc_check(lc_graph, iso_graph, validate=True)
+                circuit = graph_to_circ(
+                    lc_graph, noise_model_mapping=self.noise_model_mapping
+                )
+                success, conversion_gates = slc.lc_check(
+                    lc_graph, iso_graph, validate=True
+                )
                 try:
                     assert success, "LC graphs are not actually LC equivalent!"
                     slc.state_converter_circuit(lc_graph, iso_graph, validate=True)
@@ -669,6 +684,8 @@ class AlternateGraphSolver:
                 conversion_ops = slc.str_to_op(conversion_gates)
                 for op in conversion_ops:
                     op_name = type(op).__name__
+                    if op_name == "Identity":
+                        continue
                     # add noise to gate
                     if op_name in self.noise_model_mapping["p"].keys():
                         op.noise = self.noise_model_mapping["p"][op_name]
@@ -678,13 +695,15 @@ class AlternateGraphSolver:
                     noise_score = self.noise_score(circuit, rmap)
                     lc_score_list.append(noise_score)
                 else:
-                    lc_score_list.append(0.0)
+                    lc_score_list.append(0.01)
 
             for i, circ in enumerate(lc_circ_list):
-                results_list.append((circ, {"g": lc_graphs[i], "score": lc_score_list[i], "map": rmap}))
+                results_list.append(
+                    (circ, {"g": lc_graphs[i], "score": lc_score_list[i], "map": rmap})
+                )
             # iso_lc_circuit_dict[get_relabel_map(self.target_graph, iso_graph)] = dict(zip(lc_graphs, lc_circ_list))
         # remove redundant auto-morph graphs
-        adj_list = [nx.to_numpy_array(result[1]['g']) for result in results_list]
+        adj_list = [nx.to_numpy_array(result[1]["g"]) for result in results_list]
         set_list = []
         for i in range(len(adj_list)):
             already_found = False
@@ -712,14 +731,16 @@ class AlternateGraphSolver:
         old_adj = nx.to_numpy_array(graph)
         n = graph.number_of_nodes()
         # relabel the target graph
-        new_labels = [relabel_map[i] for i in range(n)]
+        new_labels = np.array([relabel_map[i] for i in range(n)])
         new_adj = relabel(old_adj, new_labels)
         graph = nx.from_numpy_array(new_adj)
 
         c_tableau = get_clifford_tableau_from_graph(graph)
         ideal_state = QuantumState(n, c_tableau, representation="stabilizer")
         if isinstance(self.noise_compiler, DensityMatrixCompiler):
-            ideal_state = QuantumState(n, graph_to_density(graph), representation="density matrix")
+            ideal_state = QuantumState(
+                n, graph_to_density(graph), representation="density matrix"
+            )
         metric = Infidelity(ideal_state)
 
         compiler = self.noise_compiler
@@ -730,26 +751,30 @@ class AlternateGraphSolver:
             keep=list(range(circ.n_photons)),
             dims=(circ.n_photons + circ.n_emitters) * [2],
         )
+        # print("tablooos \n", canonical_form(stabilizer_from_clifford(c_tableau)), "\n",canonical_form(stabilizer_from_clifford(compiled_state.stabilizer.mixture[0][1])))
+        # print(type(compiled_state.stabilizer), compiled_state.stabilizer.mixture)
+        # print("tablooos \n",compiled_state.dm, "tablooos \n",ideal_state.dm)
+
         # evaluate the metric
         score = metric.evaluate(compiled_state, circ)
-        score = 0.0 if np.isclose(score, 0.0) else score
+        score = 0.0001 if np.isclose(score, 0.0) else score
         return score
 
     @staticmethod
     def depol_noise_map():
         dep_noise_model_mapping = dict()
         dep_noise_model_mapping["e"] = {
-         "SigmaX": nm.DepolarizingNoise(0.01),
-         "SigmaY": nm.DepolarizingNoise(0.01),
-         "SigmaZ": nm.DepolarizingNoise(0.01),
-         "Phase": nm.DepolarizingNoise(0.01),
-         "PhaseDagger": nm.DepolarizingNoise(0.01),
-         "Hadamard": nm.DepolarizingNoise(0.01),
+            "SigmaX": nm.DepolarizingNoise(0.01),
+            "SigmaY": nm.DepolarizingNoise(0.01),
+            "SigmaZ": nm.DepolarizingNoise(0.01),
+            "Phase": nm.DepolarizingNoise(0.01),
+            "PhaseDagger": nm.DepolarizingNoise(0.01),
+            "Hadamard": nm.DepolarizingNoise(0.01),
         }
         dep_noise_model_mapping["p"] = dep_noise_model_mapping["e"]
         dep_noise_model_mapping["ee"] = {
-         "SigmaX": nm.DepolarizingNoise(0.01),
-         "CNOT": nm.DepolarizingNoise(0.01),
+            "SigmaX": nm.DepolarizingNoise(0.01),
+            "CNOT": nm.DepolarizingNoise(0.01),
         }
         dep_noise_model_mapping["ep"] = {"CNOT": nm.DepolarizingNoise(0.01)}
         return dep_noise_model_mapping
@@ -791,7 +816,3 @@ def graph_to_circ(graph, noise_model_mapping=None, show=False):
         )
         circ.draw_circuit(ax=ax2)
     return circ
-
-
-
-

@@ -473,10 +473,10 @@ class MixedStabilizer(StateRepresentationBase):
             raise NotImplementedError(
                 "Gate must be provided for conditioning measurement outcomes."
             )
-
-        self._mixture = [
-            (p_i, trans(t_i, qubit_position)) for (p_i, t_i) in self._mixture
-        ]
+        for i, outcome in enumerate(outcomes):
+            if outcome == 1:
+                p_i, t_i = self._mixture[i]
+                self._mixture[i] = (p_i, trans(t_i, qubit_position))
 
     def apply_measurement(
         self, qubit_position, measurement_determinism="probabilistic"

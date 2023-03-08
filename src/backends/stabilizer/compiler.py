@@ -125,7 +125,7 @@ class StabilizerCompiler(CompilerBase):
                     measurement_determinism=self.measurement_determinism,
                 )
                 if outcome == 1:
-                    state.apply_sigmaz(q_index(op.target, op.target_type))
+                    state.apply_sigmax(q_index(op.target, op.target_type))
 
             classical_registers[op.c_register] = outcome
 

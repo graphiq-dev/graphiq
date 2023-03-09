@@ -198,6 +198,7 @@ class HybridGraphSearchSolverSetting:
         allow_lc=True,
         n_lc_graphs=10,
         lc_orbit_depth=None,
+        depolarizing_rate=0.01,
         graph_metric=pre.graph_metric_lists[0],
         lc_method="max edge",
         verbose=False,
@@ -218,6 +219,7 @@ class HybridGraphSearchSolverSetting:
         self.label_map = label_map
         self.iso_thresh = iso_thresh
         self.lc_orbit_depth = lc_orbit_depth
+        self.depolarizing_rate = depolarizing_rate
 
     @property
     def n_iso_graphs(self):
@@ -597,11 +599,18 @@ class AlternateGraphSolver:
         graph_solver_setting=None,
         seed=None,
     ):
+        if graph_solver_setting is None:
+            graph_solver_setting = HybridGraphSearchSolverSetting(
+                n_iso_graphs=1,
+                n_lc_graphs=1,
+                graph_metric=pre.graph_metric_lists[0],
+            )
         if noise_model_mapping is None:
             noise_model_mapping = {"e": dict(), "p": dict(), "ee": dict(), "ep": dict()}
             self.noise_simulation = False
         elif noise_model_mapping == "depolarizing":
             self.noise_simulation = True
+            self.depolarizing_rate = graph_solver_setting.depolarizing_rate
             noise_model_mapping = self.depol_noise_map()
         elif type(noise_model_mapping) is not dict:
             raise TypeError(
@@ -613,12 +622,7 @@ class AlternateGraphSolver:
 
         self.noise_model_mapping = noise_model_mapping
 
-        if graph_solver_setting is None:
-            graph_solver_setting = HybridGraphSearchSolverSetting(
-                n_iso_graphs=1,
-                n_lc_graphs=1,
-                graph_metric=pre.graph_metric_lists[0],
-            )
+
         if isinstance(target_graph, nx.Graph):
             self.target_graph = target_graph
         elif isinstance(target_graph, QuantumState):
@@ -757,26 +761,29 @@ class AlternateGraphSolver:
 
         # evaluate the metric
         score = metric.evaluate(compiled_state, circ)
-        score = 0.0001 if np.isclose(score, 0.0) else score
+        score = 0.0001 if (np.isclose(score, 0.0) and score != 0.0) else score
         return score
 
-    @staticmethod
-    def depol_noise_map():
+    def depol_noise_map(self):
+        rate = self.depolarizing_rate
         dep_noise_model_mapping = dict()
         dep_noise_model_mapping["e"] = {
-            "SigmaX": nm.DepolarizingNoise(0.01),
-            "SigmaY": nm.DepolarizingNoise(0.01),
-            "SigmaZ": nm.DepolarizingNoise(0.01),
-            "Phase": nm.DepolarizingNoise(0.01),
-            "PhaseDagger": nm.DepolarizingNoise(0.01),
-            "Hadamard": nm.DepolarizingNoise(0.01),
+            "CNOT": nm.DepolarizingNoise(rate),
+            "Identity": nm.DepolarizingNoise(rate),
+            "SigmaX": nm.DepolarizingNoise(rate),
+            "SigmaY": nm.DepolarizingNoise(rate),
+            "SigmaZ": nm.DepolarizingNoise(rate),
+            "Phase": nm.DepolarizingNoise(rate),
+            "PhaseDagger": nm.DepolarizingNoise(rate),
+            "Hadamard": nm.DepolarizingNoise(rate),
         }
-        dep_noise_model_mapping["p"] = dep_noise_model_mapping["e"]
+        dep_noise_model_mapping["p"] = {"SigmaX": nm.DepolarizingNoise(rate),"CNOT": nm.DepolarizingNoise(rate)}  # = dep_noise_model_mapping["e"]
         dep_noise_model_mapping["ee"] = {
-            "SigmaX": nm.DepolarizingNoise(0.01),
-            "CNOT": nm.DepolarizingNoise(0.01),
+            "SigmaX": nm.DepolarizingNoise(rate),
+            "Identity": nm.DepolarizingNoise(rate),
+            "CNOT": nm.DepolarizingNoise(rate),
         }
-        dep_noise_model_mapping["ep"] = {"CNOT": nm.DepolarizingNoise(0.01)}
+        dep_noise_model_mapping["ep"] = {"CNOT": nm.DepolarizingNoise(rate)}
         return dep_noise_model_mapping
 
 

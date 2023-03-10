@@ -769,7 +769,6 @@ class AlternateGraphSolver:
         dep_noise_model_mapping = dict()
         dep_noise_model_mapping["e"] = {
             "CNOT": nm.DepolarizingNoise(rate),
-            "Identity": nm.DepolarizingNoise(rate),
             "SigmaX": nm.DepolarizingNoise(rate),
             "SigmaY": nm.DepolarizingNoise(rate),
             "SigmaZ": nm.DepolarizingNoise(rate),
@@ -777,12 +776,8 @@ class AlternateGraphSolver:
             "PhaseDagger": nm.DepolarizingNoise(rate),
             "Hadamard": nm.DepolarizingNoise(rate),
         }
-        dep_noise_model_mapping["p"] = {"SigmaX": nm.DepolarizingNoise(rate),"CNOT": nm.DepolarizingNoise(rate)}  # = dep_noise_model_mapping["e"]
-        dep_noise_model_mapping["ee"] = {
-            "SigmaX": nm.DepolarizingNoise(rate),
-            "Identity": nm.DepolarizingNoise(rate),
-            "CNOT": nm.DepolarizingNoise(rate),
-        }
+        dep_noise_model_mapping["p"] = {} # dep_noise_model_mapping["e"]
+        dep_noise_model_mapping["ee"] = {"CNOT": nm.DepolarizingNoise(rate)}
         dep_noise_model_mapping["ep"] = {"CNOT": nm.DepolarizingNoise(rate)}
         return dep_noise_model_mapping
 

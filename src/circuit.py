@@ -42,6 +42,7 @@ import string
 import numpy as np
 import src.ops as ops
 import src.utils.openqasm_lib as oq_lib
+from src.noise.noise_models import NoNoise
 from src.visualizers.dag import dag_topology_pos
 from src.visualizers.openqasm_visualization import draw_openqasm
 from src.utils.circuit_comparison import compare_circuits
@@ -279,11 +280,11 @@ class CircuitBase(ABC):
         :rtype: str
         """
         header_info = (
-            oq_lib.openqasm_header()
-            + "\n"
-            + "\n".join(self.openqasm_imports.keys())
-            + "\n"
-            + "\n".join(self.openqasm_defs.keys())
+                oq_lib.openqasm_header()
+                + "\n"
+                + "\n".join(self.openqasm_imports.keys())
+                + "\n"
+                + "\n".join(self.openqasm_defs.keys())
         )
 
         openqasm_str = [
@@ -324,7 +325,7 @@ class CircuitBase(ABC):
             if (opened_barrier or oq_info.multi_comp) and gate_application != "":
                 openqasm_str.append(f"barrier {barrier_str};")
             if (
-                oq_info.multi_comp
+                    oq_info.multi_comp
             ):  # i.e. multiple visual blocks make this one Operation
                 opened_barrier = True
             elif gate_application != "":
@@ -660,12 +661,12 @@ class CircuitDAG(CircuitBase):
     """
 
     def __init__(
-        self,
-        n_emitter=0,
-        n_photon=0,
-        n_classical=0,
-        openqasm_imports=None,
-        openqasm_defs=None,
+            self,
+            n_emitter=0,
+            n_photon=0,
+            n_classical=0,
+            openqasm_imports=None,
+            openqasm_defs=None,
     ):
         """
         Construct a DAG circuit with n_emitter one-qubit emitter quantum registers, n_photon one-qubit photon
@@ -1184,10 +1185,10 @@ class CircuitDAG(CircuitBase):
         while i in range(len(qasm_commands)):
             command = qasm_commands[i]
             if (
-                ("qreg" in command)
-                or ("creg" in command)
-                or ("barrier" in command)
-                or (command == "")
+                    ("qreg" in command)
+                    or ("creg" in command)
+                    or ("barrier" in command)
+                    or (command == "")
             ):
                 i += 1
                 continue
@@ -1266,7 +1267,7 @@ class CircuitDAG(CircuitBase):
 
             # Parse single-qubit operations
             if (
-                command.count("[0]") == 1
+                    command.count("[0]") == 1
             ):  # single qubit operation, from current script generation method
                 command_breakdown = command.split()
                 name = command_breakdown[0]
@@ -1299,7 +1300,7 @@ class CircuitDAG(CircuitBase):
                 )  # we must parse out [0] so -3
                 gate_class = ops.name_to_class_map(name)
                 assert (
-                    gate_class is not None
+                        gate_class is not None
                 ), "gate name not recognized, parsing failed"
                 circuit.add(
                     gate_class(
@@ -1397,9 +1398,9 @@ class CircuitDAG(CircuitBase):
 
         # get all edges that will need to be removed (i.e. the edges on which the Operation is being added)
         relevant_outputs = [
-            f"{operation.q_registers_type[i]}{operation.q_registers[i]}_out"
-            for i in range(len(operation.q_registers))
-        ] + [f"c{c}_out" for c in operation.c_registers]
+                               f"{operation.q_registers_type[i]}{operation.q_registers[i]}_out"
+                               for i in range(len(operation.q_registers))
+                           ] + [f"c{c}_out" for c in operation.c_registers]
 
         for output in relevant_outputs:
             edges_to_remove = list(
@@ -1660,3 +1661,62 @@ class CircuitDAG(CircuitBase):
                         [insert_edge],
                     )
                     gate_list = []
+
+    def assign_noise(self, noise_model_map):
+        empty_circ = CircuitDAG(n_emitter=self.n_emitters, n_photon=self.n_photons, n_classical=self.n_classical)
+        new_gates = self._noisy_gates(noise_model_map)
+        for gate in new_gates:
+            empty_circ.add(gate)
+        return empty_circ
+
+    def _noisy_gates(self, noise_model_map):
+        seq = self._slim_seq()
+        noisy_ops = []
+        for op in seq:
+            is_controlled = False
+            if isinstance(op, ops.OneQubitGateWrapper):
+                op_type_seq = [type(gate) for gate in op.unwrap()]
+                noise_list = self._find_wrapped_noise(op_type_seq, noise_model_map[op.reg_type])
+                op.noise = noise_list
+                noisy_ops.append(op)
+            else:
+                if isinstance(op, (ops.ControlledPairOperationBase, ops.ClassicalControlledPairOperationBase)):
+                    control_type = op.control_type
+                    target_type = op.target_type
+                    mapping = noise_model_map[control_type+target_type]
+                    is_controlled = True
+                else:
+                    mapping = noise_model_map[op.reg_type]
+                name = type(op).__name__
+                if name in mapping:
+                    noise_object = mapping[name]
+                else:
+                    noise_object = NoNoise()
+                if is_controlled:
+                    if isinstance(noise_object, list):
+                        assert len(noise_object) == 2, "controlled gate noise list must be of length 2"
+                        op.noise = noise_object
+                    else:
+                        op.noise = [noise_object, noise_object]
+                else:
+                    op.noise = noise_object
+                noisy_ops.append(op)
+        return noisy_ops
+
+    def _find_wrapped_noise(self, op_type_list, mapping):
+        noise_list = []
+        for op_type in op_type_list:
+            op_name = op_type.__name__
+            if op_name in mapping:
+                noise_list.append(mapping[op_name])
+            else:
+                noise_list.append(NoNoise())
+        return noise_list
+
+    def _slim_seq(self):
+        seq = self.sequence()
+        length = len(seq) - 1
+        for i, op in enumerate(seq[::-1]):
+            if isinstance(op, (ops.Input, ops.Output)):
+                del seq[length - i]
+        return seq

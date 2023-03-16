@@ -190,7 +190,7 @@ class HybridGraphSearchSolverSetting:
         base_solver_setting=None,
         allow_relabel=True,
         n_iso_graphs=10,
-        rel_inc_thresh=0.5,
+        rel_inc_thresh=0.1,
         allow_exhaustive=False,
         sort_emit=True,
         label_map=False,
@@ -665,7 +665,6 @@ class AlternateGraphSolver:
         # list of tuples [(circuit, dict={'g': graph used to find circuit, 'map': relabel map with target})]
         iso_graphs = [nx.from_numpy_array(adj) for adj in iso_adjs]
         for iso_graph in iso_graphs:
-
             lc_graphs = lc_orbit_finder(
                 iso_graph, comp_depth=setting.lc_orbit_depth, orbit_size_thresh=n_lc
             )
@@ -674,9 +673,7 @@ class AlternateGraphSolver:
             rmap = get_relabel_map(self.target_graph, iso_graph)
 
             for lc_graph in lc_graphs:
-                circuit = graph_to_circ(
-                    lc_graph, noise_model_mapping=self.noise_model_mapping
-                )
+                circuit = graph_to_circ(lc_graph)
                 success, conversion_gates = slc.lc_check(
                     lc_graph, iso_graph, validate=True
                 )
@@ -687,19 +684,20 @@ class AlternateGraphSolver:
                     raise UserWarning("LC conversion failed")
                 conversion_ops = slc.str_to_op(conversion_gates)
                 for op in conversion_ops:
-                    op_name = type(op).__name__
-                    if op_name == "Identity":
-                        continue
-                    # add noise to gate
-                    if op_name in self.noise_model_mapping["p"].keys():
-                        op.noise = self.noise_model_mapping["p"][op_name]
+                    # op_name = type(op).__name__
+                    # if op_name == "Identity":
+                    #     continue
+                    # # add noise to gate
+                    # if op_name in self.noise_model_mapping["p"] and self.noise_simulation:
+                    #     op.noise = self.noise_model_mapping["p"][op_name]
                     circuit.add(op)
-                lc_circ_list.append(circuit)
                 if self.noise_simulation:
+                    circuit = circuit.assign_noise(self.noise_model_mapping)
                     noise_score = self.noise_score(circuit, rmap)
                     lc_score_list.append(noise_score)
                 else:
-                    lc_score_list.append(0.01)
+                    lc_score_list.append(0.001)
+                lc_circ_list.append(circuit)
 
             for i, circ in enumerate(lc_circ_list):
                 results_list.append(
@@ -761,7 +759,7 @@ class AlternateGraphSolver:
 
         # evaluate the metric
         score = metric.evaluate(compiled_state, circ)
-        score = 0.0001 if (np.isclose(score, 0.0) and score != 0.0) else score
+        score = 0.00001 if (np.isclose(score, 0.0) and score != 0.0) else score
         return score
 
     def depol_noise_map(self):

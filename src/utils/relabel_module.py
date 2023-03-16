@@ -21,11 +21,13 @@ def iso_finder(
     seed=None,
 ):
     """
-    The function permutes the labels of the vertices of a graph to get n_iso distinct isomorphic graphs. The maximum
-    number of possible distinct cases may be less than n_iso. The graph G with the nodes relabeled using consecutive integers.
+    The function permutes the labels of the vertices of a graph to get n_iso distinct isomorphic graphs. The original
+    graph will also be returned as the first element of the list and counted toward the number of found cases.
+    The maximum number of possible distinct cases may be less than n_iso. The graph G with the nodes relabeled using
+    consecutive integers.
     :param adj_matrix: initial adjacency matrix or graph
     :type adj_matrix: numpy.ndarray
-    :param n_iso: number of the isomorphic graphs required
+    :param n_iso: number of the isomorphic graphs to look for (including the original graph)
     :type n_iso: int
     :param rel_inc_thresh: a threshold value between 0 and 1. The closer to 0 the closer we get to an exhaustive search.
     :type rel_inc_thresh: float
@@ -260,12 +262,13 @@ def automorph_check(adj1, labels_arr):
     # uses set to remove redundancies
     # the set includes the adjacency matrices in flatten form so that they can turn into tuples to be members of a set
     adj_set = {tuple(adj1.astype(int).flatten())}
-    adj_list = []
+    adj_list = [adj1]
     n_node = adj1.shape[0]
     for label in labels_arr:
         new_adj = relabel(adj1, label)
         adj_set.add(tuple(new_adj.flatten()))
-    # remove the initial adjacency matrix from the set to just keep the new ones
+    # remove the initial adjacency matrix from the set to just keep the new ones, since the original adj1 is already in
+    # the final list of adjacencies as the first element
     adj_set.remove(tuple(adj1.astype(int).flatten()))
     for flat_adj in adj_set:
         remade_adj = np.array(flat_adj)

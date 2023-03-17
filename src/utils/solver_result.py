@@ -1,3 +1,7 @@
+import numpy as np
+import pandas as pd
+
+
 class SolverResult:
     """
     Class to keep track of the solver result
@@ -70,6 +74,9 @@ class SolverResult:
 
         self._data[key] = value
 
+    def append(self, data):
+        return
+
     def get_index_data(self, index):
         """
         Get index data in a form of dictionary.
@@ -118,3 +125,9 @@ class SolverResult:
             if v == value:
                 r_list.append(i)
         return r_list
+
+    def to_df(self):
+        df = pd.DataFrame(data=self._data)
+
+        return df
+

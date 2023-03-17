@@ -27,6 +27,7 @@ from src.backends.stabilizer.functions.rep_conversion import (
     get_clifford_tableau_from_graph,
 )
 from src.backends.stabilizer.state import Stabilizer
+from src.utils.solver_result import SolverResult
 
 
 class HybridEvolutionarySolver(EvolutionarySolver):
@@ -367,7 +368,8 @@ class HybridGraphSearchSolver(SolverBase):
         :return:
         :rtype:
         """
-        circuit_target_list = []
+        target_list = []
+        score_list = []
 
         # retrieve parameters for relabelling module and local complementation module
         setting = self.solver_setting
@@ -432,17 +434,20 @@ class HybridGraphSearchSolver(SolverBase):
                 # store score and circuit for further analysis
                 # code for storing the necessary information
                 if self.circuit_storage.add_new_circuit(circuit):
-                    circuit_target_list.append([circuit, target_state])
+                    data = [circuit, target_state, self.circuit_evaluation_v2(circuit, target_state, self.metric)]
+                    target_list.append(target_state)
 
         # end of relabelling loop
         # code to run each circuit in the noisy scenario and evaluate the cost function
 
-        for i in circuit_target_list:
-            score = self.circuit_evaluation_v2(i[0], i[1], self.metric)
-            i.append(score)
+        for i in range(len(self.circuit_storage.circuit_list)):
+            score = self.circuit_evaluation_v2(self.circuit_storage.circuit_list[i], target_list[i], self.metric)
+            score_list.append(score)
 
-        self.result = circuit_target_list
-        return circuit_target_list
+        self.result = SolverResult(self.circuit_storage.circuit_list)
+        self.result['target_state'] = target_list
+        self.result['score'] = score_list
+        return self.result
 
     def circuit_evaluation_v2(self, circuit, target, metric):
         # no noise
@@ -459,6 +464,16 @@ class HybridGraphSearchSolver(SolverBase):
         score = metric.evaluate(compiled_state, circuit)
 
         return score
+
+    def _prepare_data(self, circuit, target_state):
+        """
+        Helper function to prepare data before saving to SolverResult class
+        :param circuit:
+        :param target_state:
+        :return:
+        """
+
+        return
 
     def circuit_evaluation(self, circuit_target_list, metric):
         """

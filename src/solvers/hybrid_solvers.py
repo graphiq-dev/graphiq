@@ -312,28 +312,20 @@ class HybridGraphSearchSolver(SolverBase):
             self.noise_simulation = True
 
         self.noise_model_mapping = noise_model_mapping
+        self.sorted_result = []
+        self.circuit_storage = comp.CircuitStorage()
 
-    def solve(self):
+    def get_iso_graph_from_setting(self, adj_matrix):
         """
+        Helper function to get iso graphs according to solver setting
 
+        :param adj_matrix:
         :return:
-        :rtype:
         """
-        circuit_list = []
-        # construct the adjacent matrix from the user-input target graph state
-        target_graph = stabilizer_to_graph(
-            self.target.stabilizer.tableau.stabilizer_to_labels()
-        )
-        n_qubits = self.target.n_qubits
-        adj_matrix = nx.to_numpy_array(target_graph)
 
-        # retrieve parameters for relabelling module and local complementation module
         setting = self.solver_setting
         n_iso = setting.n_iso_graphs
-        n_graphs = setting.n_lc_graphs
-        graph_metric = setting.graph_metric
 
-        # user can disable relabelling module
         if self.solver_setting.allow_relabel:
 
             iso_graphs = iso_finder(
@@ -347,30 +339,72 @@ class HybridGraphSearchSolver(SolverBase):
             )
             iso_graph_tuples = emitter_sorted(iso_graphs)
         else:
+            target_graph = stabilizer_to_graph(
+                self.target.stabilizer.tableau.stabilizer_to_labels()
+            )
             n_emitter = DeterministicSolver.determine_n_emitters(
                 self.target.stabilizer.tableau.stabilizer
             )
             iso_graph_tuples = [(target_graph, n_emitter)]
 
+        return iso_graph_tuples
+
+    def get_lc_graph_from_setting(self, iso_graph):
+        """
+        Helper function to get lc graphs according to solver setting
+
+        :param iso_graph:
+        :return:
+        """
+        setting = self.solver_setting
+        n_graphs = setting.n_lc_graphs
+        graph_metric = setting.graph_metric
+
+        if self.solver_setting.allow_lc:
+
+            if self.solver_setting.lc_method == "max neighbor edge":
+                lc_graphs = pre.get_lc_graph_by_max_neighbor_edge(
+                    iso_graph, n_graphs, graph_metric
+                )
+            elif self.solver_setting.lc_method == "max edge":
+                lc_graphs = pre.get_lc_graph_by_max_edge(
+                    iso_graph, n_graphs, graph_metric
+                )
+            else:
+                raise ValueError(
+                    f"The method {self.solver_setting.lc_method} is not valid."
+                )
+        else:
+            # simply give back the original graph
+            lc_graphs = [iso_graph]
+
+        return lc_graphs
+
+    def solve(self):
+        """
+
+        :return:
+        :rtype:
+        """
+        circuit_target_list = []
+
+        # retrieve parameters for relabelling module and local complementation module
+        setting = self.solver_setting
+
+        # construct the adjacent matrix from the user-input target graph state
+        target_graph = stabilizer_to_graph(
+            self.target.stabilizer.tableau.stabilizer_to_labels()
+        )
+        n_qubits = self.target.n_qubits
+        adj_matrix = nx.to_numpy_array(target_graph)
+
+        # user can disable relabelling module
+        iso_graph_tuples = self.get_iso_graph_from_setting(adj_matrix)
+
         for i in range(len(iso_graph_tuples)):
             # user can disable local complementation module
-            if self.solver_setting.allow_lc:
-
-                if self.solver_setting.lc_method == "max neighbor edge":
-                    lc_graphs = pre.get_lc_graph_by_max_neighbor_edge(
-                        iso_graph_tuples[i][0], n_graphs, graph_metric
-                    )
-                elif self.solver_setting.lc_method == "max edge":
-                    lc_graphs = pre.get_lc_graph_by_max_edge(
-                        iso_graph_tuples[i][0], n_graphs, graph_metric
-                    )
-                else:
-                    raise ValueError(
-                        f"The method {self.solver_setting.lc_method} is not valid."
-                    )
-            else:
-                # simply give back the original graph
-                lc_graphs = [iso_graph_tuples[i][0]]
+            iso_graph = iso_graph_tuples[i][0]
+            lc_graphs = self.get_lc_graph_from_setting(iso_graph)
 
             # reset the target state in the metric
             relabel_tableau = get_clifford_tableau_from_graph(
@@ -378,14 +412,13 @@ class HybridGraphSearchSolver(SolverBase):
             )
 
             target_state = QuantumState(n_qubits, relabel_tableau, "stabilizer")
-            self.metric.target = target_state
 
             for score_graph in lc_graphs:
                 # solve the noise-free scenario
-
                 lc_tableau = get_clifford_tableau_from_graph(score_graph[1])
 
                 solver_target_state = QuantumState(n_qubits, lc_tableau, "stabilizer")
+                self.metric.target = solver_target_state
                 # create an instance of the base solver
                 if self.base_solver == DeterministicSolver:
                     solver = self.base_solver(
@@ -409,57 +442,78 @@ class HybridGraphSearchSolver(SolverBase):
                 # retrieve the best circuit
                 score, circuit = solver.result
 
-                # TODO: need to modify the local Clifford equivalency code to allow stabilizer comparisons
-                equivalency, op_list = slc.lc_check(relabel_tableau, lc_tableau)
+                equivalency, op_list = slc.lc_check(lc_tableau, relabel_tableau)
                 if equivalency:
-                    for gate in slc.str_to_op(op_list):
-                        circuit.add(gate)
+                    self._add_gates_from_str(circuit, op_list)
                 else:
                     raise Exception("The solver malfunctions")
 
                 # store score and circuit for further analysis
                 # code for storing the necessary information
-                circuit_list.append(circuit)
+                if self.circuit_storage.add_new_circuit(circuit):
+                    circuit_target_list.append([circuit, target_state])
 
-            # If any, add additional postselection module below
+        # end of relabelling loop
+        # code to run each circuit in the noisy scenario and evaluate the cost function
 
-            # code for circuit equivalency check
-            comp.remove_redundant_circuits(circuit_list)
+        for i in circuit_target_list:
+            score = self.circuit_evaluation_v2(i[0], i[1], self.metric)
+            i.append(score)
 
-            # code to run each circuit in the noisy scenario and evaluate the cost function
-            sorted_result_list = self.circuit_evaluation(circuit_list, self.metric)
-            self.result = (sorted_result_list[0][0], sorted_result_list[0][1].copy())
+        self.result = circuit_target_list
+        return circuit_target_list
 
-    def circuit_evaluation(self, circuit_list, metric):
+    def circuit_evaluation_v2(self, circuit, target, metric):
+        # no noise
+        self.compiler.noise_simulation = False
+
+        compiled_state = self.compiler.compile(circuit)
+        compiled_state.partial_trace(
+            keep=list(range(circuit.n_photons)),
+            dims=(circuit.n_photons + circuit.n_emitters) * [2],
+        )
+
+        # evaluation
+        metric.target = target
+        score = metric.evaluate(compiled_state, circuit)
+
+        return score
+
+    def circuit_evaluation(self, circuit_target_list, metric):
         """
 
         :param self:
         :type self:
-        :param circuit_list:
-        :type circuit_list:
+        :param circuit_target_list:
+        :type circuit_target_list:
         :param metric:
         :type metric:
         :return:
         :rtype:
         """
-        self.compiler.noise_simulation = self.noise_simulation
-        score_list = []
-        for circuit in circuit_list:
-            compiled_state = self.compiler.compile(circuit)
-            # trace out emitter qubits
-            compiled_state.partial_trace(
-                keep=list(range(circuit.n_photons)),
-                dims=(circuit.n_photons + circuit.n_emitters) * [2],
-            )
-            # evaluate the metric
-            score = metric.evaluate(compiled_state, circuit)
-            score_list.append(score)
+        self.compiler.noise_simulation = True
 
-        index_list = np.argsort(score_list)
-        sorted_result_list = [
-            (score_list[index], circuit_list[index]) for index in index_list
-        ]
-        return sorted_result_list
+        sorted_circuit_target_list = []
+        for circuit_list, target in circuit_target_list:
+            score_list = []
+            for circuit in circuit_list:
+                compiled_state = self.compiler.compile(circuit)
+                # trace out emitter qubits
+                compiled_state.partial_trace(
+                    keep=list(range(circuit.n_photons)),
+                    dims=(circuit.n_photons + circuit.n_emitters) * [2],
+                )
+                # evaluate the metric
+                metric.target = target
+                score = metric.evaluate(compiled_state, circuit)
+                score_list.append(score)
+
+            index_list = np.argsort(score_list)
+            sorted_result_list = [
+                (score_list[index], circuit_list[index]) for index in index_list
+            ]
+            sorted_circuit_target_list.append((sorted_result_list, target))
+        return sorted_circuit_target_list
 
     """
     Code that seems duplicate from deterministic solver with minor modifications
@@ -485,24 +539,17 @@ class HybridGraphSearchSolver(SolverBase):
 
             elif gate[0] == "P":
                 # add the inverse of the phase gate
-                self._add_one_qubit_gate(circuit, [ops.SigmaZ, ops.Phase], gate[1])
+                self._add_one_qubit_gate(circuit, [ops.Phase], gate[1])
 
             elif gate[0] == "X":
                 self._add_one_qubit_gate(circuit, [ops.SigmaX], gate[1])
 
-            elif gate[0] == "CNOT":
-                self._add_one_emitter_cnot(
-                    circuit, gate[1] - self.n_photon, gate[2] - self.n_photon
-                )
+            elif gate[0] == "P_dag":
+                # add the inverse of the phase dagger gate, which is the phase gate itself
+                self._add_one_qubit_gate(circuit, [ops.SigmaZ, ops.Phase], gate[1])
 
-            elif gate[0] == "CZ":
-                self._add_one_qubit_gate(circuit, [ops.Hadamard], gate[2])
-
-                self._add_one_emitter_cnot(
-                    circuit, gate[1] - self.n_photon, gate[2] - self.n_photon
-                )
-
-                self._add_one_qubit_gate(circuit, [ops.Hadamard], gate[2])
+            elif gate[0] == "Z":
+                self._add_one_qubit_gate(circuit, [ops.SigmaZ], gate[1])
 
             else:
                 raise ValueError("Invalid gate in the list.")

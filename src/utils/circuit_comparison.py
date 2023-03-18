@@ -337,3 +337,67 @@ def remove_redundant_circuits(circuit_list):
             new_circuit_list.append(new_circuit)
 
     return new_circuit_list
+
+
+def check_redundant_circuit(circuit1, circuit2):
+    circuit1_copy = circuit1.copy()
+    circuit2_copy = circuit2.copy()
+
+    circuit1_copy.unwrap_nodes()
+    circuit2_copy.unwrap_nodes()
+
+    circuit1_copy.remove_identity()
+    circuit2_copy.remove_identity()
+
+    return compare_circuits(circuit1_copy, circuit2_copy)
+
+
+class CircuitStorage:
+    """
+    Class for storing circuits, check if circuit is duplicate before adding to circuit list
+    """
+
+    def __init__(self, check_function=None, disable_circuit_comparison=False):
+        self.circuit_list = []
+        self.disable_circuit_comparison = disable_circuit_comparison
+
+        if check_function:
+            self._check_func = check_function
+        else:
+            self._check_func = check_redundant_circuit
+
+    def add_new_circuit(self, new_circuit):
+        """
+        Function to add new circuit to circuit list, check if new circuit is redundant.
+
+        :param new_circuit: new circuit to be added
+        :type new_circuit: CircuitDAG
+        :return: Return True if added, False otherwise.
+        :rtype: bool
+        """
+        if self.disable_circuit_comparison:
+            self.circuit_list.append(new_circuit)
+            return True
+
+        if self.is_redundant(new_circuit):
+            return False
+
+        self.circuit_list.append(new_circuit)
+        return True
+
+    def is_redundant(self, new_circuit):
+        """
+        Function to check if circuit is redundant.
+
+        :param new_circuit: circuit to be checked
+        :type new_circuit: CircuitDAG
+        :return: True if redundant, False otherwise.
+        :rtype: bool
+        """
+        f = self._check_func
+
+        if self.circuit_list and f:
+            for circuit in self.circuit_list:
+                if f(circuit, new_circuit):
+                    return True
+        return False

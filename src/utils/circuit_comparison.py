@@ -253,22 +253,6 @@ def _create_edge_control_target_attr(operation, reg_type, reg):
         return ""
 
 
-def edge_from_reg(t_edges, t_register):
-    """
-    Helper function to return correct edge from edges that map to the correct register.
-
-    :param t_edges: input edge
-    :type t_edges: edge
-    :param t_register: register
-    :type t_register: str
-    :return: correct edge
-    :rtype: edge
-    """
-    for e in t_edges:
-        if e[-1] == t_register:
-            return e
-
-
 def add_control_target_to_dag(circuit):
     """
     Process the input circuit DAG and add control_target attribute to edges.
@@ -285,7 +269,7 @@ def add_control_target_to_dag(circuit):
         register = op.register
 
         out_edges = circuit.dag.out_edges(nbunch=node, keys=True)
-        edge = edge_from_reg(out_edges, f"{reg_type}{register}")
+        edge = circuit.edge_from_reg(out_edges, f"{reg_type}{register}")
         next_node = edge[1]
         label = edge[2]
 
@@ -296,7 +280,7 @@ def add_control_target_to_dag(circuit):
 
             node = next_node
             out_edges = circuit.dag.out_edges(nbunch=node, keys=True)
-            edge = edge_from_reg(out_edges, f"{reg_type}{register}")
+            edge = circuit.edge_from_reg(out_edges, f"{reg_type}{register}")
             next_node = edge[1]
             label = edge[2]
 
@@ -321,16 +305,18 @@ def remove_redundant_circuits(circuit_list):
             check_isomorphic = False
 
             for circuit in new_circuit_list:
-                circuit.unwrap_nodes()
-                circuit.remove_identity()
+                current_circuit = circuit.copy()
+                current_circuit.unwrap_nodes()
+                current_circuit.remove_identity()
+                to_add_circuit = new_circuit.copy()
                 new_circuit.unwrap_nodes()
                 new_circuit.remove_identity()
 
-                if circuit_is_isomorphic(circuit, new_circuit):
+                if circuit_is_isomorphic(current_circuit, new_circuit):
                     check_isomorphic = True
                     break
             if not check_isomorphic:
-                new_circuit_list.append(new_circuit)
+                new_circuit_list.append(to_add_circuit)
         else:
             new_circuit_list.append(new_circuit)
 

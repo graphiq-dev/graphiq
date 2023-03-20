@@ -1,4 +1,4 @@
-import src.ops as ops
+import src.circuit.ops as ops
 
 
 def equal_time_dict(ops_list, duration):

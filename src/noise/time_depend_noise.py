@@ -1,10 +1,10 @@
 import copy
 
-from src.circuit import CircuitDAG
+from src.circuit.circuit_dag import CircuitDAG
 from src.state import QuantumState
 from src.backends.stabilizer.tableau import CliffordTableau
 from src.backends.stabilizer.compiler import StabilizerCompiler
-import src.ops as ops
+import src.circuit.ops as ops
 import numpy as np
 from itertools import combinations_with_replacement
 import src.noise.model_parameters as mp

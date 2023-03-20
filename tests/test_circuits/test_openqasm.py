@@ -2,9 +2,9 @@ import pytest
 import matplotlib.pyplot as plt
 from qiskit import QuantumCircuit
 import numpy as np
-import src.ops as ops
+import src.circuit.ops as ops
 import src.utils.openqasm_lib as oq_lib
-from src.circuit import CircuitDAG
+from src.circuit.circuit_dag import CircuitDAG
 from tests.test_flags import visualization
 
 OPENQASM_V = 2

@@ -13,10 +13,10 @@ import pandas as pd
 import src.noise.noise_models as nm
 from src.backends.compiler_base import CompilerBase
 from src.solvers.solver_base import RandomSearchSolver, RandomSearchSolverSetting
-from src.circuit import CircuitDAG
+from src.circuit.circuit_dag import CircuitDAG
+from src.circuit import ops
 from src.metrics import MetricBase
 from src.io import IO
-from src import ops
 
 
 class EvolutionarySearchSolverSetting(RandomSearchSolverSetting):

@@ -1,7 +1,4 @@
-import pytest
-from src.circuit import CircuitDAG
 from benchmarks.circuits import *
-from src.ops import *
 from src.utils.solver_result import *
 
 

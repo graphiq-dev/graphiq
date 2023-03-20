@@ -1,17 +1,14 @@
 import pytest
-import numpy as np
-import networkx as nx
 
 import src.backends.stabilizer.functions.rep_conversion as conversion
 import src.backends.stabilizer.functions.utils as sfu
-from src.circuit import CircuitDAG
+from src.circuit.circuit_dag import CircuitDAG
+from src.circuit import ops
 import src.backends.stabilizer.functions.clifford as sfc
 from src.backends.stabilizer.functions.stabilizer import rref
 import src.backends.stabilizer.functions.metric as sfm
-from src.backends.stabilizer.functions.height import height_func_list
 from src.backends.stabilizer.tableau import StabilizerTableau
 from functools import reduce
-import src.ops as ops
 from src.backends.density_matrix.compiler import DensityMatrixCompiler
 from src.backends.stabilizer.compiler import StabilizerCompiler
 from benchmarks.circuits import *

@@ -2,7 +2,7 @@
 Compilation tools for simulating a circuit with a Stabilizer backend
 """
 
-from src import ops as ops
+from src.circuit import ops as ops
 from src.backends.compiler_base import CompilerBase
 from src.backends.stabilizer.state import MixedStabilizer
 
@@ -274,7 +274,9 @@ class StabilizerCompiler(CompilerBase):
                 op.noise = [op.noise] * 2
             control_noise = op.noise[0]
             target_noise = op.noise[1]
-            control_noise.apply(state, n_quantum, [q_index(op.control, op.control_type)])
+            control_noise.apply(
+                state, n_quantum, [q_index(op.control, op.control_type)]
+            )
             target_noise.apply(state, n_quantum, [q_index(op.target, op.target_type)])
         else:
             pass

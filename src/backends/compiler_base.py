@@ -8,8 +8,8 @@ from abc import ABC, abstractmethod
 import logging
 import numpy as np
 
-import src.ops as ops
-from src.circuit import CircuitBase
+import src.circuit.ops as ops
+from src.circuit.circuit_base import CircuitBase
 import src.noise.noise_models as nm
 from src.state import QuantumState
 

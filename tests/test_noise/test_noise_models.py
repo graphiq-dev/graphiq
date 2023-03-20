@@ -1,5 +1,4 @@
 import numpy as np
-from src import ops
 
 import src.backends.density_matrix.functions as dmf
 import src.backends.stabilizer.functions.clifford as sfc

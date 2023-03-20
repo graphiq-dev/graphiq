@@ -1,16 +1,10 @@
 import pytest
-import numpy as np
-import matplotlib.pyplot as plt
 from benchmarks.circuits import *
-from src.backends.stabilizer.state import Stabilizer
 from src.backends.stabilizer.tableau import *
 from src.backends.stabilizer.compiler import StabilizerCompiler
-from src.solvers.evolutionary_solver import EvolutionarySolver
 import src.backends.state_representation_conversion as converter
 import src.backends.stabilizer.functions.stabilizer as sfs
-import src.backends.stabilizer.functions.clifford as sfc
-import src.backends.stabilizer.functions.metric as sfm
-import src.ops as ops
+import src.circuit.ops as ops
 
 
 @pytest.mark.parametrize(

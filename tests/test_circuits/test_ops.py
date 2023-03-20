@@ -1,6 +1,6 @@
 import pytest
 import numpy as np
-import src.ops as ops
+import src.circuit.ops as ops
 import src.backends.density_matrix.functions as dmf
 
 

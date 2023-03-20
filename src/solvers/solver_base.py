@@ -7,13 +7,11 @@ Solvers have a main function, .solve(), which runs the search algorithm and retu
 from abc import ABC, abstractmethod
 import numpy as np
 import random
-import warnings
 import copy
 
 from src.metrics import MetricBase
-from src.circuit import CircuitBase
+from src.circuit.circuit_base import CircuitBase, ops
 from src.backends.compiler_base import CompilerBase
-from src import ops
 from src.io import IO
 import src.noise.noise_models as nm
 
@@ -96,9 +94,7 @@ class SolverBase(ABC):
         else:
             noise = []
             for each_op in op:
-                noise.append(
-                    self._identify_noise(each_op, noise_model_mapping)
-                )
+                noise.append(self._identify_noise(each_op, noise_model_mapping))
         return noise
 
     def _identify_noise(self, op, noise_model_mapping):
@@ -131,7 +127,9 @@ class SolverBase(ABC):
                 target_noise = noise_model_mapping[op_target]
             else:
                 target_noise = nm.NoNoise()
-            if op_name in noise_model_mapping.keys() and type(target_noise) == nm.NoNoise == type(control_noise):
+            if op_name in noise_model_mapping.keys() and type(
+                target_noise
+            ) == nm.NoNoise == type(control_noise):
                 return [noise_model_mapping[op_name], noise_model_mapping[op_name]]
             else:
                 return [control_noise, target_noise]

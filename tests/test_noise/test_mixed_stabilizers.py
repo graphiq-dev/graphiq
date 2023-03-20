@@ -4,8 +4,8 @@ import numpy as np
 
 import src.noise.noise_models as nm
 
-from src.circuit import CircuitDAG
-import src.ops as ops
+from src.circuit.circuit_dag import CircuitDAG
+import src.circuit.ops as ops
 from src.backends.density_matrix.compiler import DensityMatrixCompiler
 from src.backends.stabilizer.compiler import StabilizerCompiler
 from src.backends.stabilizer.state import Stabilizer, MixedStabilizer

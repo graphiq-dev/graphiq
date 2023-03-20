@@ -3,9 +3,9 @@ import networkx as nx
 import copy
 
 from src.state import QuantumState
-from src.circuit import CircuitDAG
+from src.circuit.circuit_dag import CircuitDAG
 from src.metrics import Infidelity
-import src.ops as ops
+import src.circuit.ops as ops
 
 from src.backends.stabilizer.compiler import StabilizerCompiler
 from src.backends.state_representation_conversion import _graph_finder as graph_finder

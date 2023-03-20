@@ -3,15 +3,12 @@ Contains various hybrid solvers
 """
 import networkx as nx
 import numpy as np
-import src.ops as ops
+import src.circuit.ops as ops
 import matplotlib.pyplot as plt
-
-from src.backends.stabilizer.functions.stabilizer import canonical_form
 
 import src.utils.preprocessing as pre
 import src.utils.circuit_comparison as comp
 import src.noise.noise_models as nm
-import src.backends.lc_equivalence_check as lc
 import src.backends.stabilizer.functions.local_cliff_equi_check as slc
 from src.solvers.evolutionary_solver import (
     EvolutionarySolver,
@@ -21,7 +18,7 @@ from src.backends.state_representation_conversion import graph_to_density
 from src.solvers.solver_base import SolverBase
 from src.solvers.deterministic_solver import DeterministicSolver
 from src.backends.compiler_base import CompilerBase
-from src.circuit import CircuitDAG
+from src.circuit.circuit_dag import CircuitDAG
 from src.metrics import MetricBase
 from src.state import QuantumState
 from src.io import IO
@@ -35,13 +32,11 @@ from src.utils.relabel_module import (
 from src.backends.state_representation_conversion import stabilizer_to_graph
 from src.backends.stabilizer.functions.rep_conversion import (
     get_clifford_tableau_from_graph,
-    stabilizer_from_clifford,
 )
 from src.backends.stabilizer.compiler import StabilizerCompiler
 from src.backends.density_matrix.compiler import DensityMatrixCompiler
 
 from src.metrics import Infidelity
-from src.backends.stabilizer.state import Stabilizer
 
 
 class HybridEvolutionarySolver(EvolutionarySolver):
@@ -669,7 +664,6 @@ class AlternateGraphSolver:
 
         self.noise_model_mapping = noise_model_mapping
 
-
         if isinstance(target_graph, nx.Graph):
             self.target_graph = target_graph
         elif isinstance(target_graph, QuantumState):
@@ -821,7 +815,7 @@ class AlternateGraphSolver:
             "PhaseDagger": nm.DepolarizingNoise(rate),
             "Hadamard": nm.DepolarizingNoise(rate),
         }
-        dep_noise_model_mapping["p"] = {} # dep_noise_model_mapping["e"]
+        dep_noise_model_mapping["p"] = {}  # dep_noise_model_mapping["e"]
         dep_noise_model_mapping["ee"] = {"CNOT": nm.DepolarizingNoise(rate)}
         dep_noise_model_mapping["ep"] = {"CNOT": nm.DepolarizingNoise(rate)}
         return dep_noise_model_mapping

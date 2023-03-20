@@ -12,12 +12,11 @@ import src.backends.stabilizer.functions.transformation as transform
 from src.backends.stabilizer.tableau import StabilizerTableau
 from src.backends.compiler_base import CompilerBase
 
-import src.noise.noise_models as nm
 from src.metrics import MetricBase
 from src.solvers import SolverBase
-from src.circuit import CircuitDAG
+from src.circuit.circuit_dag import CircuitDAG
+from src.circuit import ops
 from src.io import IO
-from src import ops
 
 
 class DeterministicSolver(SolverBase):

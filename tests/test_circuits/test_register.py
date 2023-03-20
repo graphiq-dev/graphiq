@@ -1,5 +1,5 @@
 import pytest
-from src.circuit import Register
+from src.circuit.register import Register
 
 
 @pytest.mark.parametrize(

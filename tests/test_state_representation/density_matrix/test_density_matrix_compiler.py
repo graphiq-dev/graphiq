@@ -11,8 +11,8 @@ from benchmarks.circuits import (
     ghz4_state_circuit,
 )
 from src.visualizers.density_matrix import density_matrix_bars, density_matrix_heatmap
-from src.circuit import CircuitDAG
-import src.ops as ops
+from src.circuit.circuit_dag import CircuitDAG
+import src.circuit.ops as ops
 
 
 def test_bell_circuit():

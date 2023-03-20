@@ -1,13 +1,10 @@
 import pytest
-from src.circuit import CircuitDAG
+from src.circuit.circuit_dag import CircuitDAG
 from benchmarks.circuits import *
-from src.ops import *
 from src.utils.circuit_comparison import *
 from benchmarks.graph_states import *
 from src.solvers.deterministic_solver import DeterministicSolver
-from src.solvers.evolutionary_solver import EvolutionarySearchSolverSetting
 from src.solvers.hybrid_solvers import (
-    HybridEvolutionarySolver,
     HybridGraphSearchSolver,
     HybridGraphSearchSolverSetting,
 )

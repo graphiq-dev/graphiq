@@ -3,7 +3,7 @@ Compilation tools for simulating a circuit with a purely Density Matrix based ba
 """
 
 import src.backends.density_matrix.functions as dm
-from src import ops as ops
+from src.circuit import ops as ops
 from src.backends.compiler_base import CompilerBase
 from src.backends.density_matrix.state import DensityMatrix
 import src.noise.noise_models as nm
@@ -288,7 +288,9 @@ class DensityMatrixCompiler(CompilerBase):
                 op.noise = [op.noise] * 2
             control_noise = op.noise[0]
             target_noise = op.noise[1]
-            control_noise.apply(state, n_quantum, [q_index(op.control, op.control_type)])
+            control_noise.apply(
+                state, n_quantum, [q_index(op.control, op.control_type)]
+            )
             target_noise.apply(state, n_quantum, [q_index(op.target, op.target_type)])
         else:
             raise ValueError(

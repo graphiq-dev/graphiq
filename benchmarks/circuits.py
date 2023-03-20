@@ -4,9 +4,8 @@ A suite of circuits for small, known quantum states that can be used for benchma
 
 import networkx as nx
 
-from src.circuit import CircuitDAG
-from src.ops import *
-from src import ops
+from src.circuit.circuit_dag import CircuitDAG
+from src.circuit.ops import *
 from src.backends.density_matrix.functions import (
     state_ketz0,
     state_ketz1,

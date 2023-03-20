@@ -1,8 +1,8 @@
 """
-Circuit class, which defines the sequence of operations and gates.
+CircuitDAG class, which defines the sequence of operations and gates.
 Once a compiler is defined, the resulting quantum state can be simulated.
 
-The Circuit class can be:
+The CircuitDAG class can be:
     1. manually constructed, with new operations added to the end of the circuit or inserted at a specified location
        for CircuitDAG
     2. evaluated into a sequence of Operations, based on the topological ordering
@@ -12,642 +12,18 @@ The Circuit class can be:
 
 Further reading on DAG circuit representation:
 https://qiskit.org/documentation/stubs/qiskit.converters.circuit_to_dag.html
-
-
-Experimental:
-
-REGISTER HANDLING (only for RegisterCircuitDAG):
-
-In qiskit and openQASM, for example, you can apply operations on either a specific qubit in a specific register OR
-on the full register (see ops.py for an explanation of how registers are applied).
-
-    1. Each operation received (whether or not it applies to full registers) is broken down into a set of operations that
-       apply between a specific number of qubits (i.e. an operation for each qubit of the register).
-    2. Registers can be added/expanded via provided methods.
-
-USER WARNINGS:
-    1. if you expand a register AFTER using an Operation which applied to the full register, the Operation will
-       NOT retroactively apply to the added qubits
-
 """
-import copy
-import random
 import networkx as nx
 import matplotlib.pyplot as plt
-from abc import ABC, abstractmethod
-import warnings
 import functools
 import re
 import string
 import numpy as np
-import src.ops as ops
-import src.utils.openqasm_lib as oq_lib
+import src.circuit.ops as ops
+from src.circuit.circuit_base import CircuitBase
 from src.noise.noise_models import NoNoise
 from src.visualizers.dag import dag_topology_pos
-from src.visualizers.openqasm_visualization import draw_openqasm
 from src.utils.circuit_comparison import compare_circuits
-
-
-class Register:
-    """
-    Register class object, the class includes a dictionary which map the register type as the key and the register array
-    as the value.
-    """
-
-    def __init__(self, reg_dict, is_multi_qubit: bool = False):
-        """
-        Constructor for the register class
-
-        :param reg_dict: register dictionary
-        :type reg_dict: dict
-        :param is_multi_qubit: variable that indicate support for multi-qubit register
-        :type is_multi_qubit: bool
-        :return: this function returns nothing
-        :rtype: None
-        """
-        # Check empty data
-        if not reg_dict:
-            raise ValueError("Register dict can not be None or empty")
-
-        # Check if input data is numerical
-        for key in reg_dict:
-            if not all([isinstance(item, int) for item in reg_dict[key]]):
-                raise ValueError("The input data contains non-numerical value")
-
-        # Check if not multi-qubit register but input value more than 1
-        for key in reg_dict:
-            if reg_dict[key] and set(reg_dict[key]) != {1} and not is_multi_qubit:
-                raise ValueError(
-                    f"Register is not multi-qubit register but has value more than 1"
-                )
-
-        self._registers = reg_dict
-        self.is_multi_qubit = is_multi_qubit
-
-    @property
-    def register(self):
-        return self._registers.copy()
-
-    def __getitem__(self, key):
-        return self._registers[key]
-
-    def __setitem__(self, key, value):
-        # Check value is numerical
-        if not all([isinstance(item, int) for item in value]):
-            raise ValueError("The input data contains non-numerical value")
-
-        # Check if not multi-qubit register but has value more than 1
-        if value and set(value) != {1} and not self.is_multi_qubit:
-            raise ValueError(f"The register only supports single-qubit registers")
-        self._registers[key] = value
-
-    @property
-    def n_quantum(self):
-        q_sum = 0
-
-        for key in self._registers:
-            if key != "c":
-                q_sum += len(self._registers[key])
-        return q_sum
-
-    def add_register(self, reg_type: str, size: int = 1):
-        """
-        Function that add a quantum/classical register to the register dict
-
-        :param reg_type: 'p' for a photonic quantum register, 'e' for an emitter quantum register,
-                         'c' for a classical register
-        :type reg_type: str
-        :param size: the new register size
-        :type size: int
-        :raises ValueError: if new_size is not greater than the current register size
-        :return: the index number of the added register
-        :rtype: int
-        """
-        if reg_type not in self._registers:
-            raise ValueError(
-                f"reg_type must be 'e' (emitter qubit), 'p' (photonic qubit), 'c' (classical bit)"
-            )
-        if size < 1:
-            raise ValueError(f"{reg_type} register size must be at least one")
-        if size > 1 and not self.is_multi_qubit:
-            raise ValueError(
-                f"Can not add register of size {size}, multiple qubit register is not supported"
-            )
-        self._registers[reg_type].append(size)
-        return len(self._registers[reg_type]) - 1
-
-    def expand_register(self, reg_type: str, register: int, new_size: int = 1):
-        """
-        Function to expand quantum/classical registers
-
-        :param register: the register index of the register to expand
-        :type register: int
-        :param new_size: the new register size
-        :type register: int
-        :param reg_type: 'p' for a photonic quantum register, 'e' for an emitter quantum register,
-                         'c' for a classical register
-        :type reg_type: str
-        :raises ValueError: if new_size is not greater than the current register size
-        :return: this function returns nothing
-        :rtype: None
-        """
-        if reg_type not in self._registers:
-            raise ValueError(
-                "reg_type must be 'e' (emitter register), 'p' (photonic register), "
-                "or 'c' (classical register)"
-            )
-        if new_size > 1 and not self.is_multi_qubit:
-            raise ValueError(
-                f"Can not expand register to size {new_size}, multiple qubit register is not supported"
-                f"(they must have a size of 1)"
-            )
-        curr_reg = self._registers[reg_type]
-        curr_size = curr_reg[register]
-
-        if new_size <= curr_size:
-            raise ValueError(
-                f"New register size {new_size} is not greater than the current size {curr_size}"
-            )
-        curr_reg[register] = new_size
-
-    def next_register(self, reg_type: str, register: int):
-        """
-        Provides the index of the next register in the provided register. This allows the user to query
-        which register they should add next, should they decide to expand the register
-
-        :param reg_type: indicate register type, can be "p", "e", or "c"
-        :type reg_type: str
-        :param register: the register index {0, ..., N - 1} for N emitter quantum registers
-        :type register: int
-        :return: the index of the next register
-        :rtype: int (non-negative)
-        """
-        if reg_type not in self._registers:
-            raise ValueError(
-                "Register type must be 'p' (quantum photonic), 'e' (quantum emitter), or 'c' (classical)"
-            )
-        return self._registers[reg_type][register]
-
-
-class CircuitBase(ABC):
-    """
-    Base class (interface) for circuit representation. This class describes the functions that each Circuit object
-    should support. It also records register and openqasm data.
-    """
-
-    def __init__(self, openqasm_imports=None, openqasm_defs=None):
-        """
-        Construct an empty circuit
-
-        :param openqasm_imports: None or an (ordered) dictionary, where the keys are import strings for openqasm
-                                 THIS IS MEANT TO ALLOW imports WHICH MUST OCCUR IN SPECIFIC ORDERS
-        :type openqasm_imports: a dictionary (with str keys) or None
-        :param openqasm_defs: None or an (ordered) dictionary, where the keys are definitions strings for openqasm gates
-                                 THIS IS MEANT TO ALLOW GATE DEFINITIONS WHICH MUST OCCUR IN SPECIFIC ORDERS
-        :type openqasm_defs: a dictionary (with str keys) or None
-        :return: this function returns nothing
-        :rtype: None
-        """
-        self._registers = Register(reg_dict={"e": [], "p": [], "c": []})
-        self._parameters = {}
-
-        self._fmap = self._default_map
-        self._map = self._fmap()
-
-        if openqasm_imports is None:
-            self.openqasm_imports = {}
-        else:
-            self.openqasm_imports = openqasm_imports
-
-        if openqasm_defs is None:
-            self.openqasm_defs = {}
-        else:
-            self.openqasm_defs = openqasm_defs
-
-        self.openqasm_symbols = {}
-
-    @property
-    def register(self):
-        return self._registers.register
-
-    @property
-    def emitter_registers(self):
-        return self._registers["e"]
-
-    @property
-    def photonic_registers(self):
-        return self._registers["p"]
-
-    @emitter_registers.setter
-    def emitter_registers(self, q_reg):
-        self._registers["e"] = q_reg
-
-    @photonic_registers.setter
-    def photonic_registers(self, q_reg):
-        self._registers["p"] = q_reg
-
-    @property
-    def c_registers(self):
-        return self._registers["c"]
-
-    @c_registers.setter
-    def c_registers(self, c_reg):
-        self._registers["c"] = c_reg
-
-    @abstractmethod
-    def add(self, op: ops.OperationBase):
-        raise ValueError(
-            "Base class circuit is abstract: it does not support function calls"
-        )
-
-    @abstractmethod
-    def validate(self):
-        raise ValueError(
-            "Base class circuit is abstract: it does not support function calls"
-        )
-
-    @abstractmethod
-    def sequence(self, unwrapped=False):
-        raise ValueError(
-            "Base class circuit is abstract: it does not support function calls"
-        )
-
-    def to_openqasm(self):
-        """
-        Creates the openQASM script equivalent to the circuit (if possible--some Operations are not properly supported).
-
-        :return: the openQASM script equivalent to our circuit (on a logical level)
-        :rtype: str
-        """
-        header_info = (
-                oq_lib.openqasm_header()
-                + "\n"
-                + "\n".join(self.openqasm_imports.keys())
-                + "\n"
-                + "\n".join(self.openqasm_defs.keys())
-        )
-
-        openqasm_str = [
-            header_info,
-            oq_lib.register_initialization_string(
-                self.emitter_registers, self.photonic_registers, self.c_registers
-            )
-            + "\n",
-        ]
-
-        opened_barrier = False
-        barrier_str = ", ".join(
-            [f"p{i}" for i in range(self.n_photons)]
-            + [f"e{i}" for i in range(self.n_emitters)]
-        )
-        for op in self.sequence():
-            oq_info = op.openqasm_info()
-            if isinstance(op, ops.ParameterizedOneQubitRotation):
-                gate_application = oq_info.use_gate(
-                    op.q_registers,
-                    op.q_registers_type,
-                    op.c_registers,
-                    params=op.params,
-                )
-            elif isinstance(op, ops.ParameterizedControlledRotationQubit):
-                gate_application = oq_info.use_gate(
-                    op.q_registers,
-                    op.q_registers_type,
-                    op.c_registers,
-                    params=op.params,
-                )
-            else:
-                gate_application = oq_info.use_gate(
-                    op.q_registers, op.q_registers_type, op.c_registers
-                )
-
-            # set barrier, if necessary to split out multi-block Operations from each other
-            if (opened_barrier or oq_info.multi_comp) and gate_application != "":
-                openqasm_str.append(f"barrier {barrier_str};")
-            if (
-                    oq_info.multi_comp
-            ):  # i.e. multiple visual blocks make this one Operation
-                opened_barrier = True
-            elif gate_application != "":
-                opened_barrier = False
-
-            if gate_application != "":
-                openqasm_str.append(gate_application)
-
-        return "\n".join(openqasm_str)
-
-    @property
-    def n_quantum(self):
-        """
-        Number of quantum registers in the circuit (this does not depend on the number of qubit within each register)
-
-        :return: number of quantum registers in the circuit
-        :rtype: int
-        """
-        return self._registers.n_quantum
-
-    @property
-    def n_photons(self):
-        """
-        Number of photonic quantum registers in the circuit
-        (this does not depend on the number of qubit within each register)
-
-        :return: number of photonic quantum registers in the circuit
-        :rtype: int
-        """
-        return len(self._registers["p"])
-
-    @property
-    def n_emitters(self):
-        """
-        Number of emitter quantum registers in the circuit
-        (this does not depend on the number of qubit within each register)
-
-        :return: number of emitter quantum registers in the circuit
-        :rtype: int
-        """
-        return len(self._registers["e"])
-
-    @property
-    def n_classical(self):
-        """
-        Number of classical registers in the circuit (this does not depend on the number of cbits within each register)
-
-        :return: number of classical registers in the circuit
-        :rtype: int
-        """
-        return len(self._registers["c"])
-
-    def next_emitter(self, register):
-        """
-        Provides the index of the next emitter qubit in the provided quantum register. This allows the user to query
-        which qubit they should add next, should they decide to expand the register
-
-        :param register: the register index {0, ..., N - 1} for N emitter quantum registers
-        :type register: int
-        :return: the index of the next qubit
-        :rtype: int (non-negative)
-        """
-        return self._registers.next_register(reg_type="e", register=register)
-
-    def next_photon(self, register):
-        """
-        Provides the index of the next photonic qubit in the provided quantum register. This allows the user to query
-        which qubit they should add next, should they decide to expand the register
-
-        :param register: the register index {0, ..., N - 1} for N photonic quantum registers
-        :type register: int
-        :return: the index of the next qubit
-        :rtype: int (non-negative)
-        """
-        return self._registers.next_register(reg_type="p", register=register)
-
-    def next_cbit(self, register):
-        """
-        Provides the index of the next cbit in the provided classical register. This allows the user to query
-        which qubit they should add next, should they decide to expand the register
-
-        :param register: the register index {0, ..., M - 1} for M classical registers
-        :type register: int
-        :return: the index of the next cbit
-        :rtype: int (non-negative)
-        """
-        return self._registers.next_register(reg_type="c", register=register)
-
-    def add_emitter_register(self, size=1):
-        """
-        Adds an emitter quantum register to the circuit
-
-        :param size: size of the quantum register to be added
-        :type size: int
-        :return: index of added quantum register
-        :rtype: int
-        """
-        return self._add_register(size=size, reg_type="e")
-
-    def add_photonic_register(self, size=1):
-        """
-        Adds a photonic quantum register to the circuit
-
-        :param size: size of the quantum register to be added
-        :type size: int
-        :return: index of added quantum register
-        :rtype: int
-        """
-        return self._add_register(size=size, reg_type="p")
-
-    def add_classical_register(self, size=1):
-        """
-        Adds a classical register to the circuit
-
-        :param size: size of classical quantum register to be added
-        :type size: int
-        :return: index of added classical register
-        :rtype: int
-        """
-        return self._add_register(size=size, reg_type="c")
-
-    def _add_register(self, reg_type: str, size=1):
-        """
-        Helper function for adding quantum and classical registers to the circuit
-
-        :param size: the size of the register to be added
-        :type size: int
-        :param reg_type: 'p' if we're adding a photonic quantum register,
-                         'e' if we're adding a quantum emitter register, and
-                         'c' if we're adding a classical register
-
-        :type reg_type: str
-        :return: the index number of the added register
-        :rtype: int
-        """
-        self._registers.add_register(reg_type, size)
-
-    def expand_emitter_register(self, register, new_size):
-        """
-        Expand an already existing emitter quantum register to a new (larger) size (i.e. to contain more qubits).
-        Does not affect pre-existing qubits
-
-        :param register: the register index of the register to expand
-        :type register: int
-        :param new_size: the new register size
-        :type new_size: int
-        :raises ValueError: if new_size is not greater than the current register size
-        :return: this function returns nothing
-        :rtype: None
-        """
-        self._registers.expand_register(
-            reg_type="e", register=register, new_size=new_size
-        )
-
-    def expand_photonic_register(self, register, new_size):
-        """
-        Expand an already existing photonic quantum register to a new (larger) size (i.e. to contain more qubits).
-        Does not affect pre-existing qubits
-
-        :param register: the register index of the register to expand
-        :type register: int
-        :param new_size: the new register size
-        :type new_size: int
-        :raises ValueError: if new_size is not greater than the current register size
-        :return: this function returns nothing
-        :rtype: None
-        """
-        self._registers.expand_register(
-            reg_type="p", register=register, new_size=new_size
-        )
-
-    def expand_classical_register(self, register, new_size):
-        """
-        Expand an already existing classical register to a new (larger) size (i.e. to contain more cbits).
-        Does not affect pre-existing cbits
-
-        :param register: the register index of the register to expand
-        :type register: int
-        :param new_size: the new register size
-        :type new_size: int
-        :raises ValueError: if new_size is not greater than the current register size
-        :return: this function returns nothing
-        :rtype: None
-        """
-        self._registers.expand_register(
-            reg_type="c", register=register, new_size=new_size
-        )
-
-    def draw_circuit(self, show=True, ax=None):
-        """
-        Draw conventional circuit representation
-
-        :param show: if True, the circuit is displayed (shown). If False, the circuit is drawn but not displayed
-        :type show: bool
-        :param ax: ax on which to draw the DAG (optional)
-        :type ax: None or matplotlib.pyplot.axes
-        :return: fig, ax on which the circuit was drawn
-        :rtype: matplotlib.pyplot.figure, matplotlib.pyplot.axes
-        """
-        return draw_openqasm(
-            self.to_openqasm(), show=show, ax=ax, display_text=self.openqasm_symbols
-        )
-
-    def _openqasm_update(self, op):
-        """
-        Helper function to update any information a circuit might need to generate openqasm scripts
-
-        :param op: the operation being added to the circuit
-        :type op: OperationBase (or a subclass)
-        :return: function returns nothing
-        :rtype: None
-        """
-        try:
-            oq_info = op.openqasm_info()
-            for import_statement in oq_info.import_strings:
-                if import_statement not in self.openqasm_imports:
-                    self.openqasm_imports[import_statement] = 1
-            for definition in oq_info.define_gate:
-                if definition not in self.openqasm_defs:
-                    self.openqasm_defs[definition] = 1
-
-            if oq_info.gate_symbol is not None:
-                self.openqasm_symbols[oq_info.gate_name] = oq_info.gate_symbol
-
-        except ValueError:
-            warnings.warn(
-                UserWarning(f"No openqasm definitions for operation {type(op)}")
-            )
-
-    def copy(self):
-        """
-        Create a copy of itself. Deep copy
-
-        :return: a copy of itself
-        :rtype: CircuitBase
-        """
-        return copy.deepcopy(self)
-
-    """ Mapping between each operation and parameter values """
-
-    @property
-    def parameters(self):
-        """
-        A dictionary of all parameters associated to the quantum circuit.
-
-        :return: a dictionary, of the form {parameter_key: [list of parameters values]}
-        """
-        return self._parameters
-
-    @parameters.setter
-    def parameters(self, parameters: dict):
-        self._parameters = parameters
-
-        for op in self.sequence(unwrapped=True):
-            op.params = self._parameters.get(self.map[id(op)], tuple())
-
-    @property
-    def fmap(self):
-        """
-        Provides a mapping *function* between an operation (Op) and its parameter list.
-
-        :return: function which returns a mapping dictionary (see `self.map`)
-        :rtype: func
-        """
-        return self._fmap
-
-    @fmap.setter
-    def fmap(self, func):
-        # todo, check function
-        self._fmap = func
-
-    @property
-    def map(self):
-        """
-        Dictionary which maps from an operation (Op) to a parameter list.
-        Each dictionary key:value pair is of the form `id(op): parameter_key`,
-        where `parameter_key` is the associated key for indexing into the `parameters` dictionary.
-
-        :return: op to parameter key mapping dictionary
-        :rtype: dict
-        """
-        return self._map
-
-    def _default_map(self):
-        """Default map, in which each op is mapped to itself (no parameter sharing, except for copied ops)"""
-        _map = {id(op): id(op) for op in self.sequence(unwrapped=True)}
-        return _map
-
-    def initialize_parameters(self, seed=None):
-        """
-        Randomly initializes all parameter lists from a uniform distribution between the parameter bounds
-        defined by the operation.
-
-        :param seed: seed value for randomly selecting circuit parameters
-        :type seed: int
-        :return: parameter dictionary
-        :rtype: dict
-        """
-        if seed is not None:
-            random.seed(seed)
-
-        self._map = self._fmap()
-        self._parameters = {}
-        for op in self.sequence(unwrapped=True):
-            if op.params:
-                key = self._map[id(op)]
-                if key is None:
-                    continue
-
-                elif key in self._parameters.keys():
-                    # parameter already added from previous operation (i.e. shared-weight)
-                    continue
-
-                else:
-                    pi = []
-                    for p, (lb, ub) in zip(op.params, op.param_info["bounds"]):
-                        pi.append(random.uniform(lb, ub))
-
-                    op.params = pi
-                    self._parameters[key] = pi
-
-        return self._parameters
 
 
 class CircuitDAG(CircuitBase):
@@ -661,12 +37,12 @@ class CircuitDAG(CircuitBase):
     """
 
     def __init__(
-            self,
-            n_emitter=0,
-            n_photon=0,
-            n_classical=0,
-            openqasm_imports=None,
-            openqasm_defs=None,
+        self,
+        n_emitter=0,
+        n_photon=0,
+        n_classical=0,
+        openqasm_imports=None,
+        openqasm_defs=None,
     ):
         """
         Construct a DAG circuit with n_emitter one-qubit emitter quantum registers, n_photon one-qubit photon
@@ -1185,10 +561,10 @@ class CircuitDAG(CircuitBase):
         while i in range(len(qasm_commands)):
             command = qasm_commands[i]
             if (
-                    ("qreg" in command)
-                    or ("creg" in command)
-                    or ("barrier" in command)
-                    or (command == "")
+                ("qreg" in command)
+                or ("creg" in command)
+                or ("barrier" in command)
+                or (command == "")
             ):
                 i += 1
                 continue
@@ -1267,7 +643,7 @@ class CircuitDAG(CircuitBase):
 
             # Parse single-qubit operations
             if (
-                    command.count("[0]") == 1
+                command.count("[0]") == 1
             ):  # single qubit operation, from current script generation method
                 command_breakdown = command.split()
                 name = command_breakdown[0]
@@ -1300,7 +676,7 @@ class CircuitDAG(CircuitBase):
                 )  # we must parse out [0] so -3
                 gate_class = ops.name_to_class_map(name)
                 assert (
-                        gate_class is not None
+                    gate_class is not None
                 ), "gate name not recognized, parsing failed"
                 circuit.add(
                     gate_class(
@@ -1398,9 +774,9 @@ class CircuitDAG(CircuitBase):
 
         # get all edges that will need to be removed (i.e. the edges on which the Operation is being added)
         relevant_outputs = [
-                               f"{operation.q_registers_type[i]}{operation.q_registers[i]}_out"
-                               for i in range(len(operation.q_registers))
-                           ] + [f"c{c}_out" for c in operation.c_registers]
+            f"{operation.q_registers_type[i]}{operation.q_registers[i]}_out"
+            for i in range(len(operation.q_registers))
+        ] + [f"c{c}_out" for c in operation.c_registers]
 
         for output in relevant_outputs:
             edges_to_remove = list(
@@ -1663,7 +1039,11 @@ class CircuitDAG(CircuitBase):
                     gate_list = []
 
     def assign_noise(self, noise_model_map):
-        empty_circ = CircuitDAG(n_emitter=self.n_emitters, n_photon=self.n_photons, n_classical=self.n_classical)
+        empty_circ = CircuitDAG(
+            n_emitter=self.n_emitters,
+            n_photon=self.n_photons,
+            n_classical=self.n_classical,
+        )
         new_gates = self._noisy_gates(noise_model_map)
         for gate in new_gates:
             empty_circ.add(gate)
@@ -1676,14 +1056,22 @@ class CircuitDAG(CircuitBase):
             is_controlled = False
             if isinstance(op, ops.OneQubitGateWrapper):
                 op_type_seq = [type(gate) for gate in op.unwrap()]
-                noise_list = self._find_wrapped_noise(op_type_seq, noise_model_map[op.reg_type])
+                noise_list = self._find_wrapped_noise(
+                    op_type_seq, noise_model_map[op.reg_type]
+                )
                 op.noise = noise_list
                 noisy_ops.append(op)
             else:
-                if isinstance(op, (ops.ControlledPairOperationBase, ops.ClassicalControlledPairOperationBase)):
+                if isinstance(
+                    op,
+                    (
+                        ops.ControlledPairOperationBase,
+                        ops.ClassicalControlledPairOperationBase,
+                    ),
+                ):
                     control_type = op.control_type
                     target_type = op.target_type
-                    mapping = noise_model_map[control_type+target_type]
+                    mapping = noise_model_map[control_type + target_type]
                     is_controlled = True
                 else:
                     mapping = noise_model_map[op.reg_type]
@@ -1694,7 +1082,9 @@ class CircuitDAG(CircuitBase):
                     noise_object = NoNoise()
                 if is_controlled:
                     if isinstance(noise_object, list):
-                        assert len(noise_object) == 2, "controlled gate noise list must be of length 2"
+                        assert (
+                            len(noise_object) == 2
+                        ), "controlled gate noise list must be of length 2"
                         op.noise = noise_object
                     else:
                         op.noise = [noise_object, noise_object]

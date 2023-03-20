@@ -1,11 +1,8 @@
 import numpy as np
 import numpy.testing as test
-import pytest
-import random
 
-from src.circuit import CircuitDAG
-import src.ops as ops
-from tests.test_flags import visualization
+from src.circuit.circuit_dag import CircuitDAG
+import src.circuit.ops as ops
 
 
 # Test initialization

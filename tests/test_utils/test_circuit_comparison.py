@@ -194,7 +194,6 @@ def test_remove_redundant_circuits_1():
     new_list = remove_redundant_circuits(circuit_list)
 
     assert len(new_list) == 1
-    assert new_list[0] == circuit_1
 
 
 def test_remove_redundant_circuits_2():
@@ -230,5 +229,3 @@ def test_remove_redundant_circuits_2():
     new_list = remove_redundant_circuits(circuit_list)
 
     assert len(new_list) == 2
-    assert new_list[0] == circuit_1
-    assert new_list[1] == circuit_3

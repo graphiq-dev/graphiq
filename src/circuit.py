@@ -45,6 +45,7 @@ import src.utils.openqasm_lib as oq_lib
 from src.visualizers.dag import dag_topology_pos
 from src.visualizers.openqasm_visualization import draw_openqasm
 from src.utils.circuit_comparison import compare_circuits
+import json
 
 
 class Register:
@@ -1622,41 +1623,65 @@ class CircuitDAG(CircuitBase):
         ops_list = [self.dag.nodes[nod]["op"] for nod in ordered_nodes]
         return ops_list, ordered_nodes
 
-    def group_one_qubit_gates(self):
-        def edge_from_reg(t_edges, t_register):
-            for e in t_edges:
-                if e[-1] == t_register:
-                    return e
+    def to_dict(self):
+        data = {
+            "n_photons": self.n_photons,
+            "n_emitters": self.n_emitters,
+            "n_classical": self.n_classical,
+            "ops": []
+        }
 
-        for node in self.node_dict["Output"]:
-            reg_type = self.dag.nodes[node]["op"].reg_type
-            register = self.dag.nodes[node]["op"].register
-            gate_list = []
+        for op in self.sequence():
+            if isinstance(op, ops.InputOutputOperationBase):
+                continue
+            op_data = {
+                'type': ops.class_to_name_mapping(type(op)),
+                'q_registers_type': op.q_registers_type,
+                'q_registers': op.q_registers,
+                'c_registers': op.c_registers,
+                # ...,
+            }
+            data['ops'].append(op_data)
+        return data
 
-            in_edges = self.dag.in_edges(nbunch=node, keys=True)
-            next_node = edge_from_reg(in_edges, f"{reg_type}{register}")[0]
+    def to_json(self):
+        data = {
+            "n_photons": self.n_photons,
+            "n_emitters": self.n_emitters,
+            "n_classical": self.n_classical,
+            "ops": []
+        }
 
-            while next_node not in self.node_dict["Input"]:
-                node = next_node
-                in_edges = self.dag.in_edges(nbunch=node, keys=True)
-                edge = edge_from_reg(in_edges, f"{reg_type}{register}")
-                next_node = edge[0]
+        for op in self.sequence():
+            if isinstance(op, ops.InputOutputOperationBase):
+                continue
+            op_data = {
+                'type': ops.class_to_name_mapping(type(op)),
+                'q_registers_type': op.q_registers_type,
+                'q_registers': op.q_registers,
+                'c_registers': op.c_registers,
+                # ...,
+            }
+            data['ops'].append(op_data)
 
-                if node in self.node_dict["one-qubit"]:
-                    node_info = self.dag.nodes[node]
-                    op = node_info["op"]
+        return json.dumps(data, indent=3)
 
-                    if isinstance(op, ops.OneQubitGateWrapper):
-                        gate_list += op.operations
-                    else:
-                        gate_list.append(op.__class__)
-                    self.remove_op(node)
-                if next_node not in self.node_dict["one-qubit"] and gate_list:
-                    # insert new op here
-                    out_edges = self.dag.out_edges(nbunch=next_node, keys=True)
-                    insert_edge = edge_from_reg(out_edges, f"{reg_type}{register}")
-                    self.insert_at(
-                        ops.OneQubitGateWrapper(gate_list, register, reg_type),
-                        [insert_edge],
-                    )
-                    gate_list = []
+    @staticmethod
+    def from_json(json_str):
+        data_dict = json.loads(json_str)
+        circuit = CircuitDAG(
+            n_photon=data_dict['n_photons'],
+            n_emitter=data_dict['n_emitters'],
+            n_classical=data_dict['n_classical'],
+        )
+
+        for op in data_dict['ops']:
+            gate = ops.name_to_class_map(op['type'])
+            gate = gate()
+            gate.q_registers = op['q_registers']
+            gate.q_registers_type = op['q_registers_type']
+            gate.c_registers = op['c_registers']
+
+            circuit.add(gate)
+
+        return circuit

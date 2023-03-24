@@ -187,6 +187,7 @@ class HybridGraphSearchSolverSetting:
         lc_method="max edge",
         verbose=False,
         save_openqasm: str = "none",
+        callback_func: dict = {},
     ):
         self.allow_relabel = allow_relabel
         self.allow_lc = allow_lc
@@ -202,6 +203,7 @@ class HybridGraphSearchSolverSetting:
         self.sort_emitter = sort_emit
         self.label_map = label_map
         self.iso_thresh = iso_thresh
+        self.callback_func = callback_func
 
     @property
     def n_iso_graphs(self):
@@ -297,6 +299,8 @@ class HybridGraphSearchSolver(SolverBase):
         self.sorted_result = []
         self.circuit_storage = comp.CircuitStorage()
 
+        self.result = SolverResult()
+
     def get_iso_graph_from_setting(self, adj_matrix):
         """
         Helper function to get iso graphs according to solver setting
@@ -368,9 +372,6 @@ class HybridGraphSearchSolver(SolverBase):
         :return:
         :rtype:
         """
-        target_list = []
-        score_list = []
-
         # retrieve parameters for relabelling module and local complementation module
         setting = self.solver_setting
 
@@ -434,19 +435,12 @@ class HybridGraphSearchSolver(SolverBase):
                 # store score and circuit for further analysis
                 # code for storing the necessary information
                 if self.circuit_storage.add_new_circuit(circuit):
-                    data = [circuit, target_state, self.circuit_evaluation_v2(circuit, target_state, self.metric)]
-                    target_list.append(target_state)
+                    data = self._prepare_data(circuit, target_state)
+                    self.result.append(data)
 
         # end of relabelling loop
         # code to run each circuit in the noisy scenario and evaluate the cost function
 
-        for i in range(len(self.circuit_storage.circuit_list)):
-            score = self.circuit_evaluation_v2(self.circuit_storage.circuit_list[i], target_list[i], self.metric)
-            score_list.append(score)
-
-        self.result = SolverResult(self.circuit_storage.circuit_list)
-        self.result['target_state'] = target_list
-        self.result['score'] = score_list
         return self.result
 
     def circuit_evaluation_v2(self, circuit, target, metric):
@@ -472,8 +466,22 @@ class HybridGraphSearchSolver(SolverBase):
         :param target_state:
         :return:
         """
+        data = {
+            'circuit': circuit,
+            'target_state': target_state,
+            'score': self.circuit_evaluation_v2(circuit, target_state, self.metric)
+        }
 
-        return
+        for key in self.solver_setting.callback_func:
+            f = self.solver_setting.callback_func[key]
+            value = f(circuit, target_state)
+            if type(value) == dict:
+                for k, v in value.items():
+                    data[k] = v
+            else:
+                data[key] = value
+
+        return data
 
     def circuit_evaluation(self, circuit_target_list, metric):
         """

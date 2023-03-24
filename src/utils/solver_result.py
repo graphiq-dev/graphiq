@@ -7,14 +7,13 @@ class SolverResult:
     Class to keep track of the solver result
     """
 
-    def __init__(self, circuit_list, properties=None):
-        self._data = {
-            "circuit": circuit_list,
-        }
+    def __init__(self, columns=None):
+        self._data = {}
+        self.columns = columns
 
-        if properties and type(properties) == list:
-            for p in properties:
-                self._data[p] = [0] * len(circuit_list)
+        if columns:
+            for c in columns:
+                self._data[c] = []
 
     def __len__(self):
         """
@@ -75,7 +74,25 @@ class SolverResult:
         self._data[key] = value
 
     def append(self, data):
-        return
+        """
+        Function to append a new row to the data, if data is empty the function will define the columns then append new
+        row.
+
+        :param data:
+        :return:
+        """
+        if type(data) == dict:
+            # if empty data, define columns then append new row
+            if not self._data:
+                for key, value in data.items():
+                    self._data[key] = [value]
+            if len(data) == len(self._data):
+                for key in self._data:
+                    self._data[key].append(data[key])
+            else:
+                raise ValueError("Length are not the same")
+
+        return True
 
     def get_index_data(self, index):
         """
@@ -127,6 +144,12 @@ class SolverResult:
         return r_list
 
     def to_df(self):
+        """
+        Function to convert SolverResult to pandas DataFrame
+
+        :return: dataframe
+        :rtype: pandas.DataFrame
+        """
         df = pd.DataFrame(data=self._data)
 
         return df

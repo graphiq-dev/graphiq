@@ -321,7 +321,7 @@ class HybridGraphSearchSolver(SolverBase):
         setting = self.solver_setting
         n_iso = setting.n_iso_graphs
 
-        if self.solver_setting.allow_relabel:
+        if setting.allow_relabel:
 
             iso_graphs = iso_finder(
                 adj_matrix,
@@ -355,20 +355,18 @@ class HybridGraphSearchSolver(SolverBase):
         n_graphs = setting.n_lc_graphs
         graph_metric = setting.graph_metric
 
-        if self.solver_setting.allow_lc:
+        if setting.allow_lc:
 
-            if self.solver_setting.lc_method == "max neighbor edge":
+            if setting.lc_method == "max neighbor edge":
                 lc_graphs = pre.get_lc_graph_by_max_neighbor_edge(
                     iso_graph, n_graphs, graph_metric
                 )
-            elif self.solver_setting.lc_method == "max edge":
+            elif setting.lc_method == "max edge":
                 lc_graphs = pre.get_lc_graph_by_max_edge(
                     iso_graph, n_graphs, graph_metric
                 )
             else:
-                raise ValueError(
-                    f"The method {self.solver_setting.lc_method} is not valid."
-                )
+                raise ValueError(f"The method {setting.lc_method} is not valid.")
         else:
             # simply give back the original graph
             lc_graphs = [iso_graph]

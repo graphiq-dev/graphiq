@@ -24,25 +24,18 @@ class Graph(StateRepresentationBase):
 
     """
 
-    # TODO: set default root_node_id if the user doesn't specify one?
-    #  We should figure out how to handle cases where the root node is not obvious
-    def __init__(self, data, root_node_id, *args, **kwargs):
+    def __init__(self, data, *args, **kwargs):
         """
         Create a Graph representation object
 
         :param data: data used to construct the representation
         :type data: frozenset OR int OR networkx.Graph OR iterable of data pairs
-        :param root_node_id: a node id for the root node
-        :type root_node_id: int
         :return: function returns nothing
         :rtype: None
         """
 
         super().__init__(data, *args, **kwargs)
-        self.root_node, self.node_dict, self.data = gf.convert_data_to_graph(
-            data, root_node_id
-        )
-        self.local_cliffords = None  # set this later
+        self.node_dict, self.data = gf.convert_data_to_graph(data)
 
     def add_node(self, node_to_add):
         """
@@ -266,7 +259,6 @@ class Graph(StateRepresentationBase):
         :return: a list of neighbours for the node with node_id
         :rtype: list
         """
-        # TODO: refactor to use https://networkx.org/documentation/stable/reference/classes/generated/networkx.Graph.neighbors.html
         if isinstance(node_id, int):
             node_id = frozenset([node_id])
         return list(self.data.neighbors(self.node_dict[node_id]))
@@ -412,6 +404,8 @@ class Graph(StateRepresentationBase):
         :type show: bool
         :param ax: axis on which to draw the plot (optional)
         :type ax: matplotlib.axis
+        :param with_labels:
+        :type with_labels:
         :return: nothing
         :rtype: None
         """

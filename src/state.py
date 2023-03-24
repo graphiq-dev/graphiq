@@ -271,6 +271,7 @@ class QuantumState:
         :return: fig, ax (the figure and axes on which data was plotted)
         :rtype: matplotlib.figure, matplotlib.axis
         """
+        # TODO: implement this or delete this
         raise NotImplementedError()
 
     def _initialize_dm(self, data):
@@ -300,7 +301,7 @@ class QuantumState:
         :return: function returns nothing
         :rtype: None
         """
-        self._graph = Graph(data, 1)
+        self._graph = Graph(data)
         # TODO: adjust root_node_id field once we've figured out how we want to use it
         assert self._graph.n_qubit == self.n_qubits, (
             f"Expected {self.n_qubits} qubits, "

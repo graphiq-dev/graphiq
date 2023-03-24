@@ -18,7 +18,7 @@ import src.backends.state_representation_conversion as sc
 def get_graph_equivalent(target_state):
     graph_state = sc.density_to_graph(target_state)
     nx_graph = nx.from_numpy_matrix(graph_state)
-    return Graph(nx_graph, 0)
+    return Graph(nx_graph)
 
 
 def run_solve(target_function, seed, graph=False):

@@ -45,7 +45,7 @@ def test_n_redundant_encoding_1(graph_rep_2):
 
 
 def test_n_redundant_encoding_2():
-    state_rep = Graph([], root_node_id=None)
+    state_rep = Graph([])
     assert state_rep.n_redundant_encoding_node == 0
 
 

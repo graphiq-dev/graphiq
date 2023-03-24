@@ -115,8 +115,6 @@ class Infidelity(MetricBase):
                 )
 
         elif state.dm is not None and self.target.dm is not None:
-            # dmf.is_density_matrix(self.target.dm.data)
-            # dmf.is_density_matrix(state.dm.data)
 
             fid = dmf.fidelity(self.target.dm.data, state.dm.data)
 

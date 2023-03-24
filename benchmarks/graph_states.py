@@ -23,7 +23,7 @@ def linear_cluster_state(n_qubits):
     :rtype: Graph
     """
     edge_tuples = [(i, i + 1) for i in range(1, n_qubits)]
-    return Graph(nx.Graph(edge_tuples), 1)
+    return Graph(nx.Graph(edge_tuples))
 
 
 def lattice_cluster_state(dimension):
@@ -36,7 +36,7 @@ def lattice_cluster_state(dimension):
     :rtype: Graph
     """
     g = nx.convert_node_labels_to_integers(nx.grid_graph(dim=dimension), first_label=1)
-    return Graph(g, 1)
+    return Graph(g)
 
 
 def star_graph_state(points):
@@ -48,7 +48,7 @@ def star_graph_state(points):
     :return: star-shaped graph state
     :rtype: Graph
     """
-    return Graph(nx.star_graph(points), 1)
+    return Graph(nx.star_graph(points))
 
 
 def random_graph_state(n_qubits, p_edge, np_rng=None):
@@ -68,7 +68,7 @@ def random_graph_state(n_qubits, p_edge, np_rng=None):
     if np_rng is None:
         np_rng = np.random.default_rng()
 
-    return Graph(_gnp_random_connected_graph(n_qubits, p_edge, np_rng), 1)
+    return Graph(_gnp_random_connected_graph(n_qubits, p_edge, np_rng))
 
 
 def _gnp_random_connected_graph(n, p, np_rng):

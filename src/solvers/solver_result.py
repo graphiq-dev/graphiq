@@ -1,3 +1,6 @@
+import numpy as np
+
+
 class SolverResult:
     """
     Class to keep track of the solver result
@@ -7,10 +10,23 @@ class SolverResult:
         self._data = {
             "circuit": circuit_list,
         }
+        self._properties = [] if properties is None else properties
+        assert isinstance(self._properties, list)
+        for p in properties:
+            self._data[p] = [None] * len(circuit_list)
 
-        if properties and type(properties) == list:
-            for p in properties:
-                self._data[p] = [0] * len(circuit_list)
+    @property
+    def properties(self):
+        return self._properties
+
+    @properties.setter
+    def properties(self, new_properties):
+        assert isinstance(new_properties, list)
+        self._properties = new_properties
+        for p in new_properties:
+            if p not in self._data:
+                self._data[p] = [None] * len(self._data["circuit"])
+
 
     def __len__(self):
         """
@@ -60,7 +76,7 @@ class SolverResult:
         :return: nothing
         :rtype: None
         """
-        if type(value) is not list:
+        if isinstance(type, (list, np.ndarray)):
             raise TypeError(f"Data should be a list or numpy array")
         else:
             if len(value) != len(self._data["circuit"]):
@@ -69,6 +85,12 @@ class SolverResult:
                 )
 
         self._data[key] = value
+
+    def add_properties(self, new_property):
+        assert isinstance(new_property, str)
+        if new_property not in self._properties:
+            self._properties.append(new_property)
+            self._data[new_property] = [None] * len(self._data["circuit"])
 
     def get_index_data(self, index):
         """
@@ -92,7 +114,7 @@ class SolverResult:
 
         :param index: index of the row
         :type index: int
-        :return: circuit
+        :return: the circuit corresponding to the provided index
         :rtype: CircuitDAG
         """
         return self._data["circuit"][index]
@@ -105,7 +127,7 @@ class SolverResult:
         :type column: str
         :param value: value to check
         :type value: object
-        :return: list of index
+        :return: list of all indecies that match the value
         :rtype: list
         """
 

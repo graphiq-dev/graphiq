@@ -1,13 +1,9 @@
 import pytest
-from src.circuit import CircuitDAG
 from benchmarks.circuits import *
-from src.ops import *
 from src.utils.circuit_comparison import *
 from benchmarks.graph_states import *
 from src.solvers.deterministic_solver import DeterministicSolver
-from src.solvers.evolutionary_solver import EvolutionarySearchSolverSetting
 from src.solvers.hybrid_solvers import (
-    HybridEvolutionarySolver,
     HybridGraphSearchSolver,
     HybridGraphSearchSolverSetting,
 )
@@ -17,7 +13,7 @@ from src.backends.stabilizer.compiler import StabilizerCompiler
 from src.backends.stabilizer.functions.rep_conversion import (
     get_clifford_tableau_from_graph,
 )
-from src.utils.solver_result import SolverResult
+from src.solvers.solver_result import SolverResult
 import numpy as np
 
 

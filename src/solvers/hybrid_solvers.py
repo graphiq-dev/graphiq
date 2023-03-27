@@ -11,12 +11,14 @@ from src.backends.stabilizer.functions.stabilizer import canonical_form
 import src.utils.preprocessing as pre
 import src.utils.circuit_comparison as comp
 import src.noise.noise_models as nm
+import src.noise.monte_carlo_noise as mcn
 import src.backends.lc_equivalence_check as lc
 import src.backends.stabilizer.functions.local_cliff_equi_check as slc
 from src.solvers.evolutionary_solver import (
     EvolutionarySolver,
     EvolutionarySearchSolverSetting,
 )
+from src.solvers.solver_result import SolverResult
 from src.backends.state_representation_conversion import graph_to_density
 from src.solvers.solver_base import SolverBase
 from src.solvers.deterministic_solver import DeterministicSolver
@@ -54,15 +56,15 @@ class HybridEvolutionarySolver(EvolutionarySolver):
     name = "hybrid evolutionary-search"
 
     def __init__(
-        self,
-        target,
-        metric: MetricBase,
-        compiler: CompilerBase,
-        io: IO = None,
-        solver_setting=EvolutionarySearchSolverSetting(),
-        noise_model_mapping=None,
-        *args,
-        **kwargs,
+            self,
+            target,
+            metric: MetricBase,
+            compiler: CompilerBase,
+            io: IO = None,
+            solver_setting=EvolutionarySearchSolverSetting(),
+            noise_model_mapping=None,
+            *args,
+            **kwargs,
     ):
         """
         Initialize a hybrid solver based on DeterministicSolver and EvolutionarySolver
@@ -186,23 +188,25 @@ class HybridGraphSearchSolverSetting:
     """
 
     def __init__(
-        self,
-        base_solver_setting=None,
-        allow_relabel=True,
-        n_iso_graphs=10,
-        rel_inc_thresh=0.1,
-        allow_exhaustive=False,
-        sort_emit=True,
-        label_map=False,
-        iso_thresh=None,
-        allow_lc=True,
-        n_lc_graphs=10,
-        lc_orbit_depth=None,
-        depolarizing_rate=0.01,
-        graph_metric=pre.graph_metric_lists[0],
-        lc_method="max edge",
-        verbose=False,
-        save_openqasm: str = "none",
+            self,
+            base_solver_setting=None,
+            allow_relabel=True,
+            n_iso_graphs=10,
+            rel_inc_thresh=0.1,
+            allow_exhaustive=False,
+            sort_emit=True,
+            label_map=False,
+            iso_thresh=None,
+            allow_lc=True,
+            n_lc_graphs=10,
+            lc_orbit_depth=None,
+            depolarizing_rate=0.01,
+            monte_carlo=False,
+            monte_carlo_params=None,
+            graph_metric=pre.graph_metric_lists[0],
+            lc_method="max edge",
+            verbose=False,
+            save_openqasm: str = "none",
     ):
         self.allow_relabel = allow_relabel
         self.allow_lc = allow_lc
@@ -220,6 +224,14 @@ class HybridGraphSearchSolverSetting:
         self.iso_thresh = iso_thresh
         self.lc_orbit_depth = lc_orbit_depth
         self.depolarizing_rate = depolarizing_rate
+        self.monte_carlo = monte_carlo
+        mc_params = {"n_sample": 1, "map": mcn.McNoiseMap(), "compiler": None, "seed": None, "n_parallel": None,
+                     "n_single": None}
+        if monte_carlo_params is None:
+            monte_carlo_params = mc_params
+        else:
+            monte_carlo_params = mc_params | monte_carlo_params
+        self.monte_carlo_params = monte_carlo_params
 
     @property
     def n_iso_graphs(self):
@@ -268,18 +280,18 @@ class HybridGraphSearchSolverSetting:
 
 class HybridGraphSearchSolver(SolverBase):
     def __init__(
-        self,
-        target,
-        metric: MetricBase,
-        compiler: CompilerBase,
-        circuit: CircuitDAG = None,
-        io: IO = None,
-        graph_solver_setting=None,
-        noise_model_mapping=None,
-        base_solver=HybridEvolutionarySolver,
-        base_solver_setting=EvolutionarySearchSolverSetting(),
-        *args,
-        **kwargs,
+            self,
+            target,
+            metric: MetricBase,
+            compiler: CompilerBase,
+            circuit: CircuitDAG = None,
+            io: IO = None,
+            graph_solver_setting=None,
+            noise_model_mapping=None,
+            base_solver=HybridEvolutionarySolver,
+            base_solver_setting=EvolutionarySearchSolverSetting(),
+            *args,
+            **kwargs,
     ):
         if graph_solver_setting is None:
             graph_solver_setting = HybridGraphSearchSolverSetting(
@@ -636,15 +648,15 @@ class HybridGraphSearchSolver(SolverBase):
 
 class AlternateGraphSolver:
     def __init__(
-        self,
-        target_graph: nx.Graph or QuantumState = None,
-        metric: MetricBase = Infidelity,
-        compiler: CompilerBase = StabilizerCompiler(),
-        noise_compiler: CompilerBase = StabilizerCompiler(),
-        io: IO = None,
-        noise_model_mapping=None,
-        graph_solver_setting=None,
-        seed=None,
+            self,
+            target_graph: nx.Graph or QuantumState = None,
+            metric: MetricBase = Infidelity,
+            compiler: CompilerBase = StabilizerCompiler(),
+            noise_compiler: CompilerBase = StabilizerCompiler(),
+            io: IO = None,
+            noise_model_mapping=None,
+            graph_solver_setting=None,
+            seed=None,
     ):
         if graph_solver_setting is None:
             graph_solver_setting = HybridGraphSearchSolverSetting(
@@ -658,7 +670,13 @@ class AlternateGraphSolver:
         elif noise_model_mapping == "depolarizing":
             self.noise_simulation = True
             self.depolarizing_rate = graph_solver_setting.depolarizing_rate
-            noise_model_mapping = self.depol_noise_map()
+            if graph_solver_setting.monte_carlo:
+                self.monte_carlo = True
+                self.mc_params = graph_solver_setting.monte_carlo_params
+                self.mc_params["map"] = self.mc_depol()
+            else:
+                self.monte_carlo = False
+                noise_model_mapping = self.depol_noise_map()
         elif type(noise_model_mapping) is not dict:
             raise TypeError(
                 f"Datatype {type(noise_model_mapping)} is not a valid noise_model_mapping. "
@@ -666,9 +684,12 @@ class AlternateGraphSolver:
             )
         else:
             self.noise_simulation = True
+            self.monte_carlo = False
+            if graph_solver_setting.monte_carlo:
+                self.monte_carlo = True
+                self.mc_params = graph_solver_setting.monte_carlo_params
 
         self.noise_model_mapping = noise_model_mapping
-
 
         if isinstance(target_graph, nx.Graph):
             self.target_graph = target_graph
@@ -731,19 +752,23 @@ class AlternateGraphSolver:
                     raise UserWarning("LC conversion failed")
                 conversion_ops = slc.str_to_op(conversion_gates)
                 for op in conversion_ops:
-                    # op_name = type(op).__name__
-                    # if op_name == "Identity":
-                    #     continue
-                    # # add noise to gate
-                    # if op_name in self.noise_model_mapping["p"] and self.noise_simulation:
-                    #     op.noise = self.noise_model_mapping["p"][op_name]
                     circuit.add(op)
                 if self.noise_simulation:
-                    circuit = circuit.assign_noise(self.noise_model_mapping)
-                    noise_score = self.noise_score(circuit, rmap)
+                    if self.monte_carlo:
+                        mc = mcn.MonteCarloNoise(circuit, self.mc_params["n_sample"], self.mc_params["map"],
+                                                 self.mc_params["compiler"], self.mc_params["seed"])
+                        if self.mc_params["n_parallel"] is not None:
+                            noise_score = mcn.parallel_monte_carlo(mc, self.mc_params["n_parallel"],
+                                                                   self.mc_params["n_single"])
+                        else:
+                            noise_score = mc.run()
+                    else:
+                        circuit = circuit.assign_noise(self.noise_model_mapping)
+                        noise_score = self.noise_score(circuit, rmap)
                     lc_score_list.append(noise_score)
                 else:
-                    lc_score_list.append(0.001)
+                    lc_score_list.append(0.0001)
+
                 lc_circ_list.append(circuit)
 
             for i, circ in enumerate(lc_circ_list):
@@ -761,7 +786,7 @@ class AlternateGraphSolver:
                     already_found = True
                     break
             if not already_found:
-                s = set([i])
+                s = {i}
                 for j in range(i + 1, len(adj_list)):
                     if np.array_equal(adj_list[i], adj_list[j]):
                         s.add(j)
@@ -772,7 +797,15 @@ class AlternateGraphSolver:
         redundant_indices.sort()
         for index in redundant_indices[::-1]:
             del results_list[index]
-        self.result = results_list
+
+        # results setter
+        circ_list = [x[0] for x in results_list]
+        properties = list(results_list[0][1].keys()) if results_list else None
+        self.result = SolverResult(circ_list, properties)
+        # [r[1][p] for p in properties for r in results_list]
+        for p in properties:
+            self.result[p] = [r[1][p] for r in results_list]
+
         return results_list
 
     def noise_score(self, circ, relabel_map):
@@ -813,18 +846,39 @@ class AlternateGraphSolver:
         rate = self.depolarizing_rate
         dep_noise_model_mapping = dict()
         dep_noise_model_mapping["e"] = {
-            "CNOT": nm.DepolarizingNoise(rate),
-            "SigmaX": nm.DepolarizingNoise(rate),
-            "SigmaY": nm.DepolarizingNoise(rate),
-            "SigmaZ": nm.DepolarizingNoise(rate),
+            # "SigmaX": nm.DepolarizingNoise(rate),
+            # "SigmaY": nm.DepolarizingNoise(rate),
+            # "SigmaZ": nm.DepolarizingNoise(rate),
             "Phase": nm.DepolarizingNoise(rate),
             "PhaseDagger": nm.DepolarizingNoise(rate),
             "Hadamard": nm.DepolarizingNoise(rate),
         }
-        dep_noise_model_mapping["p"] = {} # dep_noise_model_mapping["e"]
+        dep_noise_model_mapping["p"] = {}  # dep_noise_model_mapping["e"]
+        # dep_noise_model_mapping["ee"] = {}
+        # dep_noise_model_mapping["ep"] = {}
         dep_noise_model_mapping["ee"] = {"CNOT": nm.DepolarizingNoise(rate)}
         dep_noise_model_mapping["ep"] = {"CNOT": nm.DepolarizingNoise(rate)}
         return dep_noise_model_mapping
+
+    def mc_depol(self):
+        """
+        Returns a Monte-Carlo noise map for depolarizing noise. Currently only emitter gates are noisy.
+        :return: mcn.McNoiseMap
+        :rtype: mcn.McNoiseMap
+        """
+        rate = self.depolarizing_rate / 3
+        mc_noise = mcn.McNoiseMap()
+        mc_noise.add_gate_noise("e", "Hadamard",
+                                [(nm.PauliError("X"), rate), (nm.PauliError("Y"), rate), (nm.PauliError("Z"), rate)])
+        mc_noise.add_gate_noise("e", "Phase",
+                                [(nm.PauliError("X"), rate), (nm.PauliError("Y"), rate), (nm.PauliError("Z"), rate)])
+        mc_noise.add_gate_noise("e", "PhaseDagger",
+                                [(nm.PauliError("X"), rate), (nm.PauliError("Y"), rate), (nm.PauliError("Z"), rate)])
+        mc_noise.add_gate_noise("ee", "CNOT",
+                                [(nm.PauliError("X"), rate), (nm.PauliError("Y"), rate), (nm.PauliError("Z"), rate)])
+        mc_noise.add_gate_noise("ep", "CNOT",
+                                [(nm.PauliError("X"), rate), (nm.PauliError("Y"), rate), (nm.PauliError("Z"), rate)])
+        return mc_noise
 
 
 def graph_to_circ(graph, noise_model_mapping=None, show=False):

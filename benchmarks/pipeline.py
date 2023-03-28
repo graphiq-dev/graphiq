@@ -152,7 +152,7 @@ def benchmark(runs: dict, io: IO, remote=True):
     return df
 
 
-def benchmark_run(run, name, io, circuit_format="qasm"):
+def benchmark_run_graph_search_solver(run, name, io, circuit_format="qasm"):
     """
     Function to run benchmark for HybridGraphSearchSolver
 
@@ -167,7 +167,7 @@ def benchmark_run(run, name, io, circuit_format="qasm"):
     :return: dictionary storing all the results/metadata for the current run (can be added to a DataFrame)
     :rtype: pandas.DataFrame
     """
-    solver = run['solver']
+    solver = run["solver"]
     t0 = time.time()
     solver.io = io
     result = solver.solve()
@@ -179,18 +179,18 @@ def benchmark_run(run, name, io, circuit_format="qasm"):
     # save circuits:
     circuit_io = IO.new_directory(
         path=io.path,
-        folder='circuits',
+        folder="circuits",
         include_date=True,
         include_time=True,
         include_id=False,
         verbose=False,
     )
-    for i, circuit in enumerate(result['circuit']):
+    for i, circuit in enumerate(result["circuit"]):
         if circuit_format == "qasm":
             openqasm = circuit.to_openqasm()
             circuit_io.save_txt(openqasm, f"circuit_{i}.qasm")
-        if circuit_format == 'json':
-            json = circuit.to_dict()
+        if circuit_format == "json":
+            json = circuit.to_json()
             circuit_io.save_json(json, f"circuit_{i}.json")
 
     d = dict(
@@ -204,7 +204,7 @@ def benchmark_run(run, name, io, circuit_format="qasm"):
     return d
 
 
-def benchmark(runs, io):
+def benchmark_graph_search_solver(runs, io, circuit_format="qasm"):
     """
     Runs a sequence of benchmark runs, either using parallel or serial processing.
 
@@ -226,7 +226,11 @@ def benchmark(runs, io):
             include_id=False,
             verbose=False,
         )
-        futures.append(benchmark_run(run, name=name, io=io_tmp))
+        futures.append(
+            benchmark_run_graph_search_solver(
+                run, name=name, io=io_tmp, circuit_format=circuit_format
+            )
+        )
     df = pd.DataFrame(futures)
     io.save_dataframe(df, "benchmark_solver_run.csv")
     io.save_json(metadata(), "metadata.json")

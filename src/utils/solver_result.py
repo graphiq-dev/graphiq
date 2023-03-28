@@ -72,6 +72,7 @@ class SolverResult:
                 )
 
         self._data[key] = value
+        self.columns.append(key)
 
     def append(self, data):
         """
@@ -86,12 +87,13 @@ class SolverResult:
             if not self._data:
                 for key, value in data.items():
                     self._data[key] = [value]
-            if len(data) == len(self._data):
-                for key in self._data:
-                    self._data[key].append(data[key])
+                self.columns = list(self._data.keys())
             else:
-                raise ValueError("Length are not the same")
-
+                if len(data) == len(self._data):
+                    for key in self._data:
+                        self._data[key].append(data[key])
+                else:
+                    raise ValueError("Length are not the same")
         return True
 
     def get_index_data(self, index):
@@ -153,4 +155,3 @@ class SolverResult:
         df = pd.DataFrame(data=self._data)
 
         return df
-

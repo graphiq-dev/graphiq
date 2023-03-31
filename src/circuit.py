@@ -1623,27 +1623,6 @@ class CircuitDAG(CircuitBase):
         ops_list = [self.dag.nodes[nod]["op"] for nod in ordered_nodes]
         return ops_list, ordered_nodes
 
-    def to_dict(self):
-        data = {
-            "n_photons": self.n_photons,
-            "n_emitters": self.n_emitters,
-            "n_classical": self.n_classical,
-            "ops": []
-        }
-
-        for op in self.sequence():
-            if isinstance(op, ops.InputOutputOperationBase):
-                continue
-            op_data = {
-                'type': ops.class_to_name_mapping(type(op)),
-                'q_registers_type': op.q_registers_type,
-                'q_registers': op.q_registers,
-                'c_registers': op.c_registers,
-                # ...,
-            }
-            data['ops'].append(op_data)
-        return data
-
     def to_json(self):
         data = {
             "n_photons": self.n_photons,
@@ -1655,20 +1634,33 @@ class CircuitDAG(CircuitBase):
         for op in self.sequence():
             if isinstance(op, ops.InputOutputOperationBase):
                 continue
-            op_data = {
-                'type': ops.class_to_name_mapping(type(op)),
-                'q_registers_type': op.q_registers_type,
-                'q_registers': op.q_registers,
-                'c_registers': op.c_registers,
-                # ...,
-            }
+            elif type(op) == ops.OneQubitGateWrapper:
+                op_list = []
+                for g in op.operations:
+                    name = ops.class_to_name_mapping(g)
+                    if name:
+                        op_list.append(name)
+                op_data = {
+                    'type': 'one qubit gate wrapper',
+                    'op_list': op_list,
+                    'q_registers_type': op.q_registers_type,
+                    'q_registers': op.q_registers,
+                    'c_registers': op.c_registers,
+                }
+            else:
+                op_data = {
+                    'type': ops.class_to_name_mapping(type(op)),
+                    'q_registers_type': op.q_registers_type,
+                    'q_registers': op.q_registers,
+                    'c_registers': op.c_registers,
+                    # ...,
+                }
             data['ops'].append(op_data)
 
-        return json.dumps(data, indent=3)
+        return data
 
-    @staticmethod
-    def from_json(json_str):
-        data_dict = json.loads(json_str)
+    @classmethod
+    def from_json(cls, data_dict):
         circuit = CircuitDAG(
             n_photon=data_dict['n_photons'],
             n_emitter=data_dict['n_emitters'],
@@ -1676,11 +1668,19 @@ class CircuitDAG(CircuitBase):
         )
 
         for op in data_dict['ops']:
-            gate = ops.name_to_class_map(op['type'])
-            gate = gate()
-            gate.q_registers = op['q_registers']
-            gate.q_registers_type = op['q_registers_type']
-            gate.c_registers = op['c_registers']
+            if op['type'] == 'one qubit gate wrapper':
+                op_list = [ops.name_to_class_map(g) for g in op['op_list']]
+                gate = ops.OneQubitGateWrapper(
+                    op_list,
+                    register=op['q_registers'][0],
+                    reg_type=op['q_registers_type'][0],
+                )
+            else:
+                gate = ops.name_to_class_map(op['type'])
+                gate = gate()
+                gate.q_registers = op['q_registers']
+                gate.q_registers_type = op['q_registers_type']
+                gate.c_registers = op['c_registers']
 
             circuit.add(gate)
 

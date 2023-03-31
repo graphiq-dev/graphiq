@@ -3,8 +3,8 @@ from qiskit.qasm import Qasm
 
 class OpenQASMParser:
     """
-    This parser just use the Qiskit parser to parse the openqasm string, but the information is more readable. The parse
-    will have an AST(Abstract Syntax Tree), which makes it easier to manipulate the script parsed.
+    This class is used to retrieve useful information from the qiskit.qasm.Qasm class. The qiskit Qasm can parse the
+    OpenQASM 2.0 string but the object return is not very readable and very hard to iterate.
     """
 
     def __init__(self, openqasm_str: str):
@@ -90,10 +90,6 @@ class OpenQASMParser:
                 self.ast["ops"].append(info)
             yield info
 
-    # TODO: Maybe add parse gate definition body, because in the definition body there is a list of statements
-    #  The parser originally is created for visualization purpose, but right now parsing the body of a gate
-    #  doesn't help much. Therefore, in order to save computer resource, I just ignore parsing the body of the gate
-    #  definition.
     def _parse_gate(self, gate_node):
         """
         Helper function that parse the gate node.

@@ -8,7 +8,7 @@ class SolverResult:
 
     def __init__(self, circuit_list, properties=None):
         self._data = {
-            "circuit": circuit_list,
+            "circuit": circuit_list, "circuit_id": [f'c{i}' for i in range(len(circuit_list))]
         }
         self._properties = [] if properties is None else properties
         assert isinstance(self._properties, list)
@@ -140,3 +140,20 @@ class SolverResult:
             if v == value:
                 r_list.append(i)
         return r_list
+
+    def sort_by(self, prop):
+        """
+        sort the results by a given property
+        :param prop: a property in the list of properties of the result
+        :type prop: str
+        :return: Nothing
+        :rtype: None
+        """
+        data_dict = self._data
+        n_result = len(self)
+        p_index = list(data_dict.keys()).index(prop)
+        data_tuple_list = [tuple(x[i] for x in data_dict.values()) for i in range(n_result)]
+        sorted_data_tuple = sorted(data_tuple_list, key=lambda x: x[p_index])
+        for j, p in enumerate(data_dict.keys()):
+            self._data[p] = [sorted_data_tuple[i][j] for i in range(n_result)]
+

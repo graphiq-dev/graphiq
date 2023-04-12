@@ -180,13 +180,11 @@ class MonteCarloNoise:
         self._n_sample = n_sample
         if compiler is None:
             self.compiler = StabilizerCompiler()
-            self.compiler._monte_carlo = True
-            self.compiler.noise_simulation = True
         else:
             assert isinstance(compiler, CompilerBase), "compiler must be CompilerBase object; an instance, not a class"
             self.compiler = compiler
-            self.compiler._monte_carlo = True
-            self.compiler.noise_simulation = True
+        self.compiler._monte_carlo = True
+        self.compiler.noise_simulation = True
 
         ideal_state = self.compiler.compile(circuit=self.circuit)
         # trace out emitter qubits
@@ -195,6 +193,8 @@ class MonteCarloNoise:
             dims=(self.circuit.n_photons + self.circuit.n_emitters) * [2],
         )
         self.ideal_state = ideal_state
+        self.n_noisy_gates = None
+        self.all_scores = []
 
     @property
     def circuit(self):
@@ -229,7 +229,7 @@ class MonteCarloNoise:
 
     @seed.setter
     def seed(self, new_seed):
-        assert isinstance(new_seed, int)
+        assert isinstance(new_seed, int) or new_seed is None
         self._seed = new_seed
         self.rng = np.random.default_rng(seed=new_seed)
 
@@ -238,11 +238,11 @@ class MonteCarloNoise:
         Calculates the average infidelity for the noisy circuits when n_sample trials are performed.
         :return: average score (infidelity)
         """
-        sum_score = 0
+        self.all_scores = []
         for i in range(self.n_sample):
-            sum_score += self.one_run()
+            self.all_scores.append(self.one_run())
 
-        return sum_score / self.n_sample
+        return sum(self.all_scores) / len(self.all_scores)
 
     def one_run(self):
         """
@@ -250,6 +250,7 @@ class MonteCarloNoise:
         :return: infidelity
         :rtype: float
         """
+        self.n_noisy_gates = 0
         noisy_circ = self.assign_noise()
 
         noisy_state = self.compiler.compile(circuit=noisy_circ)
@@ -331,38 +332,37 @@ class MonteCarloNoise:
         noise_tuple_list = self.mc_noise_model.get_gate_noise(reg_type, gate_name)
         noise_list = [x[0] for x in noise_tuple_list]
         prob_list = [x[1] for x in noise_tuple_list]
+        self.n_noisy_gates += len(reg_type)
         # print(gate_name, prob_list)
         # print(noise_tuple_list)
         return self.rng.choice(noise_list, 1, p=prob_list)[0]
 
-    # def _slim_seq(self):
-    #     circ = self.circuit
-    #     seq = circ.sequence()
-    #     length = len(seq) - 1
-    #     for i, op in enumerate(seq[::-1]):
-    #         if isinstance(op, (ops.Input, ops.Output)):
-    #             del seq[length - i]
-    #     return seq
 
-
-old_noise_map = {"e": {"Hadamard": nm.PauliError("X")}}
-mc_noise_map = {"e": {"Hadamard": [(nm.PauliError("X"), 0.01), (nm.NoNoise, 0.99)]}}
+# regular_noise_map = {"e": {"Hadamard": nm.PauliError("X")}}
+# montecarlo_noise_map = {"e": {"Hadamard": [(nm.PauliError("X"), 0.01), (nm.NoNoise, 0.99)]}}
 
 
 def parallel_monte_carlo(mc: MonteCarloNoise, n_parallel, n_single):
-    rnd_array = mc.rng.choice(n_parallel * 100, n_parallel, replace=False)
+    rnd_array = mc.rng.choice(n_parallel * 100, n_parallel - 1, replace=False)
+    # make first seed the same as the MonteCarloNoise's seed
+    first_seed = mc.seed if mc.seed is not None else 0
+    rnd_array = np.insert(rnd_array, 0, first_seed, axis=0)
     temp_n = mc.n_sample
     mc.n_sample = n_single
 
     @ray.remote
     def monte_run(seed):
         mc.seed = int(seed)
-        return mc.one_run()
+        score = mc.run()
+        all_scores = mc.all_scores
+        return score, all_scores
 
-    ray.init()
+    # ray.init()
     ray_scores = [monte_run.remote(seed=x) for x in rnd_array]
-    scores = ray.get(ray_scores)
-    ray.shutdown()
+    score_tuples = ray.get(ray_scores)
+    scores = [x[0] for x in score_tuples]
+    all_scores = [y for x in score_tuples for y in x[1]]
+    # ray.shutdown()
     mc.n_sample = temp_n
-
+    mc.all_scores = all_scores
     return sum(scores) / len(scores)

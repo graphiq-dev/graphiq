@@ -174,11 +174,11 @@ def str_to_op(gate_tuples):
         operation = ops_list[op_index](register=gate_tuples[1], reg_type="p")
         return operation
     elif isinstance(gate_tuples, list):
-        ops_list = []
+        operations_list = []
         for gate in gate_tuples:
             op_index = name_list.index(gate[0])
-            ops_list.append(ops_list[op_index](register=gate[1], reg_type="p"))
-        return ops_list
+            operations_list.append(ops_list[op_index](register=gate[1], reg_type="p"))
+        return operations_list
     else:
         raise ValueError(
             "input should be gate tuples ('gate name', qubit index) or a list of them"

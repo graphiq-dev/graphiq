@@ -40,13 +40,13 @@ def test_relabel(n_node, sort_emit):
 
 
 def test_complete_graph():
-    # there should be no valid result for relabeling of a complete graph
+    # there should be only 1 valid result for relabeling of a complete graph
     for n_node in range(5, 15):
         g = nx.complete_graph(n_node)
         adj = nx.to_numpy_array(g)
         n_iso = 10
         adj_arr = iso_finder(adj, n_iso)
-        assert len(adj_arr) == 0
+        assert len(adj_arr) == 1
 
 
 def test_emitter_sort():

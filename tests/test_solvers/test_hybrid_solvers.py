@@ -153,7 +153,8 @@ def test_graph_based_search_solver():
         base_solver=DeterministicSolver,
     )
     solver.solve()
-    score, circuit = solver.result
-    print(f"The best score is {score}.")
+    results = solver.result
+    circuit, _, score = results[0]
+    # print(f"The best score is {score}.")
     circuit.draw_circuit()
     print(solver.sorted_result)

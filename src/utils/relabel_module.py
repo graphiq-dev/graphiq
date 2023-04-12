@@ -4,6 +4,8 @@ import matplotlib.pyplot as plt
 from src.backends.stabilizer.functions.height import height_max
 from itertools import permutations
 from networkx.algorithms import isomorphism
+from src.backends.lc_equivalence_check import local_comp_graph
+
 
 import warnings
 
@@ -19,11 +21,13 @@ def iso_finder(
     seed=None,
 ):
     """
-    The function permutes the labels of the vertices of a graph to get n_iso distinct isomorphic graphs. The maximum
-    number of possible distinct cases may be less than n_iso. The graph G with the nodes relabeled using consecutive integers.
+    The function permutes the labels of the vertices of a graph to get n_iso distinct isomorphic graphs. The original
+    graph will also be returned as the first element of the list and counted toward the number of found cases.
+    The maximum number of possible distinct cases may be less than n_iso. The graph G with the nodes relabeled using
+    consecutive integers.
     :param adj_matrix: initial adjacency matrix or graph
     :type adj_matrix: numpy.ndarray
-    :param n_iso: number of the isomorphic graphs required
+    :param n_iso: number of the isomorphic graphs to look for (including the original graph)
     :type n_iso: int
     :param rel_inc_thresh: a threshold value between 0 and 1. The closer to 0 the closer we get to an exhaustive search.
     :type rel_inc_thresh: float
@@ -36,7 +40,7 @@ def iso_finder(
      between the original input graph and the one in the returned list.
     :type label_map: bool
     :param thresh: a threshold value that determines how many random trials is performed in search for new permutations.
-    The default is 10 times the number of needed permutations (=n_iso).
+    The default is 5 times the number of needed permutations (=n_iso).
     :type thresh: int
     :param seed: the seed for random sampling of labels
     :type seed: int
@@ -49,7 +53,7 @@ def iso_finder(
     n_node = adj_matrix.shape[0]
     n_max = np.math.factorial(n_node)
     n_label = n_iso
-    labels_arr = _label_finder(n_label, n_node, seed=None, thresh=None)
+    labels_arr = _label_finder(n_label, n_node, seed=seed, thresh=thresh)
     adj_arr = automorph_check(adj_matrix, labels_arr)
     if len(adj_arr) >= n_iso:
         adj_arr = adj_arr[:n_iso]
@@ -71,6 +75,8 @@ def iso_finder(
                     )
                     return adj_arr
 
+            # update the seed used in _add_labels to get new values when we repeat it in the loop
+            seed = seed + 1 if (seed is not None) else None
             labels_arr = _add_labels(
                 labels_arr,
                 add_n,
@@ -183,16 +189,21 @@ def _label_finder(
     n_max = np.math.factorial(n_node)
     if thresh is None:
         thresh = 5 * n_label
+    elif thresh < n_label:
+        thresh = n_label + 1
     assert (
         n_label <= n_max
     ), f"The input number of permutations is more than the maximum possible"
     if n_node < 8 or exhaustive:
         perm = list(permutations([*range(n_node)]))
-        labels_list = rng.choice(perm, n_label)
+        initial_perm = np.array([[*range(n_node)]])
+        labels_list = rng.choice(perm[1:], n_label - 1)
+        labels_list = np.concatenate((initial_perm, labels_list), axis=0)
         return labels_list
     else:
         if new_label_set is None:
             new_label_set = set()
+            new_label_set.add(tuple([*range(n_node)]))
         count = 0
         while len(new_label_set) < n_label and count < thresh:
             new_label_set.add(tuple(rng.permutation(n_node)))
@@ -251,12 +262,13 @@ def automorph_check(adj1, labels_arr):
     # uses set to remove redundancies
     # the set includes the adjacency matrices in flatten form so that they can turn into tuples to be members of a set
     adj_set = {tuple(adj1.astype(int).flatten())}
-    adj_list = []
+    adj_list = [adj1]
     n_node = adj1.shape[0]
     for label in labels_arr:
         new_adj = relabel(adj1, label)
         adj_set.add(tuple(new_adj.flatten()))
-    # remove the initial adjacency matrix from the set to just keep the new ones
+    # remove the initial adjacency matrix from the set to just keep the new ones, since the original adj1 is already in
+    # the final list of adjacencies as the first element
     adj_set.remove(tuple(adj1.astype(int).flatten()))
     for flat_adj in adj_set:
         remade_adj = np.array(flat_adj)
@@ -284,6 +296,137 @@ def get_relabel_map(g1, g2):
     GM = isomorphism.GraphMatcher(g1, g2)
     assert GM.is_isomorphic()
     return GM.mapping
+
+
+def _compare_graphs_visual(G, new_G, new_labels):
+    """
+    Visual demonstration of initial graph, the relabeled one.
+    """
+    nx.draw_networkx(G, with_labels=True, pos=nx.kamada_kawai_layout(G))
+    fig, (ax1, ax2, ax3) = plt.subplots(3, figsize=(15, 25))
+    fig.tight_layout()
+    n = len(new_labels)
+    relabel_map_dict = dict(zip([*range(n)], new_labels))
+    G_relabeled = nx.relabel_nodes(G, relabel_map_dict)
+    assert list(new_labels) == G_relabeled.nodes()
+
+    nx.draw_networkx(
+        G_relabeled,
+        node_size=1000,
+        font_size=25,
+        with_labels=True,
+        ax=ax2,
+        pos=nx.kamada_kawai_layout(G_relabeled),
+    )
+    nx.draw_networkx(
+        new_G,
+        node_size=1000,
+        font_size=25,
+        with_labels=True,
+        ax=ax3,
+        pos=nx.kamada_kawai_layout(G_relabeled),
+    )
+    nx.draw_networkx(
+        G,
+        node_size=1000,
+        node_color="#bcbd22",
+        font_size=25,
+        with_labels=True,
+        ax=ax1,
+        pos=nx.kamada_kawai_layout(G),
+    )
+    plt.show()
+    return
+
+
+def lc_orbit_finder(graph: nx.Graph, comp_depth=None, orbit_size_thresh=None):
+    """
+    Given a graph this functions tries all possible local-complementation sequences of length up to comp_depth to
+    come up with new distinct graphs in the orbit of the input graph. The comp_depth determines the maximum depth of the
+     orbit explored.
+    :param graph: original graph
+    :type graph: nx.Graph
+    :param comp_depth: the maximum length of the sequence of local-complementations applied on the graph; if None,
+                        continue till the required number of graphs are found, or no new graphs are found.
+    :type comp_depth: int
+    :param orbit_size_thresh: sets a limit on the maximum number of orbit graphs to look for
+    :type orbit_size_thresh: int
+    :return: list of distinct graphs in the orbit of original graph
+    :rtype: list[nx.Graph]
+    """
+    orbit_list = [graph]
+    if orbit_size_thresh == 1:
+        return orbit_list
+    new_graphs = 1
+    i = 0
+    if comp_depth is None:
+        cond = lambda x: True
+    else:
+        cond = lambda x: bool(x < comp_depth)
+
+    while cond(i):
+        len_before = len(orbit_list)
+        # iterate over the new graphs appended to the end of the orbit list
+        for graph in orbit_list[-new_graphs:]:
+            for node in graph.nodes:
+                if graph.degree(node) > 1:
+                    g_lc = local_comp_graph(graph, node)
+                    if not check_isomorphism(g_lc, orbit_list):
+                        orbit_list.append(g_lc)
+                if (
+                    orbit_size_thresh is not None
+                    and len(orbit_list) >= orbit_size_thresh
+                ):
+                    return orbit_list[:orbit_size_thresh]
+        # orbit_list = remove_iso(orbit_list)
+        len_after = len(orbit_list)
+        new_graphs = len_after - len_before
+        # print("new graphs", new_graphs)
+        if new_graphs == 0:
+            break
+        i += 1
+    return orbit_list
+
+
+def remove_iso(g_list):
+    """
+    Takes an input list of graphs and removes all the isomorphic cases, returning a list of distinct graphs
+    :param g_list: list of graphs
+    :type g_list: list[nx.Graph]
+    :return: list of distinct graphs
+    :rtype: list[nx.Graph]
+    """
+    non_iso = [*g_list]
+    i, j = 0, 1
+    while i < len(non_iso):
+        g = non_iso[i]
+        while i + j < len(non_iso):
+            gg = non_iso[i + j]
+            if nx.is_isomorphic(g, gg):
+                del non_iso[i + j]
+            else:
+                j += 1
+        i += 1
+        j = 1
+    return non_iso
+
+
+def check_isomorphism(graph, g_list):
+    """
+    check if the provided graph is isomorphic to any graph in the g_list
+    :param graph: graph to check
+    :type graph: nx.Graph
+    :param g_list: graph list to check against
+    :type g_list: list
+    :return: True of False, if an isomorphism case was detected.
+    :rtype: bool
+    """
+    iso = False
+    for g in g_list:
+        if nx.is_isomorphic(graph, g):
+            iso = True
+            break
+    return iso
 
 
 def _compare_graphs_visual(G, new_G, new_labels):

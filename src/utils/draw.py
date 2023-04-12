@@ -449,6 +449,10 @@ class Painter:
     def draw(self):
         """
         The function that send visualization info of the circuit to the web app.
+        The default connection will be localhost at port 5000 and the parameter is '/circuit_data'
+
+        In the future if we have a web server we can consider, sending data to the web server, and the visualization
+        will be display on the website.
 
         :return: request response class indicate the status of the request
         :rtype: requests.Response

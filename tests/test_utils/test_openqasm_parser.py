@@ -3,6 +3,7 @@ from qiskit.qasm import Qasm
 from src.ops import *
 from src.utils.openqasm_parser import OpenQASMParser
 from src.circuit import CircuitDAG
+import math
 
 
 @pytest.mark.parametrize(
@@ -243,9 +244,9 @@ def test_custom_unitary_with_params():
         "type": "custom_unitary",
         "name": "u3",
         "params": {
-            "theta": {"operator": "/", "real": 3.141592653589793, "int": 2},
-            "phi": {"operator": "/", "real": 3.141592653589793, "int": 2},
-            "lambda": {"operator": "/", "real": 3.141592653589793, "int": 2},
+            "theta": {"operator": "/", "real": math.pi, "int": 2},
+            "phi": {"operator": "/", "real": math.pi, "int": 2},
+            "lambda": {"operator": "/", "real": math.pi, "int": 2},
         },
         "qargs": [("q", 0)],
     }

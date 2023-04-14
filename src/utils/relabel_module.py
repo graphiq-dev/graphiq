@@ -25,6 +25,7 @@ def iso_finder(
     graph will also be returned as the first element of the list and counted toward the number of found cases.
     The maximum number of possible distinct cases may be less than n_iso. The graph G with the nodes relabeled using
     consecutive integers.
+
     :param adj_matrix: initial adjacency matrix or graph
     :type adj_matrix: numpy.ndarray
     :param n_iso: number of the isomorphic graphs to look for (including the original graph)
@@ -114,6 +115,7 @@ def emitter_sorted(adj_arr):
     """
     Takes an iterable of adjacency matrices (ideally output of the <iso_finder> function) as input and sort them by number of
     emitters needed to generate those graph states.
+
     :param adj_arr: An array of adjacency matrices which can be the output of the <iso_finder> function
     :type adj_arr: numpy.ndarray
     :return: a list of tuples (adj matrices, n_emitter) sorted by number of emitters
@@ -132,6 +134,7 @@ def relabel(adj_matrix, new_labels):
     """
     This function relabels the vertices of a graph given the map to new labels. The initial graph's vertices is assumed
     to have been labeled according to its adjacency matrix that is with the nodes labeled using consecutive integers.
+
     :param adj_matrix: The adjacency matrix of the graph
     :type adj_matrix: numpy.ndarray
     :param new_labels: A permutation of the initial labels that is [0, 1, ..., n-1] where n is the number of vertices.
@@ -148,6 +151,7 @@ def _perm2matrix(sequence):
     """
     Given a permutation of [0, 1, ..., n-1] where n is the number of vertices of the graph, this function returns the
     permutation matrix needed for the transformation of the adjacency matrix according to this label permutation.
+
     :param sequence: A list or 1-D array representing the permutation of graph vertices' labels.
     :type sequence: list or numpy.ndarray
     :return: The permutation matrix
@@ -169,6 +173,7 @@ def _label_finder(
     process happens through sampling from the total set of all possible permutations (size = n_node factorial).
     Otherwise, new permutations are generated randomly until the required number of distinct cases are found, or
     the threshold for number of random trials is reached.
+
     :param n_label: number of permutations needed
     :type n_label: int
     :param n_node: length of the initial sequence {0, 1, ..., n_node-1}
@@ -220,6 +225,7 @@ def _label_finder(
 def _add_labels(labels_arr, add_n, exhaustive=False, seed=None, thresh=None):
     """
     Used to add new permutation to an initial array consisting of permutations of a sequence.
+
     :param labels_arr: an array of the permutation that new cases are added to
     :param add_n: number of new permutations needed
     :param exhaustive: If true the permutation will be sampled from the set of all possible permutations. There might be
@@ -252,6 +258,7 @@ def automorph_check(adj1, labels_arr):
     Given an initial adjacency matrix (of a graph), and an array of new permutations of the nodes' labels, this function
     return an array of distinct adjacency matrices resulted from those permutations.
     Note that the order will not remain the same as the order of the input labels.
+
     :param adj1: initial adjacency matrix
     :type adj1: numpy.ndarray
     :param labels_arr:  an array of new labeling
@@ -279,6 +286,7 @@ def automorph_check(adj1, labels_arr):
 def get_relabel_map(g1, g2):
     """
     Finds the map between nodes of g1 and g2 if they are isomorphic.
+
     :param g1: networkx graph or adjacency matrix
     :type g1: nx.Graph or np.ndarray
     :param g2: networkx graph or adjacency matrix
@@ -298,52 +306,12 @@ def get_relabel_map(g1, g2):
     return GM.mapping
 
 
-def _compare_graphs_visual(G, new_G, new_labels):
-    """
-    Visual demonstration of initial graph, the relabeled one.
-    """
-    nx.draw_networkx(G, with_labels=True, pos=nx.kamada_kawai_layout(G))
-    fig, (ax1, ax2, ax3) = plt.subplots(3, figsize=(15, 25))
-    fig.tight_layout()
-    n = len(new_labels)
-    relabel_map_dict = dict(zip([*range(n)], new_labels))
-    G_relabeled = nx.relabel_nodes(G, relabel_map_dict)
-    assert list(new_labels) == G_relabeled.nodes()
-
-    nx.draw_networkx(
-        G_relabeled,
-        node_size=1000,
-        font_size=25,
-        with_labels=True,
-        ax=ax2,
-        pos=nx.kamada_kawai_layout(G_relabeled),
-    )
-    nx.draw_networkx(
-        new_G,
-        node_size=1000,
-        font_size=25,
-        with_labels=True,
-        ax=ax3,
-        pos=nx.kamada_kawai_layout(G_relabeled),
-    )
-    nx.draw_networkx(
-        G,
-        node_size=1000,
-        node_color="#bcbd22",
-        font_size=25,
-        with_labels=True,
-        ax=ax1,
-        pos=nx.kamada_kawai_layout(G),
-    )
-    plt.show()
-    return
-
-
 def lc_orbit_finder(graph: nx.Graph, comp_depth=None, orbit_size_thresh=None):
     """
     Given a graph this functions tries all possible local-complementation sequences of length up to comp_depth to
     come up with new distinct graphs in the orbit of the input graph. The comp_depth determines the maximum depth of the
      orbit explored.
+
     :param graph: original graph
     :type graph: nx.Graph
     :param comp_depth: the maximum length of the sequence of local-complementations applied on the graph; if None,
@@ -373,7 +341,10 @@ def lc_orbit_finder(graph: nx.Graph, comp_depth=None, orbit_size_thresh=None):
                     g_lc = local_comp_graph(graph, node)
                     if not check_isomorphism(g_lc, orbit_list):
                         orbit_list.append(g_lc)
-                if orbit_size_thresh is not None and len(orbit_list) >= orbit_size_thresh:
+                if (
+                    orbit_size_thresh is not None
+                    and len(orbit_list) >= orbit_size_thresh
+                ):
                     return orbit_list[:orbit_size_thresh]
         # orbit_list = remove_iso(orbit_list)
         len_after = len(orbit_list)
@@ -388,6 +359,7 @@ def lc_orbit_finder(graph: nx.Graph, comp_depth=None, orbit_size_thresh=None):
 def remove_iso(g_list):
     """
     Takes an input list of graphs and removes all the isomorphic cases, returning a list of distinct graphs
+
     :param g_list: list of graphs
     :type g_list: list[nx.Graph]
     :return: list of distinct graphs
@@ -411,6 +383,7 @@ def remove_iso(g_list):
 def check_isomorphism(graph, g_list):
     """
     check if the provided graph is isomorphic to any graph in the g_list
+
     :param graph: graph to check
     :type graph: nx.Graph
     :param g_list: graph list to check against
@@ -426,42 +399,42 @@ def check_isomorphism(graph, g_list):
     return iso
 
 
-def _compare_graphs_visual(G, new_G, new_labels):
+def _compare_graphs_visual(g, new_g, new_labels):
     """
     Visual demonstration of initial graph, the relabeled one.
     """
-    nx.draw_networkx(G, with_labels=True, pos=nx.kamada_kawai_layout(G))
+    nx.draw_networkx(g, with_labels=True, pos=nx.kamada_kawai_layout(g))
     fig, (ax1, ax2, ax3) = plt.subplots(3, figsize=(15, 25))
     fig.tight_layout()
     n = len(new_labels)
     relabel_map_dict = dict(zip([*range(n)], new_labels))
-    G_relabeled = nx.relabel_nodes(G, relabel_map_dict)
-    assert list(new_labels) == G_relabeled.nodes()
+    g_relabeled = nx.relabel_nodes(g, relabel_map_dict)
+    assert list(new_labels) == g_relabeled.nodes()
 
     nx.draw_networkx(
-        G_relabeled,
+        g_relabeled,
         node_size=1000,
         font_size=25,
         with_labels=True,
         ax=ax2,
-        pos=nx.kamada_kawai_layout(G_relabeled),
+        pos=nx.kamada_kawai_layout(g_relabeled),
     )
     nx.draw_networkx(
-        new_G,
+        new_g,
         node_size=1000,
         font_size=25,
         with_labels=True,
         ax=ax3,
-        pos=nx.kamada_kawai_layout(G_relabeled),
+        pos=nx.kamada_kawai_layout(g_relabeled),
     )
     nx.draw_networkx(
-        G,
+        g,
         node_size=1000,
         node_color="#bcbd22",
         font_size=25,
         with_labels=True,
         ax=ax1,
-        pos=nx.kamada_kawai_layout(G),
+        pos=nx.kamada_kawai_layout(g),
     )
     plt.show()
     return

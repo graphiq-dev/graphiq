@@ -116,6 +116,12 @@ def test_equivalence_random_lc_lattice_debug_2(seed):
 
 @pytest.mark.parametrize("seed", [0, 2, 4, 6, 8, 10, 11])
 def test_random_state_converter(seed):
+    """
+    Apply a series of LC operations on a random graph states to transfer it to another stabilizer state. Then use
+    relevant functions to check whether the two states are LC equivalent and find out the gates and circuit needed to
+    convert one to the other.
+    """
+
     g = nx.random_tree(12, seed)
     # also use the parameter seed to determine which node to apply local complementation on
     gg = local_comp_graph(g, seed)
@@ -144,3 +150,5 @@ def test_random_state_converter(seed):
     assert lc_check(random_tab1, random_tab2)[0]
     c1 = state_converter_circuit(g, gg, validate=True)
     c2 = state_converter_circuit(random_tab1, random_tab2, validate=True)
+    # check if output is not None
+    assert c1 and c2

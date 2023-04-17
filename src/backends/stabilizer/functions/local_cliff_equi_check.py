@@ -71,7 +71,7 @@ def lc_check(state1, state2, validate=True):
         # z_equal = np.array_equal(final_tab_can.z_matrix, tab2_can.z_matrix)
         # x_equal = np.array_equal(final_tab_can.x_matrix, tab2_can.x_matrix)
         # phase_equal = np.array_equal(final_tab_can.phase, tab2_can.phase)
-        if not (tab2_can == final_tab_can): #z_equal and x_equal and phase_equal
+        if not (tab2_can == final_tab_can):  # z_equal and x_equal and phase_equal
             raise Warning(
                 "the gate sequence is not converting the state1's stabilizer tableau into state2's"
             )

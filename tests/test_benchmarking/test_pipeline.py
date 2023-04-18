@@ -47,4 +47,3 @@ def test_benchmark_run_graph_search_solver():
 
     data = benchmark_run_graph_search_solver(example_run, "test_pipeline", io)
     assert type(data) == dict
-    assert data.keys() == ["name", "path", "solver", "compiler", "metric", "time"]

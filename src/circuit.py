@@ -900,7 +900,13 @@ class CircuitDAG(CircuitBase):
         :return: nothing
         :rtype: None
         """
-        self.dag.add_edge(in_node, out_node, key=label, reg_type=reg_type, reg=reg)
+        self.dag.add_edge(
+            in_node,
+            out_node,
+            key=label,
+            reg_type=reg_type,
+            reg=reg,
+        )
         self._edge_dict_append(reg_type, (in_node, out_node, label))
 
     def _remove_edge(self, edge_to_remove):
@@ -1392,10 +1398,21 @@ class CircuitDAG(CircuitBase):
                 # Add edge from preceding node to the new operation node
                 reg_type = self.dag.edges[edge]["reg_type"]
                 reg = self.dag.edges[edge]["reg"]
-                self._add_edge(edge[0], new_id, edge[2], reg=reg, reg_type=reg_type)
 
-                # Add edge from the new operation node to the final node
-                self._add_edge(new_id, edge[1], edge[2], reg=reg, reg_type=reg_type)
+                self._add_edge(
+                    edge[0],
+                    new_id,
+                    edge[2],
+                    reg=reg,
+                    reg_type=reg_type,
+                )
+                self._add_edge(
+                    new_id,
+                    edge[1],
+                    edge[2],
+                    reg=reg,
+                    reg_type=reg_type,
+                )
 
                 self._remove_edge(edge)  # remove the unnecessary edges
 
@@ -1421,8 +1438,20 @@ class CircuitDAG(CircuitBase):
             reg_type = self.dag.edges[reg_edge]["reg_type"]
             label = reg_edge[2]
 
-            self._add_edge(reg_edge[0], new_id, label, reg_type=reg_type, reg=reg)
-            self._add_edge(new_id, reg_edge[1], label, reg_type=reg_type, reg=reg)
+            self._add_edge(
+                reg_edge[0],
+                new_id,
+                label,
+                reg_type=reg_type,
+                reg=reg,
+            )
+            self._add_edge(
+                new_id,
+                reg_edge[1],
+                label,
+                reg_type=reg_type,
+                reg=reg,
+            )
             self._remove_edge(reg_edge)  # remove the edge
 
     def _unique_node_id(self):
@@ -1578,3 +1607,19 @@ class CircuitDAG(CircuitBase):
             ordered_nodes.append(next_node)
         ops_list = [self.dag.nodes[nod]["op"] for nod in ordered_nodes]
         return ops_list, ordered_nodes
+
+    @staticmethod
+    def edge_from_reg(t_edges, t_register):
+        """
+        Helper function to return correct edge from edges that map to the correct register.
+
+        :param t_edges: input edge
+        :type t_edges: edge
+        :param t_register: register
+        :type t_register: str
+        :return: correct edge
+        :rtype: edge
+        """
+        for e in t_edges:
+            if e[-1] == t_register:
+                return e

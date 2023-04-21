@@ -74,9 +74,9 @@ class CompilerBase(ABC):
             assert isinstance(
                 initial_state, QuantumState
             ), "the initial state must be a valid QuantumState object"
-            assert initial_state.n_qubits == circuit.n_quantum, (
-                "the number of qubits in initial state must match the " "circuit"
-            )
+            assert (
+                initial_state.n_qubits == circuit.n_quantum
+            ), "the number of qubits in initial state must match the circuit"
             if self.__class__.name == "density matrix":
                 state_data = initial_state.dm.data
             elif self.__class__.name == "stabilizer":

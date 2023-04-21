@@ -13,7 +13,9 @@ from src.backends.density_matrix import numpy as dmnp
 import src.backends.graph.functions as gf
 import src.backends.stabilizer.functions.utils as sfu
 import src.backends.stabilizer.functions.linalg as slinalg
-from src.backends.stabilizer.functions.rep_conversion import get_stabilizer_tableau_from_graph
+from src.backends.stabilizer.functions.rep_conversion import (
+    get_stabilizer_tableau_from_graph,
+)
 from src.backends.stabilizer.functions.stabilizer import canonical_form
 from src.backends.stabilizer.functions.transformation import run_circuit
 from src.backends.stabilizer.tableau import CliffordTableau, StabilizerTableau

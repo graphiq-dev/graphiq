@@ -3,6 +3,14 @@ from src.backends.lc_equivalence_check import *
 import matplotlib.pyplot as plt
 import numpy as np
 import benchmarks.graph_states as gs
+from src.backends.stabilizer.functions.transformation import run_circuit
+from src.backends.stabilizer.functions.rep_conversion import (
+    get_stabilizer_tableau_from_graph,
+)
+from src.backends.stabilizer.functions.local_cliff_equi_check import (
+    lc_check,
+    state_converter_circuit,
+)
 
 
 def _tester(n):
@@ -104,3 +112,43 @@ def test_equivalence_random_lc_lattice_debug_2(seed):
     graph = gs.lattice_cluster_state((2, 3))
     fig, ax = plt.subplots(figsize=(10, 10))
     _lc_equiv_test(graph, seed, n_graphs=1, max_transform_path=4)
+
+
+@pytest.mark.parametrize("seed", [0, 2, 4, 6, 8, 10, 11])
+def test_random_state_converter(seed):
+    """
+    Apply a series of LC operations on a random graph states to transfer it to another stabilizer state. Then use
+    relevant functions to check whether the two states are LC equivalent and find out the gates and circuit needed to
+    convert one to the other.
+    """
+
+    g = nx.random_tree(12, seed)
+    # also use the parameter seed to determine which node to apply local complementation on
+    gg = local_comp_graph(g, seed)
+    tab1 = get_stabilizer_tableau_from_graph(g)
+    tab2 = get_stabilizer_tableau_from_graph(gg)
+    random_tab1 = run_circuit(
+        tab1.copy(),
+        [("X", 2), ("Y", 3), ("H", 1), ("P_dag", 3), ("X", 4), ("X", 0), ("P", 1)],
+    )
+    random_tab2 = run_circuit(
+        tab2.copy(),
+        [
+            ("P_dag", 0),
+            ("Y", 2),
+            ("P_dag", 2),
+            ("Y", 1),
+            ("H", 4),
+            ("P_dag", 3),
+            ("Z", 4),
+            ("X", 0),
+            ("P", 1),
+            ("H", 3),
+            ("X", 0),
+        ],
+    )
+    assert lc_check(random_tab1, random_tab2)[0]
+    c1 = state_converter_circuit(g, gg, validate=True)
+    c2 = state_converter_circuit(random_tab1, random_tab2, validate=True)
+    # check if output is not None
+    assert c1 and c2

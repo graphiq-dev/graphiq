@@ -38,8 +38,8 @@ def test_one_benchmarking_run():
         include_time=False,
         include_id=False,
     )
-    df = benchmark(runs=runs, io=io, remote=False)
-    print(df)
+    # df = benchmark(runs=runs, io=io, remote=False)
+    # print(df)
 
 
 if __name__ == "__main__":

@@ -56,7 +56,7 @@ class CompilerBase(ABC):
         else:
             raise ValueError("Noise simulation should be True or False.")
 
-    def compile(self, circuit: CircuitBase):
+    def compile(self, circuit: CircuitBase, initial_state=None):
         """
         Compiles (i.e. produces an output state) circuit, in the appropriate representation.
         This involves sequentially applying each operation of the circuit on the initial state
@@ -69,12 +69,31 @@ class CompilerBase(ABC):
         """
         # TODO: make this more general, but for now we assume all registers are initialized to |0>
 
+        if initial_state:
+            assert isinstance(
+                initial_state, QuantumState
+            ), "the initial state must be a valid QuantumState object"
+            assert (
+                initial_state.n_qubits == circuit.n_quantum
+            ), "the number of qubits in initial state must match the circuit"
+            if self.__class__.name == "density matrix":
+                state_data = initial_state.dm.data
+            elif self.__class__.name == "stabilizer":
+                state_data = initial_state.stabilizer.data
+            elif self.__class__.name == "graph":
+                state_data = initial_state.graph.data
+            else:
+                state_data = initial_state.all_representations[0].data
+        else:
+            state_data = circuit.n_quantum
+
         state = QuantumState(
             n_qubits=circuit.n_quantum,
-            data=circuit.n_quantum,  # initialize to |0...0> state
+            data=state_data,  # initialize to |0...0> state
             representation=self.__class__.name,
             mixed=True if self._noise_simulation else False,
         )
+
         classical_registers = np.zeros(circuit.n_classical)
 
         # TODO: support self-defined mapping functions later instead of using the default above

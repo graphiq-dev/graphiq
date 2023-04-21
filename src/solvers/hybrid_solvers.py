@@ -58,15 +58,15 @@ class HybridEvolutionarySolver(EvolutionarySolver):
     name = "hybrid evolutionary-search"
 
     def __init__(
-            self,
-            target,
-            metric: MetricBase,
-            compiler: CompilerBase,
-            io: IO = None,
-            solver_setting=EvolutionarySearchSolverSetting(),
-            noise_model_mapping=None,
-            *args,
-            **kwargs,
+        self,
+        target,
+        metric: MetricBase,
+        compiler: CompilerBase,
+        io: IO = None,
+        solver_setting=EvolutionarySearchSolverSetting(),
+        noise_model_mapping=None,
+        *args,
+        **kwargs,
     ):
         """
         Initialize a hybrid solver based on DeterministicSolver and EvolutionarySolver
@@ -190,25 +190,25 @@ class HybridGraphSearchSolverSetting:
     """
 
     def __init__(
-            self,
-            base_solver_setting=None,
-            allow_relabel=True,
-            n_iso_graphs=10,
-            rel_inc_thresh=0.1,
-            allow_exhaustive=False,
-            sort_emit=True,
-            label_map=False,
-            iso_thresh=None,
-            allow_lc=True,
-            n_lc_graphs=10,
-            lc_orbit_depth=None,
-            depolarizing_rate=0.01,
-            monte_carlo=False,
-            monte_carlo_params=None,
-            graph_metric=pre.graph_metric_lists[0],
-            lc_method="max edge",
-            verbose=False,
-            save_openqasm: str = "none",
+        self,
+        base_solver_setting=None,
+        allow_relabel=True,
+        n_iso_graphs=10,
+        rel_inc_thresh=0.1,
+        allow_exhaustive=False,
+        sort_emit=True,
+        label_map=False,
+        iso_thresh=None,
+        allow_lc=True,
+        n_lc_graphs=10,
+        lc_orbit_depth=None,
+        depolarizing_rate=0.01,
+        monte_carlo=False,
+        monte_carlo_params=None,
+        graph_metric=pre.graph_metric_lists[0],
+        lc_method="max edge",
+        verbose=False,
+        save_openqasm: str = "none",
     ):
         self.allow_relabel = allow_relabel
         self.allow_lc = allow_lc
@@ -227,8 +227,14 @@ class HybridGraphSearchSolverSetting:
         self.lc_orbit_depth = lc_orbit_depth
         self.depolarizing_rate = depolarizing_rate
         self.monte_carlo = monte_carlo
-        mc_params = {"n_sample": 1, "map": mcn.McNoiseMap(), "compiler": None, "seed": None, "n_parallel": None,
-                     "n_single": None}
+        mc_params = {
+            "n_sample": 1,
+            "map": mcn.McNoiseMap(),
+            "compiler": None,
+            "seed": None,
+            "n_parallel": None,
+            "n_single": None,
+        }
         if monte_carlo_params is None:
             monte_carlo_params = mc_params
         else:
@@ -282,15 +288,15 @@ class HybridGraphSearchSolverSetting:
 
 class AlternateGraphSolver:
     def __init__(
-            self,
-            target_graph: nx.Graph or QuantumState = None,
-            metric: MetricBase = Infidelity,
-            compiler: CompilerBase = StabilizerCompiler(),
-            noise_compiler: CompilerBase = StabilizerCompiler(),
-            io: IO = None,
-            noise_model_mapping=None,
-            graph_solver_setting=None,
-            seed=None,
+        self,
+        target_graph: nx.Graph or QuantumState = None,
+        metric: MetricBase = Infidelity,
+        compiler: CompilerBase = StabilizerCompiler(),
+        noise_compiler: CompilerBase = StabilizerCompiler(),
+        io: IO = None,
+        noise_model_mapping=None,
+        graph_solver_setting=None,
+        seed=None,
     ):
         if graph_solver_setting is None:
             graph_solver_setting = HybridGraphSearchSolverSetting(
@@ -393,24 +399,44 @@ class AlternateGraphSolver:
                     if self.monte_carlo:
                         # generate a unique seed for the monte carlo object based on user input seeds
                         if self.seed is not None and self.mc_params["seed"] is not None:
-                            rng = np.random.default_rng(self.seed * self.mc_params["seed"])
+                            rng = np.random.default_rng(
+                                self.seed * self.mc_params["seed"]
+                            )
                         else:
                             rng = np.random.default_rng()
-                        n_mc = max(int(self.mc_params["n_sample"] or 0), int(self.mc_params["n_single"] or 0)
-                                   * int(self.mc_params["n_parallel"] or 0))
-                        mc_seed = rng.integers(low=1, high=int(10e6*max(n_mc, 2)), size=1)
+                        n_mc = max(
+                            int(self.mc_params["n_sample"] or 0),
+                            int(self.mc_params["n_single"] or 0)
+                            * int(self.mc_params["n_parallel"] or 0),
+                        )
+                        mc_seed = rng.integers(
+                            low=1, high=int(10e6 * max(n_mc, 2)), size=1
+                        )
                         # end of random seed generation
-                        mc = mcn.MonteCarloNoise(circuit, self.mc_params["n_sample"], self.mc_params["map"],
-                                                 self.mc_params["compiler"], mc_seed)
+                        mc = mcn.MonteCarloNoise(
+                            circuit,
+                            self.mc_params["n_sample"],
+                            self.mc_params["map"],
+                            self.mc_params["compiler"],
+                            mc_seed,
+                        )
                         mc_list.append(mc)
                         if self.mc_params["n_parallel"] is not None:
-                            n_total = self.mc_params["n_parallel"] * self.mc_params["n_single"]
-                            assert n_total > 0, "n_single and n_parallel both must be integers > 1 or None"
+                            n_total = (
+                                self.mc_params["n_parallel"]
+                                * self.mc_params["n_single"]
+                            )
+                            assert (
+                                n_total > 0
+                            ), "n_single and n_parallel both must be integers > 1 or None"
                             self.solver_setting.monte_carlo_params["n_sample"] = n_total
                             # multicore parallel processing
                             # ray.init()
-                            noise_score = mcn.parallel_monte_carlo(mc, self.mc_params["n_parallel"],
-                                                                   self.mc_params["n_single"])
+                            noise_score = mcn.parallel_monte_carlo(
+                                mc,
+                                self.mc_params["n_parallel"],
+                                self.mc_params["n_single"],
+                            )
                             # ray.shutdown()
 
                         else:
@@ -519,16 +545,51 @@ class AlternateGraphSolver:
         """
         rate = self.depolarizing_rate / 3
         mc_noise = mcn.McNoiseMap()
-        mc_noise.add_gate_noise("e", "Hadamard",
-                                [(nm.PauliError("X"), rate), (nm.PauliError("Y"), rate), (nm.PauliError("Z"), rate)])
-        mc_noise.add_gate_noise("e", "Phase",
-                                [(nm.PauliError("X"), rate), (nm.PauliError("Y"), rate), (nm.PauliError("Z"), rate)])
-        mc_noise.add_gate_noise("e", "PhaseDagger",
-                                [(nm.PauliError("X"), rate), (nm.PauliError("Y"), rate), (nm.PauliError("Z"), rate)])
-        mc_noise.add_gate_noise("ee", "CNOT",
-                                [(nm.PauliError("X"), rate), (nm.PauliError("Y"), rate), (nm.PauliError("Z"), rate)])
-        mc_noise.add_gate_noise("ep", "CNOT",
-                                [(nm.PauliError("X"), rate), (nm.PauliError("Y"), rate), (nm.PauliError("Z"), rate)])
+        mc_noise.add_gate_noise(
+            "e",
+            "Hadamard",
+            [
+                (nm.PauliError("X"), rate),
+                (nm.PauliError("Y"), rate),
+                (nm.PauliError("Z"), rate),
+            ],
+        )
+        mc_noise.add_gate_noise(
+            "e",
+            "Phase",
+            [
+                (nm.PauliError("X"), rate),
+                (nm.PauliError("Y"), rate),
+                (nm.PauliError("Z"), rate),
+            ],
+        )
+        mc_noise.add_gate_noise(
+            "e",
+            "PhaseDagger",
+            [
+                (nm.PauliError("X"), rate),
+                (nm.PauliError("Y"), rate),
+                (nm.PauliError("Z"), rate),
+            ],
+        )
+        mc_noise.add_gate_noise(
+            "ee",
+            "CNOT",
+            [
+                (nm.PauliError("X"), rate),
+                (nm.PauliError("Y"), rate),
+                (nm.PauliError("Z"), rate),
+            ],
+        )
+        mc_noise.add_gate_noise(
+            "ep",
+            "CNOT",
+            [
+                (nm.PauliError("X"), rate),
+                (nm.PauliError("Y"), rate),
+                (nm.PauliError("Z"), rate),
+            ],
+        )
         return mc_noise
 
 
@@ -572,18 +633,18 @@ def graph_to_circ(graph, noise_model_mapping=None, show=False):
 
 class HybridGraphSearchSolver(SolverBase):
     def __init__(
-            self,
-            target,
-            metric: MetricBase,
-            compiler: CompilerBase,
-            circuit: CircuitDAG = None,
-            io: IO = None,
-            graph_solver_setting=None,
-            noise_model_mapping=None,
-            base_solver=HybridEvolutionarySolver,
-            base_solver_setting=EvolutionarySearchSolverSetting(),
-            *args,
-            **kwargs,
+        self,
+        target,
+        metric: MetricBase,
+        compiler: CompilerBase,
+        circuit: CircuitDAG = None,
+        io: IO = None,
+        graph_solver_setting=None,
+        noise_model_mapping=None,
+        base_solver=HybridEvolutionarySolver,
+        base_solver_setting=EvolutionarySearchSolverSetting(),
+        *args,
+        **kwargs,
     ):
         if graph_solver_setting is None:
             graph_solver_setting = HybridGraphSearchSolverSetting(

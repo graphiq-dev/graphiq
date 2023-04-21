@@ -96,9 +96,7 @@ class SolverBase(ABC):
         else:
             noise = []
             for each_op in op:
-                noise.append(
-                    self._identify_noise(each_op, noise_model_mapping)
-                )
+                noise.append(self._identify_noise(each_op, noise_model_mapping))
         return noise
 
     def _identify_noise(self, op, noise_model_mapping):
@@ -131,7 +129,9 @@ class SolverBase(ABC):
                 target_noise = noise_model_mapping[op_target]
             else:
                 target_noise = nm.NoNoise()
-            if op_name in noise_model_mapping.keys() and type(target_noise) == nm.NoNoise == type(control_noise):
+            if op_name in noise_model_mapping.keys() and type(
+                target_noise
+            ) == nm.NoNoise == type(control_noise):
                 return [noise_model_mapping[op_name], noise_model_mapping[op_name]]
             else:
                 return [control_noise, target_noise]

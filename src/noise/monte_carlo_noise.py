@@ -28,7 +28,12 @@ from src.circuit import CircuitDAG
 from src.metrics import MetricBase
 from src.state import QuantumState
 from src.io import IO
-from src.utils.relabel_module import iso_finder, emitter_sorted, lc_orbit_finder, get_relabel_map
+from src.utils.relabel_module import (
+    iso_finder,
+    emitter_sorted,
+    lc_orbit_finder,
+    get_relabel_map,
+)
 from src.backends.state_representation_conversion import stabilizer_to_graph
 from src.backends.stabilizer.functions.rep_conversion import (
     get_clifford_tableau_from_graph,
@@ -42,7 +47,6 @@ from src.solvers.hybrid_solvers import AlternateGraphSolver
 
 
 class McNoiseMap:
-
     def __init__(self):
         self._mapping = {"e": dict(), "p": dict(), "ee": dict(), "ep": dict()}
 
@@ -60,14 +64,21 @@ class McNoiseMap:
                 assert isinstance(gate_noise, list)
                 prob_sum = 0
                 for noise_tuple in gate_noise:
-                    assert isinstance(noise_tuple, tuple), "each gate should map to a list of tuples [(NoiseModel, " \
-                                                           "probability),]"
-                    assert isinstance(noise_tuple[0], nm.NoiseBase), "first element of a noise tuple must be a " \
-                                                                     "NoiseBase object"
-                    assert isinstance(noise_tuple[1], float), "second element of a noise tuple (=probability) must be " \
-                                                              "a float"
+                    assert isinstance(noise_tuple, tuple), (
+                        "each gate should map to a list of tuples [(NoiseModel, "
+                        "probability),]"
+                    )
+                    assert isinstance(noise_tuple[0], nm.NoiseBase), (
+                        "first element of a noise tuple must be a " "NoiseBase object"
+                    )
+                    assert isinstance(noise_tuple[1], float), (
+                        "second element of a noise tuple (=probability) must be "
+                        "a float"
+                    )
                     prob_sum += noise_tuple[1]
-                assert prob_sum <= 1, f"sum of noise probabilities of a gate is now {prob_sum}, it must not exceed 1"
+                assert (
+                    prob_sum <= 1
+                ), f"sum of noise probabilities of a gate is now {prob_sum}, it must not exceed 1"
 
         self._mapping = new_map
 
@@ -165,14 +176,23 @@ class MonteCarloNoise:
     """
 
     # TODO: implement save circuits option
-    def __init__(self, circuit, n_sample: int = 1, mc_noise_model: dict = None, compiler=None, seed=None):
+    def __init__(
+        self,
+        circuit,
+        n_sample: int = 1,
+        mc_noise_model: dict = None,
+        compiler=None,
+        seed=None,
+    ):
         """
         Construct a MonteCarloNoise object
         """
         if mc_noise_model is None:
             self._mc_noise_model = McNoiseMap()
         else:
-            assert isinstance(mc_noise_model, McNoiseMap), "noise model should be a McNoiseMap object"
+            assert isinstance(
+                mc_noise_model, McNoiseMap
+            ), "noise model should be a McNoiseMap object"
             self._mc_noise_model = mc_noise_model
         self._circuit = circuit
         self._seed = seed
@@ -181,7 +201,9 @@ class MonteCarloNoise:
         if compiler is None:
             self.compiler = StabilizerCompiler()
         else:
-            assert isinstance(compiler, CompilerBase), "compiler must be CompilerBase object; an instance, not a class"
+            assert isinstance(
+                compiler, CompilerBase
+            ), "compiler must be CompilerBase object; an instance, not a class"
             self.compiler = compiler
         self.compiler._monte_carlo = True
         self.compiler.noise_simulation = True
@@ -267,7 +289,11 @@ class MonteCarloNoise:
 
     def assign_noise(self):
         circ = self.circuit
-        new_circ = CircuitDAG(n_emitter=circ.n_emitters, n_photon=circ.n_photons, n_classical=circ.n_classical)
+        new_circ = CircuitDAG(
+            n_emitter=circ.n_emitters,
+            n_photon=circ.n_photons,
+            n_classical=circ.n_classical,
+        )
         new_gates = self._noisy_gates()
         for gate in new_gates:
             new_circ.add(gate)
@@ -286,7 +312,13 @@ class MonteCarloNoise:
                 op.noise = noise_list
                 noisy_ops.append(op)
             else:
-                if isinstance(op, (ops.ControlledPairOperationBase, ops.ClassicalControlledPairOperationBase)):
+                if isinstance(
+                    op,
+                    (
+                        ops.ControlledPairOperationBase,
+                        ops.ClassicalControlledPairOperationBase,
+                    ),
+                ):
                     control_type = op.control_type
                     target_type = op.target_type
                     reg_type = control_type + target_type
@@ -303,13 +335,17 @@ class MonteCarloNoise:
                     noise_object = nm.NoNoise()
                 if is_controlled:
                     if isinstance(noise_object, list):
-                        assert len(noise_object) == 2, "controlled gate noise list must be of length 2"
+                        assert (
+                            len(noise_object) == 2
+                        ), "controlled gate noise list must be of length 2"
                         op.noise = noise_object
                     else:
                         if noisy:
                             # randomly generate the noise object for each of the control and target gates
-                            op.noise = [self._get_rnd_noise_obj(reg_type, name),
-                                        self._get_rnd_noise_obj(reg_type, name)]
+                            op.noise = [
+                                self._get_rnd_noise_obj(reg_type, name),
+                                self._get_rnd_noise_obj(reg_type, name),
+                            ]
                         else:
                             op.noise = [noise_object, noise_object]
                 else:

@@ -3,6 +3,7 @@ State representation conversion module. This conversion module uses the internal
 src.backends.*.states
 
 """
+import copy
 
 import numpy as np
 import networkx as nx
@@ -12,6 +13,11 @@ from src.backends.density_matrix import numpy as dmnp
 import src.backends.graph.functions as gf
 import src.backends.stabilizer.functions.utils as sfu
 import src.backends.stabilizer.functions.linalg as slinalg
+from src.backends.stabilizer.functions.rep_conversion import get_stabilizer_tableau_from_graph
+from src.backends.stabilizer.functions.stabilizer import canonical_form
+from src.backends.stabilizer.functions.transformation import run_circuit
+from src.backends.stabilizer.tableau import CliffordTableau, StabilizerTableau
+
 
 # TODO: Currently the conversion functions assume no redundant encoding. Next step is to include redundant encoding.
 # TODO: We currently assume exact state conversion, that is, no need to check local-Clifford equivalency. Need to be
@@ -245,3 +251,79 @@ def _position_finder(x_matrix):
             break
 
     return pos_list
+
+
+def state_to_graph(state):
+    """
+    A helper function to turn any valid representation into a graph. It also returns the StabilizerTableau corresponding
+     to the initial state, and the gate sequence needed to convert the state into a graph-state.
+
+    :param state: the state to be converted to graph
+    :type state: StabilizerTableau or CliffordTableau or nx.Graph or np.ndarray
+    :return: tuple (graph, input state's stabilizer tableau, gate_list)
+    :rtype: tuple (nx.Graph, StabilizerTableau, list)
+    """
+    state = copy.deepcopy(state)
+    # returns graph, input state's tableau, gate_list
+    if isinstance(state, nx.Graph):
+        tab = get_stabilizer_tableau_from_graph(state)
+        return state, tab, []
+    elif isinstance(state, np.ndarray):
+        try:
+            graph = nx.from_numpy_array(state)
+            tab = get_stabilizer_tableau_from_graph(graph)
+            return graph, [], tab
+        except:
+            raise ValueError(
+                "the input numpy array is not a valid adjacency matrix, try fixing it or using other valid input types"
+            )
+
+    elif isinstance(state, CliffordTableau):
+        z_matrix = state.stabilizer_z
+        x_matrix = state.stabilizer_x
+        tab = state.to_stabilizer()
+    elif isinstance(state, StabilizerTableau):
+        z_matrix = state.z_matrix
+        x_matrix = state.x_matrix
+        tab = state
+    else:
+        raise ValueError(
+            "input data should either be a adjacency matrix, graph, Clifford or Stabilizer tableau"
+        )
+    graph, (h_pos, p_dag_pos) = _graph_finder(x_matrix, z_matrix, get_ops_data=True)
+    gate_list = [("H", pos) for pos in h_pos] + [("P_dag", pos) for pos in p_dag_pos]
+
+    # phase correction; adding Z gates at the end to make the phase of the transformed state equal to an ideal graph
+    g_tab = get_stabilizer_tableau_from_graph(graph)
+    phase_correction = _phase_correction(tab, g_tab, gate_list)
+
+    gate_list += phase_correction
+    return graph, tab, gate_list
+
+
+def _phase_correction(stabilizer_tab1, stabilizer_tab2, gate_list):
+    """
+    If gate list transforms stabilizer generators of state 1 to state 2, then this function finds the list of gates
+     needed to be added to the gate list to also have the phase of the 2 states exactly the same.
+    The second state's stabilizer generators must represent a graph state.
+     Returns a set of Z gates applied on appropriate qubits in the format of list of tuples [("Z", qubit_index)]
+
+    :param stabilizer_tab1: stabilizer tableau for the initial state
+    :type stabilizer_tab1: StabilizerTableau
+    :param stabilizer_tab2: stabilizer tableau for the final state
+    :type stabilizer_tab2: StabilizerTableau
+    :param gate_list: a gate list, made up of gate tuples ("gate name", qubit index) that transforms initial state's
+     stabilizer
+    :type gate_list: list
+    :return: a list of tuples [("Z", qubit_index)] to correct phase
+    """
+
+    tab1 = canonical_form(stabilizer_tab1)
+    tab2 = canonical_form(stabilizer_tab2)
+    new_tab = canonical_form(run_circuit(tab1.copy(), gate_list))
+    phase_diff = (tab2.phase - new_tab.phase) % 2
+    x_mat = np.copy(new_tab.x_matrix)
+    x_inv = ((np.linalg.det(x_mat) * np.linalg.inv(x_mat)) % 2).astype(int)
+    z_ops = (x_inv @ phase_diff) % 2
+    phase_correction = [("Z", index) for index, z in enumerate(z_ops) if z]
+    return phase_correction

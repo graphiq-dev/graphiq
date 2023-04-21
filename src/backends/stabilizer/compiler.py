@@ -21,6 +21,7 @@ class StabilizerCompiler(CompilerBase):
         ops.Input,
         ops.Identity,
         ops.Phase,
+        ops.PhaseDagger,
         ops.Hadamard,
         ops.SigmaX,
         ops.SigmaY,
@@ -79,6 +80,10 @@ class StabilizerCompiler(CompilerBase):
         elif type(op) is ops.Phase:
 
             state.apply_phase(q_index(op.register, op.reg_type))
+
+        elif type(op) is ops.PhaseDagger:
+
+            state.apply_phase_dagger(q_index(op.register, op.reg_type))
 
         elif type(op) is ops.SigmaX:
             state.apply_sigmax(q_index(op.register, op.reg_type))

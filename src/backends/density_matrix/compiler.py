@@ -23,6 +23,7 @@ class DensityMatrixCompiler(CompilerBase):
         ops.Input: lambda: None,
         ops.Identity: lambda: None,
         ops.Phase: lambda: dm.phase(),
+        ops.PhaseDagger: lambda: dm.phase_dag(),
         ops.Hadamard: lambda: dm.hadamard(),
         ops.SigmaX: lambda: dm.sigmax(),
         ops.SigmaY: lambda: dm.sigmay(),

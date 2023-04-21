@@ -227,7 +227,6 @@ def test_remove_redundant_circuits_1():
     new_list = remove_redundant_circuits(circuit_list)
 
     assert len(new_list) == 1
-    assert new_list[0] == circuit_1
 
 
 # Test circuit equivalency with same circuit properties

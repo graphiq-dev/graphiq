@@ -1623,11 +1623,10 @@ class CircuitDAG(CircuitBase):
         ops_list = [self.dag.nodes[nod]["op"] for nod in ordered_nodes]
         return ops_list, ordered_nodes
 
-    def group_one_qubit_gates(self):
-        def edge_from_reg(t_edges, t_register):
-            for e in t_edges:
-                if e[-1] == t_register:
-                    return e
+    @staticmethod
+    def edge_from_reg(t_edges, t_register):
+        """
+        Helper function to return correct edge from edges that map to the correct register.
 
         for node in self.node_dict["Output"]:
             reg_type = self.dag.nodes[node]["op"].reg_type

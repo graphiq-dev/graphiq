@@ -1,3 +1,13 @@
+/**
+ * Function to add gate info to the gate info panel. This panel is on the right of the circuit visualization. When the
+ * user hover on a gate the info will be display on this panel.
+ * @param  {Object} gate - gate object that will be draw.
+ * @param {string} gate_name - name of the gate
+ * @param {string} register - name of the register
+ * @param {Object} params - params of the gate, only for parametrized gate.
+ * @param {Array} controls - all the controls of the gate
+ * @return {void} - Function returns nothing
+ */
 function add_to_gate_info_panel(gate, gate_name, register, params, controls) {
     gate_info = d3.select(".gate-panel")
 
@@ -22,6 +32,12 @@ function add_to_gate_info_panel(gate, gate_name, register, params, controls) {
     });
 }
 
+/**
+ * Function to create params string to put on the parametrized gate. The format will be (param1, param2, ...)
+ * Ex: (pi/2, pi/2, pi/2)
+ * @param  {Object} params - The params object
+ * @return {string} - The params string
+ */
 function create_params_str(params) {
     params_str = ""
 
@@ -35,6 +51,17 @@ function create_params_str(params) {
     return params_str
 }
 
+/**
+ * Function to draw one qubit gate.
+ * @param {number} x - x position
+ * @param {number} y - y position
+ * @param {string} gate_name - name of the gate
+ * @param {string} register - name of register
+ * @param {Object} params - params object
+ * @param {Array} controls - all the controls of the gate
+ * @param {string} color - color of the gate, default is light blue.
+ * @return {Object} - Function returns gate object
+ */
 function one_qubit_gate(x, y, gate_name, register, params={}, controls=[], color="#33C4FF") {
     let width = 0
     let height = 40
@@ -84,12 +111,19 @@ function one_qubit_gate(x, y, gate_name, register, params={}, controls=[], color
         .style("dominant-baseline", "middle")
     }
     
-//     add on display
+    // add gate info to display on panel
     add_to_gate_info_panel(gate, gate_name, register, params, controls)
 
     return gate
 }
 
+/**
+ * Function to draw reset operation. Draw |0> inside a rect element, put the object at x, y position on the svg element
+ * @param {number} x - x position
+ * @param {number} y - y position
+ * @param {string} register - name of register
+ * @return {Object} - Function returns reset object
+ */
 function reset(x, y, register) {
     let gate = d3.select("#circuit-detail-svg").append("g")
 
@@ -133,8 +167,16 @@ function reset(x, y, register) {
     return gate
 }
 
-
-// Two qubit gate
+/**
+ * Function to draw control operation. Draw a circle at control position. Draw a line from the circle to the target
+ * position
+ * @param {Object} element - element to add control to
+ * @param {number} x1 - x position of the circle and the line
+ * @param {number} y1 - y position of the target position
+ * @param {number} y2 - y position of the circle position (control position)
+ * @param {string} color - color of the control
+ * @return {Object} - Function returns the element to create control at.
+ */
 function create_control_at(element, x1, y1, y2, color="#002D9C") {
     element.append("line")
         .attr("x1", x1)
@@ -150,6 +192,15 @@ function create_control_at(element, x1, y1, y2, color="#002D9C") {
     return element
 }
 
+/**
+ * Function to draw cnot gate. Draw X gate at the target position, then draw control at control position.
+ * @param {number} x1 - x position of the gate
+ * @param {number} y1 - y position of the target position
+ * @param {number} y2 - y position of the control position
+ * @param {string} control - name of the control register
+ * @param {string} target - name of the target register
+ * @return {Object} - Function returns the cnot gate object.
+ */
 function cnot(x1, y1, y2, control, target) {
     gate = d3.select("#circuit-detail-svg").append("g")
     gate_info = d3.select(".gate-panel")
@@ -177,6 +228,15 @@ function cnot(x1, y1, y2, control, target) {
     return gate
 }
 
+/**
+ * Function to draw cz gate.
+ * @param {number} x1 - x position of the gate
+ * @param {number} y1 - y position of the target position
+ * @param {number} y2 - y position of the control position
+ * @param {string} control - name of the control register
+ * @param {string} target - name of the target register
+ * @return {Object} - Function returns cz gate object.
+ */
 function cz(x1, y1, y2, control, target) {
     gate = gate = d3.select("#circuit-detail-svg").append("g")
 
@@ -194,7 +254,14 @@ function cz(x1, y1, y2, control, target) {
     return gate
 }
 
-// draw measurement
+/**
+ * Function to draw measurement operation.
+ * @param {number} x1 - x position of the operation
+ * @param {number} y1 - y position of the quantum register
+ * @param {number} y2 - y position of the classical register
+ * @param {string} cbit - bit number of the classical reegister
+ * @return {Object} - Function returns measurement operation object.
+ */
 function measure(x1, y1, y2, cbit=0) {
     let measure_z = d3.select("#circuit-detail-svg").append("g")
 
@@ -248,7 +315,15 @@ function measure(x1, y1, y2, cbit=0) {
     return measure_z
 }
 
-// draw classical control
+/**
+ * Function to create classical control.
+ * @param {Object} element - The gate or operation that the classical control will perform.
+ * @param {number} x1 - x position of the operation
+ * @param {number} y1 - y position of the operation
+ * @param {number} y2 - y position of the classical register
+ * @param {string} color - color of the classical control
+ * @return {Object} - Function returns element that have the classical control.
+ */
 function create_classical_control_at(element, x1, y1, y2, color="gray") {
     element.append("line")
         .attr("x1", x1 - 2)
@@ -273,7 +348,12 @@ function create_classical_control_at(element, x1, y1, y2, color="gray") {
     return element
 }
 
-// draw barrier
+/**
+ * Function to draw barrier.
+ * @param {number} x - x position of the barrier
+ * @param {number} y - y position of the barrier
+ * @return {Object} - Function returns barrier object.
+ */
 function barrier(x, y) {
     let b = d3.select("#circuit-detail-svg").append("g")
 

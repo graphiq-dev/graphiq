@@ -94,8 +94,6 @@ class OpenQASMParser:
         """
         Helper function that parse the gate node.
 
-        Note: gate node is the node of gate definition.
-
         :param gate_node: gate node
         :type gate_node: Qasm.node
         :return: gate info from the node
@@ -110,16 +108,22 @@ class OpenQASMParser:
 
         # Get params and qargs
         # Go to 1st children node, nodes that not is_bit is param, node that is_bit is qargs
-        for node in gate_node.children[1].children:
-            if node.is_bit:
-                gate_info["qargs"].append(node.name)
-            else:
-                gate_info["params"].append(node.name)
+        if len(gate_node.children) == 4:
+            # get params:
+            for params_node in gate_node.children[1].children:
+                gate_info["params"].append(params_node.name)
 
-        # some qarg is in the 2nd children node, don't know why
-        for node in gate_node.children[2].children:
-            if node.type == "id":
-                gate_info["qargs"].append(node.name)
+            # get qargs:
+            for qargs_node in gate_node.children[2].children:
+                gate_info["qargs"].append(qargs_node.name)
+        else:
+            for qargs_node in gate_node.children[1].children:
+                gate_info["qargs"].append(qargs_node.name)
+
+        # # some qarg is in the 2nd children node, don't know why
+        # for node in gate_node.children[2].children:
+        #     if node.type == "id":
+        #         gate_info["qargs"].append(node.name)
         return gate_info
 
     def _parse_creg(self, creg_node):

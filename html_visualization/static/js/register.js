@@ -1,5 +1,9 @@
-// Note: Svg draw function has return line for testing
-
+/**
+ * Function to draw register label initial area.
+ * @param {number} width - The width of the register label area
+ * @param {number} height - The height of the register label area
+ * @return {Object} - Function return the container of the register label.
+ */
 function register_label_init(width, height) {
     const register_label_container = d3.select("div.circuit-container")
         .append("div")
@@ -12,6 +16,12 @@ function register_label_init(width, height) {
     return register_label_container
 }
 
+/**
+ * Function to draw register detail initial area.
+ * @param {number} width - The width of the register detail area
+ * @param {number} height - The height of the register detail area
+ * @return {Object} - Function return the container of the register detail.
+ */
 function register_detail_init(width, height) {
     const register_detail_container = d3.select("div.circuit-container")
         .append("div")
@@ -34,8 +44,13 @@ function register_detail_init(width, height) {
 }
 
 
-// draw function
-// draw the quantum register
+/**
+ * Function to draw quantum register. A single line that have the same width with the register detail area.
+ * @param {number} x - The x position of the register
+ * @param {number} y - The y position of the register
+ * @param {number} width - The width of the register
+ * @return {Object} - Function return the quantum register object.
+ */
 function draw_quantum_register(x, y, width) {
     const register = d3.select("#circuit-detail-svg")
     g = register.append("g")
@@ -51,7 +66,13 @@ function draw_quantum_register(x, y, width) {
     return register
 }
 
-// draw the classical register
+/**
+ * Function to draw classical register. A double lines that have the same width with the register detail area.
+ * @param {number} x - The x position of the register
+ * @param {number} y - The y position of the register
+ * @param {number} width - The width of the register
+ * @return {Object} - Function return the classical register object.
+ */
 function draw_classical_register(x, y, width) {
     const register = d3.select("#circuit-detail-svg")
     const g = register.append("g")
@@ -72,7 +93,13 @@ function draw_classical_register(x, y, width) {
     return register
 }
 
-// draw register label for both quantum and classical register
+/**
+ * Function to register label.
+ * @param {string} label_name - The name of the register
+ * @param {number} x - The x position of the register
+ * @param {number} y - The y position of the register
+ * @return {Object} - Function return the register label object.
+ */
 function draw_register_label(label_name, x, y) {
     const new_register_label = d3.select("#circuit-detail-svg")
     graph = new_register_label.append("g")

@@ -1,3 +1,6 @@
+const std_gate_width = 40
+const std_gate_height = 40
+
 /**
  * Function to add gate info to the gate info panel. This panel is on the right of the circuit visualization. When the
  * user hover on a gate the info will be display on this panel.
@@ -131,8 +134,8 @@ function reset(x, y, register) {
         .attr("class", "reset")
         .attr("x", x-20)
         .attr("y", y-20)
-        .attr("width", 40)
-        .attr("height", 40)
+        .attr("width", std_gate_width)
+        .attr("height", std_gate_height)
         .style("fill", "black")
     gate.append("text")
         .text("0")
@@ -269,11 +272,12 @@ function measure(x1, y1, y2, cbit=0) {
         .attr("class", "measure")
         .attr("x", x1-20)
         .attr("y", y1-20)
-        .attr("width", 40)
-        .attr("height", 40)
+        .attr("width", std_gate_width)
+        .attr("height", std_gate_height)
         .style("fill", "gray")
+    //M 10 30 C 10 15, 30 15, 30 30
     measure_z.append("path")
-        .attr("d", `M ${x1-10} ${y1+10} C ${x1-10} ${y1-5}, ${x1+10} ${y1-5}, ${x1+10} ${y1+10}`) //M 10 30 C 10 15, 30 15, 30 30
+        .attr("d", `M ${x1-10} ${y1+10} C ${x1-10} ${y1-5}, ${x1+10} ${y1-5}, ${x1+10} ${y1+10}`)
         .attr("stroke", "black")
         .style("fill", "transparent")
         .style("stroke-width", 2)
@@ -360,14 +364,14 @@ function barrier(x, y) {
     b.append("rect")
         .attr("x", x)
         .attr("y", y)
-        .attr("width", 40)
-        .attr("height", 40)
+        .attr("width", std_gate_width)
+        .attr("height", std_gate_height)
         .style("fill", "transparent")
     b.append("line")
         .attr("x1", x)
-        .attr("y1", y - 20)
+        .attr("y1", y - (std_gate_width/2))
         .attr("x2", x)
-        .attr("y2", y + 20)
+        .attr("y2", y + (std_gate_height/2))
         .attr("stroke", "black")
         .style("stroke-width", 2)
         .style("stroke-dasharray", "3,3")

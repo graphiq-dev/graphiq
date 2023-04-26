@@ -3,7 +3,7 @@ Contains various hybrid solvers
 """
 import networkx as nx
 import numpy as np
-import ray
+
 
 import src.ops as ops
 import matplotlib.pyplot as plt
@@ -351,6 +351,7 @@ class AlternateGraphSolver:
         Finds alternative circuits to generate the target graph or a relabeled version of it by searching through
         alternative isomorphic and LC-equivalent graphs. Notice that the returned circuits generate the target state
         up to relabeling if this feature is enabled in the setting. Otherwise, user's exact target graph is produced.
+
         :return: a dictionary where keys are the circuits and values are themselves dictionaries containing the LC graph
          used as the intermediate states and relabeling map between the actual target and the graph the circuit
          generates. {circuit: {'g':graph, 'map': relabel_map}}
@@ -597,6 +598,7 @@ def graph_to_circ(graph, noise_model_mapping=None, show=False):
     """
     Find a circuit that generates the input graph. This function calls the deterministic solver. The outcome is not
     unique.
+
     :param graph: The graph to generate
     :type graph: networkx.Graph
     :param show: If true draws the corresponding circuit

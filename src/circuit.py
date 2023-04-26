@@ -1626,14 +1626,28 @@ class CircuitDAG(CircuitBase):
     @staticmethod
     def edge_from_reg(t_edges, t_register):
         """
-        Helper function to return correct edge from edges that map to the correct register.
+        Return correct edge from edges that map to the correct register.
+
+        :param t_edges: input edges
+        :type t_edges: edge
+        :param t_register: register
+        :type t_register: str
+        :return: correct edge
+        :rtype: edge
         """
         for e in t_edges:
             if e[-1] == t_register:
                 return e
 
     def group_one_qubit_gates(self):
+        """
+        Put consecutive one-qubit gates into a OneQubitGateWrapper
+
+        :return: nothing
+        :rtype: None
+        """
         for node in self.node_dict["Output"]:
+            # traverse the circuit DAG in the reversed order
             reg_type = self.dag.nodes[node]["op"].reg_type
             register = self.dag.nodes[node]["op"].register
             gate_list = []
@@ -1667,6 +1681,14 @@ class CircuitDAG(CircuitBase):
                     gate_list = []
 
     def assign_noise(self, noise_model_map):
+        """
+        Create a copy of the circuit where each gate is appended its noise model
+
+        :param noise_model_map:
+        :type noise_model_map:
+        :return: a new circuit
+        :rtype: CircuitDAG
+        """
         empty_circ = CircuitDAG(
             n_emitter=self.n_emitters,
             n_photon=self.n_photons,

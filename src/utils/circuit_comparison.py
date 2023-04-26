@@ -315,7 +315,7 @@ def remove_redundant_circuits(circuit_list):
                     check_isomorphic = True
                     break
             if not check_isomorphic:
-                new_circuit_list.append(to_add_circuit)
+                new_circuit_list.append(new_circuit)
         else:
             new_circuit_list.append(new_circuit)
 

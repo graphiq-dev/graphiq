@@ -6,7 +6,6 @@ import time
 
 import matplotlib.pyplot as plt
 import networkx as nx
-import ray
 import numpy as np
 import src.ops as ops
 import matplotlib.pyplot as plt
@@ -42,8 +41,9 @@ from src.backends.stabilizer.compiler import StabilizerCompiler
 from src.backends.density_matrix.compiler import DensityMatrixCompiler
 from src.metrics import Infidelity
 from src.backends.stabilizer.state import Stabilizer
-from src.solvers.hybrid_solvers import HybridGraphSearchSolverSetting
-from src.solvers.hybrid_solvers import AlternateGraphSolver
+
+# from src.solvers.hybrid_solvers import HybridGraphSearchSolverSetting
+# from src.solvers.hybrid_solvers import AlternateGraphSolver
 
 
 class McNoiseMap:
@@ -379,6 +379,8 @@ class MonteCarloNoise:
 
 
 def parallel_monte_carlo(mc: MonteCarloNoise, n_parallel, n_single):
+    import ray
+
     rnd_array = mc.rng.choice(n_parallel * 100, n_parallel - 1, replace=False)
     # make first seed the same as the MonteCarloNoise's seed
     first_seed = mc.seed if mc.seed is not None else 0

@@ -1635,7 +1635,7 @@ class CircuitDAG(CircuitBase):
             "n_photons": self.n_photons,
             "n_emitters": self.n_emitters,
             "n_classical": self.n_classical,
-            "ops": []
+            "ops": [],
         }
 
         for op in self.sequence():
@@ -1648,21 +1648,21 @@ class CircuitDAG(CircuitBase):
                     if name:
                         op_list.append(name)
                 op_data = {
-                    'type': 'one qubit gate wrapper',
-                    'op_list': op_list,
-                    'q_registers_type': op.q_registers_type,
-                    'q_registers': op.q_registers,
-                    'c_registers': op.c_registers,
+                    "type": "one qubit gate wrapper",
+                    "op_list": op_list,
+                    "q_registers_type": op.q_registers_type,
+                    "q_registers": op.q_registers,
+                    "c_registers": op.c_registers,
                 }
             else:
                 op_data = {
-                    'type': ops.class_to_name_mapping(type(op)),
-                    'q_registers_type': op.q_registers_type,
-                    'q_registers': op.q_registers,
-                    'c_registers': op.c_registers,
+                    "type": ops.class_to_name_mapping(type(op)),
+                    "q_registers_type": op.q_registers_type,
+                    "q_registers": op.q_registers,
+                    "c_registers": op.c_registers,
                     # ...,
                 }
-            data['ops'].append(op_data)
+            data["ops"].append(op_data)
 
         return data
 
@@ -1677,31 +1677,31 @@ class CircuitDAG(CircuitBase):
         :rtype: None
         """
         circuit = CircuitDAG(
-            n_photon=data_dict['n_photons'],
-            n_emitter=data_dict['n_emitters'],
-            n_classical=data_dict['n_classical'],
+            n_photon=data_dict["n_photons"],
+            n_emitter=data_dict["n_emitters"],
+            n_classical=data_dict["n_classical"],
         )
 
-        for op in data_dict['ops']:
-            if op['type'] == 'one qubit gate wrapper':
-                op_list = [ops.name_to_class_map(g) for g in op['op_list']]
+        for op in data_dict["ops"]:
+            if op["type"] == "one qubit gate wrapper":
+                op_list = [ops.name_to_class_map(g) for g in op["op_list"]]
                 gate = ops.OneQubitGateWrapper(
                     op_list,
-                    register=op['q_registers'][0],
-                    reg_type=op['q_registers_type'][0],
+                    register=op["q_registers"][0],
+                    reg_type=op["q_registers_type"][0],
                 )
             else:
-                gate = ops.name_to_class_map(op['type'])
+                gate = ops.name_to_class_map(op["type"])
                 gate = gate()
-                gate.q_registers = op['q_registers']
-                gate.q_registers_type = op['q_registers_type']
-                gate.c_registers = op['c_registers']
+                gate.q_registers = op["q_registers"]
+                gate.q_registers_type = op["q_registers_type"]
+                gate.c_registers = op["c_registers"]
 
             circuit.add(gate)
 
         return circuit
 
-      @staticmethod
+    @staticmethod
     def edge_from_reg(t_edges, t_register):
         """
         Return correct edge from edges that map to the correct register.
@@ -1737,7 +1737,7 @@ class CircuitDAG(CircuitBase):
                 node = next_node
                 in_edges = self.dag.in_edges(nbunch=node, keys=True)
                 edge = self.edge_from_reg(in_edges, f"{reg_type}{register}")
-                next_node = edge[0]    
+                next_node = edge[0]
 
     def assign_noise(self, noise_model_map):
         """

@@ -21,4 +21,3 @@ def test_random_search_solver_setting_getter_setter():
     assert solver_setting.n_hof == 10
     assert solver_setting.n_pop == 10
     assert solver_setting.n_stop == 10
-

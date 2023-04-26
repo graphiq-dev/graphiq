@@ -1186,4 +1186,3 @@ def class_to_name_mapping(class_op):
     if class_op in mapping:
         return mapping[class_op]
     return None
-

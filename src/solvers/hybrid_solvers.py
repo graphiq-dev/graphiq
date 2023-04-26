@@ -46,7 +46,7 @@ from src.backends.density_matrix.compiler import DensityMatrixCompiler
 
 from src.metrics import Infidelity
 from src.backends.stabilizer.state import Stabilizer
-from src.utils.solver_result import SolverResult
+from src.solvers.solver_result import SolverResult
 
 
 class HybridEvolutionarySolver(EvolutionarySolver):
@@ -859,9 +859,9 @@ class HybridGraphSearchSolver(SolverBase):
         :rtype: dict
         """
         data = {
-            'circuit': circuit,
-            'target_state': target_state,
-            'score': self.circuit_evaluation_v2(circuit, target_state, self.metric)
+            "circuit": circuit,
+            "target_state": target_state,
+            "score": self.circuit_evaluation_v2(circuit, target_state, self.metric),
         }
 
         for key in self.solver_setting.callback_func:

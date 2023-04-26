@@ -46,6 +46,8 @@ from src.visualizers.dag import dag_topology_pos
 from src.visualizers.openqasm_visualization import draw_openqasm
 from src.utils.circuit_comparison import compare_circuits
 
+import json
+
 
 class Register:
     """
@@ -525,7 +527,10 @@ class CircuitBase(ABC):
         :rtype: matplotlib.pyplot.figure, matplotlib.pyplot.axes
         """
         return draw_openqasm(
-            self.to_openqasm(), show=show, ax=ax, display_text=self.openqasm_symbols
+            self.to_openqasm(),
+            show=show,
+            ax=ax,
+            display_text=self.openqasm_symbols,
         )
 
     def _openqasm_update(self, op):

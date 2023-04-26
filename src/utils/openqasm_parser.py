@@ -3,14 +3,16 @@ from qiskit.qasm import Qasm
 
 class OpenQASMParser:
     """
-    This class is used to retrieve useful information from the qiskit.qasm.Qasm class. The qiskit Qasm can parse the
-    OpenQASM 2.0 string but the object return is not very readable and very hard to iterate.
+    This class is a customized class to retrieve useful information from the qiskit.qasm.Qasm class with improved
+    readability and ease for iterating.
     """
 
     def __init__(self, openqasm_str: str):
         """
-        The constructor of the class. The constructor receive a str which is the OpenQASM 2.0 script as a parameter. The
-        constructor create the ast for the class and create the mapping parse functions.
+        The constructor of the class. The constructor receives a string which is the OpenQASM 2.0 script as a parameter.
+
+        The constructor creates the abstract syntax tree (ast) for the class and creates a mapping
+        between strings and parse functions.
 
         :param openqasm_str: OpenQASM 2.0 script string
         :type: str
@@ -41,9 +43,10 @@ class OpenQASMParser:
 
     def use_parse(self, key):
         """
-        A function that return a correct parse function for the key parameter provided
+        Return a correct parse function for the key parameter provided
 
         :param key: key of the parse function
+        :type key: str
         :return: a parse function in the parse mapping
         :rtype: function
         """
@@ -65,11 +68,11 @@ class OpenQASMParser:
     def parse(self):
         """
         This function is the main function of the parser. The parser will call the parse() function from qiskit.Qasm
-        class to parse the script to a list of node. Then, from there, the parser will call correct parsing function to
-        parse the correct node in the list from the node type.
+        class to parse the script to a list of node. Then, from there, the parser will call thr correct parsing function
+        to parse the correct node in the list from the node type.
 
-        Note: For faster data processing time, I used yield syntax here, which will return the parse info immediately
-        after each node parsed.
+        Note: For faster data processing time, the yield syntax is used here, which will return the parse info
+        immediately after each node parsed.
 
         :return: parsed node info
         :rtype: dict
@@ -107,7 +110,7 @@ class OpenQASMParser:
         }
 
         # Get params and qargs
-        # Go to 1st children node, nodes that not is_bit is param, node that is_bit is qargs
+        # Go to 1st children node, nodes with is_bit==False are param nodes, nodes with is_bit==True are qargs nodes
         if len(gate_node.children) == 4:
             # get params:
             for params_node in gate_node.children[1].children:
@@ -120,10 +123,9 @@ class OpenQASMParser:
             for qargs_node in gate_node.children[1].children:
                 gate_info["qargs"].append(qargs_node.name)
 
-        # # some qarg is in the 2nd children node, don't know why
-        # for node in gate_node.children[2].children:
-        #     if node.type == "id":
-        #         gate_info["qargs"].append(node.name)
+        # if the gate have params, the params node will be the children[1] node and
+        # the qargs node will be the children[2] node.
+        # If the gate has no params, then the children[1] node will be the node for qargs.
         return gate_info
 
     def _parse_creg(self, creg_node):

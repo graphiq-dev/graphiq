@@ -45,7 +45,7 @@ function register_detail_init(width, height) {
 
 
 /**
- * Function to draw quantum register. A single line that have the same width with the register detail area.
+ * Function to draw quantum register. A single line that has the same width as the register detail area.
  * @param {number} x - The x position of the register
  * @param {number} y - The y position of the register
  * @param {number} width - The width of the register
@@ -67,7 +67,7 @@ function draw_quantum_register(x, y, width) {
 }
 
 /**
- * Function to draw classical register. A double lines that have the same width with the register detail area.
+ * Function to draw classical register. A double line that has the same width as the register detail area.
  * @param {number} x - The x position of the register
  * @param {number} y - The y position of the register
  * @param {number} width - The width of the register

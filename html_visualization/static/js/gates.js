@@ -3,8 +3,8 @@ const std_gate_height = 40
 
 /**
  * Function to add gate info to the gate info panel. This panel is on the right of the circuit visualization. When the
- * user hover on a gate the info will be display on this panel.
- * @param  {Object} gate - gate object that will be draw.
+ * user hovers on a gate the info will be display on this panel.
+ * @param  {Object} gate - gate object that will be drawn.
  * @param {string} gate_name - name of the gate
  * @param {string} register - name of the register
  * @param {Object} params - params of the gate, only for parametrized gate.
@@ -55,7 +55,7 @@ function create_params_str(params) {
 }
 
 /**
- * Function to draw one qubit gate.
+ * Function to draw one-qubit gate.
  * @param {number} x - x position
  * @param {number} y - y position
  * @param {string} gate_name - name of the gate
@@ -196,7 +196,7 @@ function create_control_at(element, x1, y1, y2, color="#002D9C") {
 }
 
 /**
- * Function to draw cnot gate. Draw X gate at the target position, then draw control at control position.
+ * Function to draw CNOT gate. Draw X gate at the target position, then draw control at control position.
  * @param {number} x1 - x position of the gate
  * @param {number} y1 - y position of the target position
  * @param {number} y2 - y position of the control position

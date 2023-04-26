@@ -11,17 +11,18 @@ standard_gate_width_mapping = {
 class Columns:
     """
     This class is used to manage the positions of the operations in the Painter class below. When the Painter
-    class add operations, it will check for empty column and add operation there. This class is also used for manage the
+    class adds operations, it will check for empty column and add operation there. This class is also used for manage the
     width of each column.
 
     The structure of the Columns class is a 2d array. First, it includes an array of columns since we will have multiple
-    columns on the figure. The size in each column is equal to the number of registers (qreg and creg).
+    columns in the figure. The size of each column is equal to the number of registers (qreg and creg).
     """
 
     def __init__(self, col_num: int, size: int = 1):
         """
-        The Columns class constructor. Initialize a number of columns according to the col_num parameter and each
-        column has the same size specified by the size parameter.
+        The Columns class constructor. Initialize a number of columns according to the col_num parameter.
+
+        Each column has the same size specified by the size parameter.
 
         Also create a col_width variable to maintain the width of each column
 
@@ -51,7 +52,7 @@ class Columns:
 
     def update_col_width(self, index, new_width):
         """
-        Update the column width of a column. Mostly used when encounter a gate that has bigger width to draw than
+        Update the column width of a column. Mostly used when encountering a gate that has bigger width to draw than
         other gates.
 
         :param index: index of the column that need to update the width
@@ -66,7 +67,7 @@ class Columns:
 
     def expand_cols(self, size: int = 1):
         """
-        Expand all columns to a new size. It's used when the Painter add new register.
+        Expand all columns to a new size. It is used when the Painter adds a new register.
 
         :param size: The size that all columns will be expanded
         :type size: int
@@ -84,8 +85,10 @@ class Columns:
 
     def set_all_col_element(self, index: int, value: int = -1):
         """
-        Set all the value in every column from first column to the index column. This function is used when add barrier,
-        since after add barriers new operations will be added after the barriers.
+        Set all the value in every column from the first column to the index column.
+
+        This function is used when adding barriers,
+        since after adding barriers, new operations will be added after the barriers.
 
         :param index: The index of the column
         :type index: int
@@ -104,8 +107,8 @@ class Columns:
 
     def find_and_add_to_empty_col(self, from_index: int, to_index: int, value: int = 1):
         """
-        Find the column that the operation can be added to. If no column found, add new column at the end and set value
-        to that column.
+        Find the column that the operation can be added to. If no column found, add a new column at the end and
+        set value to that column.
 
         :param from_index: The index the operation start from
         :type from_index: int
@@ -142,12 +145,14 @@ class Columns:
 
 class Painter:
     """
-    The Painter class's main goal is to create the visualization information that will be sent to the web app
+    The main goal of the Painter class is to create the visualization information that will be sent to the web app
     """
 
     def __init__(self, gate_mapping=None):
         """
-        Painter class constructor, it can take no argument or gate mapping.
+        Painter class constructor.
+
+        It can take no argument or gate mapping.
 
         :param gate_mapping: gate mapping to specify the gate width mapping
         :type gate_mapping: dict
@@ -184,8 +189,8 @@ class Painter:
 
     def _calculate_gate_width(self, gate_name, params):
         """
-        A helper function that is used to calculate the gate width, since gate width long name or params, when draw will
-        have different width.
+        A helper function that is used to calculate the gate width,
+        since a gate with a long name or with params has different width when it is drawn.
 
         :param gate_name: gate name
         :type gate_name: str
@@ -210,7 +215,7 @@ class Painter:
 
     def add_register(self, reg_name, size, reg_type="qreg"):
         """
-        A function that add new register to the Painter. The function will create the correct register label to draw on
+        A function that add new register to the Painter. This function will create the correct register label to draw in
         the html figure, with a position mapping to that label.
 
         :param reg_name: register name
@@ -246,7 +251,7 @@ class Painter:
         self, gate_name: str, qargs: list, params: dict = None, controls: list = None
     ):
         """
-        Add a gate to in the Painter class. The function constructs the correct position to draw the gate on the
+        Add a gate to in the Painter class. This function constructs the correct position to draw the gate in a
         html figure.
 
         :param gate_name: gate name
@@ -291,7 +296,7 @@ class Painter:
     def add_measurement(self, qreg, creg, cbit=0):
         """
         Add measurement to the Painter class. The function constructs the correct position for the measurement, the
-        visualization info will include also the creg position to draw correctly on html figure.
+        visualization info will include also the creg position to draw correctly in a html figure.
 
         :param qreg: qreg of the measurement
         :type qreg: str
@@ -422,8 +427,9 @@ class Painter:
 
     def build_visualization_info(self):
         """
-        The function that construct visualization dict of the circuit including operations info. The function calculate
-        the x coordinate of the operations.
+        The function that constructs a visualization dict of the circuit including operations info.
+
+        The function calculates the x coordinate of each operation.
 
         :return: visualization of the circuit
         :rtype: dict
@@ -448,7 +454,8 @@ class Painter:
 
     def draw(self):
         """
-        The function that send visualization info of the circuit to the web app.
+        Send the visualization info of the circuit to the web app.
+
         The default connection will be localhost at port 5000 and the parameter is '/circuit_data'
 
         In the future if we have a web server we can consider, sending data to the web server, and the visualization
@@ -467,7 +474,7 @@ class Painter:
 
     def load_openqasm_str(self, openqasm_str):
         """
-        The function translate the OpenQASM 2.0 script to visualization info.
+        Translate the OpenQASM 2.0 script to visualization info.
 
         :param openqasm_str: OpenQASM 2.0 script string
         :type openqasm_str: str

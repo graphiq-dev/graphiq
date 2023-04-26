@@ -25,6 +25,18 @@ def clifford_from_stabilizer(stabilizer_tableau):
     return transform.run_circuit(clifford_tableau, circuit, reverse=True)
 
 
+def stabilizer_from_clifford(clifford_tableau):
+    """
+    Return the StabilizerTableau from the given CliffordTableau
+
+    :param clifford_tableau: a clifford Tableau
+    :type clifford_tableau: CliffordTableau
+    :return: the Stabilizer
+    :rtype: StabilizerTableau
+    """
+    return clifford_tableau.to_stabilizer()
+
+
 def get_stabilizer_tableau_from_graph(graph):
     """
     Create a stabilizer tableau from a networkx graph

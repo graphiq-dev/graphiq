@@ -172,6 +172,17 @@ class Stabilizer(StateRepresentationBase):
         """
         self._tableau = transform.phase_gate(self._tableau, qubit_position)
 
+    def apply_phase_dagger(self, qubit_position):
+        """
+        Apply the phase dagger gate to the Stabilizer
+
+        :param qubit_position: the qubit position where the gate is applied
+        :type qubit_position: int
+        :return: nothing
+        :rtype: None
+        """
+        self._tableau = transform.phase_dagger_gate(self._tableau, qubit_position)
+
     def apply_sigmax(self, qubit_position):
         """
         Apply the X gate to the Stabilizer

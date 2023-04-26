@@ -274,7 +274,9 @@ class StabilizerCompiler(CompilerBase):
                 op.noise = [op.noise] * 2
             control_noise = op.noise[0]
             target_noise = op.noise[1]
-            control_noise.apply(state, n_quantum, [q_index(op.control, op.control_type)])
+            control_noise.apply(
+                state, n_quantum, [q_index(op.control, op.control_type)]
+            )
             target_noise.apply(state, n_quantum, [q_index(op.target, op.target_type)])
         else:
             pass

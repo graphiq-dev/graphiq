@@ -281,11 +281,11 @@ class CircuitBase(ABC):
         :rtype: str
         """
         header_info = (
-                oq_lib.openqasm_header()
-                + "\n"
-                + "\n".join(self.openqasm_imports.keys())
-                + "\n"
-                + "\n".join(self.openqasm_defs.keys())
+            oq_lib.openqasm_header()
+            + "\n"
+            + "\n".join(self.openqasm_imports.keys())
+            + "\n"
+            + "\n".join(self.openqasm_defs.keys())
         )
 
         openqasm_str = [
@@ -326,7 +326,7 @@ class CircuitBase(ABC):
             if (opened_barrier or oq_info.multi_comp) and gate_application != "":
                 openqasm_str.append(f"barrier {barrier_str};")
             if (
-                    oq_info.multi_comp
+                oq_info.multi_comp
             ):  # i.e. multiple visual blocks make this one Operation
                 opened_barrier = True
             elif gate_application != "":
@@ -662,12 +662,12 @@ class CircuitDAG(CircuitBase):
     """
 
     def __init__(
-            self,
-            n_emitter=0,
-            n_photon=0,
-            n_classical=0,
-            openqasm_imports=None,
-            openqasm_defs=None,
+        self,
+        n_emitter=0,
+        n_photon=0,
+        n_classical=0,
+        openqasm_imports=None,
+        openqasm_defs=None,
     ):
         """
         Construct a DAG circuit with n_emitter one-qubit emitter quantum registers, n_photon one-qubit photon
@@ -1186,10 +1186,10 @@ class CircuitDAG(CircuitBase):
         while i in range(len(qasm_commands)):
             command = qasm_commands[i]
             if (
-                    ("qreg" in command)
-                    or ("creg" in command)
-                    or ("barrier" in command)
-                    or (command == "")
+                ("qreg" in command)
+                or ("creg" in command)
+                or ("barrier" in command)
+                or (command == "")
             ):
                 i += 1
                 continue
@@ -1268,7 +1268,7 @@ class CircuitDAG(CircuitBase):
 
             # Parse single-qubit operations
             if (
-                    command.count("[0]") == 1
+                command.count("[0]") == 1
             ):  # single qubit operation, from current script generation method
                 command_breakdown = command.split()
                 name = command_breakdown[0]
@@ -1301,7 +1301,7 @@ class CircuitDAG(CircuitBase):
                 )  # we must parse out [0] so -3
                 gate_class = ops.name_to_class_map(name)
                 assert (
-                        gate_class is not None
+                    gate_class is not None
                 ), "gate name not recognized, parsing failed"
                 circuit.add(
                     gate_class(
@@ -1399,9 +1399,9 @@ class CircuitDAG(CircuitBase):
 
         # get all edges that will need to be removed (i.e. the edges on which the Operation is being added)
         relevant_outputs = [
-                               f"{operation.q_registers_type[i]}{operation.q_registers[i]}_out"
-                               for i in range(len(operation.q_registers))
-                           ] + [f"c{c}_out" for c in operation.c_registers]
+            f"{operation.q_registers_type[i]}{operation.q_registers[i]}_out"
+            for i in range(len(operation.q_registers))
+        ] + [f"c{c}_out" for c in operation.c_registers]
 
         for output in relevant_outputs:
             edges_to_remove = list(
@@ -1701,8 +1701,58 @@ class CircuitDAG(CircuitBase):
 
         return circuit
 
+      @staticmethod
+    def edge_from_reg(t_edges, t_register):
+        """
+        Return correct edge from edges that map to the correct register.
+
+        :param t_edges: input edges
+        :type t_edges: edge
+        :param t_register: register
+        :type t_register: str
+        :return: correct edge
+        :rtype: edge
+        """
+        for e in t_edges:
+            if e[-1] == t_register:
+                return e
+
+    def group_one_qubit_gates(self):
+        """
+        Put consecutive one-qubit gates into a OneQubitGateWrapper
+
+        :return: nothing
+        :rtype: None
+        """
+        for node in self.node_dict["Output"]:
+            # traverse the circuit DAG in the reversed order
+            reg_type = self.dag.nodes[node]["op"].reg_type
+            register = self.dag.nodes[node]["op"].register
+            gate_list = []
+
+            in_edges = self.dag.in_edges(nbunch=node, keys=True)
+            next_node = self.edge_from_reg(in_edges, f"{reg_type}{register}")[0]
+
+            while next_node not in self.node_dict["Input"]:
+                node = next_node
+                in_edges = self.dag.in_edges(nbunch=node, keys=True)
+                edge = self.edge_from_reg(in_edges, f"{reg_type}{register}")
+                next_node = edge[0]    
+
     def assign_noise(self, noise_model_map):
-        empty_circ = CircuitDAG(n_emitter=self.n_emitters, n_photon=self.n_photons, n_classical=self.n_classical)
+        """
+        Create a copy of the circuit where each gate is appended its noise model
+
+        :param noise_model_map:
+        :type noise_model_map:
+        :return: a new circuit
+        :rtype: CircuitDAG
+        """
+        empty_circ = CircuitDAG(
+            n_emitter=self.n_emitters,
+            n_photon=self.n_photons,
+            n_classical=self.n_classical,
+        )
         new_gates = self._noisy_gates(noise_model_map)
         for gate in new_gates:
             empty_circ.add(gate)
@@ -1715,14 +1765,22 @@ class CircuitDAG(CircuitBase):
             is_controlled = False
             if isinstance(op, ops.OneQubitGateWrapper):
                 op_type_seq = [type(gate) for gate in op.unwrap()]
-                noise_list = self._find_wrapped_noise(op_type_seq, noise_model_map[op.reg_type])
+                noise_list = self._find_wrapped_noise(
+                    op_type_seq, noise_model_map[op.reg_type]
+                )
                 op.noise = noise_list
                 noisy_ops.append(op)
             else:
-                if isinstance(op, (ops.ControlledPairOperationBase, ops.ClassicalControlledPairOperationBase)):
+                if isinstance(
+                    op,
+                    (
+                        ops.ControlledPairOperationBase,
+                        ops.ClassicalControlledPairOperationBase,
+                    ),
+                ):
                     control_type = op.control_type
                     target_type = op.target_type
-                    mapping = noise_model_map[control_type+target_type]
+                    mapping = noise_model_map[control_type + target_type]
                     is_controlled = True
                 else:
                     mapping = noise_model_map[op.reg_type]
@@ -1733,7 +1791,9 @@ class CircuitDAG(CircuitBase):
                     noise_object = NoNoise()
                 if is_controlled:
                     if isinstance(noise_object, list):
-                        assert len(noise_object) == 2, "controlled gate noise list must be of length 2"
+                        assert (
+                            len(noise_object) == 2
+                        ), "controlled gate noise list must be of length 2"
                         op.noise = noise_object
                     else:
                         op.noise = [noise_object, noise_object]
@@ -1759,4 +1819,3 @@ class CircuitDAG(CircuitBase):
             if isinstance(op, (ops.Input, ops.Output)):
                 del seq[length - i]
         return seq
-

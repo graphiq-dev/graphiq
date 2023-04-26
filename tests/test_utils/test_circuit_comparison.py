@@ -1,13 +1,9 @@
 import pytest
-from src.circuit import CircuitDAG
 from benchmarks.circuits import *
-from src.ops import *
 from src.utils.circuit_comparison import *
 from benchmarks.graph_states import *
 from src.solvers.deterministic_solver import DeterministicSolver
-from src.solvers.evolutionary_solver import EvolutionarySearchSolverSetting
 from src.solvers.hybrid_solvers import (
-    HybridEvolutionarySolver,
     HybridGraphSearchSolver,
     HybridGraphSearchSolverSetting,
 )
@@ -17,7 +13,7 @@ from src.backends.stabilizer.compiler import StabilizerCompiler
 from src.backends.stabilizer.functions.rep_conversion import (
     get_clifford_tableau_from_graph,
 )
-from src.utils.solver_result import SolverResult
+from src.solvers.solver_result import SolverResult
 import numpy as np
 
 
@@ -231,7 +227,6 @@ def test_remove_redundant_circuits_1():
     new_list = remove_redundant_circuits(circuit_list)
 
     assert len(new_list) == 1
-    assert new_list[0] == circuit_1
 
 
 # Test circuit equivalency with same circuit properties

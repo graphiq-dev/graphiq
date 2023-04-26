@@ -32,6 +32,7 @@ class CompilerBase(ABC):
         """
         self._measurement_determinism = "probabilistic"
         self._noise_simulation = False
+        self._monte_carlo = False
 
     @property
     def noise_simulation(self):
@@ -73,9 +74,9 @@ class CompilerBase(ABC):
             assert isinstance(
                 initial_state, QuantumState
             ), "the initial state must be a valid QuantumState object"
-            assert initial_state.n_qubits == circuit.n_quantum, (
-                "the number of qubits in initial state must match the " "circuit"
-            )
+            assert (
+                initial_state.n_qubits == circuit.n_quantum
+            ), "the number of qubits in initial state must match the circuit"
             if self.__class__.name == "density matrix":
                 state_data = initial_state.dm.data
             elif self.__class__.name == "stabilizer":
@@ -91,7 +92,7 @@ class CompilerBase(ABC):
             n_qubits=circuit.n_quantum,
             data=state_data,  # initialize to |0...0> state
             representation=self.__class__.name,
-            mixed=True if self._noise_simulation else False,
+            mixed=True if (self._noise_simulation and not self._monte_carlo) else False,
         )
 
         classical_registers = np.zeros(circuit.n_classical)

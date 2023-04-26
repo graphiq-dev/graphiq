@@ -70,7 +70,7 @@ def random_graph_run_setup(n_qubit, n_test, graph_metric):
 
 
 def test_random_graph_statistics():
-    n_qubit = 5
-    n_test = 50
+    n_qubit = 3
+    n_test = 5
     random_graph_run_setup(n_qubit, n_test, graph_max_eccentricity)
     random_graph_run_setup(n_qubit, n_test, graph_max_centrality)

@@ -74,7 +74,7 @@ class SolverResult:
         :return: nothing
         :rtype: None
         """
-        if type(value) is not list:
+        if isinstance(type, (list, np.ndarray)):
             raise TypeError(f"Data should be a list or numpy array")
         else:
             if len(value) != len(self._data["circuit"]):
@@ -107,6 +107,12 @@ class SolverResult:
                     raise ValueError("Length are not the same")
         return True
 
+    def add_properties(self, new_property):
+        assert isinstance(new_property, str)
+        if new_property not in self._properties:
+            self._properties.append(new_property)
+            self._data[new_property] = [None] * len(self._data["circuit"])
+
     def get_index_data(self, index):
         """
         Get index data in a form of dictionary.
@@ -129,7 +135,7 @@ class SolverResult:
 
         :param index: index of the row
         :type index: int
-        :return: circuit
+        :return: the circuit corresponding to the provided index
         :rtype: CircuitDAG
         """
         return self._data["circuit"][index]
@@ -142,7 +148,7 @@ class SolverResult:
         :type column: str
         :param value: value to check
         :type value: object
-        :return: list of index
+        :return: list of all indecies that match the value
         :rtype: list
         """
 

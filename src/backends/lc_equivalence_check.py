@@ -579,6 +579,7 @@ def iso_equal_check(graph1, graph2):
 def iso_graph_finder(input_graph):
     """
     Generates the list of all graphs that are isomorphic to the input graph G.
+    Scales with n! and faces runtime or memory issues for large graphs.
 
     :param input_graph: input graph
     :type input_graph: networkx.Graph

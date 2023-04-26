@@ -1625,6 +1625,12 @@ class CircuitDAG(CircuitBase):
         return ops_list, ordered_nodes
 
     def to_json(self):
+        """
+        Function to convert circuit object to json data format.
+
+        :return: circuit json object
+        :rtype: dict
+        """
         data = {
             "n_photons": self.n_photons,
             "n_emitters": self.n_emitters,
@@ -1662,6 +1668,14 @@ class CircuitDAG(CircuitBase):
 
     @classmethod
     def from_json(cls, data_dict):
+        """
+        Function to load from json object to circuit object
+
+        :param data_dict: circuit json dict
+        :type data_dict: dict
+        :return: nothing
+        :rtype: None
+        """
         circuit = CircuitDAG(
             n_photon=data_dict['n_photons'],
             n_emitter=data_dict['n_emitters'],

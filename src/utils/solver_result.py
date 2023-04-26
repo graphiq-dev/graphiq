@@ -4,10 +4,21 @@ import pandas as pd
 
 class SolverResult:
     """
-    Class to keep track of the solver result
+    Class to keep track of the solver result.
+
+    The data structure of the class is a simple table structure format. The data is a dictionary with key of the dict is
+    the name of the column and the value is a list of data of that column.
     """
 
     def __init__(self, columns=None):
+        """
+        Class constructor, in construction the function will create data table to store solver result. The function
+        receive a parameter that define the name of the columns in the table. For each column, the function will
+        initialize an empty list that map to the name of the column.
+
+        :param columns: a list of column name of the table
+        :type columns: list
+        """
         self._data = {}
         self.columns = columns
 

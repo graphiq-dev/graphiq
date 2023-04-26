@@ -1164,6 +1164,13 @@ def name_to_class_map(name):
 
 
 def class_to_name_mapping(class_op):
+    """
+    Function to map operation class to string. It's used to convert circuit object to json.
+
+    :param class_op: operation class
+    :type class_op: operation
+    :return:
+    """
     mapping = {
         CNOT: "CX",
         SigmaX: "x",
@@ -1174,7 +1181,7 @@ def class_to_name_mapping(class_op):
         CZ: "cz",
         ClassicalCNOT: "classical x",
         ClassicalCZ: "classical z",
-        MeasurementCNOTandReset: "classical reset x",
+        MeasurementCNOTandReset: "measurement-controlled x and reset",
     }
     if class_op in mapping:
         return mapping[class_op]

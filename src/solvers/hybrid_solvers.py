@@ -480,10 +480,16 @@ class HybridGraphSearchSolver(SolverBase):
 
     def _prepare_data(self, circuit, target_state):
         """
-        Helper function to prepare data before saving to SolverResult class
-        :param circuit:
-        :param target_state:
-        :return:
+        Helper function to prepare data before saving to SolverResult class. For this solver, each iteration will
+        have a circuit and a target state. In this function, it will call all call-back functions defined in solver
+        setting to prepare the necessary data to save in the solver result.
+
+        :param circuit: The circuit to save
+        :type circuit: CircuitDAG
+        :param target_state: The target state to save
+        :type target_state: QuantumState
+        :return: dict data to save in solver result
+        :rtype: dict
         """
         data = {
             'circuit': circuit,

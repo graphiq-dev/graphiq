@@ -239,23 +239,19 @@ def test_circuit_equivalency_1():
     solver = get_pipeline(target_graph)
     circuit_data = solver.solve()
 
-    circuit_list = []
-    max_emitter_depth_list = []
-    n_emitter_list = []
-
-    for data in circuit_data:
-        circuit = data[0]
-        n_emitter = circuit.n_emitters
-        n_emitter_list.append(n_emitter)
-
-        circuit_list.append(circuit)
-
+    result = SolverResult()
+    for i in range(len(circuit_data)):
+        circuit = circuit_data["circuit"][i]
+        n_emitters = circuit.n_emitters
         max_emitter_depth = max(circuit.calculate_reg_depth("e"))
-        max_emitter_depth_list.append(max_emitter_depth)
 
-    result = SolverResult(circuit_list)
-    result["max_emitter_depth"] = max_emitter_depth_list
-    result["n_emitters"] = n_emitter_list
+        data = {
+            "circuit": circuit,
+            "n_emitters": n_emitters,
+            "max_emitter_depth": max_emitter_depth,
+        }
+
+        result.append(data)
 
     for i in np.unique(result["n_emitters"]):
         index = result.get_index_with_column_value("n_emitters", i)
@@ -277,23 +273,19 @@ def test_circuit_equivalency_2():
     solver = get_pipeline(target_graph)
     circuit_data = solver.solve()
 
-    circuit_list = []
-    max_emitter_depth_list = []
-    n_emitter_list = []
-
-    for data in circuit_data:
-        circuit = data[0]
-        n_emitter = circuit.n_emitters
-        n_emitter_list.append(n_emitter)
-
-        circuit_list.append(circuit)
-
+    result = SolverResult()
+    for i in range(len(circuit_data)):
+        circuit = circuit_data["circuit"][i]
+        n_emitters = circuit.n_emitters
         max_emitter_depth = max(circuit.calculate_reg_depth("e"))
-        max_emitter_depth_list.append(max_emitter_depth)
 
-    result = SolverResult(circuit_list)
-    result["max_emitter_depth"] = max_emitter_depth_list
-    result["n_emitters"] = n_emitter_list
+        data = {
+            "circuit": circuit,
+            "n_emitters": n_emitters,
+            "max_emitter_depth": max_emitter_depth,
+        }
+
+        result.append(data)
 
     for i in np.unique(result["max_emitter_depth"]):
         index = result.get_index_with_column_value("max_emitter_depth", i)

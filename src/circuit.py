@@ -1533,6 +1533,7 @@ class CircuitDAG(CircuitBase):
         """
         # Check if the node is the Input node
         # If Input node then return -1
+
         if root_node in self.node_dict["Input"]:
             return -1
 

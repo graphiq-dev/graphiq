@@ -387,14 +387,14 @@ def parallel_monte_carlo(mc: MonteCarloNoise, n_parallel, n_single):
     mc.n_sample = n_single
 
     @ray.remote
-    def monte_run(seed):
-        mc.seed = int(seed)
+    def monte_run(seed_i):
+        mc.seed = int(seed_i)
         score = mc.run()
         all_scores = mc.all_scores
         return score, all_scores
 
     # ray.init()
-    ray_scores = [monte_run.remote(seed=x) for x in rnd_array]
+    ray_scores = [monte_run.remote(x) for x in rnd_array]
     score_tuples = ray.get(ray_scores)
     scores = [x[0] for x in score_tuples]
     all_scores = [y for x in score_tuples for y in x[1]]

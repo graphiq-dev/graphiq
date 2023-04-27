@@ -292,7 +292,7 @@ class AlternateGraphSolver:
         target_graph: nx.Graph or QuantumState = None,
         metric: MetricBase = Infidelity,
         compiler: CompilerBase = StabilizerCompiler(),
-        noise_compiler: CompilerBase = StabilizerCompiler(),
+        noise_compiler: CompilerBase = DensityMatrixCompiler(),
         io: IO = None,
         noise_model_mapping=None,
         graph_solver_setting=None,
@@ -307,6 +307,7 @@ class AlternateGraphSolver:
         if noise_model_mapping is None:
             noise_model_mapping = {"e": dict(), "p": dict(), "ee": dict(), "ep": dict()}
             self.noise_simulation = False
+            self.monte_carlo = False
         elif noise_model_mapping == "depolarizing":
             self.noise_simulation = True
             self.depolarizing_rate = graph_solver_setting.depolarizing_rate
@@ -403,6 +404,7 @@ class AlternateGraphSolver:
                                 self.seed * self.mc_params["seed"]
                             )
                         else:
+                            # seedless randomness if at least one of the user's seeds is None
                             rng = np.random.default_rng()
                         n_mc = max(
                             int(self.mc_params["n_sample"] or 0),

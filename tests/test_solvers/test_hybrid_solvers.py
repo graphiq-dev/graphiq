@@ -20,7 +20,7 @@ from src.metrics import Infidelity
 from src.state import QuantumState
 from benchmarks.alternate_circuits import *
 import src.noise.noise_models as noise
-from src.utils.solver_result import SolverResult
+from src.solvers.solver_result import SolverResult
 
 
 def graph_stabilizer_setup(graph, solver_class, solver_setting, expected_result):

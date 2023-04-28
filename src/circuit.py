@@ -46,6 +46,7 @@ from src.noise.noise_models import NoNoise
 from src.visualizers.dag import dag_topology_pos
 from src.visualizers.openqasm_visualization import draw_openqasm
 from src.utils.circuit_comparison import compare_circuits
+import json
 
 
 class Register:
@@ -1622,6 +1623,83 @@ class CircuitDAG(CircuitBase):
             ordered_nodes.append(next_node)
         ops_list = [self.dag.nodes[nod]["op"] for nod in ordered_nodes]
         return ops_list, ordered_nodes
+
+    def to_json(self):
+        """
+        Function to convert circuit object to json data format.
+
+        :return: circuit json object
+        :rtype: dict
+        """
+        data = {
+            "n_photons": self.n_photons,
+            "n_emitters": self.n_emitters,
+            "n_classical": self.n_classical,
+            "ops": [],
+        }
+
+        for op in self.sequence():
+            if isinstance(op, ops.InputOutputOperationBase):
+                continue
+            elif type(op) == ops.OneQubitGateWrapper:
+                op_list = []
+                for g in op.operations:
+                    name = ops.class_to_name_mapping(g)
+                    if name:
+                        op_list.append(name)
+                op_data = {
+                    "type": "one qubit gate wrapper",
+                    "op_list": op_list,
+                    "q_registers_type": op.q_registers_type,
+                    "q_registers": op.q_registers,
+                    "c_registers": op.c_registers,
+                }
+            else:
+                op_data = {
+                    "type": ops.class_to_name_mapping(type(op)),
+                    "q_registers_type": op.q_registers_type,
+                    "q_registers": op.q_registers,
+                    "c_registers": op.c_registers,
+                    # ...,
+                }
+            data["ops"].append(op_data)
+
+        return data
+
+    @classmethod
+    def from_json(cls, data_dict):
+        """
+        Function to load from json object to circuit object
+
+        :param data_dict: circuit json dict
+        :type data_dict: dict
+        :return: nothing
+        :rtype: None
+        """
+        circuit = CircuitDAG(
+            n_photon=data_dict["n_photons"],
+            n_emitter=data_dict["n_emitters"],
+            n_classical=data_dict["n_classical"],
+        )
+
+        for op in data_dict["ops"]:
+            if op["type"] == "one qubit gate wrapper":
+                op_list = [ops.name_to_class_map(g) for g in op["op_list"]]
+                gate = ops.OneQubitGateWrapper(
+                    op_list,
+                    register=op["q_registers"][0],
+                    reg_type=op["q_registers_type"][0],
+                )
+            else:
+                gate = ops.name_to_class_map(op["type"])
+                gate = gate()
+                gate.q_registers = op["q_registers"]
+                gate.q_registers_type = op["q_registers_type"]
+                gate.c_registers = op["c_registers"]
+
+            circuit.add(gate)
+
+        return circuit
 
     @staticmethod
     def edge_from_reg(t_edges, t_register):

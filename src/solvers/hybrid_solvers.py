@@ -46,6 +46,7 @@ from src.backends.density_matrix.compiler import DensityMatrixCompiler
 
 from src.metrics import Infidelity
 from src.backends.stabilizer.state import Stabilizer
+from src.solvers.solver_result import SolverResult
 
 
 class HybridEvolutionarySolver(EvolutionarySolver):
@@ -209,6 +210,7 @@ class HybridGraphSearchSolverSetting:
         lc_method="max edge",
         verbose=False,
         save_openqasm: str = "none",
+        callback_func: dict = {},
     ):
         self.allow_relabel = allow_relabel
         self.allow_lc = allow_lc
@@ -224,6 +226,7 @@ class HybridGraphSearchSolverSetting:
         self.sort_emitter = sort_emit
         self.label_map = label_map
         self.iso_thresh = iso_thresh
+        self.callback_func = callback_func
         self.lc_orbit_depth = lc_orbit_depth
         self.depolarizing_rate = depolarizing_rate
         self.monte_carlo = monte_carlo
@@ -682,6 +685,8 @@ class HybridGraphSearchSolver(SolverBase):
         self.sorted_result = []
         self.circuit_storage = comp.CircuitStorage()
 
+        self.result = SolverResult()
+
     def get_iso_graph_from_setting(self, adj_matrix):
         """
         Helper function to get iso graphs according to solver setting
@@ -753,8 +758,6 @@ class HybridGraphSearchSolver(SolverBase):
         :return:
         :rtype:
         """
-        circuit_target_list = []
-
         # retrieve parameters for relabelling module and local complementation module
         setting = self.solver_setting
 
@@ -818,17 +821,13 @@ class HybridGraphSearchSolver(SolverBase):
                 # store score and circuit for further analysis
                 # code for storing the necessary information
                 if self.circuit_storage.add_new_circuit(circuit):
-                    circuit_target_list.append([circuit, target_state])
+                    data = self._prepare_data(circuit, target_state)
+                    self.result.append(data)
 
         # end of relabelling loop
         # code to run each circuit in the noisy scenario and evaluate the cost function
 
-        for i in circuit_target_list:
-            score = self.circuit_evaluation_v2(i[0], i[1], self.metric)
-            i.append(score)
-
-        self.result = circuit_target_list
-        return circuit_target_list
+        return self.result
 
     def circuit_evaluation_v2(self, circuit, target, metric):
         # no noise
@@ -845,6 +844,36 @@ class HybridGraphSearchSolver(SolverBase):
         score = metric.evaluate(compiled_state, circuit)
 
         return score
+
+    def _prepare_data(self, circuit, target_state):
+        """
+        Helper function to prepare data before saving to SolverResult class. For this solver, each iteration will
+        have a circuit and a target state. In this function, it will call all call-back functions defined in solver
+        setting to prepare the necessary data to save in the solver result.
+
+        :param circuit: The circuit to save
+        :type circuit: CircuitDAG
+        :param target_state: The target state to save
+        :type target_state: QuantumState
+        :return: dict data to save in solver result
+        :rtype: dict
+        """
+        data = {
+            "circuit": circuit,
+            "target_state": target_state,
+            "score": self.circuit_evaluation_v2(circuit, target_state, self.metric),
+        }
+
+        for key in self.solver_setting.callback_func:
+            f = self.solver_setting.callback_func[key]
+            value = f(circuit, target_state)
+            if type(value) == dict:
+                for k, v in value.items():
+                    data[k] = v
+            else:
+                data[key] = value
+
+        return data
 
     def circuit_evaluation(self, circuit_target_list, metric):
         """

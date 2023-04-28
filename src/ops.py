@@ -184,6 +184,10 @@ class OperationBase(ABC):
         """
         self._update_c_reg(c_reg)
 
+    @q_registers_type.setter
+    def q_registers_type(self, q_regs_type):
+        self._q_registers_type = q_regs_type
+
     @property
     def labels(self):
         """
@@ -1156,4 +1160,29 @@ def name_to_class_map(name):
     }
     if name in mapping:
         return mapping[name]
+    return None
+
+
+def class_to_name_mapping(class_op):
+    """
+    Function to map operation class to string. It's used to convert circuit object to json.
+
+    :param class_op: operation class
+    :type class_op: operation
+    :return:
+    """
+    mapping = {
+        CNOT: "CX",
+        SigmaX: "x",
+        SigmaY: "y",
+        SigmaZ: "z",
+        Hadamard: "h",
+        Phase: "s",
+        CZ: "cz",
+        ClassicalCNOT: "classical x",
+        ClassicalCZ: "classical z",
+        MeasurementCNOTandReset: "measurement-controlled x and reset",
+    }
+    if class_op in mapping:
+        return mapping[class_op]
     return None

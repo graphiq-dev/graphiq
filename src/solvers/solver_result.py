@@ -1,32 +1,30 @@
 import numpy as np
+import pandas as pd
 
 
 class SolverResult:
     """
-    Class to keep track of the solver result
+    Class to keep track of the solver result.
+
+    The data structure of the class is a simple table structure format. The data is a dictionary with key of the dict is
+    the name of the column and the value is a list of data of that column.
     """
 
-    def __init__(self, circuit_list, properties=None):
-        self._data = {
-            "circuit": circuit_list,
-            "circuit_id": [f"c{i}" for i in range(len(circuit_list))],
-        }
-        self._properties = [] if properties is None else properties
-        assert isinstance(self._properties, list)
-        for p in properties:
-            self._data[p] = [None] * len(circuit_list)
+    def __init__(self, columns=None):
+        """
+        Class constructor, in construction the function will create data table to store solver result. The function
+        receive a parameter that define the name of the columns in the table. For each column, the function will
+        initialize an empty list that map to the name of the column.
 
-    @property
-    def properties(self):
-        return self._properties
+        :param columns: a list of column name of the table
+        :type columns: list
+        """
+        self._data = {}
+        self.columns = columns
 
-    @properties.setter
-    def properties(self, new_properties):
-        assert isinstance(new_properties, list)
-        self._properties = new_properties
-        for p in new_properties:
-            if p not in self._data:
-                self._data[p] = [None] * len(self._data["circuit"])
+        if columns:
+            for c in columns:
+                self._data[c] = []
 
     def __len__(self):
         """
@@ -85,6 +83,29 @@ class SolverResult:
                 )
 
         self._data[key] = value
+        self.columns.append(key)
+
+    def append(self, data):
+        """
+        Function to append a new row to the data, if data is empty the function will define the columns then append new
+        row.
+
+        :param data:
+        :return:
+        """
+        if type(data) == dict:
+            # if empty data, define columns then append new row
+            if not self._data:
+                for key, value in data.items():
+                    self._data[key] = [value]
+                self.columns = list(self._data.keys())
+            else:
+                if len(data) == len(self._data):
+                    for key in self._data:
+                        self._data[key].append(data[key])
+                else:
+                    raise ValueError("Length are not the same")
+        return True
 
     def add_properties(self, new_property):
         assert isinstance(new_property, str)
@@ -141,20 +162,13 @@ class SolverResult:
                 r_list.append(i)
         return r_list
 
-    def sort_by(self, prop):
+    def to_df(self):
         """
-        sort the results by a given property
-        :param prop: a property in the list of properties of the result
-        :type prop: str
-        :return: Nothing
-        :rtype: None
+        Function to convert SolverResult to pandas DataFrame
+
+        :return: dataframe
+        :rtype: pandas.DataFrame
         """
-        data_dict = self._data
-        n_result = len(self)
-        p_index = list(data_dict.keys()).index(prop)
-        data_tuple_list = [
-            tuple(x[i] for x in data_dict.values()) for i in range(n_result)
-        ]
-        sorted_data_tuple = sorted(data_tuple_list, key=lambda x: x[p_index])
-        for j, p in enumerate(data_dict.keys()):
-            self._data[p] = [sorted_data_tuple[i][j] for i in range(n_result)]
+        df = pd.DataFrame(data=self._data)
+
+        return df

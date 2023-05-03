@@ -6,7 +6,6 @@ from itertools import permutations
 from networkx.algorithms import isomorphism
 from src.backends.lc_equivalence_check import local_comp_graph
 
-
 import warnings
 
 
@@ -353,6 +352,37 @@ def lc_orbit_finder(graph: nx.Graph, comp_depth=None, orbit_size_thresh=None):
         if new_graphs == 0:
             break
         i += 1
+    return orbit_list
+
+
+def rgs_orbit_finder(graph: nx.Graph):
+    """
+    Takes a repeater graph state, and returns the full list of distinct graphs in the orbit.
+    The first graph in the list is the original graph state.
+    :param graph: original graph
+    :type graph: nx.Graph
+    :return: a full list of graphs in the LC orbit of the graph state
+    :rtype: list
+    """
+    n = len(graph)
+    g = graph.copy()
+
+    leaf_nodes = [x for x in g.nodes if g.degree(x) == 1]
+    core_nodes = [x for x in g.nodes if g.degree(x) != 1]
+    assert int((n/2)+n/2*(n/2-1)/2) == graph.size() and len(leaf_nodes)==int(n/2), "input graph is not a repeater graph"
+
+    first_core = core_nodes.pop(0)
+    g_lc = local_comp_graph(g, first_core)
+    orbit_list = [graph, g_lc]
+    while core_nodes:
+        g_lc = local_comp_graph(g_lc, core_nodes.pop(0))
+        orbit_list.append(g_lc)
+        g_lc_2 = local_comp_graph(g_lc, first_core)
+        orbit_list.append(g_lc_2)
+        if core_nodes:
+            g_lc = local_comp_graph(g_lc, core_nodes.pop(0))
+            orbit_list.append(g_lc)
+
     return orbit_list
 
 

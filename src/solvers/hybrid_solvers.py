@@ -33,6 +33,7 @@ from src.utils.relabel_module import (
     iso_finder,
     emitter_sorted,
     lc_orbit_finder,
+    rgs_orbit_finder,
     get_relabel_map,
     relabel,
 )
@@ -45,6 +46,7 @@ from src.backends.stabilizer.compiler import StabilizerCompiler
 from src.backends.density_matrix.compiler import DensityMatrixCompiler
 
 from src.metrics import Infidelity
+from benchmarks.graph_states import repeater_graph_states
 from src.backends.stabilizer.state import Stabilizer
 
 
@@ -256,7 +258,7 @@ class HybridGraphSearchSolverSetting:
 
     @n_lc_graphs.setter
     def n_lc_graphs(self, value):
-        assert type(value) == int
+        assert type(value) == int or value is None
         self._n_lc_graphs = value
 
     @property
@@ -352,6 +354,7 @@ class AlternateGraphSolver:
         Finds alternative circuits to generate the target graph or a relabeled version of it by searching through
         alternative isomorphic and LC-equivalent graphs. Notice that the returned circuits generate the target state
         up to relabeling if this feature is enabled in the setting. Otherwise, user's exact target graph is produced.
+
         :return: a dictionary where keys are the circuits and values are themselves dictionaries containing the LC graph
          used as the intermediate states and relabeling map between the actual target and the graph the circuit
          generates. {circuit: {'g':graph, 'map': relabel_map}}
@@ -361,6 +364,7 @@ class AlternateGraphSolver:
         n_iso = setting.n_iso_graphs
         n_lc = setting.n_lc_graphs
         adj_matrix = nx.to_numpy_array(self.target_graph)
+
         iso_adjs = iso_finder(
             adj_matrix,
             n_iso,
@@ -373,12 +377,18 @@ class AlternateGraphSolver:
         )
         results_list = []
         mc_list = []
+        # repeater graph state check
+        adj_rgs = nx.to_numpy_array(repeater_graph_states(int(len(self.target_graph) / 2)))
+        target_is_rgs = True if np.array_equal(adj_rgs, adj_matrix) else False
         # list of tuples [(circuit, dict={'g': graph used to find circuit, 'map': relabel map with target})]
         iso_graphs = [nx.from_numpy_array(adj) for adj in iso_adjs]
         for iso_graph in iso_graphs:
-            lc_graphs = lc_orbit_finder(
-                iso_graph, comp_depth=setting.lc_orbit_depth, orbit_size_thresh=n_lc
-            )
+            if target_is_rgs:
+                lc_graphs = rgs_orbit_finder(iso_graph)[:n_lc]
+            else:
+                lc_graphs = lc_orbit_finder(
+                    iso_graph, comp_depth=setting.lc_orbit_depth, orbit_size_thresh=n_lc
+                )
             lc_circ_list = []
             lc_score_list = []
             rmap = get_relabel_map(self.target_graph, iso_graph)

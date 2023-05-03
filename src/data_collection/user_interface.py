@@ -51,16 +51,16 @@ from correlation_module import *
 
 # %%
 user_input = InputParams(
-    n_ordering=4,  # input
+    n_ordering=120,  # input
     rel_inc_thresh=0.2,  # advanced: (0,1) The closer to 0 the closer we get to an exhaustive search for reordering.
     allow_exhaustive=True,  # advanced*: only reason to deactivate is to save runtime if this is the bottleneck
     iso_thresh=None,  # advanced: if not enough relabeled graphs are found, set it to a larger number!
-    n_lc_graphs=2,  # input
+    n_lc_graphs=None,  # input
     lc_orbit_depth=None,  # advanced: if hit the runtime limit, limit len(sequence of Local complementations)
     noise_model_mapping="depolarizing",  # input
-    depolarizing_rate=0.03,  # input
+    depolarizing_rate=0.005,  # input
     error_margin=0.02,  # input
-    confidence=0.90,  # input
+    confidence=1,  # input
     mc_map=None,  # advanced*: pass a manual noise map for the monte carlo simulations
     n_cores=8,  # advanced: change if processor has different number of cores
     seed=None,  # input
@@ -95,7 +95,6 @@ result = solver.result
 print("Monte Carlo",
       [(param, settings.monte_carlo_params[param]) for param in ["n_sample", "n_single", "n_parallel", "seed"]])
 
-result.sort_by("score")
 result.add_properties("n_emitters")
 result.add_properties("n_cnots")
 result.add_properties("max_emit_depth")
@@ -149,7 +148,8 @@ result.add_properties("graph_metric")
 # a bit complicated: for each index in the result object, there is a corresponding dict of graph_metrics.
 # for each graph, this dict contains the metric values for the metrics selected by user: {"met1": val1, ...} for each g
 result["graph_metric"] = [dict() for _ in range(len(result))]
-graph_met_list = ["node_connect"] # input
+graph_met_list = ["node_connect","cluster","local_efficiency","global_efficiency","max_between","max_close","min_close",
+                  "mean_nei_deg","edge_connect","assort","radius","diameter","periphery","center"] # input
 for met in graph_met_list:
     for i, g in enumerate(result["g"]):
         result["graph_metric"][i][met] = graph_met_value(met, g)
@@ -160,8 +160,17 @@ met_hist(result, "score")
 met_hist(result, "n_cnots")
 met_hist(result, "depth")
 
-met_met(result, "node_connect", "score")
 met_met(result, "n_cnots", "score")
+
+met_met(result, "n_cnots", "mean_nei_deg")
+met_met(result, "n_cnots", "node_connect")
+met_met(result, "n_cnots", "edge_connect")
+met_met(result, "n_cnots", "assort")
+met_met(result, "n_cnots", "radius")
+met_met(result, "n_cnots", "diameter")
+met_met(result, "n_cnots", "periphery")
+met_met(result, "n_cnots", "center")
+met_met(result, "n_cnots", "cluster")
 
 
 

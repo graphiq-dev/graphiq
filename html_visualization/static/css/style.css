@@ -1,0 +1,45 @@
+div.circuit-detail-container {
+    margin: 10px;
+    width: 1000px;
+    height: 500px;
+    border: solid black 1px;
+}
+
+.register-label {
+    font-family: monospace;
+    font-weight: 400;
+    text-anchor: end;
+    font-size: 14px;
+}
+
+div.tooltip {
+    position: absolute;
+    text-align: center;
+    width: 60px;
+    padding: 2px;
+    font: 12px sans-serif;
+    background: lightsteelblue;
+    border: 0px;
+    border-radius: 8px;
+    pointer-events: none;
+}
+
+div.data-panel {
+    padding: 20px;
+    margin-top: 10px;
+    border: 1px solid black;
+}
+
+div.gate-panel {
+    position: absolute;
+    top: 10px;
+    left: 1050px;
+    width: 300px;
+    min-height: 120px;
+    border: 1px solid black;
+    padding: 10px;
+}
+
+body {
+    margin: 0px;
+}

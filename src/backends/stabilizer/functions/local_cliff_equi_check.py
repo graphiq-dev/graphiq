@@ -1,6 +1,5 @@
 import numpy as np
 import networkx as nx
-import copy
 
 from src.state import QuantumState
 from src.circuit.circuit_dag import CircuitDAG
@@ -8,13 +7,15 @@ from src.metrics import Infidelity
 import src.circuit.ops as ops
 
 from src.backends.stabilizer.compiler import StabilizerCompiler
-from src.backends.state_representation_conversion import _graph_finder as graph_finder
+from src.backends.state_representation_conversion import (
+    state_to_graph,
+    _phase_correction,
+)
 from src.backends.stabilizer.tableau import StabilizerTableau, CliffordTableau
 from src.backends.stabilizer.functions.transformation import run_circuit
 from src.backends.stabilizer.functions.stabilizer import canonical_form
 from src.backends.stabilizer.functions.rep_conversion import (
     get_stabilizer_tableau_from_graph,
-    stabilizer_from_clifford,
     clifford_from_stabilizer,
 )
 from src.backends.lc_equivalence_check import is_lc_equivalent, local_clifford_ops
@@ -22,22 +23,24 @@ from src.backends.lc_equivalence_check import is_lc_equivalent, local_clifford_o
 
 def lc_check(state1, state2, validate=True):
     """
-    Takes two quantum states (or stabilizer/clifford Tabeleaus, graphs, adjacency matrices) and checks the LC
+    Takes two quantum states (or Stabilizer/Clifford tableau, graph, adjacency matrix) and checks the LC
     equivalence between them. If True, a sequence of gates to convert state1 to state 2 is also returned to.
+
     :param state1: the first state.
-    :type state1: QuantumState or StabilizerTableau or CliffordTableau or nx.Graph or np.ndarray
+    :type state1: StabilizerTableau or CliffordTableau or nx.Graph or np.ndarray
     :param state2: the second state.
-    :type state2: QuantumState or StabilizerTableau or CliffordTableau or nx.Graph or np.ndarray
+    :type state2: StabilizerTableau or CliffordTableau or nx.Graph or np.ndarray
     :param validate: if True, the provided list of gates is run on the state1 to confirm it ends up on state2 after the
     sequence.
     :type validate: bool
     :return: tuple (result, gate_list)
     :rtype: tuple (bool, list)
     """
-    # determines whether two states 1 and 2 are LC equivalent and if yes what is the gate sequence to turn 1 into 2.
-    # if validate is True, function which check the gate list's
-    graph1, tab1, gates1 = _to_graph(state1)
-    graph2, tab2, gates2 = _to_graph(state2)
+    # determines whether two states 1 and 2 are LC equivalent;
+    # if yes, determine the gate sequence that transforms the state 1 into state 2;
+    # if validate is True, confirm that after applying gates to state 1, it becomes state 2.
+    graph1, tab1, gates1 = state_to_graph(state1)
+    graph2, tab2, gates2 = state_to_graph(state2)
 
     try:
         gate_list = converter_gate_list(graph1, graph2)
@@ -67,10 +70,8 @@ def lc_check(state1, state2, validate=True):
         tab2_can = canonical_form(tab2.copy())
         final_tab = run_circuit(tab1.copy(), total_gate_list)
         final_tab_can = canonical_form(final_tab)
-        z_equal = np.array_equal(final_tab_can.z_matrix, tab2_can.z_matrix)
-        x_equal = np.array_equal(final_tab_can.x_matrix, tab2_can.x_matrix)
-        phase_equal = np.array_equal(final_tab_can.phase, tab2_can.phase)
-        if not (z_equal and x_equal and phase_equal):
+
+        if not (tab2_can == final_tab_can):  # z_equal and x_equal and phase_equal
             raise Warning(
                 "the gate sequence is not converting the state1's stabilizer tableau into state2's"
             )
@@ -82,20 +83,19 @@ def state_converter_circuit(state1, state2, validate=False):
     """
     This function returns a piece of circuit that converts state1 to state2; if they are local clifford equivalent.
     The circuit corresponds to the gate_list which is returned by the function 'lc_check'.
+
     :param state1: the initial state
-    :type state1: QuantumState or StabilizerTableau or CliffordTableau or nx.Graph or np.ndarray
+    :type state1: StabilizerTableau or CliffordTableau or nx.Graph or np.ndarray
     :param state2: the target state
-    :type state2: QuantumState or StabilizerTableau or CliffordTableau or nx.Graph or np.ndarray
+    :type state2: StabilizerTableau or CliffordTableau or nx.Graph or np.ndarray
     :param validate: if True, validates the circuit to see if final output of the circuit is equal to the desired state.
     :type validate: bool
     :return: the circuit to convert graph1 to graph2
     :rtype: CircuitDAG
     """
-    # s1 = copy.deepcopy(state1)
-    # s2 = copy.deepcopy(state2)
 
-    graph1, tab1, gates1 = _to_graph(state1)
-    graph2, tab2, gates2 = _to_graph(state2)
+    graph1, tab1, gates1 = state_to_graph(state1)
+    graph2, tab2, gates2 = state_to_graph(state2)
 
     target1_tableau = clifford_from_stabilizer(tab1)
     target2_tableau = clifford_from_stabilizer(tab2)
@@ -125,7 +125,8 @@ def state_converter_circuit(state1, state2, validate=False):
 def converter_gate_list(g1, g2):
     """
     Given two graphs g1 and g2, this functions returns a sequence of gates needed to convert g1 into g2 if they are LC
-     equivalent.
+    equivalent.
+
     :param g1: first graph
     :type g1: nx.Graph
     :param g2: second graph
@@ -153,6 +154,7 @@ def str_to_op(gate_tuples):
     """
     Converts a gate list, made up of gate tuples ("gate name", qubit index) used in the stabilizer backend, into a list
     of operations ready to be added to a circuit. Qubits are photons by default, not emitters.
+
     :param gate_tuples: a gate tuple or list of tuples
     :type gate_tuples: tuple or list
     :return: an operation or list of operations
@@ -183,85 +185,3 @@ def str_to_op(gate_tuples):
         raise ValueError(
             "input should be gate tuples ('gate name', qubit index) or a list of them"
         )
-
-
-def _to_graph(state):
-    """
-    A helper function to turn any valid representation into a graph. it also returns the StabilizerTableau corresponding
-     to the initial state, and the gate sequence needed to convert the state into a graph-state.
-    :param state: the state to be converted to graph
-    :type state: QuantumState or StabilizerTableau or CliffordTableau or nx.Graph or np.ndarray
-    :return: tuple (graph, input state's stabilizer tableau, gate_list)
-    :rtype: tuple (nx.Graph, StabilizerTableau, list)
-    """
-    state = copy.deepcopy(state)
-    # returns graph, input state's tableau, gate_list
-    if isinstance(state, nx.Graph):
-        tab = get_stabilizer_tableau_from_graph(state)
-        return state, tab, []
-    elif isinstance(state, np.ndarray):
-        try:
-            graph = nx.from_numpy_array(state)
-            tab = get_stabilizer_tableau_from_graph(graph)
-            return graph, [], tab
-        except:
-            pass
-    elif isinstance(state, QuantumState):
-        try:
-            clifford = state.stabilizer.tableau
-        except:
-            raise ValueError(
-                "the QuantumState provided has no active stabilizer representation"
-            )
-        z_matrix = clifford.stabilizer_z
-        x_matrix = clifford.stabilizer_x
-        tab = stabilizer_from_clifford(clifford)
-    elif isinstance(state, CliffordTableau):
-        z_matrix = state.stabilizer_z
-        x_matrix = state.stabilizer_x
-        tab = stabilizer_from_clifford(state)
-    elif isinstance(state, StabilizerTableau):
-        z_matrix = state.z_matrix
-        x_matrix = state.x_matrix
-        tab = state
-    else:
-        raise ValueError(
-            "input data should either be a adjacency matrix, graph, Clifford or Stabilizer tableau or a "
-            "quantum state with stabilizer representation"
-        )
-    graph, (h_pos, p_dag_pos) = graph_finder(x_matrix, z_matrix, get_ops_data=True)
-    gate_list = [("H", pos) for pos in h_pos] + [("P_dag", pos) for pos in p_dag_pos]
-
-    # phase correction; adding Z gates at the end to make the phase of the transformed state equal to an ideal graph
-    g_tab = get_stabilizer_tableau_from_graph(graph)
-    phase_correction = _phase_correction(tab, g_tab, gate_list)
-
-    gate_list += phase_correction
-    return graph, tab, gate_list
-
-
-def _phase_correction(stabilizer_tab1, stabilizer_tab2, gate_list):
-    """
-    If gate list transforms stabilizer generators of state 1 to state 2, then this function finds the list of gates
-     needed to be added to the gate list to also have the phase of the 2 states exactly the same.
-    The second state's stabilizer generators must represent a graph state.
-     Returns a set of Z gates applied on appropriate qubits in the format of list of tuples [("Z", qubit_index)]
-    :param stabilizer_tab1: stabilizer tableau for the initial state
-    :type stabilizer_tab1: StabilizerTableau
-    :param stabilizer_tab2: stabilizer tableau for the final state
-    :type stabilizer_tab2: StabilizerTableau
-    :param gate_list: a gate list, made up of gate tuples ("gate name", qubit index) that transforms initial state's
-     stabilizer
-    :type gate_list: list
-    :return: a list of tuples [("Z", qubit_index)] to correct phase
-    """
-
-    tab1 = canonical_form(stabilizer_tab1)
-    tab2 = canonical_form(stabilizer_tab2)
-    new_tab = canonical_form(run_circuit(tab1.copy(), gate_list))
-    phase_diff = (tab2.phase - new_tab.phase) % 2
-    x_mat = np.copy(new_tab.x_matrix)
-    x_inv = ((np.linalg.det(x_mat) * np.linalg.inv(x_mat)) % 2).astype(int)
-    z_ops = (x_inv @ phase_diff) % 2
-    phase_correction = [("Z", index) for index, z in enumerate(z_ops) if z]
-    return phase_correction

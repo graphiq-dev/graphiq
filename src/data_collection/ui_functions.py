@@ -3,6 +3,7 @@ import numpy as np
 from warnings import warn
 from tkinter import messagebox
 import tkinter as tk
+import os
 
 import src.ops as ops
 import matplotlib.pyplot as plt
@@ -46,6 +47,7 @@ import ray
 def t_graph(gtype, n, seed=None, show=False):
     """
     If g_type is lattice then "n" must be a tuple (rows, columns).
+    If g_type is adj then "n" must be an adjacency matrix.
     :param gtype: the type of the graph
     :type gtype: str
     :param n: size of the graph, not equal to the actual number of nodes in some cases
@@ -69,10 +71,15 @@ def t_graph(gtype, n, seed=None, show=False):
         g = repeater_graph_states(n)
     elif gtype == "linear":
         g = nx.from_numpy_array(nx.to_numpy_array(linear_cluster_state(n).data))
+    elif gtype == "cycle":
+        g = nx.from_numpy_array(nx.to_numpy_array(linear_cluster_state(n).data))
+        g.add_edge(0, n-1)
     elif gtype == "lattice":
         g = nx.from_numpy_array(nx.to_numpy_array(lattice_cluster_state((n[0], n[1])).data))
     elif gtype == "star":
         g = nx.from_numpy_array(nx.to_numpy_array(star_graph_state(n).data))
+    elif gtype == "adj":
+        g = nx.from_numpy_array(n)
     else:
         raise ValueError
     if show:
@@ -90,6 +97,8 @@ class InputParams:
         iso_thresh=None,  # advanced: if not enough relabeled graphs are found, set it to a larger number!
         n_lc_graphs=10,  # input
         lc_orbit_depth=None,  # advanced: if hit the runtime limit, limit len(sequence of Local complementations)
+        lc_method=None,
+        noise_simulation=True,  # input
         noise_model_mapping="depolarizing",  # input
         depolarizing_rate=0.01,  # input
         error_margin=0.01,  # input
@@ -122,6 +131,7 @@ class InputParams:
         self.setting.iso_thresh = iso_thresh
         self.setting.n_lc_graphs = n_lc_graphs
         self.setting.lc_orbit_depth = lc_orbit_depth
+        self.setting.lc_method = lc_method
         self.setting.depolarizing_rate = depolarizing_rate
         self.setting.verbose = verbose
         self.setting.save_openqasm = save_openqasm
@@ -136,7 +146,7 @@ class InputParams:
         self.solver.noise_compiler = DensityMatrixCompiler()
 
         self.solver.io = None
-        self.solver.noise_simulation = bool(self.solver.noise_model_mapping)
+        self.solver.noise_simulation = noise_simulation
         self.solver.seed = seed
 
     def auto_noise_params(self):
@@ -443,8 +453,8 @@ def graph_met_value(graph_metric, g):
     return graph_value
 
 
-def met_hist(result, met, show_plot=True, store=True):
-    values = _met2val(result, met)
+def met_hist(result, met, show_plot=True, store=True, index_list=None, dir_name='new'):
+    values = _met2val(result, met, index_list=index_list)
     fig = plt.figure(figsize=(8, 6), dpi=300)
     n, bins, patches = plt.hist(x=values, bins='auto', color='#0504aa',
                                 alpha=0.7, rwidth=0.85)
@@ -458,34 +468,46 @@ def met_hist(result, met, show_plot=True, store=True):
     # y axis upper limit
     plt.ylim(ymax=np.ceil(maxfreq / 10) * 10 if maxfreq % 10 else maxfreq + 10)
     if store:
-        plt.savefig(f'/Users/sobhan/Desktop/demo storage/{met}_distribution.png')
+        new_path = f'/Users/sobhan/Desktop/demo storage/{dir_name}'
+        if not os.path.exists(new_path):
+            os.makedirs(new_path)
+        plt.savefig(new_path+f'/{met}_distribution.png')
     if show_plot:
         plt.show()
+    else:
+        plt.close()
 
 
-def met_met(result, met1, met2, show_plot=True, store=True):
-    met1_list = _met2val(result, met1)
-    met2_list = _met2val(result, met2)
+def met_met(result, met1, met2, show_plot=True, store=True, index_list=None, dir_name='new'):
+    met1_list = _met2val(result, met1, index_list=index_list)
+    met2_list = _met2val(result, met2, index_list=index_list)
     fig = plt.figure(figsize=(8, 6), dpi=300)
     x_data, y_data, count = _rep_counter(met1_list, met2_list)
-    plt.scatter(x_data, y_data, s=10 * count)
+    plt.scatter(x_data, y_data, s=15 * count)
     # plt.figtext(0.75, 0.70, "foo")
     plt.title(f"{met2} vs. {met1} correlation")
     plt.xlabel(f"{met1}")
     plt.ylabel(f"{met2}")
     if store:
-        plt.savefig(f'/Users/sobhan/Desktop/demo storage/{met1}_{met2}.png')
+        new_path = f'/Users/sobhan/Desktop/demo storage/{dir_name}'
+        if not os.path.exists(new_path):
+            os.makedirs(new_path)
+        plt.savefig(new_path+f'/{met1}_{met2}.png')
     if show_plot:
         plt.show()
+    else:
+        plt.close()
 
 
-def _met2val(result, met):
+def _met2val(result, met, index_list=None):
     g_met = False  # is it a graph metric?
+    index_range = index_list if index_list else range(len(result))
+
     if "graph_metric" in result._data:
         if met in result["graph_metric"][0]:
-            values = [result["graph_metric"][i][met] for i in range(len(result))]
+            values = [result["graph_metric"][i][met] for i in index_range]
             g_met = True
     if not g_met:
         assert met in result._data, f"the metric: {met} is not calculated in the results"
-        values = result[met]
+        values = [result[met][i] for i in index_range]
     return values

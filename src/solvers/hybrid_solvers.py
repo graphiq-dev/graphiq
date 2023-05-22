@@ -29,14 +29,7 @@ from src.circuit import CircuitDAG
 from src.metrics import MetricBase
 from src.state import QuantumState
 from src.io import IO
-from src.utils.relabel_module import (
-    iso_finder,
-    emitter_sorted,
-    lc_orbit_finder,
-    rgs_orbit_finder,
-    get_relabel_map,
-    relabel,
-)
+from src.utils.relabel_module import *
 from src.backends.state_representation_conversion import stabilizer_to_graph
 from src.backends.stabilizer.functions.rep_conversion import (
     get_clifford_tableau_from_graph,
@@ -383,8 +376,16 @@ class AlternateGraphSolver:
         # list of tuples [(circuit, dict={'g': graph used to find circuit, 'map': relabel map with target})]
         iso_graphs = [nx.from_numpy_array(adj) for adj in iso_adjs]
         for iso_graph in iso_graphs:
-            if target_is_rgs:
+            if setting.lc_method == "rgs":
                 lc_graphs = rgs_orbit_finder(iso_graph)[:n_lc]
+            elif setting.lc_method == "linear":
+                lc_graphs = linear_partial_orbit(iso_graph)[:n_lc]
+            elif setting.lc_method == "depth_first":
+                lc_graphs = depth_first_orbit(iso_graph)[:n_lc]
+            elif setting.lc_method == "lc_with_iso":
+                lc_graphs = lc_orbit_finder(
+                    iso_graph, comp_depth=setting.lc_orbit_depth, orbit_size_thresh=n_lc, with_iso=True
+                )
             else:
                 lc_graphs = lc_orbit_finder(
                     iso_graph, comp_depth=setting.lc_orbit_depth, orbit_size_thresh=n_lc

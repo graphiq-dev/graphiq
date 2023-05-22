@@ -50,22 +50,34 @@ from correlation_module import *
 # g = t_graph(gtype="rgs", n=4, seed=99, show=True)
 
 # %%
+adj1 = np.array([[0., 1., 1., 1., 1., 1., 1., 1., 1., 1.],
+       [1., 0., 1., 1., 1., 1., 1., 1., 1., 1.],
+       [1., 1., 0., 1., 0., 0., 0., 0., 0., 0.],
+       [1., 1., 1., 0., 0., 0., 0., 0., 0., 0.],
+       [1., 1., 0., 0., 0., 1., 0., 0., 0., 0.],
+       [1., 1., 0., 0., 1., 0., 0., 0., 0., 0.],
+       [1., 1., 0., 0., 0., 0., 0., 1., 0., 0.],
+       [1., 1., 0., 0., 0., 0., 1., 0., 0., 0.],
+       [1., 1., 0., 0., 0., 0., 0., 0., 0., 1.],
+       [1., 1., 0., 0., 0., 0., 0., 0., 1., 0.]])
 user_input = InputParams(
-    n_ordering=120,  # input
+    n_ordering=5000,  # input
     rel_inc_thresh=0.2,  # advanced: (0,1) The closer to 0 the closer we get to an exhaustive search for reordering.
     allow_exhaustive=True,  # advanced*: only reason to deactivate is to save runtime if this is the bottleneck
     iso_thresh=None,  # advanced: if not enough relabeled graphs are found, set it to a larger number!
-    n_lc_graphs=None,  # input
+    n_lc_graphs=1,  # input
     lc_orbit_depth=None,  # advanced: if hit the runtime limit, limit len(sequence of Local complementations)
+    lc_method="",  # input
+    noise_simulation=False,  # input
     noise_model_mapping="depolarizing",  # input
     depolarizing_rate=0.005,  # input
-    error_margin=0.02,  # input
+    error_margin=0.1,  # input
     confidence=1,  # input
     mc_map=None,  # advanced*: pass a manual noise map for the monte carlo simulations
     n_cores=8,  # advanced: change if processor has different number of cores
     seed=None,  # input
-    graph_type="draw",  # input
-    graph_size=5,  # input
+    graph_type="adj",  # input
+    graph_size=adj1,  # input
     verbose=False,
     save_openqasm="none")
 
@@ -79,18 +91,17 @@ start0 = time.time()
 d = solver.solve()
 end0 = time.time()
 ray.shutdown()
+print("runtime0 = ", end0-start0)
 
-#
-start1 = time.time()
-end1 = time.time()
 # %%
 # results
 result = solver.result
+
 # default properties: "g": alternative graph, "score": infidelity, "map": order permutation map
-#print("number of cases found:", len(result))
+print("number of cases found:", len(result))
 # print("The infidelity", [x[1]["score"] for x in d])
 
-#print("RunTime: ", end1 - start1, )  # "\nStabiliTime: ", end0-start0)
+# print("RunTime: ", end1 - start1, )  # "\nStabiliTime: ", end0-start0)
 # print("1-p method inFidelity:", 1 - (1 - s.depolarizing_rate) ** n_noisy_gate(d[0][0]))
 print("Monte Carlo",
       [(param, settings.monte_carlo_params[param]) for param in ["n_sample", "n_single", "n_parallel", "seed"]])
@@ -115,7 +126,7 @@ for c in unwrapped_circ:
     e_depth = {}
     eff_depth = {}
     for e_i in range(c.n_emitters):
-        e_depth[e_i] = len(c.reg_gate_history(reg=e_i)[1])-2
+        e_depth[e_i] = len(c.reg_gate_history(reg=e_i)[1]) - 2
         # find the max topological depth between two consecutive measurements on the same emitter
         node_list = []
         for i, oper in enumerate(c.reg_gate_history(reg=e_i)[0]):
@@ -123,7 +134,7 @@ for c in unwrapped_circ:
             if type(oper).__name__ in ['Input', 'MeasurementCNOTandReset', 'Output']:
                 node_list.append(c.reg_gate_history(reg=e_i)[1][i])
         node_depth_list = [c._max_depth(n) for n in node_list]
-        depth_diff = [node_depth_list[j+1]-node_depth_list[j] for j in range(len(node_list)-1)]
+        depth_diff = [node_depth_list[j + 1] - node_depth_list[j] for j in range(len(node_list) - 1)]
         eff_depth[e_i] = max(depth_diff)
 
     max_emit_depth.append(max(e_depth.values()))
@@ -148,42 +159,63 @@ result.add_properties("graph_metric")
 # a bit complicated: for each index in the result object, there is a corresponding dict of graph_metrics.
 # for each graph, this dict contains the metric values for the metrics selected by user: {"met1": val1, ...} for each g
 result["graph_metric"] = [dict() for _ in range(len(result))]
-graph_met_list = ["node_connect","cluster","local_efficiency","global_efficiency","max_between","max_close","min_close",
-                  "mean_nei_deg","edge_connect","assort","radius","diameter","periphery","center"] # input
+graph_met_list = ["node_connect", "cluster", "local_efficiency", "global_efficiency", "max_between", "max_close",
+                  "min_close",
+                  "mean_nei_deg", "edge_connect", "assort", "radius", "diameter", "periphery", "center"]  # input
+graph_met_list = []
 for met in graph_met_list:
     for i, g in enumerate(result["g"]):
         result["graph_metric"][i][met] = graph_met_value(met, g)
 
+
 # %% Plot
 
-met_hist(result, "score")
-met_hist(result, "n_cnots")
-met_hist(result, "depth")
+def plot_figs(indices=None, dir_name='new'):
+    met_hist(result, "score", show_plot=False, index_list=indices, dir_name=dir_name)
+    met_hist(result, "n_cnots", show_plot=False, index_list=indices, dir_name=dir_name)
+    met_hist(result, "depth", show_plot=False, index_list=indices, dir_name=dir_name)
+    met_met(result, "n_cnots", "score", show_plot=False, index_list=indices, dir_name=dir_name)
 
-met_met(result, "n_cnots", "score")
-
-met_met(result, "n_cnots", "mean_nei_deg")
-met_met(result, "n_cnots", "node_connect")
-met_met(result, "n_cnots", "edge_connect")
-met_met(result, "n_cnots", "assort")
-met_met(result, "n_cnots", "radius")
-met_met(result, "n_cnots", "diameter")
-met_met(result, "n_cnots", "periphery")
-met_met(result, "n_cnots", "center")
-met_met(result, "n_cnots", "cluster")
-
+    met_met(result, "n_cnots", "mean_nei_deg", show_plot=False, index_list=indices, dir_name=dir_name)
+    met_met(result, "n_cnots", "node_connect", show_plot=False, index_list=indices, dir_name=dir_name)
+    met_met(result, "n_cnots", "edge_connect", show_plot=False, index_list=indices, dir_name=dir_name)
+    met_met(result, "n_cnots", "assort", show_plot=False, index_list=indices, dir_name=dir_name)
+    met_met(result, "n_cnots", "radius", show_plot=False, index_list=indices, dir_name=dir_name)
+    met_met(result, "n_cnots", "diameter", show_plot=False, index_list=indices, dir_name=dir_name)
+    met_met(result, "n_cnots", "periphery", show_plot=False, index_list=indices, dir_name=dir_name)
+    met_met(result, "n_cnots", "center", show_plot=False, index_list=indices, dir_name=dir_name)
+    met_met(result, "n_cnots", "cluster", show_plot=False, index_list=indices, dir_name=dir_name)
 
 
 # %% Pre-Post processing
 # metrics to measure:
 "fidelity, CNOT count, max emitter depth (corrected), emitter effective depth, circuit depth (corrected)"
 # separate the circuits with same relabeling map to be analyzed alone
-# maps_list = list(set(result["map"]))
-# # a dictionary between each relabel map and a list of indices in result corresponding to that map
-# index_map_dict = dict(zip(maps_list, [[] for _ in maps_list]))
-# for i in range(len(result)):
-#     index_map_dict[result["map"][i]].append(i)
+maps_list = list(set([tuple(result["map"][i].items()) for i in range(len(result))]))
+# a dictionary between each relabel map and a list of indices in result corresponding to that map
+index_map_dict = dict(zip(maps_list, [[] for _ in maps_list]))
+for i in range(len(result)):
+    index_map_dict[tuple(result["map"][i].items())].append(i)
 
+
+def plot_map_based():
+    for i, index_list in enumerate(index_map_dict.values()):
+        plot_figs(indices=index_list, dir_name=f'map_{i}_len{len(index_list)}')
+
+
+def plot_graphs():
+    for i, g in enumerate(result['g']):
+        nx.draw_networkx(g, with_labels=1, pos=nx.kamada_kawai_layout(g))
+        plt.figtext(0.10, 0.05, f"# of CNOTs {result['n_cnots'][i]}")
+        plt.figtext(0.30, 0.05, f"# of emitters {result['n_emitters'][i]}")
+        plt.figtext(0.50, 0.05, f"fidelity {round(1-result['score'][i], 3)}")
+        plt.figtext(0.70, 0.05, f"max E-depth {result['max_emit_eff_depth'][i]}")
+        plt.show()
+
+
+#plot_figs()
+# plot_graphs()
+# plot_map_based()
 
 # %% analyze
 # corr = GraphCorr(graph_list=g_list)
@@ -204,3 +236,9 @@ met_met(result, "n_cnots", "cluster")
 # nx.draw_networkx(min_min_emit_cnot[0][1]['g'], with_labels=1)
 # nx.draw_networkx(min_min_emit_depth[0][1]['g'], with_labels=1)
 # plt.show()
+
+
+#%%
+# ll=[(i,result['max_emit_eff_depth'][i]) for i, x in enumerate(result['n_cnots']) if x==2]
+# ll.sort(key=lambda x: x[1])
+# print([result['n_emitters'][i] for i, x in enumerate(result['n_cnots']) if x==2])

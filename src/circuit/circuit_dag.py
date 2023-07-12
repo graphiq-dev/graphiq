@@ -1006,18 +1006,36 @@ class CircuitDAG(CircuitBase):
         """
         Helper function to return correct edge from edges that map to the correct register.
 
+        :param t_edges: input edge
+        :type t_edges: edge
+        :param t_register: register
+        :type t_register: str
+        :return: correct edge
+        :rtype: edge
+        """
+        for e in t_edges:
+            if e[-1] == t_register:
+                return e
+
+    def group_one_qubit_gates(self):
+        """
+        Put consecutive one-qubit gates into a OneQubitGateWrapper
+
+        :return: nothing
+        :rtype: None
+        """
         for node in self.node_dict["Output"]:
             reg_type = self.dag.nodes[node]["op"].reg_type
             register = self.dag.nodes[node]["op"].register
             gate_list = []
 
             in_edges = self.dag.in_edges(nbunch=node, keys=True)
-            next_node = edge_from_reg(in_edges, f"{reg_type}{register}")[0]
+            next_node = self.edge_from_reg(in_edges, f"{reg_type}{register}")[0]
 
             while next_node not in self.node_dict["Input"]:
                 node = next_node
                 in_edges = self.dag.in_edges(nbunch=node, keys=True)
-                edge = edge_from_reg(in_edges, f"{reg_type}{register}")
+                edge = self.edge_from_reg(in_edges, f"{reg_type}{register}")
                 next_node = edge[0]
 
                 if node in self.node_dict["one-qubit"]:
@@ -1032,7 +1050,7 @@ class CircuitDAG(CircuitBase):
                 if next_node not in self.node_dict["one-qubit"] and gate_list:
                     # insert new op here
                     out_edges = self.dag.out_edges(nbunch=next_node, keys=True)
-                    insert_edge = edge_from_reg(out_edges, f"{reg_type}{register}")
+                    insert_edge = self.edge_from_reg(out_edges, f"{reg_type}{register}")
                     self.insert_at(
                         ops.OneQubitGateWrapper(gate_list, register, reg_type),
                         [insert_edge],

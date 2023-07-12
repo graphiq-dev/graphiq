@@ -246,7 +246,7 @@ class QuantumState:
         :return: function returns nothing
         :rtype: None
         """
-        # TODO: Need to think about how to deal with mutiple state representations at the same time.
+        # TODO: Need to think about how to deal with multiple state representations at the same time.
         if self._stabilizer is None:
             warnings.warn(
                 UserWarning(
@@ -302,7 +302,7 @@ class QuantumState:
         :rtype: None
         """
         self._graph = Graph(data)
-        # TODO: adjust root_node_id field once we've figured out how we want to use it
+
         assert self._graph.n_qubit == self.n_qubits, (
             f"Expected {self.n_qubits} qubits, "
             f"graph representation has {self._graph.n_qubit}"

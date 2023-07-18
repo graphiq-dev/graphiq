@@ -386,10 +386,25 @@ class AlternateGraphSolver:
                 lc_graphs = lc_orbit_finder(
                     iso_graph, comp_depth=setting.lc_orbit_depth, orbit_size_thresh=n_lc, with_iso=True
                 )
-            else:
+            elif setting.lc_method == "random":
+                lc_graphs = lc_orbit_finder(
+                    iso_graph, comp_depth=setting.lc_orbit_depth, orbit_size_thresh=n_lc, rand=True
+                )
+            elif setting.lc_method == "random_with_iso":
+                lc_graphs = lc_orbit_finder(
+                    iso_graph, comp_depth=setting.lc_orbit_depth, orbit_size_thresh=n_lc, with_iso=True, rand=True
+                )
+            elif setting.lc_method == "random_with_rep":
+                lc_graphs = lc_orbit_finder(
+                    iso_graph, comp_depth=setting.lc_orbit_depth, orbit_size_thresh=n_lc, with_iso=True, rand=True,
+                    rep_allowed=True
+                )
+            elif setting.lc_method is None:
                 lc_graphs = lc_orbit_finder(
                     iso_graph, comp_depth=setting.lc_orbit_depth, orbit_size_thresh=n_lc
                 )
+            else:
+                raise ValueError("LC method is not valid, set to a valid string or None")
             lc_circ_list = []
             lc_score_list = []
             rmap = get_relabel_map(self.target_graph, iso_graph)

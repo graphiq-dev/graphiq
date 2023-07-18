@@ -2,50 +2,14 @@
 # data collection script #
 ###
 import time
-import pandas as pd
-import os
-import json
 
-import networkx as nx
 import numpy as np
-import src.ops as ops
-import matplotlib.pyplot as plt
-import src.noise.monte_carlo_noise as mcn
-import src.utils.preprocessing as pre
-import src.utils.circuit_comparison as comp
-import src.noise.noise_models as nm
-import src.backends.lc_equivalence_check as lc
-import src.backends.stabilizer.functions.local_cliff_equi_check as slc
-from src.solvers.evolutionary_solver import (
-    EvolutionarySolver,
-    EvolutionarySearchSolverSetting,
-)
-
-from src.solvers.solver_base import SolverBase
-from src.solvers.deterministic_solver import DeterministicSolver
-from src.backends.compiler_base import CompilerBase
-from src.circuit import CircuitDAG
-from src.metrics import MetricBase
-from src.state import QuantumState
-from src.io import IO
-from src.utils.relabel_module import iso_finder, emitter_sorted, lc_orbit_finder, get_relabel_map
-from src.backends.state_representation_conversion import stabilizer_to_graph
-from src.backends.stabilizer.functions.rep_conversion import (
-    get_clifford_tableau_from_graph,
-)
-from src.backends.stabilizer.compiler import StabilizerCompiler
-from src.backends.density_matrix.compiler import DensityMatrixCompiler
-from src.metrics import Infidelity
-from src.backends.stabilizer.state import Stabilizer
-from src.solvers.hybrid_solvers import HybridGraphSearchSolverSetting
-from src.solvers.hybrid_solvers import AlternateGraphSolver
-
-from benchmarks.graph_states import linear_cluster_state, repeater_graph_states, lattice_cluster_state
-
-import ray
-
+import pandas as pd
 from src.data_collection.ui_functions import *
 from correlation_module import *
+from scipy.stats import spearmanr, pearsonr
+
+from src.utils.relabel_module import lc_orbit_finder
 
 # %% initialize target graph
 # options are "rnd": random, "tree": random tree, "rgs": repeater graph state, "linear": linear cluster state,
@@ -103,13 +67,17 @@ print("Monte Carlo",
 # results
 
 
-def result_maker(result):
+def result_maker(result, graph_met_list=[]):
     # default properties: "g": alternative graph, "score": infidelity, "map": order permutation map
     # print("number of cases found:", len(result))
     # print("The infidelity", [x[1]["score"] for x in d])
 
     # print("RunTime: ", end1 - start1, )  # "\nStabiliTime: ", end0-start0)
     # print("1-p method inFidelity:", 1 - (1 - s.depolarizing_rate) ** n_noisy_gate(d[0][0]))
+
+    # graph_met_list = ["node_connect", "cluster", "local_efficiency", "global_efficiency", "max_between", "max_close",
+    #                   "min_close", "mean_nei_deg", "edge_connect", "assort", "radius", "diameter", "periphery",
+    #                   "center", "pop", "max_deg", "n_edges", "avg_shortest_path"]  # input
 
     result.add_properties("n_emitters")
     result.add_properties("n_cnots")
@@ -165,10 +133,7 @@ def result_maker(result):
     # a bit complicated: for each index in the result object, there is a corresponding dict of graph_metrics.
     # for each graph, this dict contains the metric values for the metrics selected by user: {"met1": val1, ...} for each g
     result["graph_metric"] = [dict() for _ in range(len(result))]
-    graph_met_list = ["node_connect", "cluster", "local_efficiency", "global_efficiency", "max_between", "max_close",
-                      "min_close",
-                      "mean_nei_deg", "edge_connect", "assort", "radius", "diameter", "periphery", "center"]  # input
-    graph_met_list = []
+
     for met in graph_met_list:
         for i, g in enumerate(result["g"]):
             result["graph_metric"][i][met] = graph_met_value(met, g)
@@ -180,29 +145,64 @@ def result_maker(result):
 
 
 # %% Plot
+def plot_figs(result, indices=None, dir_name='new', graph_mets=None, circ_mets=None):
+    circ_mets = ["n_cnots", "max_emit_eff_depth", "score"] if circ_mets is None else circ_mets
+    if graph_mets is None:
+        graph_mets = ["global_efficiency", "n_edges", "mean_nei_deg", "node_connect", "avg_shortest_path",
+                      "max_between", "cluster"]
+    for c_met in circ_mets:
+        met_hist(result, c_met, show_plot=False, index_list=indices, dir_name=dir_name)
+        for g_met in graph_mets:
+            met_met(result, c_met, g_met, show_plot=False, index_list=indices, dir_name=dir_name)
 
-def plot_figs(result, indices=None, dir_name='new'):
-    met_hist(result, "score", show_plot=False, index_list=indices, dir_name=dir_name)
-    met_hist(result, "n_cnots", show_plot=False, index_list=indices, dir_name=dir_name)
-    met_hist(result, "depth", show_plot=False, index_list=indices, dir_name=dir_name)
-    met_met(result, "n_cnots", "score", show_plot=False, index_list=indices, dir_name=dir_name)
 
-    met_met(result, "n_cnots", "mean_nei_deg", show_plot=False, index_list=indices, dir_name=dir_name)
-    met_met(result, "n_cnots", "node_connect", show_plot=False, index_list=indices, dir_name=dir_name)
-    met_met(result, "n_cnots", "edge_connect", show_plot=False, index_list=indices, dir_name=dir_name)
-    met_met(result, "n_cnots", "assort", show_plot=False, index_list=indices, dir_name=dir_name)
-    met_met(result, "n_cnots", "radius", show_plot=False, index_list=indices, dir_name=dir_name)
-    met_met(result, "n_cnots", "diameter", show_plot=False, index_list=indices, dir_name=dir_name)
-    met_met(result, "n_cnots", "periphery", show_plot=False, index_list=indices, dir_name=dir_name)
-    met_met(result, "n_cnots", "center", show_plot=False, index_list=indices, dir_name=dir_name)
-    met_met(result, "n_cnots", "cluster", show_plot=False, index_list=indices, dir_name=dir_name)
+# %% correlations
+def correlation_checker(result, list_mets1, list_mets2):
+    """
+    :param result: result object
+    :param list_mets1: list of circuit metrics
+    :param list_mets2: list of grpah metrics
+    :return: all combination of graph and circuit metrics linear correlations will be calculated
+    """
+    for met1 in list_mets1:
+        for met2 in list_mets2:
+            x = [g_met[f'{met1}'] for g_met in result['graph_metric']] if met1 in result['graph_metric'][0] else result[
+                f'{met1}']
+            y = [g_met[f'{met2}'] for g_met in result['graph_metric']] if met2 in result['graph_metric'][0] else result[
+                f'{met2}']
+            corr_s, p_value_s = spearmanr(x, y)
+            print(f'Spearmans {met1}-{met2}: %.3f' % corr_s, round(p_value_s, 3))
+            corr_p, p_value_p = pearsonr(x, y)
+            print(f'Pearsons {met1}-{met2}: %.3f' % corr_p, round(p_value_p, 3))
+
+
+def corr_with_mean(list1, list2):
+    """
+    given two lists of data corresponding to each other element by element, it finds the correlation between list1 with
+    mean values of list 2. For instance, the average number of cnots corresponding to each case of edge count in graph.
+    :param list1: to be used as reference
+    :param list2: to be averaged over for each case
+    :return: pearson correlation coefficient
+    """
+    corr_dict = dict()
+    for i, x in enumerate(list1):
+        if corr_dict.get(x):
+            corr_dict[x].append(list2[i])
+        else:
+            corr_dict[x] = [list2[i]]
+    corr_list1 = list(corr_dict.keys())
+    corr_list2 = [np.mean(val) for val in corr_dict.values()]
+    corr_list2_std = [np.std(val) for val in corr_dict.values()]
+    corr_p, p_value_p = pearsonr(corr_list1, corr_list2)
+    print(f'Pearsons List1 vs Mean_List2: %.3f' % corr_p, round(p_value_p, 3))
+    return corr_p, (corr_list1, corr_list2, corr_list2_std)
 
 
 # %% Pre-Post processing
 # metrics to measure:
 "fidelity, CNOT count, max emitter depth (corrected), emitter effective depth, circuit depth (corrected)"
 # separate the circuits with same relabeling map to be analyzed alone
-result = {"map": [0]}
+result = {"map": [{0: 0}]}
 maps_list = list(set([tuple(result["map"][i].items()) for i in range(len(result))]))
 # a dictionary between each relabel map and a list of indices in result corresponding to that map
 index_map_dict = dict(zip(maps_list, [[] for _ in maps_list]))
@@ -267,21 +267,21 @@ def _edge2adj(e_list):
 edge_seq = []
 
 
-def lcs(edge_seq, method="lc_with_iso"):
+def lcs(edge_seq, method="lc_with_iso", n_lc_graphs=None):
     adj1 = _edge2adj(edge_seq)
     user_input0 = InputParams(
         n_ordering=1,  # input
         rel_inc_thresh=0.2,  # advanced: (0,1) The closer to 0 the closer we get to an exhaustive search for reordering.
         allow_exhaustive=True,  # advanced*: only reason to deactivate is to save runtime if this is the bottleneck
         iso_thresh=None,  # advanced: if not enough relabeled graphs are found, set it to a larger number!
-        n_lc_graphs=None,  # input
+        n_lc_graphs=n_lc_graphs,  # input
         lc_orbit_depth=None,  # advanced: if hit the runtime limit, limit len(sequence of Local complementations)
         lc_method=method,  # input
         noise_simulation=False,  # input
         noise_model_mapping="depolarizing",  # input
         depolarizing_rate=0.005,  # input
         error_margin=0.1,  # input
-        confidence=1,  # input
+        confidence=0.99,  # input
         mc_map=None,  # advanced*: pass a manual noise map for the monte carlo simulations
         n_cores=8,  # advanced: change if processor has different number of cores
         seed=1,  # input
@@ -292,8 +292,8 @@ def lcs(edge_seq, method="lc_with_iso"):
 
     solver = user_input0.solver
     nx.draw_networkx(user_input0.target_graph, with_labels=True)
-    plt.show()
-    plt.close()
+    # plt.show()
+    # plt.close()
     solver.solve()
     result0 = solver.result
     result0 = result_maker(result0)
@@ -302,9 +302,9 @@ def lcs(edge_seq, method="lc_with_iso"):
     return lc_adjs
 
 
-def find_best(adj1, file_name="case1", dir_name="new", conf=1):
+def find_best(adj1, file_name="case1", dir_name="new", conf=0.99, n_reordering=None):
     nn = np.shape(adj1)[0]
-    max_relabel = np.math.factorial(nn)
+    max_relabel = np.math.factorial(nn) if n_reordering is None else n_reordering
     user_input = InputParams(
         n_ordering=max_relabel,  # input
         rel_inc_thresh=0.2,  # advanced: (0,1) The closer to 0 the closer we get to an exhaustive search for reordering.
@@ -312,8 +312,8 @@ def find_best(adj1, file_name="case1", dir_name="new", conf=1):
         iso_thresh=None,  # advanced: if not enough relabeled graphs are found, set it to a larger number!
         n_lc_graphs=1,  # input
         lc_orbit_depth=1,  # advanced: if hit the runtime limit, limit len(sequence of Local complementations)
-        lc_method="",  # input
-        noise_simulation=True,  # input
+        lc_method=None,  # input
+        noise_simulation=conf,  # input
         noise_model_mapping="depolarizing",  # input
         depolarizing_rate=0.005,  # input
         error_margin=0.05,  # input
@@ -351,8 +351,16 @@ def find_best(adj1, file_name="case1", dir_name="new", conf=1):
     return out_dict
 
 
-def graph_analyzer(edge_seq, graph_class: str, method="lc_with_iso", conf=1):
-    lc_adjs = lcs(edge_seq, method=method)###
+def graph_analyzer(edge_seq, graph_class: str, method="lc_with_iso", conf=1, n_lc_graphs=None, n_reordering=None):
+    """
+    exhaustive graph analyzer given the flattened edge list
+    :param edge_seq:
+    :param graph_class:
+    :param method:
+    :param conf: confidence for noise simulation
+    :return:
+    """
+    lc_adjs = lcs(edge_seq, method=method, n_lc_graphs=n_lc_graphs)  ###
     print("number of LC graphs = ", len(lc_adjs))
     # relabeled_info = {'index': list(range(len(n_es))), 'map': maps, 'n_emitters': n_es}###
     # df = pd.DataFrame(relabeled_info)
@@ -363,21 +371,43 @@ def graph_analyzer(edge_seq, graph_class: str, method="lc_with_iso", conf=1):
     # df.to_csv(file_name, index=False)
     best_cost = ("", 10E6, [])  # 1st element is which iso and lc is this graph, 2nd is the cost, 3rd is the edge list
     best_fid = ("", 0, [])
+    worst_cost = ("", 0, [])
+    worst_fid = ("", 1, [])
+    best_ncnot = ("", 10E6, [])
+    worst_ncnot = ("", 0, [])
+    best_depth = ("", 10E6, [])
+    worst_depth = ("", 0, [])
     num_iso_list = []
     for i, adj in enumerate(lc_adjs):
-        out_dict = find_best(adj, file_name=f"case{i}", dir_name=graph_class, conf=conf)
+        out_dict = find_best(adj, file_name=f"case{i}", dir_name=graph_class, conf=conf, n_reordering=n_reordering)
         num_iso_list.append(len(out_dict['cost']))
         for j, edge_list in enumerate(out_dict['edges']):
             if out_dict['cost'][j] < best_cost[1]:
                 best_cost = (f"LC: {i} iso: {j}", out_dict['cost'][j], edge_list)
+            if out_dict['cost'][j] > worst_cost[1]:
+                worst_cost = (f"LC: {i} iso: {j}", out_dict['cost'][j], edge_list)
+            if out_dict['n_cnots'][j] < best_ncnot[1]:
+                best_ncnot = (f"LC: {i} iso: {j}", out_dict['n_cnots'][j], edge_list)
+            if out_dict['n_cnots'][j] > worst_ncnot[1]:
+                worst_ncnot = (f"LC: {i} iso: {j}", out_dict['n_cnots'][j], edge_list)
+            if out_dict['max_emit_eff_depth'][j] < best_depth[1]:
+                best_depth = (f"LC: {i} iso: {j}", out_dict['max_emit_eff_depth'][j], edge_list)
+            if out_dict['max_emit_eff_depth'][j] > worst_depth[1]:
+                worst_depth = (f"LC: {i} iso: {j}", out_dict['max_emit_eff_depth'][j], edge_list)
             if out_dict['fidelity'][j] > best_fid[1]:
                 best_fid = (f"LC: {i} iso: {j}", out_dict['fidelity'][j], edge_list)
+            if out_dict['fidelity'][j] < best_fid[1]:
+                worst_fid = (f"LC: {i} iso: {j}", out_dict['fidelity'][j], edge_list)
     print("number of LC graphs = ", len(lc_adjs))
     print("number of iso found = ", num_iso_list, f"\ntotal number of cases = {sum(num_iso_list)}")
 
     text = f"number of LC graphs = {len(lc_adjs)}\nnumber of iso found = {num_iso_list}" \
            f"\nbest graph w.r.t cost {best_cost[0]}\nbest graph w.r.t fidelity {best_fid[0]}" \
-           f"\ntotal number of cases = {sum(num_iso_list)}"
+           f"\nworst graph w.r.t cost {worst_cost[0]}\nworst graph w.r.t fidelity {worst_fid[0]}" \
+           f"\nbest n cnot {best_ncnot[1]}: {best_ncnot[0]}\nworst n cnot {worst_ncnot[1]}: {worst_ncnot[0]}" \
+           f"\nbest depth {best_depth[1]}: {best_depth[0]}\nworst depth {worst_depth[1]}: {worst_depth[0]}" \
+           f"\ntotal number of cases = {sum(num_iso_list)}" \
+           f"\nLC method {method}, none exhaustive? LC {n_lc_graphs}, n_order {n_reordering}"
     filename = new_path + f'/bests.txt'
     with open(filename, "w") as file:
         file.write(text)
@@ -398,7 +428,140 @@ def graph_analyzer(edge_seq, graph_class: str, method="lc_with_iso", conf=1):
     nx.draw_networkx(g2, pos=nx.kamada_kawai_layout(g2))
     plt.savefig(new_path + f'/best_fid.png')
     plt.close(fig)
-    return best_fid, best_cost
+    return best_fid, best_cost, best_ncnot, best_depth, worst_fid, worst_cost, worst_ncnot, worst_depth
+
 
 # %%
-graph_analyzer([0,1,1,2,2,3,3,4,4,5,5,0,0,2,5,3,1,4], "class 19", method="", conf=1)
+def LC_scaling_test(g, graph_class: str, method="random_with_iso", conf=0, n_lc_list=[*(range(1, 10))], n_reordering=1):
+    edge_list = [*g.edges]
+    edges = [x for sublist in edge_list for x in sublist]
+    bw = []  # best worst cases
+    avgs_cnots = []
+    avgs_depths = []
+    stds_cnots = []
+    stds_depths = []
+    for i, n in enumerate(n_lc_list):
+        bw.append([])
+        for j in range(50):
+            bw[i].append(graph_analyzer(edges, f"{graph_class}/LC{n}/T{j}", method=method, conf=conf,
+                                        n_lc_graphs=n, n_reordering=n_reordering))
+        bw_cnot_i = [(x[2][1], x[6][1]) for x in bw[i]]  # best and worst number of CNOTS
+        bw_depth_i = [(x[3][1], x[7][1]) for x in bw[i]]  # best and worst depth
+        avg_c = tuple(np.mean(x) for x in zip(*bw_cnot_i))
+        avg_d = tuple(np.mean(x) for x in zip(*bw_depth_i))
+
+        std_c = tuple(np.std(x) for x in zip(*bw_cnot_i))
+        std_d = tuple(np.std(x) for x in zip(*bw_depth_i))
+
+        avgs_cnots.append(avg_c)
+        avgs_depths.append(avg_d)
+        stds_cnots.append(std_c)
+        stds_depths.append(std_d)
+
+    df_cnot = pd.DataFrame((avgs_cnots, stds_cnots))
+    df_depth = pd.DataFrame((avgs_depths, stds_depths))
+
+    output_path1 = f'/Users/sobhan/Desktop/EntgClass/{graph_class}/bwCNOT.csv'
+    df_cnot.to_csv(output_path1, index=False, header=False)
+    output_path2 = f'/Users/sobhan/Desktop/EntgClass/{graph_class}/bwDepth.csv'
+    df_depth.to_csv(output_path2, index=False, header=False)
+    return avgs_cnots, stds_cnots, avgs_depths, stds_depths, bw
+
+
+def iso_scaling_test(g, graph_class: str, method=None, conf=0, n_lc_graphs=1, n_iso_list=[*(range(1, 10))]):
+    adj_matrix = nx.to_numpy_array(g)
+    nodes = [*g.nodes]
+    bw = []  # best worst cases
+    avgs_cnots = []
+    avgs_depths = []
+    stds_cnots = []
+    stds_depths = []
+    for i, n in enumerate(n_iso_list):
+        bw.append([])
+        for j in range(50):
+            # randomize each initial graph
+            np.random.shuffle(nodes)
+            new_adj = relabel(adj_matrix, nodes)
+            g = nx.from_numpy_array(new_adj)
+            edge_list = [*g.edges]
+            edges = [x for sublist in edge_list for x in sublist]
+
+            bw[i].append(graph_analyzer(edges, f"{graph_class}/ISO{n}/T{j}", method=method, conf=conf,
+                                        n_lc_graphs=n_lc_graphs, n_reordering=n))
+        bw_cnot_i = [(x[2][1], x[6][1]) for x in bw[i]]  # best and worst number of CNOTS
+        bw_depth_i = [(x[3][1], x[7][1]) for x in bw[i]]  # best and worst depth
+        avg_c = tuple(np.mean(x) for x in zip(*bw_cnot_i))
+        avg_d = tuple(np.mean(x) for x in zip(*bw_depth_i))
+
+        std_c = tuple(np.std(x) for x in zip(*bw_cnot_i))
+        std_d = tuple(np.std(x) for x in zip(*bw_depth_i))
+
+        avgs_cnots.append(avg_c)
+        avgs_depths.append(avg_d)
+        stds_cnots.append(std_c)
+        stds_depths.append(std_d)
+
+    df_cnot = pd.DataFrame((avgs_cnots, stds_cnots))
+    df_depth = pd.DataFrame((avgs_depths, stds_depths))
+
+    output_path1 = f'/Users/sobhan/Desktop/EntgClass/{graph_class}/bwCNOT.csv'
+    df_cnot.to_csv(output_path1, index=False, header=False)
+    output_path2 = f'/Users/sobhan/Desktop/EntgClass/{graph_class}/bwDepth.csv'
+    df_depth.to_csv(output_path2, index=False, header=False)
+    return avgs_cnots, stds_cnots, avgs_depths, stds_depths, bw
+
+
+def LC_scaling_known(result, graph_class: str, n_lc_list=None):
+    if n_lc_list is None:
+        n_lc_list = [*(range(1, 10))]
+    b = len(result)
+    c_means = []
+    c_stds = []
+    d_means = []
+    d_stds = []
+    for n_lc in n_lc_list:
+        c_range = []
+        d_range = []
+        for j in range(50):
+            random_integers = np.random.randint(0, b, n_lc)
+            cnots = [result['n_cnots'][i] for i in random_integers]
+            depth = [result['max_emit_eff_depth'][i] for i in random_integers]
+            c_range.append(max(cnots) - min(cnots))
+            d_range.append(max(depth) - min(depth))
+        c_means.append((0, np.mean(c_range)))
+        c_stds.append((np.std(c_range), np.std(c_range)))
+        d_means.append((0, np.mean(d_range)))
+        d_stds.append((np.std(d_range), np.std(d_range)))
+    df_cnot = pd.DataFrame((c_means, c_stds))
+    df_depth = pd.DataFrame((d_means, d_stds))
+
+    output_path1 = f'/Users/sobhan/Desktop/EntgClass/{graph_class}/bwCNOT.csv'
+    df_cnot.to_csv(output_path1, index=False, header=False)
+    output_path2 = f'/Users/sobhan/Desktop/EntgClass/{graph_class}/bwDepth.csv'
+    df_depth.to_csv(output_path2, index=False, header=False)
+    return c_means, c_stds, d_means, d_stds
+
+
+def rgs_analysis(res_rgsn, filename: str):
+    n_cnots = []
+    for c in res_rgsn['circuit']:
+        if "Emitter-Emitter" in c.node_dict:
+            n_cnots.append(len(c.get_node_by_labels(["Emitter-Emitter", "CNOT"])))
+        else:
+            n_cnots.append(0)
+    res_rgsn.add_properties("n_cnot")
+    res_rgsn["n_cnots"] = n_cnots
+    graph_met_list = ["node_connect", "cluster", "local_efficiency", "global_efficiency", "max_between", "max_close",
+                      "min_close", "mean_nei_deg", "edge_connect", "radius", "diameter", "periphery",
+                      "center", "pop", "max_deg", "n_edges", "avg_shortest_path", "assort"]
+    res_rgsn.add_properties("graph_metric")
+    res_rgsn["graph_metric"] = [dict() for _ in range(len(res_rgsn))]
+    for met in graph_met_list:
+        for i, g in enumerate(res_rgsn["g"]):
+            res_rgsn["graph_metric"][i][met] = graph_met_value(met, g)
+    res_rgsn.save2json(f"/Users/sobhan/Desktop/EntgClass/RGS/{filename}", f'{filename}')
+    correlation_checker(res_rgsn, ['n_cnots'], graph_met_list)
+    plot_figs(res_rgsn, indices=None, dir_name=filename, graph_mets=graph_met_list, circ_mets=['n_cnots'])
+# %%
+# graph_analyzer([0,1,1,2,2,3,3,4,4,5,5,0,0,2,5,3,1,4], "class 19", method="", conf=1)
+# LC_scaling_test(g,"random_8_05", method="random_with_iso", conf=0, n_lc_list=[*(range(2, 10))], n_reordering=1)

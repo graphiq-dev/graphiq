@@ -80,6 +80,10 @@ def t_graph(gtype, n, seed=None, show=False):
         g = nx.from_numpy_array(nx.to_numpy_array(star_graph_state(n).data))
     elif gtype == "adj":
         g = nx.from_numpy_array(n)
+    elif gtype == "nx":
+        # networkx graph
+        assert isinstance(n, nx.Graph)
+        g = n
     else:
         raise ValueError
     if show:
@@ -441,6 +445,10 @@ def graph_met_value(graph_metric, g):
         graph_value = nx.global_efficiency(g)
     elif graph_metric == "node":
         graph_value = g.number_of_nodes()
+    elif graph_metric == "avg_shortest_path":
+        graph_value = nx.average_shortest_path_length(g)
+    elif graph_metric == "n_edges":
+        graph_value = nx.number_of_edges(g)
     elif graph_metric == "pop":
         nodes = g.number_of_nodes()
         edges = g.size()

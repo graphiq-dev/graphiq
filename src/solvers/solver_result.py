@@ -1,4 +1,8 @@
+import networkx as nx
 import numpy as np
+import json
+import warnings
+
 
 
 class SolverResult:
@@ -158,3 +162,27 @@ class SolverResult:
         sorted_data_tuple = sorted(data_tuple_list, key=lambda x: x[p_index])
         for j, p in enumerate(data_dict.keys()):
             self._data[p] = [sorted_data_tuple[i][j] for i in range(n_result)]
+
+    def save2json(self, path, filename):
+        data_dict = self._data.copy()
+        data_dict['g'] = [list(nx.to_edgelist(g)) for g in self._data['g']]
+        data_dict['circuit'] = [c.to_openqasm() for c in self._data['circuit']]
+        with open(f'{path}/{filename}.json', 'w') as f:
+            json.dump(data_dict, f)
+
+    def load_json(self, path, filename):
+        with open(f'{path}/{filename}.json', 'r') as f:
+            loaded_dict = json.load(f)
+        for properties in loaded_dict.keys():
+            if properties == 'g':
+                self._data['g'] = [nx.from_edgelist(g) for g in loaded_dict['g']]
+            else:
+                self._data[properties] = loaded_dict[properties]
+        warnings.warn("The circuits in the loaded result object are now openqasm strings!")
+        diff = set(self.properties) - set(loaded_dict.keys()) - {'circuit', 'circuit_id'}
+        if diff:
+            warnings.warn("")
+        # TODO: from openqasm to circuit object
+        # self._data['circuit'] = [QuantumCircuit.from_qasm_str(c) for c in loaded_dict['circuit']]
+
+

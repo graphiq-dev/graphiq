@@ -1,6 +1,7 @@
 import networkx as nx
 import numpy as np
 import matplotlib.pyplot as plt
+import random
 from src.backends.stabilizer.functions.height import height_max
 from itertools import permutations
 from networkx.algorithms import isomorphism
@@ -300,6 +301,8 @@ def get_relabel_map(g1, g2):
     if not isinstance(g2, nx.Graph):
         g2 = nx.from_numpy_array(g2)
         assert isinstance(g2, nx.Graph)
+    if np.array_equal(nx.to_numpy_array(g1), nx.to_numpy_array(g2)):
+        return {0: 'self'}
     GM = isomorphism.GraphMatcher(g1, g2)
     assert GM.is_isomorphic()
     return GM.mapping
@@ -308,7 +311,7 @@ def get_relabel_map(g1, g2):
 # ## Local clifford equivalency orbit finders ##
 
 
-def lc_orbit_finder(graph: nx.Graph, comp_depth=None, orbit_size_thresh=None, with_iso=False):
+def lc_orbit_finder(graph: nx.Graph, comp_depth=None, orbit_size_thresh=None, with_iso=False, rand=False, rep_allowed=False):
     """
     Given a graph this functions tries all possible local-complementation sequences of length up to comp_depth to
     come up with new distinct graphs in the orbit of the input graph. The comp_depth determines the maximum depth of the
@@ -323,10 +326,21 @@ def lc_orbit_finder(graph: nx.Graph, comp_depth=None, orbit_size_thresh=None, wi
     :type orbit_size_thresh: int
     :param with_iso: if true, isomorph graphs will be kept in the orbit
     :type with_iso: bool
+    :param rand: if true the orbit finder applies LC operations on random nodes instead of exhaustive search
+    :type rand: bool
+    :param rand: if true the orbit finder does not check for iso or auto morphism; useful for large graphs.
+    :type rand: bool
     :return: list of distinct graphs in the orbit of original graph
     :rtype: list[nx.Graph]
     """
     orbit_list = [graph.copy()]
+    node_list = [*graph.nodes]
+    new_g = graph
+    if rand:
+        for i in range(min(10, len(graph))):
+            node_x = np.random.randint(0, len(graph))
+            new_g = local_comp_graph(new_g, node_x)
+        orbit_list = [new_g]
     if orbit_size_thresh == 1:
         return orbit_list
     new_graphs = 1
@@ -340,16 +354,21 @@ def lc_orbit_finder(graph: nx.Graph, comp_depth=None, orbit_size_thresh=None, wi
         len_before = len(orbit_list)
         # iterate over the new graphs appended to the end of the orbit list
         for graph in orbit_list[-new_graphs:]:
-            for node in graph.nodes:
+            if rand:
+                np.random.shuffle(node_list)
+            for node in node_list:
                 if graph.degree(node) > 1:
                     g_lc = local_comp_graph(graph, node)
-                    if not check_isomorphism(g_lc, orbit_list, _only_auto=with_iso):
-                        orbit_list.append(g_lc)
+                    if not rep_allowed:
+                        if not check_isomorphism(g_lc, orbit_list, _only_auto=with_iso):
+                            orbit_list.append(g_lc)
                 if (
                         orbit_size_thresh is not None
                         and len(orbit_list) >= orbit_size_thresh
                 ):
                     return orbit_list[:orbit_size_thresh]
+                if rand and len(orbit_list) > len_before:  # in random case we only keep 1 new graph
+                    break
         # orbit_list = remove_iso(orbit_list)
         len_after = len(orbit_list)
         new_graphs = len_after - len_before

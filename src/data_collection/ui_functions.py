@@ -65,7 +65,7 @@ def t_graph(gtype, n, seed=None, show=False):
         g = nx.random_tree(n, seed=seed)
     elif gtype == "rnd":
         rng = np.random.default_rng(seed=seed)
-        p = rng.integers(low=15, high=99, size=1)[0]/100
+        p = rng.integers(low=15, high=95, size=1)[0]/100
         g = nx.from_numpy_array(nx.to_numpy_array(random_graph_state(n, p_edge=p, np_rng=rng).data))
     elif gtype == "rgs":
         g = repeater_graph_states(n)

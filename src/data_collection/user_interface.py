@@ -28,7 +28,7 @@ adj1 = np.array([[0., 1., 1., 1., 1., 1., 1., 1., 1., 1.],
                  [1., 1., 0., 0., 0., 0., 0., 0., 0., 1.],
                  [1., 1., 0., 0., 0., 0., 0., 0., 1., 0.]])
 user_input = InputParams(
-    n_ordering=5000,  # input
+    n_ordering=1,  # input
     rel_inc_thresh=0.2,  # advanced: (0,1) The closer to 0 the closer we get to an exhaustive search for reordering.
     allow_exhaustive=True,  # advanced*: only reason to deactivate is to save runtime if this is the bottleneck
     iso_thresh=None,  # advanced: if not enough relabeled graphs are found, set it to a larger number!
@@ -344,6 +344,7 @@ def find_best(adj1, file_name="case1", dir_name="new", conf=0.99, n_reordering=N
         os.makedirs(new_path)
     filename = new_path + f'/{file_name}.csv'
     df.to_csv(filename, index=False)
+    result.save2json(new_path, f'res_{file_name}')
     cost = []
     for i in range(len(result)):
         cost.append(result['n_emitters'][i] * 100 + result['n_cnots'][i] * 10 + result['max_emit_eff_depth'][i])
@@ -562,6 +563,49 @@ def rgs_analysis(res_rgsn, filename: str):
     res_rgsn.save2json(f"/Users/sobhan/Desktop/EntgClass/RGS/{filename}", f'{filename}')
     correlation_checker(res_rgsn, ['n_cnots'], graph_met_list)
     plot_figs(res_rgsn, indices=None, dir_name=filename, graph_mets=graph_met_list, circ_mets=['n_cnots'])
+
+
+def rnd_graph_orbit_cnots(size, number_of_graphs):
+    list_cnot_list = []
+    restuls_list = []
+    rng = np.random.default_rng()
+    rnd_seeds = rng.integers(low=1, high=1000*number_of_graphs, size=number_of_graphs)
+    for i in rnd_seeds:
+        user_input0 = InputParams(
+            n_ordering=1,  # input
+            rel_inc_thresh=0.2,
+            # advanced: (0,1) The closer to 0 the closer we get to an exhaustive search for reordering.
+            allow_exhaustive=True,  # advanced*: only reason to deactivate is to save runtime if this is the bottleneck
+            iso_thresh=None,  # advanced: if not enough relabeled graphs are found, set it to a larger number!
+            n_lc_graphs=None,  # input
+            lc_orbit_depth=None,  # advanced: if hit the runtime limit, limit len(sequence of Local complementations)
+            lc_method="lc_with_iso",  # input
+            noise_simulation=False,  # input
+            noise_model_mapping="depolarizing",  # input
+            depolarizing_rate=0.005,  # input
+            error_margin=0.1,  # input
+            confidence=0.99,  # input
+            mc_map=None,  # advanced*: pass a manual noise map for the monte carlo simulations
+            n_cores=8,  # advanced: change if processor has different number of cores
+            seed=i,  # input
+            graph_type="rnd",  # input
+            graph_size=size,  # input
+            verbose=False,
+            save_openqasm="none")
+        solver = user_input0.solver
+        solver.solve()
+        result0 = solver.result
+        result0.add_properties("n_cnots")
+        n_cnots = []
+        for c in result0['circuit']:
+            if "Emitter-Emitter" in c.node_dict:
+                n_cnots.append(len(c.get_node_by_labels(["Emitter-Emitter", "CNOT"])))
+            else:
+                n_cnots.append(0)
+        result0["n_cnots"] = n_cnots
+        restuls_list.append(result0)
+        list_cnot_list.append(n_cnots)
+    return list_cnot_list, restuls_list
 # %%
 # graph_analyzer([0,1,1,2,2,3,3,4,4,5,5,0,0,2,5,3,1,4], "class 19", method="", conf=1)
 # LC_scaling_test(g,"random_8_05", method="random_with_iso", conf=0, n_lc_list=[*(range(2, 10))], n_reordering=1)

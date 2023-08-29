@@ -11,7 +11,7 @@ from src.backends.stabilizer.functions.stabilizer import (
     inverse_circuit,
 )
 from src.backends.stabilizer.functions.linalg import row_sum
-from src.backends.stabilizer.tableau import CliffordTableau
+from src.backends.stabilizer.clifford_tableau import CliffordTableau
 
 
 def fidelity(tableau1, tableau2):

@@ -40,7 +40,7 @@ def search_for_alternative_circuits(
     results = []
     target_tableau = get_clifford_tableau_from_graph(graph)
     n_photon = target_tableau.n_qubits
-    target = QuantumState(n_photon, target_tableau, representation="stabilizer")
+    target = QuantumState(target_tableau, representation="stab")
     compiler = StabilizerCompiler()
     compiler.noise_simulation = True
     compiler.measurement_determinism = 1
@@ -61,8 +61,8 @@ def search_for_alternative_circuits(
         keep=list(range(n_photon)),
         dims=(n_photon + n_emitter) * [2],
     )
-    if isinstance(compiled_state.stabilizer, MixedStabilizer):
-        prob = compiled_state.stabilizer.probability
+    if isinstance(compiled_state.rep_data, MixedStabilizer):
+        prob = compiled_state.rep_data.probability
 
     else:
         prob = 1
@@ -93,8 +93,8 @@ def search_for_alternative_circuits(
                 keep=list(range(n_photon)),
                 dims=(n_photon + n_emitter) * [2],
             )
-            if isinstance(compiled_state.stabilizer, MixedStabilizer):
-                prob = compiled_state.stabilizer.probability
+            if isinstance(compiled_state.rep_data, MixedStabilizer):
+                prob = compiled_state.rep_data.probability
             else:
                 prob = 1
             results.append((alternate_score, prob, alternate_circuit))

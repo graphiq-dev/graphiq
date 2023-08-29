@@ -7,7 +7,7 @@ import numpy as np
 import src.backends.stabilizer.functions.transformation as transform
 from src.backends.state_base import StateRepresentationBase
 import src.backends.stabilizer.functions.clifford as sfc
-from src.backends.stabilizer.tableau import CliffordTableau
+from src.backends.stabilizer.clifford_tableau import CliffordTableau
 from src.backends.stabilizer.functions.stabilizer import canonical_form
 
 
@@ -28,7 +28,7 @@ class Stabilizer(StateRepresentationBase):
         return isinstance(data, (int, CliffordTableau))
 
     @property
-    def n_qubit(self):
+    def n_qubits(self):
         """
         Returns the number of qubits in the stabilizer state
 
@@ -288,8 +288,25 @@ class Stabilizer(StateRepresentationBase):
         self._tableau = sfc.partial_trace(
             self._tableau,
             keep=qubit_positions,
-            dims=self.n_qubit * [2],
+            dims=self.n_qubits * [2],
             measurement_determinism=measurement_determinism,
+        )
+
+    def partial_trace(self, keep, dims):
+        """
+        Trace out qubits after disentangling them from the rest
+
+        :param keep:
+        :type keep: list[int] or numpy.ndarray
+        :param dims:
+        :type dims:
+        :return: nothing
+        :rtype: None
+        """
+        self._tableau = sfc.partial_trace(
+            self._tableau,
+            keep=keep,
+            dims=dims
         )
 
     def __str__(self):
@@ -354,7 +371,7 @@ class MixedStabilizer(StateRepresentationBase):
         return valid
 
     @property
-    def n_qubit(self):
+    def n_qubits(self):
         """
         Returns the number of qubits in the stabilizer state
 
@@ -696,7 +713,7 @@ class MixedStabilizer(StateRepresentationBase):
                 sfc.partial_trace(
                     t_i,
                     keep=qubit_positions,
-                    dims=self.n_qubit * [2],
+                    dims=self.n_qubits * [2],
                     measurement_determinism=measurement_determinism,
                 ),
             )

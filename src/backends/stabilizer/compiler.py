@@ -16,7 +16,7 @@ class StabilizerCompiler(CompilerBase):
 
     # TODO: [longer term] refactor to take a QuantumState object input instead of creating its own initial state?
 
-    name = "stabilizer"
+    name = "stab"
     ops = [  # the accepted operations for a given compiler
         ops.Input,
         ops.Identity,
@@ -61,9 +61,8 @@ class StabilizerCompiler(CompilerBase):
         :return: nothing
         :rtype: None
         """
-        state = state.stabilizer
+        state = state.rep_data
 
-        # TODO: should think about the best way to handle inputs/outputs
         if type(op) is ops.Input:
             return
 

@@ -36,7 +36,7 @@ def circuit_measurement_independent(circuit, compiler):
         dims=circuit.n_quantum * [2],
     )
 
-    return np.allclose(state1.dm.data, state2.dm.data), state1, state2
+    return np.allclose(state1.rep_data.data, state2.rep_data.data), state1, state2
 
 
 def benchmark_data(
@@ -148,7 +148,7 @@ def benchmark_data(
             )
             df.loc[
                 f"Circuit depth", (target["name"], i)
-            ] = "Coming soon..."  # TODO: implement a circuit class func
+            ] = solver.hof[0][1].depth
 
             circuit_data = {
                 "name": target["name"],

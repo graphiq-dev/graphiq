@@ -78,11 +78,11 @@ def check_run_visual(run_info, expected_info):
 
     circuit = hof[0][1]
     circuit.draw_circuit()
-    fig, axs = density_matrix_bars(target_state.dm.data)
+    fig, axs = density_matrix_bars(target_state.rep_data.data)
     fig.suptitle("TARGET DENSITY MATRIX")
     plt.show()
 
-    fig, axs = density_matrix_bars(state.dm.data)
+    fig, axs = density_matrix_bars(state.rep_data.data)
     fig.suptitle("CREATED DENSITY MATRIX")
     plt.show()
 
@@ -95,18 +95,18 @@ def check_run_noise_visual(no_noise_run_info, noise_run_info, expected_info):
     circuit_no_noise = hof_no_noise[0][1]
     circuit_no_noise.draw_circuit()
 
-    fig, axs = density_matrix_bars(target_state.dm.data)
+    fig, axs = density_matrix_bars(target_state.rep_data.data)
     fig.suptitle("TARGET DENSITY MATRIX")
     plt.show()
 
-    fig, axs = density_matrix_bars(state_no_noise.dm.data)
+    fig, axs = density_matrix_bars(state_no_noise.rep_data.data)
     fig.suptitle("CREATED DENSITY MATRIX W/O NOISE")
     plt.show()
 
     circuit_noise = hof_noise[0][1]
     circuit_noise.draw_circuit()
 
-    fig, axs = density_matrix_bars(state_noise.dm.data)
+    fig, axs = density_matrix_bars(state_noise.rep_data.data)
     fig.suptitle("CREATED DENSITY MATRIX WITH NOISE")
     plt.show()
 

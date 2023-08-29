@@ -14,7 +14,7 @@ from src.solvers.evolutionary_solver import (
     EvolutionarySolver,
     EvolutionarySearchSolverSetting,
 )
-from src.backends.state_representation_conversion import graph_to_density
+from src.backends.state_rep_conversion import graph_to_density
 from src.solvers.solver_base import SolverBase
 from src.solvers.deterministic_solver import DeterministicSolver
 from src.backends.compiler_base import CompilerBase
@@ -29,7 +29,7 @@ from src.utils.relabel_module import (
     get_relabel_map,
     relabel,
 )
-from src.backends.state_representation_conversion import stabilizer_to_graph
+from src.backends.state_rep_conversion import stabilizer_to_graph
 from src.backends.stabilizer.functions.rep_conversion import (
     get_clifford_tableau_from_graph,
 )
@@ -385,9 +385,12 @@ class HybridGraphSearchSolver(SolverBase):
         setting = self.solver_setting
 
         # construct the adjacent matrix from the user-input target graph state
-        target_graph = stabilizer_to_graph(
-            self.target.stabilizer.tableau.stabilizer_to_labels()
+        target_graph_list = stabilizer_to_graph(
+            self.target.rep_data.tableau.to_stabilizer(), validate=False
         )
+        if len(target_graph_list)>1:
+            raise ValueError("HybridGraphSearchSolver cannot handle mixed graph")
+        target_graph = target_graph_list[0][1]
         n_qubits = self.target.n_qubits
         adj_matrix = nx.to_numpy_array(target_graph)
 
@@ -404,13 +407,13 @@ class HybridGraphSearchSolver(SolverBase):
                 nx.from_numpy_array(iso_graph_tuples[i][0])
             )
 
-            target_state = QuantumState(n_qubits, relabel_tableau, "stabilizer")
+            target_state = QuantumState(relabel_tableau, "stab")
 
             for score_graph in lc_graphs:
                 # solve the noise-free scenario
                 lc_tableau = get_clifford_tableau_from_graph(score_graph[1])
 
-                solver_target_state = QuantumState(n_qubits, lc_tableau, "stabilizer")
+                solver_target_state = QuantumState(lc_tableau, "stab")
                 self.metric.target = solver_target_state
                 # create an instance of the base solver
                 if self.base_solver == DeterministicSolver:
@@ -720,7 +723,7 @@ class AlternateGraphSolver:
                     assert success, "LC graphs are not actually LC equivalent!"
                     slc.state_converter_circuit(lc_graph, iso_graph, validate=True)
                 except:
-                    raise UserWarning("LC conversion failed")
+                    raise UserWarning("LC rc failed")
                 conversion_ops = slc.str_to_op(conversion_gates)
                 for op in conversion_ops:
                     # op_name = type(op).__name__

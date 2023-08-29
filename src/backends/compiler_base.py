@@ -76,19 +76,11 @@ class CompilerBase(ABC):
             assert (
                 initial_state.n_qubits == circuit.n_quantum
             ), "the number of qubits in initial state must match the circuit"
-            if self.__class__.name == "density matrix":
-                state_data = initial_state.dm.data
-            elif self.__class__.name == "stabilizer":
-                state_data = initial_state.stabilizer.data
-            elif self.__class__.name == "graph":
-                state_data = initial_state.graph.data
-            else:
-                state_data = initial_state.all_representations[0].data
+            state_data = initial_state.rep_data.data
         else:
             state_data = circuit.n_quantum
 
         state = QuantumState(
-            n_qubits=circuit.n_quantum,
             data=state_data,  # initialize to |0...0> state
             representation=self.__class__.name,
             mixed=True if self._noise_simulation else False,

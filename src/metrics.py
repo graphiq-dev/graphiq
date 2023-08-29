@@ -96,27 +96,27 @@ class Infidelity(MetricBase):
         :rtype: float
         """
         # TODO: add check for the representation
-        if state.stabilizer is not None and self.target.stabilizer is not None:
-            if isinstance(self.target.stabilizer, MixedStabilizer):
-                assert len(self.target.stabilizer.mixture) == 1
-                assert self.target.stabilizer.mixture[0][0] == 1.0
-                tableau = self.target.stabilizer.mixture[0][1]
-            elif isinstance(self.target.stabilizer, Stabilizer):
-                tableau = self.target.stabilizer.tableau
+        if state.rep_type == "stab" and self.target.rep_type == "stab":
+            if isinstance(self.target.rep_data, MixedStabilizer):
+                assert len(self.target.rep_data.mixture) == 1
+                assert self.target.rep_data.mixture[0][0] == 1.0
+                tableau = self.target.rep_data.mixture[0][1]
+            elif isinstance(self.target.rep_data, Stabilizer):
+                tableau = self.target.rep_data.tableau
 
-            if isinstance(state.stabilizer, Stabilizer):
-                fid = sfm.fidelity(tableau, state.stabilizer.data)
-            elif isinstance(state.stabilizer, MixedStabilizer):
+            if isinstance(state.rep_data, Stabilizer):
+                fid = sfm.fidelity(tableau, state.rep_data.data)
+            elif isinstance(state.rep_data, MixedStabilizer):
                 fid = sum(
                     [
                         p_i * sfm.fidelity(tableau, t_i)
-                        for p_i, t_i in state.stabilizer.mixture
+                        for p_i, t_i in state.rep_data.mixture
                     ]
                 )
 
-        elif state.dm is not None and self.target.dm is not None:
+        elif state.rep_type == "dm" and self.target.rep_type == "dm":
 
-            fid = dmf.fidelity(self.target.dm.data, state.dm.data)
+            fid = dmf.fidelity(self.target.rep_data.data, state.rep_data.data)
 
         else:
             raise ValueError("Cannot compute the infidelity.")
@@ -162,8 +162,13 @@ class TraceDistance(MetricBase):
         :return: the trace distance
         :rtype: float
         """
+        if self.target.rep_type == "dm" and state.rep_type == "dm":
+            trace_distance = dmf.trace_distance(
+                self.target.rep_data.data, state.rep_data.data
+            )
+        else:
+            raise ValueError("Cannot compute the trace distance.")
 
-        trace_distance = dmf.trace_distance(self.target.dm.data, state.dm.data)
         self.increment()
 
         if self._inc % self.log_steps == 0:

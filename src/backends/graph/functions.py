@@ -3,6 +3,8 @@ This file contains helper functions for graph representation
 """
 import networkx as nx
 
+from src.backends.graph.node import QuNode
+
 
 def convert_data_to_graph(graph_data):
     """
@@ -20,12 +22,13 @@ def convert_data_to_graph(graph_data):
     node_dict = dict()
 
     if isinstance(graph_data, int):
-        # graph_data is a single integer, meaning the graph contains only a single node
+        # graph_data is a single integer, which specifies the number of nodes in the graph
         # To maintain a consistent ID representation across all nodes, we cast the int to a frozenset
-        graph_data = frozenset([graph_data])
-        only_node = QuNode(graph_data)
-        node_dict[graph_data] = only_node
-        graph.add_node(only_node)
+        for i in range(graph_data):
+            graph_data = frozenset([i])
+            only_node = QuNode(graph_data)
+            node_dict[graph_data] = only_node
+            graph.add_node(only_node)
 
     elif isinstance(graph_data, frozenset):
         # graph_data is a single frozenset, meaning the graph contains only a single (redundantly encoded) node
@@ -95,98 +98,3 @@ def convert_data_to_graph(graph_data):
             graph.add_edge(node_dict[new_data_pair[0]], node_dict[new_data_pair[1]])
 
     return node_dict, graph
-
-
-class QuNode:
-    """
-    A class that represents a node of qubit(s). Only simple redundancy encoding is allowed.
-    No other QECC is allowed.
-    """
-
-    def __init__(self, id_set):
-        """
-        Creates a node of qubits
-
-        :param id_set: id for the QuNode (if the QuNode has a single qubit/no redundat encoding) OR
-                       id for each qubit of the redundantly encoded QuNode
-        :type id_set: frozenset OR int
-        :raises ValueError: if the wrong datatype is passed in as id_set
-        :return: nothing
-        :rtype: None
-        """
-        if isinstance(id_set, frozenset):
-            self.id = id_set
-        elif isinstance(id_set, int):
-            self.id = frozenset([id_set])
-        else:
-            raise ValueError("QuNode only accepts frozenset and int as id.")
-
-    def count_redundancy(self):
-        """
-        Return the number of qubits in the redundancy encoding
-
-        :return: the number of qubits in the redundant encoding
-        :rtype: int
-        """
-        return len(self.id)
-
-    def set_id(self, id_set):
-        """
-        Allow one to update the IDs of all qubits in the node.
-
-        :param id_set: the new set of ids for the qubits in the node
-        :type id_set: frozenset OR int
-        :raises ValueError: if id_set is not the desired datatype
-        :return: function returns nothing
-        :rtype: None
-        """
-        if isinstance(id_set, frozenset):
-            self.id = id_set
-        elif isinstance(id_set, int):
-            self.id = frozenset([id_set])
-        else:
-            raise ValueError("QuNode only accepts frozenset and int as id.")
-
-    def remove_id(self, photon_id):
-        """
-        Remove the qubit with the specified id from a redundancy encoding.
-        It does nothing if the node is not redundantly encoded.
-
-        :param photon_id: id of the qubit to remove from the redundancy encoding
-        :type photon_id: int
-        :return: True if the photon of the given ID was removed, False otherwise
-        :rtype: bool
-        """
-        if len(self.id) > 1 and photon_id in self.id:
-            tmp_set = set(self.id)
-            tmp_set.remove(photon_id)
-            self.id = frozenset(tmp_set)
-            return True
-
-        return False
-
-    def remove_first_id(self):
-        """
-        Remove the first qubit from the redundancy encoding.
-        It does nothing if the node is not redundantly encoded.
-
-        :return: True if a qubit is removed, False otherwise
-        :rtype: bool
-        """
-        if len(self.id) > 1:
-            tmp_set = set(self.id)
-            tmp_set.pop()
-            self.id = frozenset(tmp_set)
-            return True
-
-        return False
-
-    def get_id(self):
-        """
-        Return the id of the node. This may be either an integer ID
-        or a frozenset containing all photon IDs in this node
-
-        :return: the photon(s) id(s)
-        :rtype: frozenset
-        """
-        return self.id

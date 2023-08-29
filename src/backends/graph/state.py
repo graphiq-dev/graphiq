@@ -9,10 +9,10 @@ from collections.abc import Iterable
 import numpy as np
 import itertools
 
+from src.backends.graph.node import QuNode
 from src.backends.state_base import StateRepresentationBase
 import src.backends.graph.functions as gf
-from src.backends.graph.functions import QuNode
-from src.backends.lc_equivalence_check import is_lc_equivalent, local_comp_graph
+from src.backends.lc_equivalence_check import is_lc_equivalent
 from src.visualizers.graph import draw_graph
 
 
@@ -20,7 +20,7 @@ class Graph(StateRepresentationBase):
     """
     Graph representation of a graph state.
     As the intermediate states of the process may not be graph states (but assuming still stabilizer states),
-    we may need to keep track of local Cliffords that convert the state to the graph state represented by the graph
+    we may need to keep track of local Clifford gates that convert the state to the graph state represented by the graph
 
     """
 
@@ -207,18 +207,18 @@ class Graph(StateRepresentationBase):
         return len(self.node_dict.keys())
 
     @property
-    def n_qubit(self):
+    def n_qubits(self):
         """
         Returns the number of qubits in the graph (counting the redundant encoding as separate qubits)
 
         :return: the number of qubits
         :rtype: int
         """
-        number_qubit = 0
+        n_qubits = 0
         for node_id in self.node_dict.keys():
-            number_qubit += len(node_id)
+            n_qubits += len(node_id)
 
-        return number_qubit
+        return n_qubits
 
     @property
     def n_redundant_encoding_node(self):
@@ -499,3 +499,52 @@ class Graph(StateRepresentationBase):
 
         self.remove_node(id1)
         self.remove_node(id2)
+
+
+class MixedGraph(StateRepresentationBase):
+    """
+    Mixed Graph representation
+
+    TODO: finish the implementation
+
+    """
+
+    def __init__(self, data, *args, **kwargs):
+
+        if isinstance(data, int):
+            self._mixture = [
+                (1.0, Graph(data)),
+            ]
+        elif isinstance(data, Graph):
+            self._mixture = [
+                (1.0, data),
+            ]
+        elif isinstance(data, list):
+            assert all(
+                isinstance(p_i, float) and isinstance(t_i, Graph) for (p_i, t_i) in data
+            )
+            assert all
+            self._mixture = data
+        else:
+            raise TypeError(
+                f"Cannot initialize the stabilizer representation with datatype: {type(data)}"
+            )
+
+    @classmethod
+    def valid_datatype(cls, data):
+        valid = isinstance(data, (int, Graph, list))
+        if isinstance(data, list):
+            valid = valid and all(
+                isinstance(p_i, float) and isinstance(t_i, Graph) for (p_i, t_i) in data
+            )
+        return valid
+
+    @property
+    def n_qubits(self):
+        """
+        Returns the number of qubits in the stabilizer state
+
+        :return: the number of qubits in the state
+        :rtype: int
+        """
+        return self._mixture[0][1].n_qubits

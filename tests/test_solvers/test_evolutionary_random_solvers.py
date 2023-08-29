@@ -54,7 +54,6 @@ def generate_run(n_photon, n_emitter, expected_triple, compiler, seed):
     state.partial_trace(
         list(range(n_photon)),
         (n_photon + n_emitter) * [2],
-        compiler.measurement_determinism,
     )
     return solver.hof, state
 
@@ -66,10 +65,10 @@ def check_run(run_info, expected_info):
 
     circuit = hof[0][1]
     assert np.isclose(hof[0][0], metric.evaluate(state, circuit))
-    if state._dm is not None and target_state._dm is not None:
-        assert np.allclose(state.dm.data, target_state.dm.data)
-    if state._stabilizer is not None and target_state._stabilizer is not None:
-        assert state.stabilizer == target_state.stabilizer
+    if state._rep_type == target_state.rep_type == "dm":
+        assert np.allclose(state.rep_data.data, target_state.rep_data.data)
+    elif state._rep_type == target_state.rep_type == "stab":
+        assert state.rep_data == target_state.rep_data
 
 
 def check_run_visual(run_info, expected_info):
@@ -78,7 +77,7 @@ def check_run_visual(run_info, expected_info):
 
     circuit = hof[0][1]
     circuit.draw_circuit()
-    fig, axs = density_matrix_bars(target_state.dm.data)
+    fig, axs = density_matrix_bars(target_state.rep_data.data)
     fig.suptitle("TARGET DENSITY MATRIX")
     plt.show()
 

@@ -28,24 +28,6 @@ def run_candidate_graphs_statistics(candidate_graphs):
     return result_statistics
 
 
-def test_random_graph():
-    n_qubit = 5
-    n_test = 1
-    edge_prob = 0.5
-    for i in range(n_test):
-        graph = random_graph_state(n_qubit, edge_prob)
-        graph = graph.data
-
-        candidate_graphs_1 = get_lc_graph_by_max_edge(graph, 3, graph_max_eccentricity)
-        candidate_graphs_2 = get_lc_graph_by_max_neighbor_edge(
-            graph, 3, graph_max_eccentricity
-        )
-        print("running the max edge approach")
-        run_candidate_graphs(graph, candidate_graphs_1)
-        print("running the max neighbor edge approach")
-        run_candidate_graphs(graph, candidate_graphs_2)
-
-
 def random_graph_run_setup(n_qubit, n_test, graph_metric):
     edge_prob = 0.5
     statistics_count1 = 0
@@ -69,8 +51,27 @@ def random_graph_run_setup(n_qubit, n_test, graph_metric):
     print(f"The approach 2 has the statistics: {statistics_count2} out of {n_test}")
 
 
-# def test_random_graph_statistics():
-#    n_qubit = 5
-#    n_test = 50
-#    random_graph_run_setup(n_qubit, n_test, graph_max_eccentricity)
-#    random_graph_run_setup(n_qubit, n_test, graph_max_centrality)
+def test_random_graph():
+    n_qubit = 3
+    n_test = 1
+    edge_prob = 0.5
+    for i in range(n_test):
+        graph = random_graph_state(n_qubit, edge_prob)
+        graph = graph.data
+
+        candidate_graphs_1 = get_lc_graph_by_max_edge(graph, 3, graph_max_eccentricity)
+        candidate_graphs_2 = get_lc_graph_by_max_neighbor_edge(
+            graph, 3, graph_max_eccentricity
+        )
+        print("running the max edge approach")
+        run_candidate_graphs(graph, candidate_graphs_1)
+        print("running the max neighbor edge approach")
+        run_candidate_graphs(graph, candidate_graphs_2)
+
+
+#def test_random_graph_statistics():
+    # remove this task for now
+    # n_qubit = 3
+    # n_test = 2
+    # random_graph_run_setup(n_qubit, n_test, graph_max_eccentricity)
+    # random_graph_run_setup(n_qubit, n_test, graph_max_centrality)

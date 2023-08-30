@@ -4,7 +4,6 @@ This solver is based on certain physical rules imposed by a platform.
 One can define these rules via the allowed DAG transformations.
 
 """
-# TODO: evolutionary solvers very often perform better with elitism. Consider adding
 
 import numpy as np
 import warnings
@@ -399,7 +398,6 @@ class EvolutionarySolver(RandomSearchSolver):
         """
 
         self.compiler.noise_simulation = self.noise_simulation
-        # TODO: add some logging to see how well it performed at each epoch (and pick n_stop accordingly)
 
         population = self.population_initialization()
 

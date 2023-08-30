@@ -172,7 +172,7 @@ class RandomSearchSolverSetting(ABC):
 
     @property
     def n_pop(self):
-        return self._n_hof
+        return self._n_pop
 
     @n_pop.setter
     def n_pop(self, value):

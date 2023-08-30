@@ -293,7 +293,6 @@ class IO:
         """
         Helper method for loading from text files
         """
-        # with open(path) as json_file:
-        #     data = json.load(json_file)
-        # return data
-        raise NotImplementedError("Loading text files not implemented")
+        f = open(path, "r")
+        data = f.read()
+        return data

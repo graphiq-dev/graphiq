@@ -152,9 +152,96 @@ def benchmark(runs: dict, io: IO, remote=True):
     return df
 
 
+def benchmark_run_graph_search_solver(run, name, io, circuit_format="qasm"):
+    """
+    Function to run benchmark for HybridGraphSearchSolver
+
+    :param run: dictionary containing the main class instances (solver, etc.)
+    :type run: dict
+    :param name: name of the run
+    :type name: str
+    :param io: IO object used to save data for the *current* run (not overall benchmarking IO)
+    :type io: IO instance
+    :param circuit_format: a variable define what format the circuit will be save to
+    :type circuit_format: str
+    :return: dictionary storing all the results/metadata for the current run (can be added to a DataFrame)
+    :rtype: pandas.DataFrame
+    """
+    solver = run["solver"]
+    t0 = time.time()
+    solver.io = io
+    result = solver.solve()
+    t1 = time.time()
+
+    df = result.to_df()
+    io.save_dataframe(df=df, filename=f"solver_result.csv")
+
+    # save circuits:
+    circuit_io = IO.new_directory(
+        path=io.path,
+        folder="circuits",
+        include_date=True,
+        include_time=True,
+        include_id=False,
+        verbose=False,
+    )
+    for i, circuit in enumerate(result["circuit"]):
+        if circuit_format == "qasm":
+            openqasm = circuit.to_openqasm()
+            circuit_io.save_txt(openqasm, f"circuit_{i}.qasm")
+        if circuit_format == "json":
+            json = circuit.to_json()
+            circuit_io.save_json(json, f"circuit_{i}.json")
+
+    d = dict(
+        name=name,
+        path=io.path.name,
+        solver=run["solver"].__class__.__name__,
+        compiler=run["compiler"].__class__.__name__,
+        metric=run["metric"].__class__.__name__,
+        time=(t1 - t0),
+    )
+    return d
+
+
+def benchmark_graph_search_solver(runs, io, circuit_format="qasm"):
+    """
+    Runs a sequence of benchmark runs, either using parallel or serial processing.
+
+    :param runs: a list of runs, each being a dictionary containing the important class instances (solvers, etc.)
+    :type: list
+    :param io: a top-level IO object for saving benchmark data
+    :type io: IO instance
+    :return: DataFrame summarizing the results of all benchmarking runs
+    """
+    futures = []
+    t0 = time.time()
+
+    for name, run in runs.items():
+        io_tmp = IO.new_directory(
+            path=io.path,
+            folder=name,
+            include_date=True,
+            include_time=True,
+            include_id=False,
+            verbose=False,
+        )
+        futures.append(
+            benchmark_run_graph_search_solver(
+                run, name=name, io=io_tmp, circuit_format=circuit_format
+            )
+        )
+    df = pd.DataFrame(futures)
+    io.save_dataframe(df, "benchmark_solver_run.csv")
+    io.save_json(metadata(), "metadata.json")
+
+    print(f"Total time {time.time() - t0}")
+    return df
+
+
 if __name__ == "__main__":
     # define a single run by creating an instance of each object
-    target = ghz3_state_circuit()[1]["dm"]
+    target = ghz3_state_circuit()[1]
     compiler = DensityMatrixCompiler()
     metric = Infidelity(target=target)
 

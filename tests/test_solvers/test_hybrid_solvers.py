@@ -20,6 +20,7 @@ from src.metrics import Infidelity
 from src.state import QuantumState
 from benchmarks.alternate_circuits import *
 import src.noise.noise_models as noise
+from src.solvers.solver_result import SolverResult
 
 
 def graph_stabilizer_setup(graph, solver_class, solver_setting, expected_result):
@@ -154,9 +155,5 @@ def test_graph_based_search_solver():
         noise_model_mapping=noise_model,
         base_solver=DeterministicSolver,
     )
-    solver.solve()
-    results = solver.result
-    circuit, _, score = results[0]
-    # print(f"The best score is {score}.")
-    circuit.draw_circuit()
-    print(solver.sorted_result)
+    results = solver.solve()
+    assert type(results) == SolverResult

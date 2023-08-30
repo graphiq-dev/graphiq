@@ -1,3 +1,10 @@
+import networkx as nx
+import numpy as np
+import json
+import warnings
+
+
+
 class SolverResult:
     """
     Class to keep track of the solver result
@@ -6,11 +13,24 @@ class SolverResult:
     def __init__(self, circuit_list, properties=None):
         self._data = {
             "circuit": circuit_list,
+            "circuit_id": [f"c{i}" for i in range(len(circuit_list))],
         }
+        self._properties = [] if properties is None else properties
+        assert isinstance(self._properties, list)
+        for p in properties:
+            self._data[p] = [None] * len(circuit_list)
 
-        if properties and type(properties) == list:
-            for p in properties:
-                self._data[p] = [0] * len(circuit_list)
+    @property
+    def properties(self):
+        return self._properties
+
+    @properties.setter
+    def properties(self, new_properties):
+        assert isinstance(new_properties, list)
+        self._properties = new_properties
+        for p in new_properties:
+            if p not in self._data:
+                self._data[p] = [None] * len(self._data["circuit"])
 
     def __len__(self):
         """
@@ -60,7 +80,7 @@ class SolverResult:
         :return: nothing
         :rtype: None
         """
-        if type(value) is not list:
+        if isinstance(type, (list, np.ndarray)):
             raise TypeError(f"Data should be a list or numpy array")
         else:
             if len(value) != len(self._data["circuit"]):
@@ -69,6 +89,12 @@ class SolverResult:
                 )
 
         self._data[key] = value
+
+    def add_properties(self, new_property):
+        assert isinstance(new_property, str)
+        if new_property not in self._properties:
+            self._properties.append(new_property)
+            self._data[new_property] = [None] * len(self._data["circuit"])
 
     def get_index_data(self, index):
         """
@@ -92,7 +118,7 @@ class SolverResult:
 
         :param index: index of the row
         :type index: int
-        :return: circuit
+        :return: the circuit corresponding to the provided index
         :rtype: CircuitDAG
         """
         return self._data["circuit"][index]
@@ -105,7 +131,7 @@ class SolverResult:
         :type column: str
         :param value: value to check
         :type value: object
-        :return: list of index
+        :return: list of all indecies that match the value
         :rtype: list
         """
 
@@ -118,3 +144,45 @@ class SolverResult:
             if v == value:
                 r_list.append(i)
         return r_list
+
+    def sort_by(self, prop):
+        """
+        sort the results by a given property
+        :param prop: a property in the list of properties of the result
+        :type prop: str
+        :return: Nothing
+        :rtype: None
+        """
+        data_dict = self._data
+        n_result = len(self)
+        p_index = list(data_dict.keys()).index(prop)
+        data_tuple_list = [
+            tuple(x[i] for x in data_dict.values()) for i in range(n_result)
+        ]
+        sorted_data_tuple = sorted(data_tuple_list, key=lambda x: x[p_index])
+        for j, p in enumerate(data_dict.keys()):
+            self._data[p] = [sorted_data_tuple[i][j] for i in range(n_result)]
+
+    def save2json(self, path, filename):
+        data_dict = self._data.copy()
+        data_dict['g'] = [list(nx.to_edgelist(g)) for g in self._data['g']]
+        data_dict['circuit'] = [c.to_openqasm() for c in self._data['circuit']]
+        with open(f'{path}/{filename}.json', 'w') as f:
+            json.dump(data_dict, f)
+
+    def load_json(self, path, filename):
+        with open(f'{path}/{filename}.json', 'r') as f:
+            loaded_dict = json.load(f)
+        for properties in loaded_dict.keys():
+            if properties == 'g':
+                self._data['g'] = [nx.from_edgelist(g) for g in loaded_dict['g']]
+            else:
+                self._data[properties] = loaded_dict[properties]
+        warnings.warn("The circuits in the loaded result object are now openqasm strings!")
+        diff = set(self.properties) - set(loaded_dict.keys()) - {'circuit', 'circuit_id'}
+        if diff:
+            warnings.warn("")
+        # TODO: from openqasm to circuit object
+        # self._data['circuit'] = [QuantumCircuit.from_qasm_str(c) for c in loaded_dict['circuit']]
+
+

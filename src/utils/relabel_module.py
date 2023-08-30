@@ -1,24 +1,24 @@
 import networkx as nx
 import numpy as np
 import matplotlib.pyplot as plt
+import random
 from src.backends.stabilizer.functions.height import height_max
 from itertools import permutations
 from networkx.algorithms import isomorphism
 from src.backends.lc_equivalence_check import local_comp_graph
 
-
 import warnings
 
 
 def iso_finder(
-    adj_matrix,
-    n_iso,
-    rel_inc_thresh=0.2,
-    allow_exhaustive=True,
-    sort_emit=False,
-    label_map=False,
-    thresh=None,
-    seed=None,
+        adj_matrix,
+        n_iso,
+        rel_inc_thresh=0.2,
+        allow_exhaustive=True,
+        sort_emit=False,
+        label_map=False,
+        thresh=None,
+        seed=None,
 ):
     """
     The function permutes the labels of the vertices of a graph to get n_iso distinct isomorphic graphs. The original
@@ -166,7 +166,7 @@ def _perm2matrix(sequence):
 
 
 def _label_finder(
-    n_label, n_node, new_label_set=None, exhaustive=False, seed=None, thresh=None
+        n_label, n_node, new_label_set=None, exhaustive=False, seed=None, thresh=None
 ):
     """
     Finds n_label number of permutations for the sequence {0, 1, ..., n_node-1}. If exhaustive search is enabled the
@@ -197,7 +197,7 @@ def _label_finder(
     elif thresh < n_label:
         thresh = n_label + 1
     assert (
-        n_label <= n_max
+            n_label <= n_max
     ), f"The input number of permutations is more than the maximum possible"
     if n_node < 8 or exhaustive:
         perm = list(permutations([*range(n_node)]))
@@ -301,12 +301,17 @@ def get_relabel_map(g1, g2):
     if not isinstance(g2, nx.Graph):
         g2 = nx.from_numpy_array(g2)
         assert isinstance(g2, nx.Graph)
+    if np.array_equal(nx.to_numpy_array(g1), nx.to_numpy_array(g2)):
+        return {0: 'self'}
     GM = isomorphism.GraphMatcher(g1, g2)
     assert GM.is_isomorphic()
     return GM.mapping
 
 
-def lc_orbit_finder(graph: nx.Graph, comp_depth=None, orbit_size_thresh=None):
+# ## Local clifford equivalency orbit finders ##
+
+
+def lc_orbit_finder(graph: nx.Graph, comp_depth=None, orbit_size_thresh=None, with_iso=False, rand=False, rep_allowed=False):
     """
     Given a graph this functions tries all possible local-complementation sequences of length up to comp_depth to
     come up with new distinct graphs in the orbit of the input graph. The comp_depth determines the maximum depth of the
@@ -319,10 +324,23 @@ def lc_orbit_finder(graph: nx.Graph, comp_depth=None, orbit_size_thresh=None):
     :type comp_depth: int
     :param orbit_size_thresh: sets a limit on the maximum number of orbit graphs to look for
     :type orbit_size_thresh: int
+    :param with_iso: if true, isomorph graphs will be kept in the orbit
+    :type with_iso: bool
+    :param rand: if true the orbit finder applies LC operations on random nodes instead of exhaustive search
+    :type rand: bool
+    :param rand: if true the orbit finder does not check for iso or auto morphism; useful for large graphs.
+    :type rand: bool
     :return: list of distinct graphs in the orbit of original graph
     :rtype: list[nx.Graph]
     """
-    orbit_list = [graph]
+    orbit_list = [graph.copy()]
+    node_list = [*graph.nodes]
+    new_g = graph
+    if rand:
+        for i in range(min(10, len(graph))):
+            node_x = np.random.randint(0, len(graph))
+            new_g = local_comp_graph(new_g, node_x)
+        orbit_list = [new_g]
     if orbit_size_thresh == 1:
         return orbit_list
     new_graphs = 1
@@ -336,16 +354,21 @@ def lc_orbit_finder(graph: nx.Graph, comp_depth=None, orbit_size_thresh=None):
         len_before = len(orbit_list)
         # iterate over the new graphs appended to the end of the orbit list
         for graph in orbit_list[-new_graphs:]:
-            for node in graph.nodes:
+            if rand:
+                np.random.shuffle(node_list)
+            for node in node_list:
                 if graph.degree(node) > 1:
                     g_lc = local_comp_graph(graph, node)
-                    if not check_isomorphism(g_lc, orbit_list):
-                        orbit_list.append(g_lc)
+                    if not rep_allowed:
+                        if not check_isomorphism(g_lc, orbit_list, _only_auto=with_iso):
+                            orbit_list.append(g_lc)
                 if (
-                    orbit_size_thresh is not None
-                    and len(orbit_list) >= orbit_size_thresh
+                        orbit_size_thresh is not None
+                        and len(orbit_list) >= orbit_size_thresh
                 ):
                     return orbit_list[:orbit_size_thresh]
+                if rand and len(orbit_list) > len_before:  # in random case we only keep 1 new graph
+                    break
         # orbit_list = remove_iso(orbit_list)
         len_after = len(orbit_list)
         new_graphs = len_after - len_before
@@ -353,6 +376,78 @@ def lc_orbit_finder(graph: nx.Graph, comp_depth=None, orbit_size_thresh=None):
         if new_graphs == 0:
             break
         i += 1
+    return orbit_list
+
+
+def rgs_orbit_finder(graph: nx.Graph):
+    """
+    Takes a repeater graph state, and returns the full list of distinct graphs in the orbit.
+    The first graph in the list is the original graph state.
+    :param graph: original graph
+    :type graph: nx.Graph
+    :return: a full list of graphs in the LC orbit of the graph state
+    :rtype: list
+    """
+    n = len(graph)
+    g = graph.copy()
+
+    leaf_nodes = [x for x in g.nodes if g.degree(x) == 1]
+    core_nodes = [x for x in g.nodes if g.degree(x) != 1]
+    assert int((n / 2) + n / 2 * (n / 2 - 1) / 2) == graph.size() and len(leaf_nodes) == int(
+        n / 2), "input graph is not a repeater graph"
+
+    first_core = core_nodes.pop(0)
+    g_lc = local_comp_graph(g, first_core)
+    orbit_list = [graph, g_lc]
+    while core_nodes:
+        g_lc = local_comp_graph(g_lc, core_nodes.pop(0))
+        orbit_list.append(g_lc)
+        g_lc_2 = local_comp_graph(g_lc, first_core)
+        orbit_list.append(g_lc_2)
+        if core_nodes:
+            g_lc = local_comp_graph(g_lc, core_nodes.pop(0))
+            orbit_list.append(g_lc)
+
+    return orbit_list
+
+
+def linear_partial_orbit(graph: nx.Graph):
+    """
+    Takes a linear cluster state, and returns a list of distinct graphs in the orbit. Not exhaustive.
+    The first graph in the list is the original graph state.
+    :param graph: original graph
+    :type graph: nx.Graph
+    :return: a list of graphs in the LC orbit of the linear cluster state
+    :rtype: list
+    """
+    orbit_list = []
+    n = len(graph)
+    g = graph.copy()
+    # check that graph is linear
+    degrees = [degree for _, degree in g.degree()]
+    assert n - 1 == graph.size() and max(degrees) == 2, "input graph is not a linear graph"
+    for lc_ops in _partial_orbit(n):
+        new_g = g
+        for x in lc_ops:
+            new_g = local_comp_graph(new_g, x)
+        orbit_list.append(new_g)
+    return orbit_list
+
+
+def depth_first_orbit(graph: nx.Graph):
+    n = len(graph)
+    g = graph.copy()
+    _, _, _, path_list = _depth_first(g, n)
+    path_set = {()}
+    orbit_list = []
+    for path in path_list:
+        for i in range(len(path)):
+            path_set.add(tuple(path[:i + 1]))
+    for lc_ops in path_set:
+        new_g = g
+        for x in lc_ops:
+            new_g = local_comp_graph(new_g, x)
+        orbit_list.append(new_g)
     return orbit_list
 
 
@@ -380,7 +475,7 @@ def remove_iso(g_list):
     return non_iso
 
 
-def check_isomorphism(graph, g_list):
+def check_isomorphism(graph, g_list, _only_auto=False):
     """
     check if the provided graph is isomorphic to any graph in the g_list
 
@@ -388,15 +483,30 @@ def check_isomorphism(graph, g_list):
     :type graph: nx.Graph
     :param g_list: graph list to check against
     :type g_list: list
+    :param _only_auto: if set to true, instead of isomorphism, only automorphism will be checked
+    :type _only_auto: bool
     :return: True of False, if an isomorphism case was detected.
     :rtype: bool
     """
     iso = False
+    check = _equal_graphs if _only_auto else nx.is_isomorphic
     for g in g_list:
-        if nx.is_isomorphic(graph, g):
+        if check(graph, g):
             iso = True
             break
     return iso
+
+
+def _equal_graphs(g1, g2):
+    """
+    :param g1: a graph
+    :type g1: nx.Graph
+    :return: given two graphs this function return true if they have the same adjacency matrix.
+    :rtype: bool
+    """
+    adj1 = (nx.to_numpy_array(g1)).astype(bool)
+    adj2 = (nx.to_numpy_array(g2)).astype(bool)
+    return np.array_equal(adj1, adj2)
 
 
 def _compare_graphs_visual(g, new_g, new_labels):
@@ -438,3 +548,109 @@ def _compare_graphs_visual(g, new_g, new_labels):
     )
     plt.show()
     return
+
+
+def _retrieve_seq(n, seq_dict=None):
+    # an intermediate step finder to complete the full sequence of nodes eligible for generation of new graphs by LC ops
+    if seq_dict is not None:
+        if n in seq_dict:
+            return seq_dict[n]
+    if n <= 1:
+        return []
+    if n == 2:
+        return [2, 2]
+    middler = []
+    for i in range(2, n - 1):
+        middler += _retrieve_seq(i, seq_dict=seq_dict)
+    seq = [n] + middler + [n - 1] + middler[::-1] + [n] + middler + _retrieve_seq(n - 1, seq_dict=seq_dict)
+    return seq
+
+
+def _full_seq(n):
+    # for infinite (or at least larger than 2*n) find sequence of ndes for LC operations that result in new graphs
+    # obtained by operations on nodes upto 'n'.
+    seq = []
+    seq_dict = {}
+    for i in range(2, n):
+        next_seq = _retrieve_seq(i, seq_dict=seq_dict)
+        seq_dict[i] = next_seq
+        seq += next_seq
+    # insert zeros in between every second other element
+    # turn for example [1,2,3] into [1,0,2,0,3,0]
+    if n > 1:
+        for i in range(len(seq)):
+            seq.insert(2 * i + 1, 0)
+        seq = [0, 1] + seq
+    else:
+        seq = [0] + seq
+    return seq
+
+
+def _partial_orbit(n):
+    m = int(n / 2) + 1
+    if n % 2 == 0:
+        seq1 = _full_seq(m - 1)
+        # use middler to construct the rest of the sequence
+        middler = []
+        for i in range(2, m - 2):
+            middler += _retrieve_seq(i)
+        if middler:
+            extra = [m - 1] + middler + [m - 2] + middler[::-1]
+        else:
+            extra = [m - 1]
+        # insert zeros in between
+        for i in range(len(extra)):
+            extra.insert(2 * i + 1, 0)
+        seq1 += extra
+    else:
+        seq1 = _full_seq(m)
+    return [seq1[:i + 1] for i in range(len(seq1))]
+
+
+def _depth_first(g0, n, g_orbit=None, path=None, path_list=None, orbit_list=None, exact=False):
+    if g_orbit is None and path is None and path_list is None and orbit_list is None:
+        g_orbit = [g0]
+        orbit_list = []
+        path_list = []
+        path = []
+    for i in range(n):
+        new_g = local_comp_graph(g0, i)
+        iso = False
+        # flatten the orbit list to check iso-morphism between all graphs so far
+        all_graphs = [g for orbit in orbit_list for g in orbit] + g_orbit
+        for graph in all_graphs:
+            # only consider the part of the graph that going to be affected (up to node 'n')
+            g1 = graph
+            g2 = new_g
+            if exact:
+                g1 = nx.subgraph(graph, range(n + 1))
+                g2 = nx.subgraph(new_g, range(n + 1))
+            iso = iso or nx.vf2pp_is_isomorphic(g1, g2)
+            del g1
+            del g2
+        if not iso:  # new case found
+            g_orbit.append(new_g)
+            path.append(i)
+            # print('path PRE', path)
+            # print('path_list_PRE', path_list)
+            g_orbit, orbit_list, path, path_list = _depth_first(new_g, n, g_orbit=g_orbit, path=path,
+                                                                path_list=path_list, orbit_list=orbit_list, exact=exact)
+            # print('path_list Po', path_list)
+            # print('path Post', path)
+    repeated = False
+    for paths in path_list:
+        s = len(path)
+        sliced_path = paths[:s]
+        if sliced_path == path:
+            repeated = True
+            break
+    if not repeated and len(path) > 0:
+        path_list.append(path[:])
+        orbit_list.append(g_orbit[:])
+    new_path = []
+    new_g_orbit = []
+    if len(path) > 0:
+        new_path = path[:-1]
+    if len(g_orbit) > 0:
+        new_g_orbit = g_orbit[:-1]
+    return new_g_orbit, orbit_list, new_path, path_list

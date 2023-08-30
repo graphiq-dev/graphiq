@@ -14,7 +14,7 @@ from src.backends.stabilizer.compiler import StabilizerCompiler
 from src.backends.stabilizer.functions.rep_conversion import (
     get_clifford_tableau_from_graph,
 )
-from src.utils.solver_result import SolverResult
+from src.solvers.solver_result import SolverResult
 import numpy as np
 
 

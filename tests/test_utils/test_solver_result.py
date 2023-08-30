@@ -1,5 +1,5 @@
 from benchmarks.circuits import *
-from src.utils.solver_result import *
+from src.solvers.solver_result import *
 
 
 # Test SolverResult class

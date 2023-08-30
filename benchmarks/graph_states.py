@@ -194,3 +194,24 @@ def repeater_graph_states(n_inner_qubits):
         for j in range(i + 1, n_inner_qubits):
             edges.append((2 * i + 1, 2 * j + 1))
     return nx.Graph(edges)
+
+
+def bi_repeater_graph_states(n_inner_pairs):
+    """
+    Construct a biclique repeater graph state with the emission ordering (leaf qubit -> adjacent inner qubit ->
+    next leaf qubit)
+
+    :param n_inner_pairs: number of pairs of qubits in the inner layer. Total number of nodes is 4n_inner_pairs.
+    :type n_inner_pairs: int
+    :return: a networkx graph that represents the repeater graph state
+    :rtype: networkx.Graph
+    """
+    edges = []
+    for i in range(n_inner_pairs):
+        edges.append((4 * i, 4 * i + 1))
+        edges.append((4 * i + 2, 4 * i + 3))
+
+    for i in range(n_inner_pairs):
+        for j in range(n_inner_pairs):
+            edges.append((4 * i + 1, 4 * j + 3))
+    return nx.Graph(edges)

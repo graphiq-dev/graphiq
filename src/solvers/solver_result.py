@@ -151,7 +151,7 @@ class SolverResult:
         :type column: str
         :param value: value to check
         :type value: object
-        :return: list of all indecies that match the value
+        :return: list of all indices that match the value
         :rtype: list
         """
 
@@ -165,12 +165,14 @@ class SolverResult:
                 r_list.append(i)
         return r_list
 
-    def to_df(self):
+    def sort_by(self, prop):
         """
-        Function to convert SolverResult to pandas DataFrame
+        Sort the results by a given property
 
-        :return: dataframe
-        :rtype: pandas.DataFrame
+        :param prop: a property in the list of properties of the result
+        :type prop: str
+        :return: Nothing
+        :rtype: None
         """
         data_dict = self._data
         n_result = len(self)
@@ -182,23 +184,37 @@ class SolverResult:
         for j, p in enumerate(data_dict.keys()):
             self._data[p] = [sorted_data_tuple[i][j] for i in range(n_result)]
 
+    def to_df(self):
+        """
+        Function to convert SolverResult to pandas DataFrame
+        :return: dataframe
+        :rtype: pandas.DataFrame
+        """
+        df = pd.DataFrame(data=self._data)
+
+        return df
+
     def save2json(self, path, filename):
         data_dict = self._data.copy()
-        data_dict['g'] = [list(nx.to_edgelist(g)) for g in self._data['g']]
-        data_dict['circuit'] = [c.to_openqasm() for c in self._data['circuit']]
-        with open(f'{path}/{filename}.json', 'w') as f:
+        data_dict["g"] = [list(nx.to_edgelist(g)) for g in self._data["g"]]
+        data_dict["circuit"] = [c.to_openqasm() for c in self._data["circuit"]]
+        with open(f"{path}/{filename}.json", "w") as f:
             json.dump(data_dict, f)
 
     def load_json(self, path, filename):
-        with open(f'{path}/{filename}.json', 'r') as f:
+        with open(f"{path}/{filename}.json", "r") as f:
             loaded_dict = json.load(f)
         for properties in loaded_dict.keys():
-            if properties == 'g':
-                self._data['g'] = [nx.from_edgelist(g) for g in loaded_dict['g']]
+            if properties == "g":
+                self._data["g"] = [nx.from_edgelist(g) for g in loaded_dict["g"]]
             else:
                 self._data[properties] = loaded_dict[properties]
-        warnings.warn("The circuits in the loaded result object are now openqasm strings!")
-        diff = set(self.properties) - set(loaded_dict.keys()) - {'circuit', 'circuit_id'}
+        warnings.warn(
+            "The circuits in the loaded result object are now openqasm strings!"
+        )
+        diff = (
+            set(self.properties) - set(loaded_dict.keys()) - {"circuit", "circuit_id"}
+        )
         if diff:
             warnings.warn("")
         # TODO: from openqasm to circuit object

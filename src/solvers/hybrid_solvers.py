@@ -373,7 +373,9 @@ class AlternateGraphSolver:
         results_list = []
         mc_list = []
         # repeater graph state check
-        adj_rgs = nx.to_numpy_array(repeater_graph_states(int(len(self.target_graph) / 2)))
+        adj_rgs = nx.to_numpy_array(
+            repeater_graph_states(int(len(self.target_graph) / 2))
+        )
         target_is_rgs = True if np.array_equal(adj_rgs, adj_matrix) else False
         # list of tuples [(circuit, dict={'g': graph used to find circuit, 'map': relabel map with target})]
         iso_graphs = [nx.from_numpy_array(adj) for adj in iso_adjs]
@@ -386,27 +388,43 @@ class AlternateGraphSolver:
                 lc_graphs = depth_first_orbit(iso_graph)[:n_lc]
             elif setting.lc_method == "lc_with_iso":
                 lc_graphs = lc_orbit_finder(
-                    iso_graph, comp_depth=setting.lc_orbit_depth, orbit_size_thresh=n_lc, with_iso=True
+                    iso_graph,
+                    comp_depth=setting.lc_orbit_depth,
+                    orbit_size_thresh=n_lc,
+                    with_iso=True,
                 )
             elif setting.lc_method == "random":
                 lc_graphs = lc_orbit_finder(
-                    iso_graph, comp_depth=setting.lc_orbit_depth, orbit_size_thresh=n_lc, rand=True
+                    iso_graph,
+                    comp_depth=setting.lc_orbit_depth,
+                    orbit_size_thresh=n_lc,
+                    rand=True,
                 )
             elif setting.lc_method == "random_with_iso":
                 lc_graphs = lc_orbit_finder(
-                    iso_graph, comp_depth=setting.lc_orbit_depth, orbit_size_thresh=n_lc, with_iso=True, rand=True
+                    iso_graph,
+                    comp_depth=setting.lc_orbit_depth,
+                    orbit_size_thresh=n_lc,
+                    with_iso=True,
+                    rand=True,
                 )
             elif setting.lc_method == "random_with_rep":
                 lc_graphs = lc_orbit_finder(
-                    iso_graph, comp_depth=setting.lc_orbit_depth, orbit_size_thresh=n_lc, with_iso=True, rand=True,
-                    rep_allowed=True
+                    iso_graph,
+                    comp_depth=setting.lc_orbit_depth,
+                    orbit_size_thresh=n_lc,
+                    with_iso=True,
+                    rand=True,
+                    rep_allowed=True,
                 )
             elif setting.lc_method is None:
                 lc_graphs = lc_orbit_finder(
                     iso_graph, comp_depth=setting.lc_orbit_depth, orbit_size_thresh=n_lc
                 )
             else:
-                raise ValueError("LC method is not valid, set to a valid string or None")
+                raise ValueError(
+                    "LC method is not valid, set to a valid string or None"
+                )
             lc_circ_list = []
             lc_score_list = []
             rmap = get_relabel_map(self.target_graph, iso_graph)

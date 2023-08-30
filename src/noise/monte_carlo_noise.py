@@ -7,7 +7,7 @@ import time
 import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
-import src.ops as ops
+import src.circuit.ops as ops
 import matplotlib.pyplot as plt
 
 import src.utils.preprocessing as pre
@@ -23,7 +23,7 @@ from src.solvers.evolutionary_solver import (
 from src.solvers.solver_base import SolverBase
 from src.solvers.deterministic_solver import DeterministicSolver
 from src.backends.compiler_base import CompilerBase
-from src.circuit import CircuitDAG
+from src.circuit.circuit_dag import CircuitDAG
 from src.metrics import MetricBase
 from src.state import QuantumState
 from src.io import IO
@@ -33,7 +33,7 @@ from src.utils.relabel_module import (
     lc_orbit_finder,
     get_relabel_map,
 )
-from src.backends.state_representation_conversion import stabilizer_to_graph
+from src.backends.state_rep_conversion import stabilizer_to_graph
 from src.backends.stabilizer.functions.rep_conversion import (
     get_clifford_tableau_from_graph,
 )

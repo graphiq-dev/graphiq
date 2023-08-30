@@ -69,9 +69,9 @@ def test_random_graph():
         run_candidate_graphs(graph, candidate_graphs_2)
 
 
-#def test_random_graph_statistics():
-    # remove this task for now
-    # n_qubit = 3
-    # n_test = 2
-    # random_graph_run_setup(n_qubit, n_test, graph_max_eccentricity)
-    # random_graph_run_setup(n_qubit, n_test, graph_max_centrality)
+# def test_random_graph_statistics():
+# remove this task for now
+# n_qubit = 3
+# n_test = 2
+# random_graph_run_setup(n_qubit, n_test, graph_max_eccentricity)
+# random_graph_run_setup(n_qubit, n_test, graph_max_centrality)

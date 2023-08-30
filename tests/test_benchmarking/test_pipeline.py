@@ -21,7 +21,7 @@ def test_benchmark_run_graph_search_solver():
     target_graph = target_graph.data
     target_tableau = get_clifford_tableau_from_graph(target_graph)
     n_photon = target_tableau.n_qubits
-    target_state = QuantumState(n_photon, target_tableau, representation="stabilizer")
+    target_state = QuantumState(target_tableau, rep_type="s")
 
     compiler = StabilizerCompiler()
     metric = Infidelity(target=target_state)

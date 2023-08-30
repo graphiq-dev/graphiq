@@ -40,7 +40,7 @@ def test_hybrid_graph_search_get_iso_graphs():
 
     target_tableau = get_clifford_tableau_from_graph(target_graph)
     n_photon = target_tableau.n_qubits
-    target_state = QuantumState(n_photon, target_tableau, representation="stabilizer")
+    target_state = QuantumState(target_tableau, rep_type="s")
 
     compiler = StabilizerCompiler()
 
@@ -66,7 +66,7 @@ def test_hybrid_graph_search_get_lc_graphs():
 
     target_tableau = get_clifford_tableau_from_graph(target_graph)
     n_photon = target_tableau.n_qubits
-    target_state = QuantumState(n_photon, target_tableau, representation="stabilizer")
+    target_state = QuantumState(target_tableau, rep_type="s")
 
     compiler = StabilizerCompiler()
 
@@ -117,7 +117,7 @@ def test_hybird_graph_search_solver_callback_func():
 
     target_tableau = get_clifford_tableau_from_graph(target_graph)
     n_photon = target_tableau.n_qubits
-    target_state = QuantumState(n_photon, target_tableau, representation="stabilizer")
+    target_state = QuantumState(target_tableau, rep_type="s")
 
     compiler = StabilizerCompiler()
 

@@ -1,5 +1,5 @@
 from benchmarks.circuits import *
-from src.ops import *
+from src.circuit.ops import *
 from src.solvers.solver_result import *
 import pandas as pd
 import time

@@ -1,6 +1,7 @@
 from abc import ABC
 import numpy as np
 import src.backends.stabilizer.functions.utils as sfu
+import copy
 
 
 class TableauBase(ABC):
@@ -112,7 +113,7 @@ class StabilizerTableau(TableauBase):
         self.shape = (self.n_qubits, 2 * self.n_qubits)
 
     def copy(self):
-        return StabilizerTableau(self._table, self._phase)
+        return copy.deepcopy(self)
 
     @property
     def x_matrix(self):

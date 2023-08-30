@@ -9,7 +9,7 @@ State representations that we intend to support in the near future are:
     1. Graph representation
 
 """
-
+import copy
 import warnings
 import networkx as nx
 import numpy as np
@@ -376,3 +376,6 @@ class QuantumState:
 
     def apply_clifford(self, gate):
         pass
+
+    def copy(self):
+        return copy.deepcopy(self)

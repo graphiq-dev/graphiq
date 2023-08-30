@@ -20,17 +20,16 @@ def test_linear_cluster_state(expected):
     output_state.partial_trace(
         [*range(n_photons)],
         dims=n_photons * [2],
-        measurement_determinism=compiler.measurement_determinism,
     )
     tableau = output_stabilizer.tableau.to_stabilizer()
     output_state = rc.stabilizer_to_density(tableau.to_labels())
 
-    assert np.allclose(output_state, target_state.dm.data)
+    assert np.allclose(output_state, target_state.rep_data.data)
     output_tableau = sfs.canonical_form(tableau)
-    generator_string = rc.density_to_stabilizer(target_state.rep_data.data)
-    target_tableau = StabilizerTableau(n_photons)
-    target_tableau.from_labels(generator_string)
-    target_tableau = sfs.canonical_form(target_tableau)
+    target_tableau = rc.density_to_stabilizer(target_state.rep_data.data)
+    assert len(target_tableau) == 1
+
+    target_tableau = sfs.canonical_form(target_tableau[0][1])
     assert target_tableau == output_tableau
 
 
@@ -43,7 +42,6 @@ def test_ghz3():
     output_state.partial_trace(
         [*range(n_photons)],
         dims=n_photons * [2],
-        measurement_determinism=compiler.measurement_determinism,
     )
     output_s_tableau = output_state.rep_data.tableau.to_stabilizer()
     output_dm = rc.stabilizer_to_density(output_s_tableau.to_labels())

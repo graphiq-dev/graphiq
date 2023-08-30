@@ -248,9 +248,20 @@ def stabilizer_to_density(input_stabilizer):
     :rtype: numpy.ndarray
     """
     if isinstance(input_stabilizer, list):
-        rho = 0
-        for p_i, tableau_i in input_stabilizer:
-            rho += p_i * _stabilizer_to_density_pure(tableau_i)
+
+        if isinstance(input_stabilizer[0], str):
+            x_matrix, z_matrix = sfu.string_to_symplectic(input_stabilizer)
+            stab = StabilizerTableau([x_matrix, z_matrix])
+            return _stabilizer_to_density_pure(stab)
+        elif isinstance(input_stabilizer[0], tuple):
+            rho = 0
+
+            for p_i, tableau_i in input_stabilizer:
+                rho += p_i * _stabilizer_to_density_pure(tableau_i)
+        else:
+            raise ValueError(
+                "Invalid stabilizer input: use either StabilizerTableau or a mixed state representation."
+            )
     elif isinstance(input_stabilizer, StabilizerTableau):
         return _stabilizer_to_density_pure(input_stabilizer)
     else:

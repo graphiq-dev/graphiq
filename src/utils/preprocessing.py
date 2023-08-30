@@ -21,8 +21,7 @@ def graph_circuit_depth(graph):
     :rtype:
     """
     target_tableau = get_clifford_tableau_from_graph(graph)
-    n_photon = target_tableau.n_qubits
-    target_state = QuantumState(n_photon, target_tableau, rep_type="stabilizer")
+    target_state = QuantumState(target_tableau, rep_type="s")
     compiler = StabilizerCompiler()
     compiler.noise_simulation = False
     compiler.measurement_determinism = 1

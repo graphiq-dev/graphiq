@@ -81,8 +81,12 @@ class HybridEvolutionarySolver(EvolutionarySolver):
         :param noise_model_mapping: a dictionary that associates each operation type to a noise model
         :type noise_model_mapping: dict
         """
-
-        tableau = target.stabilizer.tableau
+        if target.rep_type is not "s":
+            tmp_target = target.copy()
+            tmp_target.convert_representation("s")
+            tableau = tmp_target.rep_data.data
+        else:
+            tableau = target.rep_data.data
         n_photon = tableau.n_qubits
         n_emitter = DeterministicSolver.determine_n_emitters(tableau.to_stabilizer())
         super().__init__(

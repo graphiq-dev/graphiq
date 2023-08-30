@@ -716,6 +716,29 @@ class MixedStabilizer(StateRepresentationBase):
             for (p_i, t_i) in self._mixture
         ]
 
+    def partial_trace(self, keep, dims):
+        """
+        Trace out qubits after disentangling them from the rest
+
+        :param keep:
+        :type keep: list[int] or numpy.ndarray
+        :param dims:
+        :type dims:
+        :return: nothing
+        :rtype: None
+        """
+        self._mixture = [
+            (
+                p_i,
+                sfc.partial_trace(
+                    t_i,
+                    keep=keep,
+                    dims=dims,
+                ),
+            )
+            for (p_i, t_i) in self._mixture
+        ]
+
     def __str__(self):
         """
         Return a string representation of this state representation

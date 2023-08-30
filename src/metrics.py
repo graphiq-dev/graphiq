@@ -96,7 +96,13 @@ class Infidelity(MetricBase):
         :rtype: float
         """
 
-        if state.rep_type == "s" and self.target.rep_type == "s":
+        if self.target.rep_type == "s":
+            if state.rep_type == "s":
+                rep_data = state.rep_data
+            else:
+                tmp_state = state.copy()
+                tmp_state.convert_representation("s")
+                rep_data = tmp_state.rep_data
             if isinstance(self.target.rep_data, MixedStabilizer):
                 assert len(self.target.rep_data.mixture) == 1
                 assert self.target.rep_data.mixture[0][0] == 1.0
@@ -104,20 +110,20 @@ class Infidelity(MetricBase):
             elif isinstance(self.target.rep_data, Stabilizer):
                 tableau = self.target.rep_data.tableau
 
-            if isinstance(state.rep_data, Stabilizer):
-                fid = sfm.fidelity(tableau, state.rep_data.data)
+            if isinstance(rep_data, Stabilizer):
+                fid = sfm.fidelity(tableau, rep_data.data)
             elif isinstance(state.rep_data, MixedStabilizer):
                 fid = sum(
-                    [
-                        p_i * sfm.fidelity(tableau, t_i)
-                        for p_i, t_i in state.rep_data.mixture
-                    ]
+                    [p_i * sfm.fidelity(tableau, t_i) for p_i, t_i in rep_data.mixture]
                 )
 
-        elif state.rep_type == "dm" and self.target.rep_type == "dm":
-
-            fid = dmf.fidelity(self.target.rep_data.data, state.rep_data.data)
-
+        elif self.target.rep_type == "dm":
+            if state.rep_type == "dm":
+                fid = dmf.fidelity(self.target.rep_data.data, state.rep_data.data)
+            else:
+                tmp_state = state.copy()
+                tmp_state.convert_representation("dm")
+                fid = dmf.fidelity(self.target.rep_data.data, tmp_state.rep_data.data)
         else:
             raise ValueError("Cannot compute the infidelity.")
 
@@ -162,10 +168,18 @@ class TraceDistance(MetricBase):
         :return: the trace distance
         :rtype: float
         """
-        if self.target.rep_type == "dm" and state.rep_type == "dm":
-            trace_distance = dmf.trace_distance(
-                self.target.rep_data.data, state.rep_data.data
-            )
+        if self.target.rep_type == "dm":
+            if state.rep_type == "dm":
+                trace_distance = dmf.trace_distance(
+                    self.target.rep_data.data, state.rep_data.data
+                )
+            else:
+                tmp_state = state.copy()
+                tmp_state.convert_representation("dm")
+                trace_distance = dmf.trace_distance(
+                    self.target.rep_data.data, tmp_state.rep_data.data
+                )
+
         else:
             raise ValueError("Cannot compute the trace distance.")
 

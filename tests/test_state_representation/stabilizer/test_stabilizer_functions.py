@@ -184,10 +184,10 @@ def test_stabilizer_fidelity2():
     stab_compiler = StabilizerCompiler()
     stab_compiler.measurement_determinism = 1
     state1 = dm_compiler.compile(dag)
-    state1.partial_trace([*range(3)], 4 * [2], measurement_determinism=1)
+    state1.partial_trace([*range(3)], 4 * [2])
     print(metric.evaluate(state1, dag))
     state2 = stab_compiler.compile(dag)
-    state2.partial_trace([*range(3)], 4 * [2], measurement_determinism=1)
+    state2.partial_trace([*range(3)], 4 * [2])
     print(metric.evaluate(state2, dag))
 
 

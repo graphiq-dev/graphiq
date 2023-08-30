@@ -16,7 +16,7 @@ class StabilizerCompiler(CompilerBase):
 
     # TODO: [longer term] refactor to take a QuantumState object input instead of creating its own initial state?
 
-    name = "stab"
+    name = "stabilizer"
     ops = [  # the accepted operations for a given compiler
         ops.Input,
         ops.Identity,

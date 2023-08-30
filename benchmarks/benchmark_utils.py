@@ -146,9 +146,7 @@ def benchmark_data(
             ] = copy.deepcopy(
                 circuit_measurement_independent(solver.hof[0][1], compiler)[0]
             )
-            df.loc[
-                f"Circuit depth", (target["name"], i)
-            ] = solver.hof[0][1].depth
+            df.loc[f"Circuit depth", (target["name"], i)] = solver.hof[0][1].depth
 
             circuit_data = {
                 "name": target["name"],

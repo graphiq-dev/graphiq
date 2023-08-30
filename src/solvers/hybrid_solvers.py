@@ -388,7 +388,7 @@ class HybridGraphSearchSolver(SolverBase):
         target_graph_list = stabilizer_to_graph(
             self.target.rep_data.tableau.to_stabilizer(), validate=False
         )
-        if len(target_graph_list)>1:
+        if len(target_graph_list) > 1:
             raise ValueError("HybridGraphSearchSolver cannot handle mixed graph")
         target_graph = target_graph_list[0][1]
         n_qubits = self.target.n_qubits
@@ -407,13 +407,13 @@ class HybridGraphSearchSolver(SolverBase):
                 nx.from_numpy_array(iso_graph_tuples[i][0])
             )
 
-            target_state = QuantumState(relabel_tableau, "stab")
+            target_state = QuantumState(relabel_tableau, "s")
 
             for score_graph in lc_graphs:
                 # solve the noise-free scenario
                 lc_tableau = get_clifford_tableau_from_graph(score_graph[1])
 
-                solver_target_state = QuantumState(lc_tableau, "stab")
+                solver_target_state = QuantumState(lc_tableau, "s")
                 self.metric.target = solver_target_state
                 # create an instance of the base solver
                 if self.base_solver == DeterministicSolver:
@@ -780,11 +780,12 @@ class AlternateGraphSolver:
         graph = nx.from_numpy_array(new_adj)
 
         c_tableau = get_clifford_tableau_from_graph(graph)
-        ideal_state = QuantumState(n, c_tableau, representation="stabilizer")
+
         if isinstance(self.noise_compiler, DensityMatrixCompiler):
-            ideal_state = QuantumState(
-                n, graph_to_density(graph), representation="density matrix"
-            )
+            ideal_state = QuantumState(graph_to_density(graph), rep_type="dm")
+        else:
+            ideal_state = QuantumState(c_tableau, rep_type="s")
+
         metric = Infidelity(ideal_state)
 
         compiler = self.noise_compiler
@@ -795,9 +796,6 @@ class AlternateGraphSolver:
             keep=list(range(circ.n_photons)),
             dims=(circ.n_photons + circ.n_emitters) * [2],
         )
-        # print("tablooos \n", canonical_form(stabilizer_from_clifford(c_tableau)), "\n",canonical_form(stabilizer_from_clifford(compiled_state.stabilizer.mixture[0][1])))
-        # print(type(compiled_state.stabilizer), compiled_state.stabilizer.mixture)
-        # print("tablooos \n",compiled_state.dm, "tablooos \n",ideal_state.dm)
 
         # evaluate the metric
         score = metric.evaluate(compiled_state, circ)
@@ -840,7 +838,7 @@ def graph_to_circ(graph, noise_model_mapping=None, show=False):
         ), "input must be a networkx graph object or a numpy adjacency matrix"
     n = graph.number_of_nodes()
     c_tableau = get_clifford_tableau_from_graph(graph)
-    ideal_state = QuantumState(n, c_tableau, representation="stabilizer")
+    ideal_state = QuantumState(c_tableau, rep_type="s")
 
     target = ideal_state
     solver = DeterministicSolver(

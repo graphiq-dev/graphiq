@@ -82,7 +82,7 @@ class CompilerBase(ABC):
 
         state = QuantumState(
             data=state_data,  # initialize to |0...0> state
-            representation=self.__class__.name,
+            rep_type=self.__class__.name,
             mixed=True if self._noise_simulation else False,
         )
 

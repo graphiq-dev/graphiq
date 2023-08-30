@@ -21,7 +21,7 @@ import numpy as np
 def get_pipeline(target_graph):
     target_tableau = get_clifford_tableau_from_graph(target_graph)
     n_photon = target_tableau.n_qubits
-    target_state = QuantumState(target_tableau, representation="stab")
+    target_state = QuantumState(target_tableau, rep_type="stab")
 
     compiler = StabilizerCompiler()
 

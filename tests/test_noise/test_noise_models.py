@@ -10,14 +10,14 @@ from src.backends.stabilizer.state import MixedStabilizer
 def _state_initialization_dm(n_quantum, state=dmf.state_ketz0()):
     return QuantumState(
         dmf.create_n_product_state(n_quantum, state),
-        representation="dm",
+        rep_type="dm",
     )
 
 
 def _state_initialization_stabilizer(n_quantum):
     return QuantumState(
         sfc.create_n_ket0_state(n_quantum),
-        representation="stab",
+        rep_type="s",
     )
 
 

@@ -25,7 +25,7 @@ def bell_state_circuit():
     Two-qubit Bell state preparation circuit
     """
     rho = ket2dm((tensor(2 * [state_ketz0()]) + tensor(2 * [state_ketz1()]))) / 2.0
-    ideal_state = QuantumState(rho, representation="dm")
+    ideal_state = QuantumState(rho, rep_type="dm")
     circuit = CircuitDAG(n_emitter=2, n_classical=0)
     circuit.add(Hadamard(register=0))
     circuit.add(CNOT(control=0, control_type="e", target=1, target_type="e"))
@@ -37,7 +37,7 @@ def ghz3_state_circuit():
     Three-qubit GHZ state
     """
     rho = ket2dm((tensor(3 * [state_ketz0()]) + tensor(3 * [state_ketz1()]))) / 2.0
-    ideal_state = QuantumState(rho, representation="dm")
+    ideal_state = QuantumState(rho, rep_type="dm")
     graph = nx.Graph([(0, 1), (1, 2)])
     c_tableau = CliffordTableau(3)
     s_tableau = rc.graph_to_stabilizer(graph)[0][1]
@@ -73,7 +73,7 @@ def ghz4_state_circuit():
     """
 
     rho = ket2dm((tensor(4 * [state_ketz0()]) + tensor(4 * [state_ketz1()]))) / 2.0
-    ideal_state = QuantumState(rho, representation="dm")
+    ideal_state = QuantumState(rho, rep_type="dm")
     graph = nx.Graph([(0, 1), (1, 2), (2, 3)])
     c_tableau = CliffordTableau(4)
     s_tableau = rc.graph_to_stabilizer(graph)[0][1]
@@ -111,7 +111,7 @@ def linear_cluster_3qubit_circuit():
     """
     graph = nx.Graph([(1, 2), (2, 3)])
     state = DensityMatrix.from_graph(graph)
-    ideal_state = QuantumState(state.data, representation="dm")
+    ideal_state = QuantumState(state.data, rep_type="dm")
     c_tableau = CliffordTableau(3)
     s_tableau = rc.graph_to_stabilizer(graph)[0][1]
     c_tableau.stabilizer = s_tableau.table
@@ -140,7 +140,7 @@ def linear_cluster_4qubit_circuit():
     """
     graph = nx.Graph([(1, 2), (2, 3), (3, 4)])
     state = DensityMatrix.from_graph(graph)
-    ideal_state = QuantumState(state.data, representation="dm")
+    ideal_state = QuantumState(state.data, rep_type="dm")
     c_tableau = CliffordTableau(4)
     s_tableau = rc.graph_to_stabilizer(graph)[0][1]
     c_tableau.stabilizer = s_tableau.table
@@ -175,7 +175,7 @@ def variational_entangling_layer_2qubit():
         [dmf.state_ketz1(), dmf.state_ketz1()]
     )
     state = DensityMatrix(dmf.ket2dm(ket))
-    ideal_state = QuantumState(state.data, representation="dm")
+    ideal_state = QuantumState(state.data, rep_type="dm")
 
     circuit = CircuitDAG(n_emitter=2, n_photon=0, n_classical=0)
     circuit.add(ParameterizedOneQubitRotation(register=0, reg_type="e"))
@@ -202,7 +202,7 @@ def strongly_entangling_layer(n_qubits=3, layers=1):
         )
     )
     state = DensityMatrix(dmf.ket2dm(ket))
-    ideal_state = QuantumState(state.data, representation="dm")
+    ideal_state = QuantumState(state.data, rep_type="dm")
 
     circuit = CircuitDAG(n_emitter=n_qubits, n_photon=0, n_classical=0)
     for layer in range(layers):

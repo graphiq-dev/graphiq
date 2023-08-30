@@ -44,7 +44,7 @@ def deterministic_solver_runtime(n_low, n_high, n_step):
             repeater_graph_states(n_inner_photons)
         )
         n_photon = target_tableau.n_qubits
-        target = QuantumState(n_photon, target_tableau, representation="stabilizer")
+        target = QuantumState(target_tableau, rep_type="s")
         compiler = StabilizerCompiler()
         metric = Infidelity(target)
 

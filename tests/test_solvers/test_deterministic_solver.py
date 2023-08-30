@@ -35,7 +35,7 @@ def test_square4():
     graph = nx.Graph([(1, 2), (2, 3), (2, 4), (4, 3), (1, 3)])
     target_tableau = get_clifford_tableau_from_graph(graph)
     n_photon = target_tableau.n_qubits
-    target = QuantumState(target_tableau, representation="stab")
+    target = QuantumState(target_tableau, rep_type="stab")
     compiler = StabilizerCompiler()
     compiler.measurement_determinism = 1
     metric = Infidelity(target)
@@ -55,7 +55,7 @@ def test_square4_alternate():
     # note that adjacency matrix is in the ordering of node creation
     target_tableau = get_clifford_tableau_from_graph(graph)
     n_photon = target_tableau.n_qubits
-    target = QuantumState(target_tableau, representation="stab")
+    target = QuantumState(target_tableau, rep_type="stab")
     compiler = StabilizerCompiler()
     metric = Infidelity(target)
     solver = DeterministicSolver(
@@ -73,7 +73,7 @@ def test_repeater_graph_state_4():
     graph = repeater_graph_states(4)
     target_tableau = get_clifford_tableau_from_graph(graph)
     n_photon = target_tableau.n_qubits
-    target = QuantumState(target_tableau, representation="stab")
+    target = QuantumState(target_tableau, rep_type="stab")
     compiler = StabilizerCompiler()
     compiler.measurement_determinism = 1
     metric = Infidelity(target)
@@ -94,7 +94,7 @@ def test_repeater_graph_states(n_inner_photons):
         repeater_graph_states(n_inner_photons)
     )
     n_photon = target_tableau.n_qubits
-    target = QuantumState(target_tableau, representation="stab")
+    target = QuantumState(target_tableau, rep_type="stab")
     compiler = StabilizerCompiler()
     metric = Infidelity(target)
     solver = DeterministicSolver(
@@ -117,7 +117,7 @@ def test_random_graph_states(n_nodes):
 
     target_tableau = get_clifford_tableau_from_graph(graph)
     n_photon = target_tableau.n_qubits
-    target = QuantumState(target_tableau, representation="stab")
+    target = QuantumState(target_tableau, rep_type="stab")
     compiler = StabilizerCompiler()
     metric = Infidelity(target)
     solver = DeterministicSolver(

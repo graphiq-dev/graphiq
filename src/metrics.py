@@ -95,8 +95,8 @@ class Infidelity(MetricBase):
         :return: infidelity = 1 - fidelity
         :rtype: float
         """
-        # TODO: add check for the representation
-        if state.rep_type == "stab" and self.target.rep_type == "stab":
+
+        if state.rep_type == "s" and self.target.rep_type == "s":
             if isinstance(self.target.rep_data, MixedStabilizer):
                 assert len(self.target.rep_data.mixture) == 1
                 assert self.target.rep_data.mixture[0][0] == 1.0

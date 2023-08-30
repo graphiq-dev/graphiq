@@ -40,7 +40,7 @@ def search_for_alternative_circuits(
     results = []
     target_tableau = get_clifford_tableau_from_graph(graph)
     n_photon = target_tableau.n_qubits
-    target = QuantumState(target_tableau, representation="stab")
+    target = QuantumState(target_tableau, rep_type="s")
     compiler = StabilizerCompiler()
     compiler.noise_simulation = True
     compiler.measurement_determinism = 1

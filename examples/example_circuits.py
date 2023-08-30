@@ -38,10 +38,10 @@ if __name__ == "__main__":
     infid = metric.evaluate(state, circuit)
     print(f"Infidelity with the ideal state is {infid}")
 
-    fig, _ = density_matrix_bars(ideal_state.dm.data)
+    fig, _ = density_matrix_bars(ideal_state.rep_data.data)
     fig.suptitle("Ideal density matrix")
 
-    fig, _ = density_matrix_bars(state.dm.data)
+    fig, _ = density_matrix_bars(state.rep_data.data)
     fig.suptitle("Simulated circuit density matrix")
 
     plt.show()

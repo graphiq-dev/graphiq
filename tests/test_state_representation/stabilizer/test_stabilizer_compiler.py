@@ -47,7 +47,7 @@ def test_ghz3():
     )
     output_s_tableau = output_state.rep_data.tableau.to_stabilizer()
     output_dm = rc.stabilizer_to_density(output_s_tableau.to_labels())
-    # use representation rc to convert to density matrix
+    # use representation conversion module to convert to density matrix
     assert np.allclose(output_dm, target_state.rep_data.data)
 
 

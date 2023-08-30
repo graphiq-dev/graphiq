@@ -250,5 +250,3 @@ class StabilizerTableau(TableauBase):
         new_n_qubits = int(new_table.shape[0])
         assert new_n_qubits < self.n_qubits
         self._reset(new_table, new_phase)
-
-

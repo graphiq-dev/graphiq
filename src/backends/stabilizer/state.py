@@ -303,11 +303,7 @@ class Stabilizer(StateRepresentationBase):
         :return: nothing
         :rtype: None
         """
-        self._tableau = sfc.partial_trace(
-            self._tableau,
-            keep=keep,
-            dims=dims
-        )
+        self._tableau = sfc.partial_trace(self._tableau, keep=keep, dims=dims)
 
     def __str__(self):
         """

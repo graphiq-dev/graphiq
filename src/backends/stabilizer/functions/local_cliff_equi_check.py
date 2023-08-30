@@ -110,8 +110,8 @@ def state_converter_circuit(state1, state2, validate=False):
         op = str_to_op(gate)
         circuit.add(op)
     if validate:
-        target1 = QuantumState(target1_tableau, representation="stab")
-        target2 = QuantumState(target2_tableau, representation="stab")
+        target1 = QuantumState(target1_tableau, rep_type="stab")
+        target2 = QuantumState(target2_tableau, rep_type="stab")
         metric2 = Infidelity(target2)
         compiler = StabilizerCompiler()
         final_state = compiler.compile(circuit, initial_state=target1)

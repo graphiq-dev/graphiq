@@ -26,18 +26,20 @@ def graph_stabilizer_setup(graph, solver_class, solver_setting, expected_result)
     """
     A common piece of code to run a graph state with the stabilizer backend
 
-    :param graph: the graph representation of a graph state
+    :param graph: the graph rep_type of a graph state
     :type graph: networkX.Graph
     :param solver_class: a solver class to run
     :type solver_class: a subclass of SolverBase
     :param solver_setting:
     :type solver_setting:
+    :param expected_result:
+    :type expected_result:
     :return: the solver instance
     :rtype: SolverBase
     """
     target_tableau = get_clifford_tableau_from_graph(graph)
-    n_photon = target_tableau.n_qubits
-    target = QuantumState(n_photon, target_tableau, representation="stabilizer")
+
+    target = QuantumState(target_tableau, rep_type="s")
     compiler = StabilizerCompiler()
     compiler.measurement_determinism = 1
     metric = Infidelity(target)
@@ -137,7 +139,7 @@ def test_graph_based_search_solver():
     target_graph = nx.star_graph(3)
     target_tableau = get_clifford_tableau_from_graph(target_graph)
     n_photon = target_tableau.n_qubits
-    target_state = QuantumState(n_photon, target_tableau, representation="stabilizer")
+    target_state = QuantumState(target_tableau, rep_type="s")
     compiler = StabilizerCompiler()
     noise_model = noise_model_loss_and_depolarizing(error_rate, loss_rate)
 

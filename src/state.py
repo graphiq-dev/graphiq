@@ -22,7 +22,7 @@ import src.backends.density_matrix.functions as dmf
 import src.backends.stabilizer.functions.clifford as sfc
 import src.backends.state_rep_conversion as rc
 
-# threshold above which density matrix representation is discouraged
+# threshold above which density matrix rep_type is discouraged
 DENSITY_MATRIX_QUBIT_THRESH = 10
 # method to handle mixed stabilizer state
 STABILIZER_MIXED_REPRESENTATION = "branch"
@@ -34,34 +34,34 @@ class QuantumState:
     It contains one state representation. To hold multiple representations, use QuantumStateGadget class
     """
 
-    def __init__(self, data, representation=None, mixed=False):
+    def __init__(self, data, rep_type=None, mixed=False):
         """
         Creates the QuantumState class with one initial representation
 
-        :param data: valid data input for "representation".
+        :param data: valid data input for "rep_type".
                      Density matrices representations support np.ndarray or int inputs
                      Stabilizer representations take int or StabilizerTableau
                      Graph representations take frozenset or int or networkx.Graph or iterable of data pairs
         :type data: list OR numpy.ndarray OR Graph OR nx.Graph or CliffordTableau
-        :param representation: selected representation to initialize;
+        :param rep_type: selected representation to initialize;
                                 if not specified, the default choice is the density matrix if the number of qubits is
                                 less than the threshold value or stabilizer otherwise.
-        :type representation: str
-        :param mixed: boolean flag to initialize as a mixed state or not (mainly used for Stabilizer representation)
+        :type rep_type: str
+        :param mixed: boolean flag to initialize as a mixed state or not (mainly used for Stabilizer rep_type)
         :type mixed: boolean
         :return: nothing
         :rtype: None
         """
 
         self.mixed = mixed
-        self._rep_type = representation
+        self._rep_type = self._get_rep_type_name(rep_type)
         valid, self.n_qubits = self.validate_data(data)
 
         if not valid:
             raise TypeError(
                 f"Data's type is incorrect. Input data is {data}, which is of type {type(data)}"
             )
-        if representation is None:
+        if rep_type is None:
             if (
                 self.n_qubits < DENSITY_MATRIX_QUBIT_THRESH
                 and DensityMatrix.valid_datatype(data)
@@ -81,11 +81,11 @@ class QuantumState:
                     f"Data's type is invalid for initializing a QuantumState"
                 )
 
-        elif isinstance(representation, str):
-            self._rep_data = self._initialize_representation(representation, data)
+        elif isinstance(rep_type, str):
+            self._rep_data = self._initialize_representation(rep_type, data)
 
         else:
-            raise ValueError("passed representation argument must be a String")
+            raise ValueError("passed rep_type argument must be a String")
 
     @property
     def rep_data(self):
@@ -98,6 +98,10 @@ class QuantumState:
     @property
     def rep_type(self):
         return self._rep_type
+
+    @rep_type.setter
+    def rep_type(self, new_rep_type):
+        self._rep_type = self._get_rep_type_name(new_rep_type)
 
     def partial_trace(self, keep, dims):
         """
@@ -114,7 +118,7 @@ class QuantumState:
         :rtype: None
         """
 
-        if self._rep_type is "graph":
+        if self._rep_type == "g":
             raise NotImplementedError(
                 "Partial trace not yet implemented on graph state"
             )
@@ -165,8 +169,7 @@ class QuantumState:
         graph = Graph(data)
 
         assert graph.n_qubits == self.n_qubits, (
-            f"Expected {self.n_qubits} qubits, "
-            f"graph representation has {graph.n_qubits}"
+            f"Expected {self.n_qubits} qubits, " f"graph rep_type has {graph.n_qubits}"
         )
         return graph
 
@@ -194,17 +197,17 @@ class QuantumState:
         )
         return stabilizer
 
-    def _initialize_representation(self, representation, data):
+    def _initialize_representation(self, rep_type, data):
         """
         Helper function to initialize any given representation
 
-        :param representation: representation to initialize
-        :type representation: str
-        :param data: data with which the representation should be initialized
+        :param rep_type: rep_type to initialize
+        :type rep_type: str
+        :param data: data with which the rep_type should be initialized
         :type data: int OR frozenset OR Graph OR nx.Graph OR numpy.ndarray
-        :raises ValueError: if representation is invalid
+        :raises ValueError: if rep_type is invalid
         """
-        if representation == "dm":
+        if rep_type in ("dm", "density matrix"):
             if self.n_qubits > DENSITY_MATRIX_QUBIT_THRESH:
                 warnings.warn(
                     UserWarning(
@@ -212,12 +215,12 @@ class QuantumState:
                     )
                 )
             return self._initialize_dm(data)
-        elif representation == "graph":
+        elif rep_type in ("g", "graph"):
             return self._initialize_graph(data)
-        elif representation == "stab":
+        elif rep_type in ("s", "stab", "stabilizer"):
             return self._initialize_stabilizer(data)
         else:
-            raise ValueError("Passed representation is invalid")
+            raise ValueError("Passed rep_type is invalid")
 
     def _density_to_graph(self, rep):
         new_data = rc.density_to_graph(rep.data)
@@ -290,20 +293,39 @@ class QuantumState:
     def _identity_fun(self, rep):
         return rep
 
+    @staticmethod
+    def _get_rep_type_name(rep_type):
+        if rep_type in ("s", "stab", "stabilizer"):
+            return "s"
+        elif rep_type in ("dm", "density matrix"):
+            return "dm"
+        elif rep_type in ("g", "graph"):
+            return "g"
+        elif rep_type is None:
+            return None
+        else:
+            raise ValueError(
+                f"QuantumState does not support the representation of type {rep_type}"
+            )
+
     def convert_representation(self, new_rep_type):
+        rep_type = self._get_rep_type_name(new_rep_type)
+        if rep_type is None:
+            raise ValueError("Cannot convert representation to None type")
+
         conversion_dict = {
-            ("dm", "graph"): self._density_to_graph,
-            ("dm", "stab"): self._density_to_stabilizer,
-            ("stab", "dm"): self._stabilizer_to_density,
-            ("stab", "graph"): self._stabilizer_to_graph,
-            ("graph", "dm"): self._graph_to_density,
-            ("graph", "stab"): self._graph_to_stabilizer,
+            ("dm", "g"): self._density_to_graph,
+            ("dm", "s"): self._density_to_stabilizer,
+            ("s", "dm"): self._stabilizer_to_density,
+            ("s", "g"): self._stabilizer_to_graph,
+            ("g", "dm"): self._graph_to_density,
+            ("g", "s"): self._graph_to_stabilizer,
             ("dm", "dm"): self._identity_fun,
-            ("stab", "stab"): self._identity_fun,
-            ("graph", "graph"): self._identity_fun,
+            ("s", "s"): self._identity_fun,
+            ("g", "g"): self._identity_fun,
         }
-        if self._rep_type != new_rep_type:
-            if new_rep_type == "dm" and self.n_qubits > DENSITY_MATRIX_QUBIT_THRESH:
+        if self._rep_type != rep_type:
+            if rep_type == "dm" and self.n_qubits > DENSITY_MATRIX_QUBIT_THRESH:
                 warnings.warn(
                     UserWarning(
                         "Density matrix is not recommended for a state of this size"
@@ -311,10 +333,10 @@ class QuantumState:
                 )
 
             tmp_data = self._rep_data
-            conversion_func = conversion_dict[(self._rep_type, new_rep_type)]
+            conversion_func = conversion_dict[(self._rep_type, rep_type)]
 
             self._rep_data = conversion_func(tmp_data)
-            self._rep_type = new_rep_type
+            self._rep_type = rep_type
 
     @classmethod
     def validate_data(cls, data):
@@ -341,7 +363,9 @@ class QuantumState:
         elif isinstance(data, frozenset):
             n_qubits = len(data)
         elif isinstance(data, list):
-            if isinstance(data[0][1], CliffordTableau) or isinstance(data[0][1], nx.Graph):
+            if isinstance(data[0][1], CliffordTableau) or isinstance(
+                data[0][1], nx.Graph
+            ):
                 n_qubits = data[0][1].n_qubits
             else:
                 return False, None

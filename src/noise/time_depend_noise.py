@@ -205,9 +205,7 @@ class NoisyEnsemble:
                 state_data.append((prob, tableau))
             assert np.isclose(sum([p[0] for p in state_data]), 1)
             n_qubits = state_data[0][1].n_qubits
-            quantum_state = QuantumState(
-                state_data, representation="stab", mixed=True
-            )
+            quantum_state = QuantumState(state_data, rep_type="stab", mixed=True)
         else:
             raise NotImplementedError("non-stabilizer backends not supported yet")
         return quantum_state

@@ -32,7 +32,11 @@ def convert_data_to_graph(graph_data):
 
     elif isinstance(graph_data, frozenset):
         # graph_data is a single frozenset, meaning the graph contains only a single (redundantly encoded) node
-        only_node = QuNode(graph_data)
+        if len(graph_data) > 1:
+            redundancy = True
+        else:
+            redundancy = False
+        only_node = QuNode(graph_data, redundancy=redundancy)
         node_dict[graph_data] = only_node
         graph.add_node(only_node)
 
@@ -47,7 +51,11 @@ def convert_data_to_graph(graph_data):
             elif isinstance(node, frozenset) or isinstance(node, int):
                 if isinstance(node, int):
                     node = frozenset([node])  # cast int to frozenset
-                tmp_node = QuNode(node)
+                if len(node) > 1:
+                    redundancy = True
+                else:
+                    redundancy = False
+                tmp_node = QuNode(node, redundancy=redundancy)
                 node_dict[node] = tmp_node
                 graph.add_node(tmp_node)
             else:

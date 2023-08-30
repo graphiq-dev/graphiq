@@ -16,7 +16,7 @@ def test_y_measurement():
     projector1 = dmf.get_one_qubit_gate(4, 2, kety1 @ np.conjugate(kety1.T))
     projectors = [projector0, projector1]
     rho.apply_measurement(projectors, measurement_determinism=0)
-    graph_adj = rc.density_to_graph(rho.data)
+    graph_adj = rc.density_to_graph(rho.data, validate=False)
     nx.draw(nx.from_numpy_array(graph_adj), with_labels=True)
     plt.show()
 
@@ -38,6 +38,6 @@ def test_x_measurement():
     print(f"rho is {rho.data}")
     print(f"rho2 is {rho2.data}")
 
-    graph_adj = rc.density_to_graph(rho.data)
+    graph_adj = rc.density_to_graph(rho.data, validate=False)
     # nx.draw(nx.from_numpy_array(graph_adj),with_labels=True)
     plt.show()

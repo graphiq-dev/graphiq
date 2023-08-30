@@ -23,8 +23,10 @@ class QuNode:
             self.id = frozenset([id_set])
         else:
             raise ValueError("QuNode only accepts frozenset and int as id.")
-        if (not self.redundancy) and len(self.id) > 1:
-            raise ValueError("Redundancy encoding is disabled for this QuNode.")
+        # if (not self.redundancy) and len(self.id) > 1:
+        #    raise ValueError("Redundancy encoding is disabled for this QuNode.")
+        if len(self.id) > 1:
+            self.redundancy = True
 
     def count_redundancy(self):
         """

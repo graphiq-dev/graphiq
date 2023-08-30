@@ -17,15 +17,15 @@ def test_negativity():
 
     graph1 = nx.Graph([(0, 1), (1, 2)])
     rho_all = rc.graph_to_density(graph1)
-    rho01 = dmf.project_to_z0_and_remove(rho_all, [0, 0, 1])
+    rho01 = dmf.project_and_remove(rho_all, [0, 0, 1])
 
     assert dmf.negativity(rho01, 2, 2) > 0.1
 
-    rho02 = dmf.project_to_z0_and_remove(rho_all, [0, 1, 0])
+    rho02 = dmf.project_and_remove(rho_all, [0, 1, 0])
 
     assert dmf.negativity(rho02, 2, 2) < 0.1
 
-    rho12 = dmf.project_to_z0_and_remove(rho_all, [1, 0, 0])
+    rho12 = dmf.project_and_remove(rho_all, [1, 0, 0])
     assert dmf.negativity(rho12, 2, 2) > 0.1
 
 

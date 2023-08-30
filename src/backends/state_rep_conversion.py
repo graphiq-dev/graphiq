@@ -89,7 +89,7 @@ def _density_to_graph_pure(input_matrix, threshold=0.1):
                 1 if (k is not i) and (k is not j) else 0 for k in range(n_qubits)
             ]
 
-            rho_ij = dmf.project_to_z0_and_remove(rho, measurement_locations)
+            rho_ij = dmf.project_and_remove(rho, measurement_locations)
             neg_ij = dmf.negativity(rho_ij, 2, 2)
             if neg_ij > threshold:
                 graph_adj[i, j] = 1

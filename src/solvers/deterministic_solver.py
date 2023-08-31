@@ -57,7 +57,7 @@ class DeterministicSolver(SolverBase):
         """
 
         super().__init__(target, metric, compiler, circuit, io, *args, **kwargs)
-        if target.rep_type is not "s":
+        if target.rep_type != "s":
             target.convert_representation("s")
         tableau = target.rep_data.data.to_stabilizer()
         self.n_emitter = self.determine_n_emitters(tableau)

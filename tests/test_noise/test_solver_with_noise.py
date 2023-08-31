@@ -115,7 +115,7 @@ def check_run_noise_visual(no_noise_run_info, noise_run_info, expected_info):
 def linear3_run_noise(density_matrix_compiler, linear3_expected, linear3_noise_model_2):
     """
     Again, we set the fixture scope to module. Arguably, this is more important than last time because actually
-    running the solve takes (relatively) long.
+    running the solve function takes (relatively) long.
 
     Since we want to apply 2 separate tests on the same run (one visual, one non-visual), it makes sense to have a
     common fixture that only gets called once per module

@@ -81,7 +81,7 @@ class HybridEvolutionarySolver(EvolutionarySolver):
         :param noise_model_mapping: a dictionary that associates each operation type to a noise model
         :type noise_model_mapping: dict
         """
-        if target.rep_type is not "s":
+        if target.rep_type != "s":
             tmp_target = target.copy()
             tmp_target.convert_representation("s")
             tableau = tmp_target.rep_data.data

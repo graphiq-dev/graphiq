@@ -125,7 +125,7 @@ class StabilizerCompiler(CompilerBase):
                     measurement_determinism=self.measurement_determinism,
                 )
                 if outcome == 1:
-                    state.apply_sigmaz(q_index(op.target, op.target_type))
+                    state.apply_sigmax(q_index(op.target, op.target_type))
 
             classical_registers[op.c_register] = outcome
 
@@ -270,13 +270,13 @@ class StabilizerCompiler(CompilerBase):
         if isinstance(op, ops.OneQubitOperationBase):
             op.noise.apply(state, n_quantum, [q_index(op.register, op.reg_type)])
         elif isinstance(op, ops.ControlledPairOperationBase):
-            op.noise.apply(
-                state,
-                n_quantum,
-                [
-                    q_index(op.control, op.control_type),
-                    q_index(op.target, op.target_type),
-                ],
+            if not isinstance(op.noise, list):
+                op.noise = [op.noise] * 2
+            control_noise = op.noise[0]
+            target_noise = op.noise[1]
+            control_noise.apply(
+                state, n_quantum, [q_index(op.control, op.control_type)]
             )
+            target_noise.apply(state, n_quantum, [q_index(op.target, op.target_type)])
         else:
             pass

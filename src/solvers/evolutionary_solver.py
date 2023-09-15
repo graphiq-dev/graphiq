@@ -4,7 +4,6 @@ This solver is based on certain physical rules imposed by a platform.
 One can define these rules via the allowed DAG transformations.
 
 """
-# TODO: evolutionary solvers very often perform better with elitism. Consider adding
 
 import numpy as np
 import warnings
@@ -33,6 +32,7 @@ class EvolutionarySearchSolverSetting(RandomSearchSolverSetting):
         tournament_k=2,
         selection_active=False,
         use_adapt_probability=False,
+        verbose=False,
         save_openqasm: str = "none",
     ):
         super().__init__(n_hof=n_hof, n_stop=n_stop, n_pop=n_pop)
@@ -40,6 +40,7 @@ class EvolutionarySearchSolverSetting(RandomSearchSolverSetting):
         self._selection_active = selection_active
         self._use_adapt_probability = use_adapt_probability
         self._save_openqasm = save_openqasm
+        self._verbose = verbose
 
     @property
     def tournament_k(self):
@@ -67,6 +68,15 @@ class EvolutionarySearchSolverSetting(RandomSearchSolverSetting):
     def use_adapt_probability(self, value):
         assert type(value) == bool
         self._use_adapt_probability = value
+
+    @property
+    def verbose(self):
+        return self._verbose
+
+    @verbose.setter
+    def verbose(self, value):
+        assert type(value) == bool
+        self._verbose = value
 
     @property
     def save_openqasm(self):
@@ -388,7 +398,6 @@ class EvolutionarySolver(RandomSearchSolver):
         """
 
         self.compiler.noise_simulation = self.noise_simulation
-        # TODO: add some logging to see how well it performed at each epoch (and pick n_stop accordingly)
 
         population = self.population_initialization()
 
@@ -427,8 +436,9 @@ class EvolutionarySolver(RandomSearchSolver):
                 population = self.tournament_selection(
                     population, k=self.setting.tournament_k
                 )
+            if self.setting.verbose:
 
-            print(f"Iteration {i} | Best score: {self.hof[0][0]:.6f}")
+                print(f"Iteration {i} | Best score: {self.hof[0][0]:.6f}")
 
         self.logs_to_df()  # convert the logs to a DataFrame
         self.result = (self.hof[0][0], self.hof[0][1])

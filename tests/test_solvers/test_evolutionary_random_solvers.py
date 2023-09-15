@@ -122,12 +122,12 @@ def linear4_run(density_matrix_compiler, linear4_expected):
     Since we want to apply 2 separate tests on the same run (one visual, one non-visual), it makes sense to have a
     common fixture that only gets called once per module
     """
-    return generate_run(4, 1, linear4_expected, density_matrix_compiler, 27)
+    return generate_run(4, 1, linear4_expected, density_matrix_compiler, 1)
 
 
 @pytest.fixture(scope="module")
 def linear4_run_stabilizer(stabilizer_compiler, linear4_expected):
-    return generate_run(4, 1, linear4_expected, stabilizer_compiler, 27)
+    return generate_run(4, 1, linear4_expected, stabilizer_compiler, 1)
 
 
 @pytest.fixture(scope="module")

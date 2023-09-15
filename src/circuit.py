@@ -42,9 +42,11 @@ import string
 import numpy as np
 import src.ops as ops
 import src.utils.openqasm_lib as oq_lib
+from src.noise.noise_models import NoNoise
 from src.visualizers.dag import dag_topology_pos
 from src.visualizers.openqasm_visualization import draw_openqasm
 from src.utils.circuit_comparison import compare_circuits
+import json
 
 import json
 
@@ -778,6 +780,7 @@ class CircuitDAG(CircuitBase):
     def replace_op(self, node, new_operation: ops.OperationBase):
         """
         Replaces an operation by a new one with the same set of registers it acts on.
+
         :param node: the node where the new operation is placed
         :type node: int
         :param new_operation: the new operation
@@ -811,6 +814,7 @@ class CircuitDAG(CircuitBase):
     def find_incompatible_edges(self, first_edge):
         """
         Find all incompatible edges of first_edge for which one cannot add any two-qubit operation
+
         :param first_edge: the edge under consideration
         :type first_edge: tuple
         :return: a set of incompatible edges
@@ -840,6 +844,7 @@ class CircuitDAG(CircuitBase):
     def _add_node(self, node_id, operation: ops.OperationBase):
         """
         Helper function for adding a node to the DAG representation
+
         :param node_id: the node to be added
         :type node_id: int
         :param operation: the operation for the node
@@ -857,6 +862,7 @@ class CircuitDAG(CircuitBase):
     def _remove_node(self, node):
         """
         Helper function for removing a node in the DAG representation
+
         :param node: the node to be removed
         :type node: int
         :return: nothing
@@ -892,6 +898,7 @@ class CircuitDAG(CircuitBase):
     def _add_edge(self, in_node, out_node, label, reg_type, reg):
         """
         Helper function for adding an edge in the DAG representation
+
         :param in_node: the incoming node
         :type in_node: int or str
         :param out_node: the outgoing node
@@ -917,6 +924,7 @@ class CircuitDAG(CircuitBase):
     def _remove_edge(self, edge_to_remove):
         """
         Helper function for removing an edge in the DAG representation
+
         :param edge_to_remove: the edge to be removed
         :type edge_to_remove: tuple
         :return: nothing
@@ -1044,6 +1052,7 @@ class CircuitDAG(CircuitBase):
     def _node_dict_append(self, key, value):
         """
         Helper function to add an entry to the node_dict
+
         :param key: key for the node_dict
         :type key: str
         :param value: value to be appended to the list corresponding to the key
@@ -1058,6 +1067,7 @@ class CircuitDAG(CircuitBase):
     def _node_dict_remove(self, key, value):
         """
         Helper function to remove an entry in the list corresponding to the key in node_dict
+
         :param key: key for the node_dict
         :type key: str
         :param value: value to be removed from the list corresponding to the key
@@ -1073,6 +1083,7 @@ class CircuitDAG(CircuitBase):
     def _edge_dict_append(self, key, value):
         """
         Helper function to add an entry to the edge_dict
+
         :param key: key for edge_dict
         :type key: str
         :param value: the edge tuple that contains in_node id, out_node id, and the label for the edge (register)
@@ -1087,7 +1098,8 @@ class CircuitDAG(CircuitBase):
 
     def _edge_dict_remove(self, key, value):
         """
-         Helper function to remove an entry in the list corresponding to the key in edge_dict
+        Helper function to remove an entry in the list corresponding to the key in edge_dict
+
         :param key: key for edge_dict
         :type key: str
         :param value: the edge tuple that contains in_node id, out_node id, and the label for the edge (register)
@@ -1331,6 +1343,7 @@ class CircuitDAG(CircuitBase):
     def _add_reg_if_absent(self, register, reg_type):
         """
         Adds a register to our list of registers and to our graph, if said registers are absent
+
         :param register: Index of the new register
         :type register: int
         :param reg_type: str indicates register type. Can be "e", "p", or "c"
@@ -1379,6 +1392,7 @@ class CircuitDAG(CircuitBase):
         """
         Add an operation to the circuit
         This function assumes that all registers used by operation are already built
+
         :param operation: Operation (gate and register) to add to the graph
         :type operation: OperationBase (or a subclass thereof)
         :return: nothing
@@ -1425,6 +1439,7 @@ class CircuitDAG(CircuitBase):
         """
         Add an operation to the circuit at a specified position
         This function assumes that all registers used by operation are already built
+
         :param operation: Operation (gate and register) to add to the graph
         :type operation: OperationBase (or a subclass thereof)
         :param reg_edges: a list of edges relevant for the operation
@@ -1462,6 +1477,7 @@ class CircuitDAG(CircuitBase):
     def _unique_node_id(self):
         """
         Internally used to provide a unique ID to each node. Note that this assumes a single thread assigning IDs
+
         :return: a new, unique node ID
         :rtype: int
         """
@@ -1613,12 +1629,89 @@ class CircuitDAG(CircuitBase):
         ops_list = [self.dag.nodes[nod]["op"] for nod in ordered_nodes]
         return ops_list, ordered_nodes
 
+    def to_json(self):
+        """
+        Function to convert circuit object to json data format.
+
+        :return: circuit json object
+        :rtype: dict
+        """
+        data = {
+            "n_photons": self.n_photons,
+            "n_emitters": self.n_emitters,
+            "n_classical": self.n_classical,
+            "ops": [],
+        }
+
+        for op in self.sequence():
+            if isinstance(op, ops.InputOutputOperationBase):
+                continue
+            elif type(op) == ops.OneQubitGateWrapper:
+                op_list = []
+                for g in op.operations:
+                    name = ops.class_to_name_mapping(g)
+                    if name:
+                        op_list.append(name)
+                op_data = {
+                    "type": "one qubit gate wrapper",
+                    "op_list": op_list,
+                    "q_registers_type": op.q_registers_type,
+                    "q_registers": op.q_registers,
+                    "c_registers": op.c_registers,
+                }
+            else:
+                op_data = {
+                    "type": ops.class_to_name_mapping(type(op)),
+                    "q_registers_type": op.q_registers_type,
+                    "q_registers": op.q_registers,
+                    "c_registers": op.c_registers,
+                    # ...,
+                }
+            data["ops"].append(op_data)
+
+        return data
+
+    @classmethod
+    def from_json(cls, data_dict):
+        """
+        Function to load from json object to circuit object
+
+        :param data_dict: circuit json dict
+        :type data_dict: dict
+        :return: nothing
+        :rtype: None
+        """
+        circuit = CircuitDAG(
+            n_photon=data_dict["n_photons"],
+            n_emitter=data_dict["n_emitters"],
+            n_classical=data_dict["n_classical"],
+        )
+
+        for op in data_dict["ops"]:
+            if op["type"] == "one qubit gate wrapper":
+                op_list = [ops.name_to_class_map(g) for g in op["op_list"]]
+                gate = ops.OneQubitGateWrapper(
+                    op_list,
+                    register=op["q_registers"][0],
+                    reg_type=op["q_registers_type"][0],
+                )
+            else:
+                gate = ops.name_to_class_map(op["type"])
+                gate = gate()
+                gate.q_registers = op["q_registers"]
+                gate.q_registers_type = op["q_registers_type"]
+                gate.c_registers = op["c_registers"]
+
+            circuit.add(gate)
+
+        return circuit
+
     @staticmethod
     def edge_from_reg(t_edges, t_register):
         """
-        Helper function to return correct edge from edges that map to the correct register.
+        Return correct edge from edges that map to the correct register.
 
-        :param t_edges: input edge
+        :param t_edges: input edges
         :type t_edges: edge
         :param t_register: register
         :type t_register: str
@@ -1628,3 +1721,125 @@ class CircuitDAG(CircuitBase):
         for e in t_edges:
             if e[-1] == t_register:
                 return e
+
+    def group_one_qubit_gates(self):
+        """
+        Put consecutive one-qubit gates into a OneQubitGateWrapper
+
+        :return: nothing
+        :rtype: None
+        """
+        for node in self.node_dict["Output"]:
+            # traverse the circuit DAG in the reversed order
+            reg_type = self.dag.nodes[node]["op"].reg_type
+            register = self.dag.nodes[node]["op"].register
+            gate_list = []
+
+            in_edges = self.dag.in_edges(nbunch=node, keys=True)
+            next_node = self.edge_from_reg(in_edges, f"{reg_type}{register}")[0]
+
+            while next_node not in self.node_dict["Input"]:
+                node = next_node
+                in_edges = self.dag.in_edges(nbunch=node, keys=True)
+                edge = self.edge_from_reg(in_edges, f"{reg_type}{register}")
+                next_node = edge[0]
+
+                if node in self.node_dict["one-qubit"]:
+                    node_info = self.dag.nodes[node]
+                    op = node_info["op"]
+
+                    if isinstance(op, ops.OneQubitGateWrapper):
+                        gate_list += op.operations
+                    else:
+                        gate_list.append(op.__class__)
+                    self.remove_op(node)
+                if next_node not in self.node_dict["one-qubit"] and gate_list:
+                    # insert new op here
+                    out_edges = self.dag.out_edges(nbunch=next_node, keys=True)
+                    insert_edge = self.edge_from_reg(out_edges, f"{reg_type}{register}")
+                    self.insert_at(
+                        ops.OneQubitGateWrapper(gate_list, register, reg_type),
+                        [insert_edge],
+                    )
+                    gate_list = []
+
+    def assign_noise(self, noise_model_map):
+        """
+        Create a copy of the circuit where each gate is appended its noise model
+
+        :param noise_model_map:
+        :type noise_model_map:
+        :return: a new circuit
+        :rtype: CircuitDAG
+        """
+        empty_circ = CircuitDAG(
+            n_emitter=self.n_emitters,
+            n_photon=self.n_photons,
+            n_classical=self.n_classical,
+        )
+        new_gates = self._noisy_gates(noise_model_map)
+        for gate in new_gates:
+            empty_circ.add(gate)
+        return empty_circ
+
+    def _noisy_gates(self, noise_model_map):
+        seq = self._slim_seq()
+        noisy_ops = []
+        for op in seq:
+            is_controlled = False
+            if isinstance(op, ops.OneQubitGateWrapper):
+                op_type_seq = [type(gate) for gate in op.unwrap()]
+                noise_list = self._find_wrapped_noise(
+                    op_type_seq, noise_model_map[op.reg_type]
+                )
+                op.noise = noise_list
+                noisy_ops.append(op)
+            else:
+                if isinstance(
+                    op,
+                    (
+                        ops.ControlledPairOperationBase,
+                        ops.ClassicalControlledPairOperationBase,
+                    ),
+                ):
+                    control_type = op.control_type
+                    target_type = op.target_type
+                    mapping = noise_model_map[control_type + target_type]
+                    is_controlled = True
+                else:
+                    mapping = noise_model_map[op.reg_type]
+                name = type(op).__name__
+                if name in mapping:
+                    noise_object = mapping[name]
+                else:
+                    noise_object = NoNoise()
+                if is_controlled:
+                    if isinstance(noise_object, list):
+                        assert (
+                            len(noise_object) == 2
+                        ), "controlled gate noise list must be of length 2"
+                        op.noise = noise_object
+                    else:
+                        op.noise = [noise_object, noise_object]
+                else:
+                    op.noise = noise_object
+                noisy_ops.append(op)
+        return noisy_ops
+
+    def _find_wrapped_noise(self, op_type_list, mapping):
+        noise_list = []
+        for op_type in op_type_list:
+            op_name = op_type.__name__
+            if op_name in mapping:
+                noise_list.append(mapping[op_name])
+            else:
+                noise_list.append(NoNoise())
+        return noise_list
+
+    def _slim_seq(self):
+        seq = self.sequence()
+        length = len(seq) - 1
+        for i, op in enumerate(seq[::-1]):
+            if isinstance(op, (ops.Input, ops.Output)):
+                del seq[length - i]
+        return seq

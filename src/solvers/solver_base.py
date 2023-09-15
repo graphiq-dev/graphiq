@@ -41,6 +41,7 @@ class SolverBase(ABC):
         compiler: CompilerBase,
         circuit: CircuitBase = None,
         io: IO = None,
+        solver_setting=None,
     ):
         self.target = target
         self.metric = metric
@@ -48,7 +49,7 @@ class SolverBase(ABC):
         self.io = io
 
         self.circuit = circuit
-
+        self.solver_setting = solver_setting
         self.last_seed = None
         self.logs = {}
         self.result = None
@@ -95,9 +96,7 @@ class SolverBase(ABC):
         else:
             noise = []
             for each_op in op:
-                noise.append(
-                    self._identify_noise(each_op.__name__, noise_model_mapping)
-                )
+                noise.append(self._identify_noise(each_op, noise_model_mapping))
         return noise
 
     def _identify_noise(self, op, noise_model_mapping):
@@ -112,12 +111,16 @@ class SolverBase(ABC):
         :return: a noise model
         :rtype: nm.NoiseBase
         """
-
+        # first make sure whether the passed operations are instances (of a class) or classes.
+        if isinstance(op, ops.OperationBase):
+            # if op is an instance, turn it into the class itself.
+            op = type(op)
         if isinstance(op, ops.ControlledPairOperationBase) or isinstance(
             op, ops.ClassicalControlledPairOperationBase
         ):
-            op_control = type(op).__name__ + "_control"
-            op_target = type(op).__name__ + "_target"
+            op_name = op.__name__
+            op_control = op.__name__ + "_control"
+            op_target = op.__name__ + "_target"
             if op_control in noise_model_mapping.keys():
                 control_noise = noise_model_mapping[op_control]
             else:
@@ -126,9 +129,14 @@ class SolverBase(ABC):
                 target_noise = noise_model_mapping[op_target]
             else:
                 target_noise = nm.NoNoise()
-            return [control_noise, target_noise]
+            if op_name in noise_model_mapping.keys() and type(
+                target_noise
+            ) == nm.NoNoise == type(control_noise):
+                return [noise_model_mapping[op_name], noise_model_mapping[op_name]]
+            else:
+                return [control_noise, target_noise]
         else:
-            op_name = type(op).__name__
+            op_name = op.__name__
             if op_name in noise_model_mapping.keys():
                 return noise_model_mapping[op_name]
             else:
@@ -166,7 +174,7 @@ class RandomSearchSolverSetting(ABC):
 
     @property
     def n_pop(self):
-        return self._n_hof
+        return self._n_pop
 
     @n_pop.setter
     def n_pop(self, value):

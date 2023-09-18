@@ -302,7 +302,7 @@ def get_relabel_map(g1, g2):
         g2 = nx.from_numpy_array(g2)
         assert isinstance(g2, nx.Graph)
     if np.array_equal(nx.to_numpy_array(g1), nx.to_numpy_array(g2)):
-        return {-1: 'self'} | dict(zip(g1.nodes(), g2.nodes()))
+        return {**{-1: "self"}, **dict(zip(g1.nodes(), g2.nodes())) }
     GM = isomorphism.GraphMatcher(g1, g2)
     assert GM.is_isomorphic()
     return GM.mapping

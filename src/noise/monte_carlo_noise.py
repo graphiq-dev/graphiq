@@ -17,7 +17,7 @@ import src.backends.lc_equivalence_check as lc
 import src.backends.stabilizer.functions.local_cliff_equi_check as slc
 from src.solvers.evolutionary_solver import (
     EvolutionarySolver,
-    EvolutionarySearchSolverSetting,
+    EvolutionarySolverSetting,
 )
 
 from src.solvers.solver_base import SolverBase
@@ -42,7 +42,7 @@ from src.backends.density_matrix.compiler import DensityMatrixCompiler
 from src.metrics import Infidelity
 from src.backends.stabilizer.state import Stabilizer
 
-# from src.solvers.hybrid_solvers import HybridGraphSearchSolverSetting
+# from src.solvers.hybrid_solvers import AlternateGraphSolverSetting
 # from src.solvers.hybrid_solvers import AlternateGraphSolver
 
 

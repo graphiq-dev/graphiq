@@ -13,21 +13,15 @@ class SolverResult:
     the name of the column and the value is a list of data of that column.
     """
 
-    def __init__(self, columns=None):
-        """
-        Class constructor, in construction the function will create data table to store solver result. The function
-        receive a parameter that define the name of the columns in the table. For each column, the function will
-        initialize an empty list that map to the name of the column.
-
-        :param columns: a list of column name of the table
-        :type columns: list
-        """
-        self._data = {}
-        self.columns = columns
-
-        if columns:
-            for c in columns:
-                self._data[c] = []
+    def __init__(self, circuit_list, properties=None):
+        self._data = {
+            "circuit": circuit_list,
+            "circuit_id": [f"c{i}" for i in range(len(circuit_list))],
+        }
+        self._properties = [] if properties is None else properties
+        assert isinstance(self._properties, list)
+        for p in properties:
+            self._data[p] = [None] * len(circuit_list)
 
     def __len__(self):
         """
@@ -86,31 +80,15 @@ class SolverResult:
                 )
 
         self._data[key] = value
-        self.columns.append(key)
-
-    def append(self, data):
-        """
-        Function to append a new row to the data, if data is empty the function will define the columns then append new
-        row.
-
-        :param data:
-        :return:
-        """
-        if type(data) == dict:
-            # if empty data, define columns then append new row
-            if not self._data:
-                for key, value in data.items():
-                    self._data[key] = [value]
-                self.columns = list(self._data.keys())
-            else:
-                if len(data) == len(self._data):
-                    for key in self._data:
-                        self._data[key].append(data[key])
-                else:
-                    raise ValueError("Length are not the same")
-        return True
 
     def add_properties(self, new_property):
+        """
+
+        :param new_property:
+        :type new_property:
+        :return:
+        :rtype:
+        """
         assert isinstance(new_property, str)
         if new_property not in self._properties:
             self._properties.append(new_property)

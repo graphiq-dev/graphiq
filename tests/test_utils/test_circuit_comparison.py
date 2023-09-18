@@ -4,10 +4,7 @@ from benchmarks.circuits import *
 from src.utils.circuit_comparison import *
 from benchmarks.graph_states import *
 from src.solvers.deterministic_solver import DeterministicSolver
-from src.solvers.hybrid_solvers import (
-    HybridGraphSearchSolver,
-    HybridGraphSearchSolverSetting,
-)
+from src.solvers.alternate_graph_solver import *
 from src.metrics import Infidelity
 from src.state import QuantumState
 from src.backends.stabilizer.compiler import StabilizerCompiler
@@ -26,14 +23,13 @@ def get_pipeline(target_graph):
     compiler = StabilizerCompiler()
 
     metric = Infidelity(target=target_state)
-    solver_setting = HybridGraphSearchSolverSetting(n_iso_graphs=5, n_lc_graphs=5)
+    solver_setting = AlternateGraphSolverSetting(n_iso_graphs=5, n_lc_graphs=5)
 
-    solver = HybridGraphSearchSolver(
+    solver = AlternateGraphSolver(
         target=target_state,
         metric=metric,
         compiler=compiler,
-        graph_solver_setting=solver_setting,
-        base_solver=DeterministicSolver,
+        solver_setting=solver_setting,
     )
 
     return solver

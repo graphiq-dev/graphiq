@@ -18,7 +18,7 @@ from src.metrics import MetricBase
 from src.io import IO
 
 
-class EvolutionarySearchSolverSetting(RandomSearchSolverSetting):
+class EvolutionarySolverSetting(RandomSearchSolverSetting):
     """
     A class to store the solver setting of an EvolutionarySearchSolver
 
@@ -115,7 +115,7 @@ class EvolutionarySolver(RandomSearchSolver):
         io: IO = None,
         n_emitter=1,
         n_photon=1,
-        solver_setting=EvolutionarySearchSolverSetting(),
+        solver_setting=EvolutionarySolverSetting(),
         noise_model_mapping=None,
         *args,
         **kwargs,

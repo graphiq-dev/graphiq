@@ -15,7 +15,7 @@ import src.backends.lc_equivalence_check as lc
 import src.backends.stabilizer.functions.local_cliff_equi_check as slc
 from src.solvers.evolutionary_solver import (
     EvolutionarySolver,
-    EvolutionarySearchSolverSetting,
+    EvolutionarySolverSetting,
 )
 
 from src.solvers.solver_base import SolverBase
@@ -39,8 +39,10 @@ from src.backends.stabilizer.compiler import StabilizerCompiler
 from src.backends.density_matrix.compiler import DensityMatrixCompiler
 from src.metrics import Infidelity
 from src.backends.stabilizer.state import Stabilizer
-from src.solvers.hybrid_solvers import HybridGraphSearchSolverSetting
-from src.solvers.hybrid_solvers import AlternateGraphSolver
+from src.solvers.alternate_graph_solver import (
+    AlternateGraphSolver,
+    AlternateGraphSolverSetting,
+)
 
 from benchmarks.graph_states import *
 from src.data_collection.correlation_module import _rep_counter
@@ -139,7 +141,7 @@ class InputParams:
         self.graph_size = graph_size
         self.target_graph = t_graph(self.graph_type, self.graph_size, self.seed)
         # setting
-        self.setting = HybridGraphSearchSolverSetting()
+        self.setting = AlternateGraphSolverSetting()
         # setting options
         self.setting.allow_relabel = bool(n_ordering)
         self.setting.n_iso_graphs = n_ordering
@@ -155,8 +157,8 @@ class InputParams:
         # solver
         self.auto_noise_params()  # auto assign noise parameters to setting
         self.solver = AlternateGraphSolver(
-            target_graph=self.target_graph,
-            graph_solver_setting=self.setting,
+            target=self.target_graph,
+            solver_setting=self.setting,
             noise_model_mapping=noise_model_mapping,
         )
         # solver options

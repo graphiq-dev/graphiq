@@ -72,6 +72,6 @@ def test_parameters(error_rates, criteria):
     assert all(
         fidelity_list[i] >= fidelity_list[i + 1] for i in range(len(fidelity_list) - 1)
     )
-    # the number of branches in each circ tree should increase as cut off increases
+    # the number of branches in each circuit tree should increase as cut off increases
     len_list = [len(x) for x in circ_tree_list]
     assert all(len_list[i] <= len_list[i + 1] for i in range(len(len_list) - 1))

@@ -13,8 +13,8 @@ def density_matrix_heatmap(rho, axs=None):
 
     :param rho: a complex numpy array representing the density matrix
     :type rho: numpy.ndarray
-    :param axs:
-    :type axs:
+    :param axs: axis to plot on
+    :type axs: plt.Axis
     :return: fig (figure handle), axs (list of axes handles)
     :rtype: matplotlib.figure, matplotlib.axes
     """
@@ -41,9 +41,7 @@ def density_matrix_bars(rho):
     Plots a density matrix as 3D bar plots, one for the real components and one for the imaginary
 
     :param rho: a complex numpy array representing the density matrix
-    :type rho: numpy.dnarray
-    :param ax: axis to plot on
-    :type ax: mpl.Axis
+    :type rho: numpy.ndarray
     :return: fig (figure handle), axs (list of axes handles)
     :rtype: matplotlib.figure, matplotlib.axes
     """

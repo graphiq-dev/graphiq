@@ -31,7 +31,7 @@ STABILIZER_MIXED_REPRESENTATION = "branch"
 class QuantumState:
     """
     The QuantumState class is the unified API for accessing state representation backends.
-    It contains one state representation. To hold multiple representations, use QuantumStateGadget class
+    It contains one state representation.
     """
 
     def __init__(self, data, rep_type=None, mixed=False):
@@ -127,11 +127,11 @@ class QuantumState:
 
     def show(self, show=True, ax=None):
         """
-        Plots the selected representations (all by default) using matplotlib formatting
+        Plots the state representation using matplotlib formatting
 
-        :param show: if True, the selected representations are plotted. Otherwise, they are drawn but not plotted
+        :param show: if True, the state representation is plotted. Otherwise, it is drawn but not plotted
         :type show: bool
-        :param ax: axis/axes on which to plot the selected representations
+        :param ax: axis/axes on which to plot the state representation
         :type ax: matplotlib.axis
         :return: fig, ax (the figure and axes on which data was plotted)
         :rtype: matplotlib.figure, matplotlib.axis
@@ -245,6 +245,7 @@ class QuantumState:
 
     def _stabilizer_to_density(self, rep):
         """
+        Helper function. Convert a stabilizer representation to density matrix
 
         :param rep:
         :type rep: Stabilizer or MixedStabilizer
@@ -309,6 +310,14 @@ class QuantumState:
             )
 
     def convert_representation(self, new_rep_type):
+        """
+        Convert to a representation specified by new_rep_type
+
+        :param new_rep_type: new representation type
+        :type new_rep_type: str
+        :return: nothing
+        :rtype: None
+        """
         rep_type = self._get_rep_type_name(new_rep_type)
         if rep_type is None:
             raise ValueError("Cannot convert representation to None type")
@@ -373,9 +382,6 @@ class QuantumState:
             valid = False
             n_qubits = None
         return valid, n_qubits
-
-    def apply_clifford(self, gate):
-        pass
 
     def copy(self):
         return copy.deepcopy(self)

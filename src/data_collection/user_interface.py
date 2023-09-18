@@ -94,7 +94,7 @@ def result_maker(result, graph_met_list=[]):
     result.add_properties("max_emit_depth")
     result.add_properties("depth")
     result.add_properties("std of score")
-    # circ metrics calculations
+    # circuit metrics calculations
     # for depth calculation purposes we need to remove identity gates first
     unwrapped_circ = [c.copy() for c in result["circuit"]]
     max_emit_depth = []

@@ -12,7 +12,7 @@ from src.backends.stabilizer.state import MixedStabilizer
 from src.backends.stabilizer.compiler import StabilizerCompiler
 from src.utils.circuit_comparison import compare_circuits
 from src.metrics import Infidelity
-from src.solvers.evolutionary_solver import EvolutionarySearchSolverSetting
+from src.solvers.evolutionary_solver import EvolutionarySolverSetting
 import src.noise.noise_models as noise
 
 
@@ -31,7 +31,7 @@ def search_for_alternative_circuits(
     :param metric_class: a metric class
     :type metric_class: MetricBase or its subclass
     :param solver_setting: specifies the setting of a chosen solver
-    :type solver_setting: RandomSearchSolverSetting or EvolutionarySearchSolverSetting
+    :type solver_setting: RandomSearchSolverSetting or EvolutionarySolverSetting
     :param random_seed: a random seed
     :type random_seed: int
     :return: results are stored in terms of (score, survival probability, circuit)
@@ -216,14 +216,14 @@ def exemplary_run(graph, noise_model_mapping, solver_setting=None, random_seed=1
     :param noise_model_mapping: a way to map noises to gates
     :type noise_model_mapping: dict
     :param solver_setting: specifies the setting of the chosen solver
-    :type solver_setting: RandomSearchSolverSetting or EvolutionarySearchSolverSetting
+    :type solver_setting: RandomSearchSolverSetting or EvolutionarySolverSetting
     :param random_seed: a random seed
     :type random_seed: int
     :return: results are stored in terms of (score, survival probability, circuit)
     :rtype: list[tuple(float, float, CircuitDAG)]
     """
     if solver_setting is None:
-        solver_setting = EvolutionarySearchSolverSetting()
+        solver_setting = EvolutionarySolverSetting()
     results = search_for_alternative_circuits(
         graph, noise_model_mapping, Infidelity, solver_setting, random_seed
     )
@@ -239,7 +239,7 @@ def exemplary_test(graph, noise_model_mapping, solver_setting=None, random_seed=
     :param noise_model_mapping: a way to map noises to gates
     :type noise_model_mapping: dict
     :param solver_setting: specifies the setting of the chosen solver
-    :type solver_setting: RandomSearchSolverSetting or EvolutionarySearchSolverSetting
+    :type solver_setting: RandomSearchSolverSetting or EvolutionarySolverSetting
     :param random_seed: a random seed
     :type random_seed: int
     :return: nothing
@@ -262,12 +262,12 @@ def exemplary_multiple_test(
     :param random_numbers: a list of random numbers
     :type random_numbers: list[int]
     :param solver_setting: specifies the setting of the chosen solver
-    :type solver_setting: RandomSearchSolverSetting or EvolutionarySearchSolverSetting
+    :type solver_setting: RandomSearchSolverSetting or EvolutionarySolverSetting
     :return: nothing
     :rtype: None
     """
     if solver_setting is None:
-        solver_setting = EvolutionarySearchSolverSetting()
+        solver_setting = EvolutionarySolverSetting()
     for i in range(len(random_numbers)):
         results = search_for_alternative_circuits(
             graph,

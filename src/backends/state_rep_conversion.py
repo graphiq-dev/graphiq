@@ -208,7 +208,7 @@ def stabilizer_to_graph(input_stabilizer, validate=True):
     Convert a stabilizer to graph.
 
     :param input_stabilizer: the stabilizer representation in terms of (probability, StabilizerTableau)
-    :type input_stabilizer: list[(float, StabilizerTableau)]
+    :type input_stabilizer: list[(float, StabilizerTableau)] or StabilizerTableau
     :param validate: validate if input_stabilizer is a graph state when enabled
     :type validate: bool
     :raises AssertionError: if input stabilizer is not a graph state when validate is True
@@ -331,12 +331,14 @@ def mixed_graph_equivalency(graph1, graph2):
     :return: True if graph1 is the same as graph2; False otherwise
     :rtype: bool
     """
+    if isinstance(graph1, list) and len(graph1) == 1:
+        graph1 = graph1[0][1]
+    if isinstance(graph2, list) and len(graph2) == 1:
+        graph2 = graph2[0][1]
     if isinstance(graph1, list) and isinstance(graph2, list):
         if len(graph1) == len(graph2):
-            graph1_copy = copy.deepcopy(graph1)
             graph2_copy = copy.deepcopy(graph2)
-            for p_i, g_i in graph1_copy:
-
+            for p_i, g_i in graph1:
                 for q_i, t_i in graph2_copy:
                     if np.equal(p_i, q_i) and nx.utils.graphs_equal(g_i, t_i):
                         graph2_copy.remove((q_i, t_i))
@@ -361,12 +363,15 @@ def mixed_stabilizer_equivalency(stab1, stab2):
     :return: if stab1 is the same as stab2
     :rtype: bool
     """
-
+    if isinstance(stab1, list) and len(stab1) == 1:
+        stab1 = stab1[0][1]
+    if isinstance(stab2, list) and len(stab2) == 1:
+        stab2 = stab2[0][1]
     if isinstance(stab1, list) and isinstance(stab2, list):
         if len(stab1) == len(stab2):
-            stab1_copy = copy.deepcopy(stab1)
+
             stab2_copy = copy.deepcopy(stab2)
-            for p_i, s_i in stab1_copy:
+            for p_i, s_i in stab1:
 
                 for q_i, t_i in stab2_copy:
                     if np.equal(p_i, q_i) and s_i == t_i:

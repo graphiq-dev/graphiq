@@ -20,7 +20,7 @@ class SolverResult:
         }
         self._properties = [] if properties is None else properties
         assert isinstance(self._properties, list)
-        for p in properties:
+        for p in self._properties:
             self._data[p] = [None] * len(circuit_list)
 
     def __len__(self):

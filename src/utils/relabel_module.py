@@ -11,14 +11,14 @@ import warnings
 
 
 def iso_finder(
-        adj_matrix,
-        n_iso,
-        rel_inc_thresh=0.2,
-        allow_exhaustive=True,
-        sort_emit=False,
-        label_map=False,
-        thresh=None,
-        seed=None,
+    adj_matrix,
+    n_iso,
+    rel_inc_thresh=0.2,
+    allow_exhaustive=True,
+    sort_emit=False,
+    label_map=False,
+    thresh=None,
+    seed=None,
 ):
     """
     The function permutes the labels of the vertices of a graph to get n_iso distinct isomorphic graphs. The original
@@ -166,7 +166,7 @@ def _perm2matrix(sequence):
 
 
 def _label_finder(
-        n_label, n_node, new_label_set=None, exhaustive=False, seed=None, thresh=None
+    n_label, n_node, new_label_set=None, exhaustive=False, seed=None, thresh=None
 ):
     """
     Finds n_label number of permutations for the sequence {0, 1, ..., n_node-1}. If exhaustive search is enabled the
@@ -197,7 +197,7 @@ def _label_finder(
     elif thresh < n_label:
         thresh = n_label + 1
     assert (
-            n_label <= n_max
+        n_label <= n_max
     ), f"The input number of permutations is more than the maximum possible"
     if n_node < 8 or exhaustive:
         perm = list(permutations([*range(n_node)]))
@@ -302,7 +302,7 @@ def get_relabel_map(g1, g2):
         g2 = nx.from_numpy_array(g2)
         assert isinstance(g2, nx.Graph)
     if np.array_equal(nx.to_numpy_array(g1), nx.to_numpy_array(g2)):
-        return {-1: 'self'} | dict(zip(g1.nodes(), g2.nodes()))
+        return {-1: "self"} | dict(zip(g1.nodes(), g2.nodes()))
     GM = isomorphism.GraphMatcher(g1, g2)
     assert GM.is_isomorphic()
     return GM.mapping
@@ -370,8 +370,8 @@ def lc_orbit_finder(
                         if not check_isomorphism(g_lc, orbit_list, _only_auto=with_iso):
                             orbit_list.append(g_lc)
                 if (
-                        orbit_size_thresh is not None
-                        and len(orbit_list) >= orbit_size_thresh
+                    orbit_size_thresh is not None
+                    and len(orbit_list) >= orbit_size_thresh
                 ):
                     return orbit_list[:orbit_size_thresh]
                 if (
@@ -402,8 +402,9 @@ def rgs_orbit_finder(graph: nx.Graph):
 
     leaf_nodes = [x for x in g.nodes if g.degree(x) == 1]
     core_nodes = [x for x in g.nodes if g.degree(x) != 1]
-    assert int((n / 2) + n / 2 * (n / 2 - 1) / 2) == graph.size() and len(leaf_nodes) == int(
-        n / 2), "input graph is not a repeater graph"
+    assert int((n / 2) + n / 2 * (n / 2 - 1) / 2) == graph.size() and len(
+        leaf_nodes
+    ) == int(n / 2), "input graph is not a repeater graph"
 
     first_core = core_nodes.pop(0)
     g_lc = local_comp_graph(g, first_core)
@@ -434,7 +435,9 @@ def linear_partial_orbit(graph: nx.Graph):
     g = graph.copy()
     # check that graph is linear
     degrees = [degree for _, degree in g.degree()]
-    assert n - 1 == graph.size() and max(degrees) == 2, "input graph is not a linear graph"
+    assert (
+        n - 1 == graph.size() and max(degrees) == 2
+    ), "input graph is not a linear graph"
     for lc_ops in _partial_orbit(n):
         new_g = g
         for x in lc_ops:
@@ -451,7 +454,7 @@ def depth_first_orbit(graph: nx.Graph):
     orbit_list = []
     for path in path_list:
         for i in range(len(path)):
-            path_set.add(tuple(path[:i + 1]))
+            path_set.add(tuple(path[: i + 1]))
     for lc_ops in path_set:
         new_g = g
         for x in lc_ops:
@@ -571,7 +574,15 @@ def _retrieve_seq(n, seq_dict=None):
     middler = []
     for i in range(2, n - 1):
         middler += _retrieve_seq(i, seq_dict=seq_dict)
-    seq = [n] + middler + [n - 1] + middler[::-1] + [n] + middler + _retrieve_seq(n - 1, seq_dict=seq_dict)
+    seq = (
+        [n]
+        + middler
+        + [n - 1]
+        + middler[::-1]
+        + [n]
+        + middler
+        + _retrieve_seq(n - 1, seq_dict=seq_dict)
+    )
     return seq
 
 
@@ -613,10 +624,12 @@ def _partial_orbit(n):
         seq1 += extra
     else:
         seq1 = _full_seq(m)
-    return [seq1[:i + 1] for i in range(len(seq1))]
+    return [seq1[: i + 1] for i in range(len(seq1))]
 
 
-def _depth_first(g0, n, g_orbit=None, path=None, path_list=None, orbit_list=None, exact=False):
+def _depth_first(
+    g0, n, g_orbit=None, path=None, path_list=None, orbit_list=None, exact=False
+):
     if g_orbit is None and path is None and path_list is None and orbit_list is None:
         g_orbit = [g0]
         orbit_list = []
@@ -642,8 +655,15 @@ def _depth_first(g0, n, g_orbit=None, path=None, path_list=None, orbit_list=None
             path.append(i)
             # print('path PRE', path)
             # print('path_list_PRE', path_list)
-            g_orbit, orbit_list, path, path_list = _depth_first(new_g, n, g_orbit=g_orbit, path=path,
-                                                                path_list=path_list, orbit_list=orbit_list, exact=exact)
+            g_orbit, orbit_list, path, path_list = _depth_first(
+                new_g,
+                n,
+                g_orbit=g_orbit,
+                path=path,
+                path_list=path_list,
+                orbit_list=orbit_list,
+                exact=exact,
+            )
             # print('path_list Po', path_list)
             # print('path Post', path)
     repeated = False

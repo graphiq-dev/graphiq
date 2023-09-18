@@ -334,6 +334,8 @@ class AlternateGraphSolver:
             self.target_graph = stabilizer_to_graph(
                 target_graph.stabilizer.tableau.stabilizer_to_labels()
             )
+        else:
+            raise ValueError("invalid target graph input type")
         self.metric = metric
         self.noise_compiler = noise_compiler
         self.compiler = compiler

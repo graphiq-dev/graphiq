@@ -34,7 +34,7 @@ user_input = InputParams(
     iso_thresh=None,  # advanced: if not enough relabeled graphs are found, set it to a larger number!
     n_lc_graphs=1,  # input
     lc_orbit_depth=None,  # advanced: if hit the runtime limit, limit len(sequence of Local complementations)
-    lc_method="",  # input
+    lc_method=None,  # input
     noise_simulation=False,  # input
     noise_model_mapping="depolarizing",  # input
     depolarizing_rate=0.005,  # input
@@ -65,6 +65,40 @@ print("Monte Carlo",
 
 # %%
 # results
+def orbit_analyzer(graph, dir_name='new_orbit', n_lc=None, graph_met_list=None):
+    """
+    The function take a graph and returns the solver result object containing graph and circuit metrics
+    :param graph_met_list: list of grpah metrics to consider for correlations. If none given, a default list is used.
+    :param n_lc: number of LC graphs to search for. If none, the whole orbit is targeted.
+    :param graph: The input graph. The node labels do not change through the process.
+    :param dir_name: the directory to save the resulting graph in
+    :return: result object and a list of correlation figures are also saves in the given directory
+    """
+    user_input = InputParams(
+        n_ordering=1,  # input
+        rel_inc_thresh=0.2,  # advanced: (0,1) The closer to 0 the closer we get to an exhaustive search for reordering.
+        allow_exhaustive=True,  # advanced*: only reason to deactivate is to save runtime if this is the bottleneck
+        n_lc_graphs=n_lc,  # input
+        lc_method=None,  # input
+        noise_simulation=False,  # input
+        noise_model_mapping="depolarizing",  # input
+        depolarizing_rate=0.005,  # input
+        error_margin=0.1,  # input
+        confidence=1,  # input
+        n_cores=8,  # advanced: change if processor has different number of cores
+        seed=1,  # input
+        graph_type="nx",  # input
+        graph_size=graph,  # input
+        verbose=False)
+    solver = user_input.solver
+    solver.solve()
+    res = solver.result
+    if graph_met_list is None:
+        graph_met_list = ["global_efficiency", "n_edges", "mean_nei_deg", "node_connect", "avg_shortest_path",
+                         "max_between", "cluster"]
+    res = result_maker(res, graph_met_list=graph_met_list)
+    plot_figs(res, dir_name=dir_name, graph_mets=graph_met_list, circ_mets=None)
+    return res
 
 
 def result_maker(result, graph_met_list=[]):
@@ -82,6 +116,7 @@ def result_maker(result, graph_met_list=[]):
     result.add_properties("n_emitters")
     result.add_properties("n_cnots")
     result.add_properties("max_emit_depth")
+    result.add_properties("max_emit_eff_depth")
     result.add_properties("depth")
     result.add_properties("std of score")
     # circ metrics calculations
@@ -258,7 +293,11 @@ def plot_graphs(result):
 def _edge2adj(e_list):
     assert len(e_list) % 2 == 0
     edges = [(e_list[2 * i], e_list[2 * i + 1]) for i in range(int(len(e_list) / 2))]
+    edges.sort()
+    edges = [tuple(sorted(list(x))) for x in edges]
+    edges.sort()
     g1 = nx.Graph()
+    g1.add_nodes_from(range(max(e_list)))
     g1.add_edges_from(edges)
     return nx.to_numpy_array(g1)
 
@@ -267,7 +306,7 @@ def _edge2adj(e_list):
 edge_seq = []
 
 
-def lcs(edge_seq, method="lc_with_iso", n_lc_graphs=None):
+def lcs(edge_seq, method="lc_with_iso", n_lc_graphs=None, seed=1):
     adj1 = _edge2adj(edge_seq)
     user_input0 = InputParams(
         n_ordering=1,  # input
@@ -284,7 +323,7 @@ def lcs(edge_seq, method="lc_with_iso", n_lc_graphs=None):
         confidence=0.99,  # input
         mc_map=None,  # advanced*: pass a manual noise map for the monte carlo simulations
         n_cores=8,  # advanced: change if processor has different number of cores
-        seed=1,  # input
+        seed=seed,  # input
         graph_type="adj",  # input
         graph_size=adj1,  # input
         verbose=False,
@@ -302,7 +341,7 @@ def lcs(edge_seq, method="lc_with_iso", n_lc_graphs=None):
     return lc_adjs
 
 
-def find_best(adj1, file_name="case1", dir_name="new", conf=0.99, n_reordering=None):
+def find_best(adj1, file_name="case1", dir_name="new", conf=0.99, n_reordering=None, seed=1):
     nn = np.shape(adj1)[0]
     max_relabel = np.math.factorial(nn) if n_reordering is None else n_reordering
     user_input = InputParams(
@@ -320,7 +359,7 @@ def find_best(adj1, file_name="case1", dir_name="new", conf=0.99, n_reordering=N
         confidence=conf,  # input
         mc_map=None,  # advanced*: pass a manual noise map for the monte carlo simulations
         n_cores=8,  # advanced: change if processor has different number of cores
-        seed=1,  # input
+        seed=seed,  # input
         graph_type="adj",  # input
         graph_size=adj1,  # input
         verbose=False,
@@ -352,16 +391,17 @@ def find_best(adj1, file_name="case1", dir_name="new", conf=0.99, n_reordering=N
     return out_dict
 
 
-def graph_analyzer(edge_seq, graph_class: str, method="lc_with_iso", conf=1, n_lc_graphs=None, n_reordering=None):
+def graph_analyzer(edge_seq, graph_class: str, method="lc_with_iso", conf=1, n_lc_graphs=None, n_reordering=None, seed=1):
     """
     exhaustive graph analyzer given the flattened edge list
+    no correlation analysis involved but cost analysis based on circuit metrics is included
     :param edge_seq:
     :param graph_class:
     :param method:
     :param conf: confidence for noise simulation
     :return:
     """
-    lc_adjs = lcs(edge_seq, method=method, n_lc_graphs=n_lc_graphs)  ###
+    lc_adjs = lcs(edge_seq, method=method, n_lc_graphs=n_lc_graphs, seed=seed)  ###
     print("number of LC graphs = ", len(lc_adjs))
     # relabeled_info = {'index': list(range(len(n_es))), 'map': maps, 'n_emitters': n_es}###
     # df = pd.DataFrame(relabeled_info)
@@ -380,7 +420,7 @@ def graph_analyzer(edge_seq, graph_class: str, method="lc_with_iso", conf=1, n_l
     worst_depth = ("", 0, [])
     num_iso_list = []
     for i, adj in enumerate(lc_adjs):
-        out_dict = find_best(adj, file_name=f"case{i}", dir_name=graph_class, conf=conf, n_reordering=n_reordering)
+        out_dict = find_best(adj, file_name=f"case{i}", dir_name=graph_class, conf=conf, n_reordering=n_reordering, seed=seed)
         num_iso_list.append(len(out_dict['cost']))
         for j, edge_list in enumerate(out_dict['edges']):
             if out_dict['cost'][j] < best_cost[1]:
@@ -607,5 +647,5 @@ def rnd_graph_orbit_cnots(size, number_of_graphs):
         list_cnot_list.append(n_cnots)
     return list_cnot_list, restuls_list
 # %%
-# graph_analyzer([0,1,1,2,2,3,3,4,4,5,5,0,0,2,5,3,1,4], "class 19", method="", conf=1)
+# graph_analyzer([0,1,1,2,2,3,3,4,4,5,5,0,0,2,5,3,1,4], "class 19", method=None, conf=1)
 # LC_scaling_test(g,"random_8_05", method="random_with_iso", conf=0, n_lc_list=[*(range(2, 10))], n_reordering=1)

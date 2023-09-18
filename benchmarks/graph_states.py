@@ -199,7 +199,7 @@ def repeater_graph_states(n_inner_qubits):
 def bi_repeater_graph_states(n_inner_pairs):
     """
     Construct a biclique repeater graph state with the emission ordering (leaf qubit -> adjacent inner qubit ->
-    next leaf qubit)
+    next leaf qubit from other side)
 
     :param n_inner_pairs: number of pairs of qubits in the inner layer. Total number of nodes is 4n_inner_pairs.
     :type n_inner_pairs: int
@@ -215,3 +215,50 @@ def bi_repeater_graph_states(n_inner_pairs):
         for j in range(n_inner_pairs):
             edges.append((4 * i + 1, 4 * j + 3))
     return nx.Graph(edges)
+
+
+def crazy(n_list: list, pos=False, alternate_order=False):
+    """
+    Construct a crazy graph state with the emission ordering of column by column
+
+    :param n_list: a list of number of nodes in each column on the crazy graph
+    :param pos: if True the function also returns the position dictionary for the graph
+    :param alternate_order: a different default ordering
+    :return: a networkx graph that represents the crazy graph or a tuple including the graph and its node-position dict
+    :rtype: networkx.Graph or (networkx.Graph, pos_dict)
+    """
+    g = nx.Graph()
+    g.add_nodes_from(range(sum(n_list)))
+    edges = []
+    pos_dict = {}
+    for i, n in enumerate(n_list):
+        nodes_before = sum(n_list[:i])
+        current_nodes = np.arange(n) + nodes_before
+        positions = [(i, -y) for y in np.arange(n)]
+        new_pos = dict(zip(current_nodes, positions))
+        pos_dict.update(new_pos)
+        if i+1 < len(n_list):
+            next_col_nodes = np.arange(n_list[i+1]) + nodes_before + n
+        else:
+            next_col_nodes = []
+        edges.extend([(x, y) for x in current_nodes for y in next_col_nodes])
+    g.add_edges_from(edges)
+    if alternate_order:
+        from src.utils.relabel_module import relabel
+        nodes = []
+        for k in range(0, len(n_list), 2):
+            if k + 1 < len(n_list):
+                n_nodes_before = sum(n_list[:k + 1])
+                nodes.extend([n_nodes_before + i for i in range(n_list[k + 1])])
+            n_nodes_before = sum(n_list[:k])
+            nodes.extend([n_nodes_before + i for i in range(n_list[k])])
+        new_adj = relabel(nx.to_numpy_array(g), np.array(nodes))
+        g = nx.from_numpy_array(new_adj)
+        pos_dict2 = {}
+        for i, n in enumerate(range(len(pos_dict))):
+            pos_dict2[n] = pos_dict[nodes[i]]
+        pos_dict = pos_dict2
+    if pos:
+        return g, pos_dict
+    else:
+        return g

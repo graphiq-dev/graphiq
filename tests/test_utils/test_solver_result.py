@@ -38,6 +38,7 @@ def test_get_index_data():
     data = result.get_index_data(0)
     assert data == {
         "circuit": circuit_1,
+        'circuit_id': 'c0',
         "test_property": 1,
     }
 

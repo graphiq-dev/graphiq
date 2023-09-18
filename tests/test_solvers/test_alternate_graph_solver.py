@@ -1,13 +1,14 @@
 import pytest as pytest
-
-from src.solvers.hybrid_solvers import HybridGraphSearchSolverSetting, AlternateGraphSolver
-from src.backends.stabilizer.compiler import StabilizerCompiler
+import networkx as nx
 from src.backends.density_matrix.compiler import DensityMatrixCompiler
+from src.backends.stabilizer.compiler import StabilizerCompiler
 from src.metrics import Infidelity
 import src.noise.monte_carlo_noise as mcn
+from src.solvers.hybrid_solvers import HybridGraphSearchSolverSetting
+from src.solvers.hybrid_solvers import AlternateGraphSolver
 
 from benchmarks.graph_states import repeater_graph_states, linear_cluster_state
-
+linear_cluster = nx.from_numpy_array(nx.to_numpy_array(linear_cluster_state(4).data))
 # setting
 solver_setting = HybridGraphSearchSolverSetting()
 # solver_setting options
@@ -27,7 +28,7 @@ solver_setting.save_openqasm = ""
 # solver
 
 # without noise
-@pytest.mark.parametrize("target_graph", [linear_cluster_state(4), repeater_graph_states(3)])
+@pytest.mark.parametrize("target_graph", [linear_cluster, repeater_graph_states(3)])
 def test_solver_no_noise(target_graph, setting=solver_setting):
     solver = AlternateGraphSolver(target_graph=target_graph,
                                   graph_solver_setting=setting,
@@ -44,7 +45,7 @@ def test_solver_no_noise(target_graph, setting=solver_setting):
 
 
 # with noise: Monte Carlo
-@pytest.mark.parametrize("target_graph", [linear_cluster_state(4), repeater_graph_states(3)])
+@pytest.mark.parametrize("target_graph", [linear_cluster, repeater_graph_states(3)])
 def test_solver_monte_carlo(target_graph, setting=solver_setting):
     setting.monte_carlo_params = {
         "n_sample": 20,
@@ -68,8 +69,9 @@ def test_solver_monte_carlo(target_graph, setting=solver_setting):
     solver.seed = 1
     solver.solve()
 
+
 # with noise: density matrix noise
-def test_solver_density_noise(setting=solver_setting, target_graph=linear_cluster_state(4)):
+def test_solver_density_noise(setting=solver_setting, target_graph=linear_cluster):
     setting.monte_carlo = False
     solver = AlternateGraphSolver(target_graph=target_graph,
                                   graph_solver_setting=setting,

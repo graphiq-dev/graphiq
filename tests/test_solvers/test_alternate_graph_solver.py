@@ -78,7 +78,7 @@ def test_solver_monte_carlo(target_graph, setting=my_setting()):
 def test_solver_density_noise(setting=my_setting(), target_graph=linear_cluster):
     setting.monte_carlo = False
     solver = AlternateGraphSolver(
-        target_=target_graph, solver_setting=setting, noise_model_mapping="depolarizing"
+        target=target_graph, solver_setting=setting, noise_model_mapping="depolarizing"
     )
     # solver options
     solver.metric = Infidelity

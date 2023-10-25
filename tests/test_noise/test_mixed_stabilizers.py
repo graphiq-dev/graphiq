@@ -4,8 +4,8 @@ import numpy as np
 
 import src.noise.noise_models as nm
 
-from src.circuit import CircuitDAG
-import src.ops as ops
+from src.circuit.circuit_dag import CircuitDAG
+import src.circuit.ops as ops
 from src.backends.density_matrix.compiler import DensityMatrixCompiler
 from src.backends.stabilizer.compiler import StabilizerCompiler
 from src.backends.stabilizer.state import Stabilizer, MixedStabilizer
@@ -42,12 +42,12 @@ def test_mixed_state_class_types():
     n_emitters, n_photons, d_emitter, lam = 1, 1, 1, 0.0
     circ, circ_ideal = create_circuits(n_emitters, n_photons, d_emitter, lam)
     state = compiler.compile(circ)
-    assert isinstance(state.stabilizer, Stabilizer)
-    assert not isinstance(state.stabilizer, MixedStabilizer)
+    assert isinstance(state.rep_data, Stabilizer)
+    assert not isinstance(state.rep_data, MixedStabilizer)
 
     compiler.noise_simulation = True
     state = compiler.compile(circ)
-    assert isinstance(state.stabilizer, MixedStabilizer)
+    assert isinstance(state.rep_data, MixedStabilizer)
 
 
 @pytest.mark.parametrize("n_emitters", [1, 2, 3])
@@ -85,13 +85,13 @@ def test_mixed_state_tableaux_reduction(lam):
 
     nm.REDUCE_STABILIZER_MIXTURE = False
     state = compiler.compile(circ)
-    assert isinstance(state.stabilizer, MixedStabilizer)
-    no_len_reduction = len(state.stabilizer.mixture)
+    assert isinstance(state.rep_data, MixedStabilizer)
+    no_len_reduction = len(state.rep_data.mixture)
 
     nm.REDUCE_STABILIZER_MIXTURE = True
     state = compiler.compile(circ)
-    assert isinstance(state.stabilizer, MixedStabilizer)
-    len_reduction = len(state.stabilizer.mixture)
+    assert isinstance(state.rep_data, MixedStabilizer)
+    len_reduction = len(state.rep_data.mixture)
     if lam == 0.0:
         assert no_len_reduction == len_reduction
     else:

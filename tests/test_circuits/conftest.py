@@ -1,5 +1,5 @@
 import pytest
-from src.circuit import CircuitDAG
+from src.circuit.circuit_dag import CircuitDAG
 
 
 @pytest.fixture(scope="function")

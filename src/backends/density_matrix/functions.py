@@ -735,7 +735,7 @@ def negativity(rho, dim1, dim2):
     return np.sum(np.abs(eig_vals) - eig_vals) / 2
 
 
-def project_to_z0_and_remove(rho, locations):
+def project_and_remove(rho, locations):
     """
     Return the density matrix after applying Z measurements on qubits specified by locations mask.
     It removes all these qubits under measurements.
@@ -755,7 +755,13 @@ def project_to_z0_and_remove(rho, locations):
             for i in range(n_qubits)
         ],
     )
+
     new_rho = projector0 @ rho @ np.conjugate(projector0.T)
+
+    if np.trace(new_rho) == 0:
+        projector1 = np.eye(2**n_qubits) - projector0
+        new_rho = projector1 @ rho @ np.conjugate(projector1.T)
+
     new_rho = new_rho / np.trace(new_rho)
 
     keeps = []
@@ -763,6 +769,7 @@ def project_to_z0_and_remove(rho, locations):
         if locations[i] == 0:
             keeps.append(i)
     dims = n_qubits * [2]
+
     final_rho = partial_trace(new_rho, keeps, dims)
     return final_rho
 

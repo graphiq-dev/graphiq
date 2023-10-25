@@ -15,7 +15,7 @@ from src.backends.stabilizer.compiler import StabilizerCompiler
 from src.backends.stabilizer.functions.rep_conversion import (
     get_clifford_tableau_from_graph,
 )
-from src.solvers.evolutionary_solver import EvolutionarySearchSolverSetting
+from src.solvers.evolutionary_solver import EvolutionarySolverSetting
 from src.solvers.hybrid_solvers import HybridEvolutionarySolver
 from benchmarks.circuits import *
 from src.metrics import Infidelity
@@ -44,7 +44,7 @@ def deterministic_solver_runtime(n_low, n_high, n_step):
             repeater_graph_states(n_inner_photons)
         )
         n_photon = target_tableau.n_qubits
-        target = QuantumState(n_photon, target_tableau, representation="stabilizer")
+        target = QuantumState(target_tableau, rep_type="s")
         compiler = StabilizerCompiler()
         metric = Infidelity(target)
 
@@ -137,7 +137,7 @@ def six_qubit_repeater_graph_state_example():
     """
     graph = repeater_graph_states(3)
     random_numbers = [*range(10, 105, 5)] + [1000, 2000, 3000]
-    solver_setting = EvolutionarySearchSolverSetting()
+    solver_setting = EvolutionarySolverSetting()
     solver_setting.selection_active = True
     solver_setting.use_adapt_probability = True
     solver_setting.tournament_k = 5

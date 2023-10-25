@@ -10,7 +10,7 @@ from src.backends.stabilizer.functions.transformation import (
     x_gate,
     phase_dagger_gate,
 )
-from src.backends.stabilizer.tableau import CliffordTableau
+from src.backends.stabilizer.clifford_tableau import CliffordTableau
 from src.backends.stabilizer.functions.linalg import (
     column_swap,
     row_sum,

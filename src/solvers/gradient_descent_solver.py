@@ -6,7 +6,8 @@ import tqdm
 import src
 from src.backends.compiler_base import CompilerBase
 from src.solvers import SolverBase
-from src.circuit import CircuitBase, CircuitDAG
+from src.circuit.circuit_base import CircuitBase
+from src.circuit.circuit_dag import CircuitDAG
 from src.metrics import MetricBase
 
 from src.io import IO

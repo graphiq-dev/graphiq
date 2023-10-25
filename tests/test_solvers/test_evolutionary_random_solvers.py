@@ -54,7 +54,6 @@ def generate_run(n_photon, n_emitter, expected_triple, compiler, seed):
     state.partial_trace(
         list(range(n_photon)),
         (n_photon + n_emitter) * [2],
-        compiler.measurement_determinism,
     )
     return solver.hof, state
 
@@ -66,10 +65,10 @@ def check_run(run_info, expected_info):
 
     circuit = hof[0][1]
     assert np.isclose(hof[0][0], metric.evaluate(state, circuit))
-    if state._dm is not None and target_state._dm is not None:
-        assert np.allclose(state.dm.data, target_state.dm.data)
-    if state._stabilizer is not None and target_state._stabilizer is not None:
-        assert state.stabilizer == target_state.stabilizer
+    if state.rep_type == target_state.rep_type == "dm":
+        assert np.allclose(state.rep_data.data, target_state.rep_data.data)
+    elif state.rep_type == target_state.rep_type == "s":
+        assert state.rep_data == target_state.rep_data
 
 
 def check_run_visual(run_info, expected_info):
@@ -78,11 +77,11 @@ def check_run_visual(run_info, expected_info):
 
     circuit = hof[0][1]
     circuit.draw_circuit()
-    fig, axs = density_matrix_bars(target_state.dm.data)
+    fig, axs = density_matrix_bars(target_state.rep_data.data)
     fig.suptitle("TARGET DENSITY MATRIX")
     plt.show()
 
-    fig, axs = density_matrix_bars(state.dm.data)
+    fig, axs = density_matrix_bars(state.rep_data.data)
     fig.suptitle("CREATED DENSITY MATRIX")
     plt.show()
 
@@ -146,7 +145,7 @@ def ghz3_run(density_matrix_compiler, ghz3_expected):
 
 @pytest.fixture(scope="module")
 def ghz3_run_stabilizer(stabilizer_compiler, ghz3_expected):
-    return generate_run(3, 1, ghz3_expected, stabilizer_compiler, 1)
+    return generate_run(3, 1, ghz3_expected, stabilizer_compiler, 10)
 
 
 @pytest.fixture(scope="module")
@@ -279,7 +278,6 @@ def test_stabilizer_linear3():
     state.partial_trace(
         list(range(n_photon)),
         (n_photon + n_emitter) * [2],
-        compiler.measurement_determinism,
     )
     hof = solver.hof
     assert np.isclose(hof[0][0], 0.0)  # infidelity score is 0, within numerical error
@@ -287,18 +285,16 @@ def test_stabilizer_linear3():
     circuit.draw_circuit()
     assert np.isclose(hof[0][0], metric.evaluate(state, circuit))
 
-    if state._dm is not None and target_state._dm is not None:
-        assert np.allclose(state.dm.data, target_state.dm.data)
-    if state._stabilizer is not None and target_state._stabilizer is not None:
-        print(f"the output stabilizer is {state.stabilizer.data.to_stabilizer()}")
-        output_s_tableau = sfs.canonical_form(state.stabilizer.tableau.to_stabilizer())
+    if state.rep_type == target_state.rep_type == "dm":
+        assert np.allclose(state.rep_data.data, target_state.rep_data.data)
+    elif state.rep_type == target_state.rep_type == "s":
+        print(f"the output stabilizer is {state.rep_data.data.to_stabilizer()}")
+        output_s_tableau = sfs.canonical_form(state.rep_data.tableau.to_stabilizer())
         print(f"the output stabilizer in the canonical form is {output_s_tableau}")
         target_s_tableau = sfs.canonical_form(
-            target_state.stabilizer.tableau.to_stabilizer()
+            target_state.rep_data.data.to_stabilizer()
         )
-        print(
-            f"the target stabilizer is {target_state.stabilizer.data.to_stabilizer()}"
-        )
+        print(f"the target stabilizer is {target_state.rep_data.data.to_stabilizer()}")
         print(f"the target stabilizer in the canonical form is {target_s_tableau}")
         assert output_s_tableau == target_s_tableau
-        assert state.stabilizer == target_state.stabilizer
+        assert state.rep_data == target_state.rep_data

@@ -192,28 +192,28 @@ class OneQubitGateReplacement(ReplacementNoiseBase):
         """
 
         assert len(reg_list) == 1  # one-qubit noise
-        for state_rep in state.all_representations:
-            if isinstance(state_rep, DensityMatrix):
-                noisy_gate = dmf.get_one_qubit_gate(
-                    n_quantum, reg_list[0], self.noise_parameters["One-qubit unitary"]
-                )
-                state_rep.apply_unitary(noisy_gate)
-            elif isinstance(state_rep, Stabilizer):
-                gate_list = []
-                if isinstance(state_rep, MixedStabilizer):
-                    mixture = state_rep.mixture
-                    for (p_i, tableau_i) in mixture:
-                        tableau_i.apply_circuit(gate_list)
-                else:
-                    state_rep.apply_circuit(gate_list)
-
-            elif isinstance(state_rep, Graph):
-                # TODO: Implement this for Graph backend
-                raise TypeError(
-                    "This noise model currently does not support Graph backend."
-                )
+        state_rep = state.rep_data
+        if isinstance(state_rep, DensityMatrix):
+            noisy_gate = dmf.get_one_qubit_gate(
+                n_quantum, reg_list[0], self.noise_parameters["One-qubit unitary"]
+            )
+            state_rep.apply_unitary(noisy_gate)
+        elif isinstance(state_rep, Stabilizer):
+            gate_list = []
+            if isinstance(state_rep, MixedStabilizer):
+                mixture = state_rep.mixture
+                for (p_i, tableau_i) in mixture:
+                    tableau_i.apply_circuit(gate_list)
             else:
-                raise TypeError("Backend type is not supported.")
+                state_rep.apply_circuit(gate_list)
+
+        elif isinstance(state_rep, Graph):
+            # TODO: Implement this for Graph backend
+            raise TypeError(
+                "This noise model currently does not support Graph backend."
+            )
+        else:
+            raise TypeError("Backend type is not supported.")
 
 
 class TwoQubitControlledGateReplacement(ReplacementNoiseBase):
@@ -268,43 +268,43 @@ class TwoQubitControlledGateReplacement(ReplacementNoiseBase):
         :return: nothing
         :rtype: None
         """
-        for state_rep in state.all_representations:
-            if isinstance(state_rep, DensityMatrix):
-                pre_gate_noise = dmf.get_one_qubit_gate(
-                    n_quantum,
-                    ctr_reg,
-                    self.noise_parameters["Pre-gate noise"],
-                )
-                post_gate_noise = dmf.get_one_qubit_gate(
-                    n_quantum,
-                    ctr_reg,
-                    self.noise_parameters["Post-gate noise"],
-                )
-                target_gate = (
-                    np.exp(1j * self.noise_parameters["Phase factor"])
-                    * self.noise_parameters["Target gate"]
-                )
-                cu_gate = dmf.get_two_qubit_controlled_gate(
-                    n_quantum,
-                    ctr_reg,
-                    target_reg,
-                    target_gate,
-                )
+        state_rep = state.rep_data
+        if isinstance(state_rep, DensityMatrix):
+            pre_gate_noise = dmf.get_one_qubit_gate(
+                n_quantum,
+                ctr_reg,
+                self.noise_parameters["Pre-gate noise"],
+            )
+            post_gate_noise = dmf.get_one_qubit_gate(
+                n_quantum,
+                ctr_reg,
+                self.noise_parameters["Post-gate noise"],
+            )
+            target_gate = (
+                np.exp(1j * self.noise_parameters["Phase factor"])
+                * self.noise_parameters["Target gate"]
+            )
+            cu_gate = dmf.get_two_qubit_controlled_gate(
+                n_quantum,
+                ctr_reg,
+                target_reg,
+                target_gate,
+            )
 
-                unitary = post_gate_noise @ cu_gate @ pre_gate_noise
-                state_rep.apply_unitary(unitary)
-            elif isinstance(state_rep, Stabilizer):
-                # TODO: Implement this for Stabilizer backend
-                raise NotImplementedError(
-                    "TwoQubitControlledGateReplacement error not implemented for stabilizer representation"
-                )
-            elif isinstance(state_rep, Graph):
-                # TODO: Implement this for Graph backend
-                raise NotImplementedError(
-                    "TwoQubitControlledGateReplacement error not implemented for stabilizer representation"
-                )
-            else:
-                raise TypeError("Backend type is not supported.")
+            unitary = post_gate_noise @ cu_gate @ pre_gate_noise
+            state_rep.apply_unitary(unitary)
+        elif isinstance(state_rep, Stabilizer):
+            # TODO: Implement this for Stabilizer backend
+            raise NotImplementedError(
+                "TwoQubitControlledGateReplacement error not implemented for stabilizer representation"
+            )
+        elif isinstance(state_rep, Graph):
+            # TODO: Implement this for Graph backend
+            raise NotImplementedError(
+                "TwoQubitControlledGateReplacement error not implemented for stabilizer representation"
+            )
+        else:
+            raise TypeError("Backend type is not supported.")
 
 
 class PauliError(AdditionNoiseBase):
@@ -340,48 +340,42 @@ class PauliError(AdditionNoiseBase):
         """
         pauli_error = self.noise_parameters["Pauli error"]
         assert len(reg_list) == 1
-        for state_rep in state.all_representations:
-            if isinstance(state_rep, DensityMatrix):
-                if pauli_error == "X":
-                    error_op = dmf.get_one_qubit_gate(
-                        n_quantum, reg_list[0], dmf.sigmax()
-                    )
-                elif pauli_error == "Y":
-                    error_op = dmf.get_one_qubit_gate(
-                        n_quantum, reg_list[0], dmf.sigmay()
-                    )
-                elif pauli_error == "Z":
-                    error_op = dmf.get_one_qubit_gate(
-                        n_quantum, reg_list[0], dmf.sigmaz()
-                    )
-                elif pauli_error == "I":
-                    error_op = np.eye(2**n_quantum)
-                else:
-                    raise ValueError("Wrong description of a Pauli matrix.")
-
-                state_rep.apply_unitary(error_op)
-
-            elif isinstance(state_rep, Stabilizer):
-                gate_list = []
-                if pauli_error == "X":
-                    gate_list.append(("X", reg_list[0]))
-                elif pauli_error == "Y":
-                    gate_list.append(("Y", reg_list[0]))
-                elif pauli_error == "Z":
-                    gate_list.append(("Z", reg_list[0]))
-                elif pauli_error == "I":
-                    pass
-                else:
-                    raise ValueError("Wrong description of a Pauli matrix.")
-                state_rep.apply_circuit(gate_list)
-
-            elif isinstance(state_rep, Graph):
-                # TODO: Implement this for Graph backend
-                raise NotImplementedError(
-                    "PauliError not implemented for graph representation"
-                )
+        state_rep = state.rep_data
+        if isinstance(state_rep, DensityMatrix):
+            if pauli_error == "X":
+                error_op = dmf.get_one_qubit_gate(n_quantum, reg_list[0], dmf.sigmax())
+            elif pauli_error == "Y":
+                error_op = dmf.get_one_qubit_gate(n_quantum, reg_list[0], dmf.sigmay())
+            elif pauli_error == "Z":
+                error_op = dmf.get_one_qubit_gate(n_quantum, reg_list[0], dmf.sigmaz())
+            elif pauli_error == "I":
+                error_op = np.eye(2**n_quantum)
             else:
-                raise TypeError("Backend type is not supported.")
+                raise ValueError("Wrong description of a Pauli matrix.")
+
+            state_rep.apply_unitary(error_op)
+
+        elif isinstance(state_rep, Stabilizer):
+            gate_list = []
+            if pauli_error == "X":
+                gate_list.append(("X", reg_list[0]))
+            elif pauli_error == "Y":
+                gate_list.append(("Y", reg_list[0]))
+            elif pauli_error == "Z":
+                gate_list.append(("Z", reg_list[0]))
+            elif pauli_error == "I":
+                pass
+            else:
+                raise ValueError("Wrong description of a Pauli matrix.")
+            state_rep.apply_circuit(gate_list)
+
+        elif isinstance(state_rep, Graph):
+            # TODO: Implement this for Graph backend
+            raise NotImplementedError(
+                "PauliError not implemented for graph representation"
+            )
+        else:
+            raise TypeError("Backend type is not supported.")
 
 
 class LocalCliffordError(AdditionNoiseBase):
@@ -418,54 +412,52 @@ class LocalCliffordError(AdditionNoiseBase):
         clifford_error = self.noise_parameters["Local Clifford error"]
         assert type(clifford_error) is list
         assert len(reg_list) == 1
-        for state_rep in state.all_representations:
-            if isinstance(state_rep, DensityMatrix):
-                unitary = np.eye(2**n_quantum)
-                for gate in clifford_error[::-1]:
-                    if gate.lower() == "sigmax":
-                        unitary = (
-                            dmf.get_one_qubit_gate(n_quantum, reg_list[0], dmf.sigmax())
-                            @ unitary
-                        )
-                    elif gate.lower() == "sigmay":
-                        unitary = (
-                            dmf.get_one_qubit_gate(n_quantum, reg_list[0], dmf.sigmay())
-                            @ unitary
-                        )
-                    elif gate.lower() == "sigmaz":
-                        unitary = (
-                            dmf.get_one_qubit_gate(n_quantum, reg_list[0], dmf.sigmaz())
-                            @ unitary
-                        )
-                    elif gate.lower() == "hadamard":
-                        unitary = (
-                            dmf.get_one_qubit_gate(
-                                n_quantum, reg_list[0], dmf.hadamard()
-                            )
-                            @ unitary
-                        )
-                    elif gate.lower() == "phase":
-                        unitary = (
-                            dmf.get_one_qubit_gate(n_quantum, reg_list[0], dmf.phase())
-                            @ unitary
-                        )
-                    elif gate.lower() == "identity":
-                        pass
-                    else:
-                        raise ValueError("Wrong description of a local Clifford gate.")
-                state_rep.apply_unitary(unitary)
-            elif isinstance(state_rep, Stabilizer):
-                # TODO: Implement this for the Stabilizer backend
-                raise NotImplementedError(
-                    "Local Clifford error has not been implemented for stabilizer backend"
-                )
-            elif isinstance(state_rep, Graph):
-                # TODO: Implement this for the Graph backend
-                raise NotImplementedError(
-                    "Local Clifford error has not been implemented for stabilizer backend"
-                )
-            else:
-                raise TypeError("Backend type is not supported.")
+        state_rep = state.rep_data
+        if isinstance(state_rep, DensityMatrix):
+            unitary = np.eye(2**n_quantum)
+            for gate in clifford_error[::-1]:
+                if gate.lower() == "sigmax":
+                    unitary = (
+                        dmf.get_one_qubit_gate(n_quantum, reg_list[0], dmf.sigmax())
+                        @ unitary
+                    )
+                elif gate.lower() == "sigmay":
+                    unitary = (
+                        dmf.get_one_qubit_gate(n_quantum, reg_list[0], dmf.sigmay())
+                        @ unitary
+                    )
+                elif gate.lower() == "sigmaz":
+                    unitary = (
+                        dmf.get_one_qubit_gate(n_quantum, reg_list[0], dmf.sigmaz())
+                        @ unitary
+                    )
+                elif gate.lower() == "hadamard":
+                    unitary = (
+                        dmf.get_one_qubit_gate(n_quantum, reg_list[0], dmf.hadamard())
+                        @ unitary
+                    )
+                elif gate.lower() == "phase":
+                    unitary = (
+                        dmf.get_one_qubit_gate(n_quantum, reg_list[0], dmf.phase())
+                        @ unitary
+                    )
+                elif gate.lower() == "identity":
+                    pass
+                else:
+                    raise ValueError("Wrong description of a local Clifford gate.")
+            state_rep.apply_unitary(unitary)
+        elif isinstance(state_rep, Stabilizer):
+            # TODO: Implement this for the Stabilizer backend
+            raise NotImplementedError(
+                "Local Clifford error has not been implemented for stabilizer backend"
+            )
+        elif isinstance(state_rep, Graph):
+            # TODO: Implement this for the Graph backend
+            raise NotImplementedError(
+                "Local Clifford error has not been implemented for stabilizer backend"
+            )
+        else:
+            raise TypeError("Backend type is not supported.")
 
 
 class AmplitudeDampingNoise(AdditionNoiseBase):
@@ -497,35 +489,33 @@ class AmplitudeDampingNoise(AdditionNoiseBase):
         :return: nothing
         :rtype: None
         """
-        for state_rep in state.all_representations:
-            if isinstance(state_rep, DensityMatrix):
-                damping_prob = self.noise_parameters["damping_probability"]
-                if damping_prob == 0.0:
-                    return
-                single_qubit_kraus = dmf.amplitude_damping_operators(damping_prob)
-                kraus_ops_iter = itertools.combinations(
-                    single_qubit_kraus, len(reg_list)
+        state_rep = state.rep_data
+        if isinstance(state_rep, DensityMatrix):
+            damping_prob = self.noise_parameters["damping_probability"]
+            if damping_prob == 0.0:
+                return
+            single_qubit_kraus = dmf.amplitude_damping_operators(damping_prob)
+            kraus_ops_iter = itertools.combinations(single_qubit_kraus, len(reg_list))
+            kraus_ops = []
+            for kraus_op in kraus_ops_iter:
+                kraus_ops.append(
+                    dmf.get_multi_qubit_gate(n_quantum, reg_list, kraus_op)
                 )
-                kraus_ops = []
-                for kraus_op in kraus_ops_iter:
-                    kraus_ops.append(
-                        dmf.get_multi_qubit_gate(n_quantum, reg_list, kraus_op)
-                    )
 
-                state_rep.apply_channel(kraus_ops)
+            state_rep.apply_channel(kraus_ops)
 
-            elif isinstance(state_rep, Stabilizer):
-                # TODO: Find the correct representation for Stabilizer backend
-                raise NotImplementedError(
-                    "AmplitudeDamping not implemented for stabilizer representation"
-                )
-            elif isinstance(state_rep, Graph):
-                # TODO: Implement this for Graph backend
-                raise NotImplementedError(
-                    "AmplitudeDamping not implemented for graph representation"
-                )
-            else:
-                raise TypeError("Backend type is not supported.")
+        elif isinstance(state_rep, Stabilizer):
+            # TODO: Find the correct representation for Stabilizer backend
+            raise NotImplementedError(
+                "AmplitudeDamping not implemented for stabilizer representation"
+            )
+        elif isinstance(state_rep, Graph):
+            # TODO: Implement this for Graph backend
+            raise NotImplementedError(
+                "AmplitudeDamping not implemented for graph representation"
+            )
+        else:
+            raise TypeError("Backend type is not supported.")
 
 
 class DepolarizingNoise(AdditionNoiseBase):
@@ -568,72 +558,71 @@ class DepolarizingNoise(AdditionNoiseBase):
             [1 - depolarizing_prob]
             + (n_kraus - 1) * [depolarizing_prob / (n_kraus - 1)]
         )
-        for state_rep in state.all_representations:
-            if isinstance(state_rep, DensityMatrix):
-                single_qubit_kraus = [
-                    dmf.identity(),
-                    dmf.sigmax(),
-                    dmf.sigmay(),
-                    dmf.sigmaz(),
-                ]
-                kraus_ops_iter = itertools.product(
-                    single_qubit_kraus, repeat=len(reg_list)
+
+        state_rep = state.rep_data
+        if isinstance(state_rep, DensityMatrix):
+            single_qubit_kraus = [
+                dmf.identity(),
+                dmf.sigmax(),
+                dmf.sigmay(),
+                dmf.sigmaz(),
+            ]
+            kraus_ops_iter = itertools.product(single_qubit_kraus, repeat=len(reg_list))
+
+            kraus_ops = []
+
+            for i, kraus_op in enumerate(kraus_ops_iter):
+                kraus_ops.append(
+                    np.sqrt(factors[i])
+                    * dmf.get_multi_qubit_gate(n_quantum, reg_list, kraus_op)
                 )
+            state_rep.apply_channel(kraus_ops)
 
-                kraus_ops = []
+        elif isinstance(state_rep, Stabilizer) or isinstance(
+            state_rep, MixedStabilizer
+        ):
+            if not isinstance(state_rep, MixedStabilizer):
+                rep_data = MixedStabilizer([(1.0, state_rep.data)])
+                state.rep_data = rep_data
 
-                for i, kraus_op in enumerate(kraus_ops_iter):
-                    kraus_ops.append(
-                        np.sqrt(factors[i])
-                        * dmf.get_multi_qubit_gate(n_quantum, reg_list, kraus_op)
-                    )
-                state_rep.apply_channel(kraus_ops)
+            original_prob = state_rep.probability
+            mixture = []
+            single_qubit_trans = [
+                transform.identity,
+                transform.x_gate,
+                transform.y_gate,
+                transform.z_gate,
+            ]
 
-            elif isinstance(state_rep, Stabilizer) or isinstance(
-                state_rep, MixedStabilizer
-            ):
-                if not isinstance(state_rep, MixedStabilizer):
-                    state.stabilizer = MixedStabilizer([(1.0, state_rep.data)])
-                    state_rep = state.stabilizer
+            trans_iter = itertools.product(single_qubit_trans, repeat=len(reg_list))
+            trans_iter = list(trans_iter)
 
-                original_prob = state_rep.probability
-                mixture = []
-                single_qubit_trans = [
-                    transform.identity,
-                    transform.x_gate,
-                    transform.y_gate,
-                    transform.z_gate,
-                ]
+            for (p_i, tableau_i) in state_rep.mixture:
+                for k in range(len(trans_iter)):
+                    if p_i * factors[k] > 0:
+                        new_tableau_i = tableau_i.copy()
+                        for pauli_j, qubit_position in zip(trans_iter[k], reg_list):
+                            new_tableau_i = pauli_j(new_tableau_i, qubit_position)
+                        mixture.append((p_i * factors[k], new_tableau_i))
 
-                trans_iter = itertools.product(single_qubit_trans, repeat=len(reg_list))
-                trans_iter = list(trans_iter)
-
-                for (p_i, tableau_i) in state_rep.mixture:
-                    for k in range(len(trans_iter)):
-                        if p_i * factors[k] > 0:
-                            new_tableau_i = tableau_i.copy()
-                            for pauli_j, qubit_position in zip(trans_iter[k], reg_list):
-                                new_tableau_i = pauli_j(new_tableau_i, qubit_position)
-                            mixture.append((p_i * factors[k], new_tableau_i))
-
-                if not np.isclose(sum([pi for pi, ti in mixture]), original_prob):
-                    raise ValueError(
-                        f"Probability is not the same as the original probability of the mixture, \
+            if not np.isclose(sum([pi for pi, ti in mixture]), original_prob):
+                raise ValueError(
+                    f"Probability is not the same as the original probability of the mixture, \
                         which is {original_prob}. P = {sum([pi for pi, ti in mixture])}, \
                         lam={depolarizing_prob} | Reg list {reg_list}"
-                    )
-
-                state_rep.mixture = mixture
-                if REDUCE_STABILIZER_MIXTURE:
-                    state_rep.reduce()
-
-            elif isinstance(state_rep, Graph):
-                # TODO: Implement this for Graph backend
-                raise NotImplementedError(
-                    "DepolarizingNoise not implemented for graph representation"
                 )
-            else:
-                raise TypeError(f"Backend type {type(state_rep)} is not supported.")
+
+            state_rep.mixture = mixture
+            if REDUCE_STABILIZER_MIXTURE:
+                state_rep.reduce()
+
+        elif isinstance(state_rep, Graph):
+            # TODO: Implement this for Graph backend
+            raise NotImplementedError(
+                "DepolarizingNoise not implemented for graph representation"
+            )
+        else:
+            raise TypeError(f"Backend type {type(state_rep)} is not supported.")
 
 
 class HadamardPerturbedError(OneQubitGateReplacement):
@@ -757,25 +746,26 @@ class PhotonLoss(AdditionNoiseBase):
         :rtype: None
         """
         loss_rate = self.noise_parameters["loss rate"]
-        for state_rep in state.all_representations:
-            if isinstance(state_rep, DensityMatrix):
-                # use subnormalized states
-                state_rep.data = (1 - loss_rate) * state_rep.data
-            elif isinstance(state_rep, MixedStabilizer):
-                mixture = state_rep.mixture
-                for i in range(len(mixture)):
-                    mixture[i] = ((1 - loss_rate) * mixture[i][0], mixture[i][1])
-            elif isinstance(state_rep, Stabilizer):
-                state_rep = MixedStabilizer([(1 - loss_rate, state_rep.data)])
-                state.stabilizer = state_rep
+        state_rep = state.rep_data
+        if isinstance(state_rep, DensityMatrix):
+            # use subnormalized states
+            state_rep.data = (1 - loss_rate) * state_rep.data
+        elif isinstance(state_rep, MixedStabilizer):
+            mixture = state_rep.mixture
+            for i in range(len(mixture)):
+                mixture[i] = ((1 - loss_rate) * mixture[i][0], mixture[i][1])
+        elif isinstance(state_rep, Stabilizer):
+            state_rep = MixedStabilizer([(1 - loss_rate, state_rep.data)])
+            state.mixed = True
+            state.rep_data = state_rep
 
-            elif isinstance(state_rep, Graph):
-                # TODO: Implement this for Graph backend
-                raise NotImplementedError(
-                    "PhotonLoss not implemented for graph representation"
-                )
-            else:
-                raise TypeError("Backend type is not supported.")
+        elif isinstance(state_rep, Graph):
+            # TODO: Implement this for Graph backend
+            raise NotImplementedError(
+                "PhotonLoss not implemented for graph representation"
+            )
+        else:
+            raise TypeError("Backend type is not supported.")
 
 
 """
@@ -820,24 +810,24 @@ class MixedUnitaryError(AdditionNoiseBase):
         :return: nothing
         :rtype: None
         """
-        for state_rep in state.all_representations:
-            if isinstance(state_rep, DensityMatrix):
-                # TODO: Implement this for DensityMatrix backend
-                raise NotImplementedError(
-                    "MixedUnitary not implemented for DensityMatrix representation"
-                )
-            elif isinstance(state_rep, Stabilizer):
-                # TODO: Find the correct representation for Stabilizer backend
-                raise NotImplementedError(
-                    "MixedUnitary not implemented for Stabilizer representation"
-                )
-            elif isinstance(state_rep, Graph):
-                # TODO: Implement this for Graph backend
-                raise NotImplementedError(
-                    "MixedUnitary not implemented for graph representation"
-                )
-            else:
-                raise TypeError("Backend type is not supported.")
+        state_rep = state.rep_data
+        if isinstance(state_rep, DensityMatrix):
+            # TODO: Implement this for DensityMatrix backend
+            raise NotImplementedError(
+                "MixedUnitary not implemented for DensityMatrix representation"
+            )
+        elif isinstance(state_rep, Stabilizer):
+            # TODO: Find the correct representation for Stabilizer backend
+            raise NotImplementedError(
+                "MixedUnitary not implemented for Stabilizer representation"
+            )
+        elif isinstance(state_rep, Graph):
+            # TODO: Implement this for Graph backend
+            raise NotImplementedError(
+                "MixedUnitary not implemented for graph representation"
+            )
+        else:
+            raise TypeError("Backend type is not supported.")
 
 
 class CoherentUnitaryError(AdditionNoiseBase):
@@ -872,24 +862,24 @@ class CoherentUnitaryError(AdditionNoiseBase):
         :return: nothing
         :rtype: None
         """
-        for state_rep in state.all_representations:
-            if isinstance(state_rep, DensityMatrix):
-                # TODO: Implement this for DensityMatrix backend
-                raise NotImplementedError(
-                    "CoherentUnitaryError not implemented for density matrix representation"
-                )
-            elif isinstance(state_rep, Stabilizer):
-                # TODO: Find the correct representation for Stabilizer backend
-                raise NotImplementedError(
-                    "CoherentUnitaryError not implemented for stabilizer representation"
-                )
-            elif isinstance(state_rep, Graph):
-                # TODO: Implement this for Graph backend
-                raise NotImplementedError(
-                    "CoherentUnitaryError not implemented for graph representation"
-                )
-            else:
-                raise TypeError("Backend type is not supported.")
+        state_rep = state.rep_data
+        if isinstance(state_rep, DensityMatrix):
+            # TODO: Implement this for DensityMatrix backend
+            raise NotImplementedError(
+                "CoherentUnitaryError not implemented for density matrix representation"
+            )
+        elif isinstance(state_rep, Stabilizer):
+            # TODO: Find the correct representation for Stabilizer backend
+            raise NotImplementedError(
+                "CoherentUnitaryError not implemented for stabilizer representation"
+            )
+        elif isinstance(state_rep, Graph):
+            # TODO: Implement this for Graph backend
+            raise NotImplementedError(
+                "CoherentUnitaryError not implemented for graph representation"
+            )
+        else:
+            raise TypeError("Backend type is not supported.")
 
 
 class MeasurementError(NoiseBase):
@@ -925,24 +915,24 @@ class MeasurementError(NoiseBase):
         :return: nothing
         :rtype: None
         """
-        for state_rep in state.all_representations:
-            if isinstance(state_rep, DensityMatrix):
-                # TODO: Implement this for DensityMatrix backend
-                raise NotImplementedError(
-                    "MeasurementError not implemented for density matrix representation"
-                )
-            elif isinstance(state_rep, Stabilizer):
-                # TODO: Find the correct representation for Stabilizer backend
-                raise NotImplementedError(
-                    "MeasurementError not implemented for stabilizer representation"
-                )
-            elif isinstance(state_rep, Graph):
-                # TODO: Implement this for Graph backend
-                raise NotImplementedError(
-                    "MeasurementError not implemented for graph representation"
-                )
-            else:
-                raise TypeError("Backend type is not supported.")
+        state_rep = state.rep_data
+        if isinstance(state_rep, DensityMatrix):
+            # TODO: Implement this for DensityMatrix backend
+            raise NotImplementedError(
+                "MeasurementError not implemented for density matrix representation"
+            )
+        elif isinstance(state_rep, Stabilizer):
+            # TODO: Find the correct representation for Stabilizer backend
+            raise NotImplementedError(
+                "MeasurementError not implemented for stabilizer representation"
+            )
+        elif isinstance(state_rep, Graph):
+            # TODO: Implement this for Graph backend
+            raise NotImplementedError(
+                "MeasurementError not implemented for graph representation"
+            )
+        else:
+            raise TypeError("Backend type is not supported.")
 
 
 class GeneralKrausError(AdditionNoiseBase):
@@ -978,22 +968,20 @@ class GeneralKrausError(AdditionNoiseBase):
         :type reg_list: list[int]
         :return: nothing
         """
-        for state_rep in state.all_representations:
-            if isinstance(state_rep, DensityMatrix):
-                kraus_ops = self.get_backend_dependent_noise(
-                    state_rep, n_quantum, reg_list
-                )
-                state_rep.apply_channel(kraus_ops)
-            elif isinstance(state_rep, Stabilizer):
-                raise NotImplementedError(
-                    "GeneralKrausError not implemented (and not compatible) for stabilizer representation"
-                )
-            elif isinstance(state_rep, Graph):
-                raise NotImplementedError(
-                    "GeneralKrausError not implemented (and not compatible) for graph representation"
-                )
-            else:
-                raise TypeError("Backend type is not supported.")
+        state_rep = state.rep_data
+        if isinstance(state_rep, DensityMatrix):
+            kraus_ops = self.get_backend_dependent_noise(state_rep, n_quantum, reg_list)
+            state_rep.apply_channel(kraus_ops)
+        elif isinstance(state_rep, Stabilizer):
+            raise NotImplementedError(
+                "GeneralKrausError not implemented (and not compatible) for stabilizer representation"
+            )
+        elif isinstance(state_rep, Graph):
+            raise NotImplementedError(
+                "GeneralKrausError not implemented (and not compatible) for graph representation"
+            )
+        else:
+            raise TypeError("Backend type is not supported.")
 
 
 class ResetError(NoiseBase):
@@ -1019,21 +1007,21 @@ class ResetError(NoiseBase):
         :return: nothing
         :rtype: None
         """
-        for state_rep in state.all_representations:
-            if isinstance(state_rep, DensityMatrix):
-                # TODO: Implement this for DensityMatrix backend
-                raise NotImplementedError(
-                    "ResetError not implemented for density matrix representation"
-                )
-            elif isinstance(state_rep, Stabilizer):
-                # TODO: Find the correct representation for Stabilizer backend
-                raise NotImplementedError(
-                    "ResetError not implemented for stabilizer representation"
-                )
-            elif isinstance(state_rep, Graph):
-                # TODO: Implement this for Graph backend
-                raise NotImplementedError(
-                    "ResetError not implemented for graph representation"
-                )
-            else:
-                raise TypeError("Backend type is not supported.")
+        state_rep = state.rep_data
+        if isinstance(state_rep, DensityMatrix):
+            # TODO: Implement this for DensityMatrix backend
+            raise NotImplementedError(
+                "ResetError not implemented for density matrix representation"
+            )
+        elif isinstance(state_rep, Stabilizer):
+            # TODO: Find the correct representation for Stabilizer backend
+            raise NotImplementedError(
+                "ResetError not implemented for stabilizer representation"
+            )
+        elif isinstance(state_rep, Graph):
+            # TODO: Implement this for Graph backend
+            raise NotImplementedError(
+                "ResetError not implemented for graph representation"
+            )
+        else:
+            raise TypeError("Backend type is not supported.")

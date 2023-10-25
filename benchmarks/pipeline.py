@@ -154,7 +154,7 @@ def benchmark(runs: dict, io: IO, remote=True):
 
 def benchmark_run_graph_search_solver(run, name, io, circuit_format="qasm"):
     """
-    Function to run benchmark for HybridGraphSearchSolver
+    Function to run benchmark for AlternateGraphSolver
 
     :param run: dictionary containing the main class instances (solver, etc.)
     :type run: dict
@@ -162,7 +162,7 @@ def benchmark_run_graph_search_solver(run, name, io, circuit_format="qasm"):
     :type name: str
     :param io: IO object used to save data for the *current* run (not overall benchmarking IO)
     :type io: IO instance
-    :param circuit_format: a variable define what format the circuit will be save to
+    :param circuit_format: a variable define what format the circuit will be saved to
     :type circuit_format: str
     :return: dictionary storing all the results/metadata for the current run (can be added to a DataFrame)
     :rtype: pandas.DataFrame
@@ -170,7 +170,8 @@ def benchmark_run_graph_search_solver(run, name, io, circuit_format="qasm"):
     solver = run["solver"]
     t0 = time.time()
     solver.io = io
-    result = solver.solve()
+    solver.solve()
+    result = solver.result
     t1 = time.time()
 
     df = result.to_df()

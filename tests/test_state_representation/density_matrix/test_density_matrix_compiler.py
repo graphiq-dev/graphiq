@@ -11,8 +11,8 @@ from benchmarks.circuits import (
     ghz4_state_circuit,
 )
 from src.visualizers.density_matrix import density_matrix_bars, density_matrix_heatmap
-from src.circuit import CircuitDAG
-import src.ops as ops
+from src.circuit.circuit_dag import CircuitDAG
+import src.circuit.ops as ops
 
 
 def test_bell_circuit():
@@ -21,7 +21,7 @@ def test_bell_circuit():
     compiler = DensityMatrixCompiler()
     state = compiler.compile(circuit)
 
-    f = fidelity(state.dm.data, ideal_state.dm.data)
+    f = fidelity(state.rep_data.data, ideal_state.rep_data.data)
 
     assert np.isclose(1.0, f)
 
@@ -37,7 +37,7 @@ def test_bell_circuit_with_wrapper_op_1():
 
     compiler = DensityMatrixCompiler()
     state = compiler.compile(circuit)
-    f = fidelity(state.dm.data, ideal_state.dm.data)
+    f = fidelity(state.rep_data.data, ideal_state.rep_data.data)
 
     assert np.isclose(1.0, f)
 
@@ -55,7 +55,7 @@ def test_bell_circuit_with_wrapper_op_2():
 
     compiler = DensityMatrixCompiler()
     state = compiler.compile(circuit)
-    f = fidelity(state.dm.data, ideal_state.dm.data)
+    f = fidelity(state.rep_data.data, ideal_state.rep_data.data)
 
     assert np.isclose(1.0, f)
 
@@ -67,11 +67,11 @@ def test_bell_circuit_visualization():
     compiler = DensityMatrixCompiler()
     state = compiler.compile(circuit)
 
-    fig, ax = density_matrix_bars(state.dm.data)
+    fig, ax = density_matrix_bars(state.rep_data.data)
     fig.suptitle("Simulated circuit density matrix")
     plt.show()
 
-    fig, ax = density_matrix_bars(ideal_state.dm.data)
+    fig, ax = density_matrix_bars(ideal_state.rep_data.data)
     fig.suptitle("Ideal density matrix")
     plt.show()
 
@@ -83,10 +83,10 @@ def test_ghz3_circuit():
     state = compiler.compile(circuit)
 
     state = partial_trace(
-        state.dm.data, keep=(0, 1, 2), dims=4 * [2]
+        state.rep_data.data, keep=(0, 1, 2), dims=4 * [2]
     )  # trace out the ancilla qubit
 
-    f = fidelity(state, ideal_state.dm.data)
+    f = fidelity(state, ideal_state.rep_data.data)
 
     assert np.isclose(1.0, f)
 
@@ -99,14 +99,14 @@ def test_ghz3_circuit_visualization():
     state = compiler.compile(circuit)
 
     state = partial_trace(
-        state.dm.data, keep=(0, 1, 2), dims=4 * [2]
+        state.rep_data.data, keep=(0, 1, 2), dims=4 * [2]
     )  # trace out the ancilla qubit
 
     fig, ax = density_matrix_bars(state)
     fig.suptitle("Simulated circuit density matrix")
     plt.show()
 
-    fig, ax = density_matrix_bars(ideal_state.dm.data)
+    fig, ax = density_matrix_bars(ideal_state.rep_data.data)
     fig.suptitle("Ideal density matrix")
     plt.show()
 
@@ -119,10 +119,10 @@ def test_ghz4_circuit():
     state = compiler.compile(circuit)
 
     state = partial_trace(
-        state.dm.data, keep=(0, 1, 2, 3), dims=5 * [2]
+        state.rep_data.data, keep=(0, 1, 2, 3), dims=5 * [2]
     )  # trace out the ancilla qubit
 
-    f = fidelity(state, ideal_state.dm.data)
+    f = fidelity(state, ideal_state.rep_data.data)
 
     assert np.isclose(1.0, f)
 
@@ -135,14 +135,14 @@ def test_ghz4_circuit_visualization():
     state = compiler.compile(circuit)
 
     state = partial_trace(
-        state.dm.data, keep=(0, 1, 2, 3), dims=5 * [2]
+        state.rep_data.data, keep=(0, 1, 2, 3), dims=5 * [2]
     )  # trace out the ancilla qubit
 
     fig, ax = density_matrix_bars(state)
     fig.suptitle("Simulated circuit density matrix")
     plt.show()
 
-    fig, ax = density_matrix_bars(ideal_state.dm.data)
+    fig, ax = density_matrix_bars(ideal_state.rep_data.data)
     fig.suptitle("Ideal density matrix")
     plt.show()
 
@@ -155,13 +155,13 @@ def test_density_matrix_heatmap():
     compiler = DensityMatrixCompiler()
     state = compiler.compile(circuit)
 
-    state = partial_trace(state.dm.data, keep=(0, 1, 2, 3), dims=5 * [2])
+    state = partial_trace(state.rep_data.data, keep=(0, 1, 2, 3), dims=5 * [2])
 
     fig, ax = density_matrix_heatmap(state)
     fig.suptitle("Simulated circuit density matrix")
     plt.show()
 
-    fig, ax = density_matrix_heatmap(ideal_state.dm.data)
+    fig, ax = density_matrix_heatmap(ideal_state.rep_data.data)
     fig.suptitle("Ideal density matrix")
     plt.show()
 

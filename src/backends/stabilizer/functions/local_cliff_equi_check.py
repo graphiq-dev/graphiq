@@ -2,16 +2,17 @@ import numpy as np
 import networkx as nx
 
 from src.state import QuantumState
-from src.circuit import CircuitDAG
+from src.circuit.circuit_dag import CircuitDAG
 from src.metrics import Infidelity
-import src.ops as ops
+import src.circuit.ops as ops
 
 from src.backends.stabilizer.compiler import StabilizerCompiler
-from src.backends.state_representation_conversion import (
+from src.backends.state_rep_conversion import (
     state_to_graph,
     _phase_correction,
 )
-from src.backends.stabilizer.tableau import StabilizerTableau, CliffordTableau
+from src.backends.stabilizer.tableau import StabilizerTableau
+from src.backends.stabilizer.clifford_tableau import CliffordTableau
 from src.backends.stabilizer.functions.transformation import run_circuit
 from src.backends.stabilizer.functions.stabilizer import canonical_form
 from src.backends.stabilizer.functions.rep_conversion import (
@@ -109,8 +110,8 @@ def state_converter_circuit(state1, state2, validate=False):
         op = str_to_op(gate)
         circuit.add(op)
     if validate:
-        target1 = QuantumState(n_photon, target1_tableau, representation="stabilizer")
-        target2 = QuantumState(n_photon, target2_tableau, representation="stabilizer")
+        target1 = QuantumState(target1_tableau, rep_type="stab")
+        target2 = QuantumState(target2_tableau, rep_type="stab")
         metric2 = Infidelity(target2)
         compiler = StabilizerCompiler()
         final_state = compiler.compile(circuit, initial_state=target1)

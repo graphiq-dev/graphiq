@@ -10,7 +10,7 @@ from src.backends.density_matrix import numpy as np
 from src.backends.state_base import StateRepresentationBase
 from src.backends.graph.state import Graph
 from src.visualizers.density_matrix import density_matrix_heatmap, density_matrix_bars
-from src.backends.state_representation_conversion import graph_to_density
+from src.backends.state_rep_conversion import graph_to_density
 
 
 class DensityMatrix(StateRepresentationBase):
@@ -205,6 +205,22 @@ class DensityMatrix(StateRepresentationBase):
         if outcome == 1:
             self.apply_unitary(target_gate)
         return outcome
+
+    def partial_trace(self, keep, dims):
+        """
+        Take the partial trace of the state
+
+        :param keep:  An array of indices of the spaces to keep. For instance, if the space is
+                    :math:`A \\times B \\times C \\times D` and we want to trace out B and D, keep = [0,2]
+        :type keep: list OR numpy.ndarray
+        :param dims: An array of the dimensions of each space. For instance,
+                    if the space is :math:`A \\times B \\times C \\times D`,
+                    dims = [dim_A, dim_B, dim_C, dim_D]
+        :type dims: list OR numpy.ndarray
+        :return:
+        :rtype:
+        """
+        self.data = dmf.partial_trace(self.data, keep, dims)
 
     def draw(self, style="bar", show=True):
         """

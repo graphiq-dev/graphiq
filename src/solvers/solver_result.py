@@ -1,4 +1,7 @@
+import networkx as nx
 import numpy as np
+import json
+import warnings
 import pandas as pd
 
 
@@ -10,21 +13,15 @@ class SolverResult:
     the name of the column and the value is a list of data of that column.
     """
 
-    def __init__(self, columns=None):
-        """
-        Class constructor, in construction the function will create data table to store solver result. The function
-        receive a parameter that define the name of the columns in the table. For each column, the function will
-        initialize an empty list that map to the name of the column.
-
-        :param columns: a list of column name of the table
-        :type columns: list
-        """
-        self._data = {}
-        self.columns = columns
-
-        if columns:
-            for c in columns:
-                self._data[c] = []
+    def __init__(self, circuit_list, properties=None):
+        self._data = {
+            "circuit": circuit_list,
+            "circuit_id": [f"c{i}" for i in range(len(circuit_list))],
+        }
+        self._properties = [] if properties is None else properties
+        assert isinstance(self._properties, list)
+        for p in self._properties:
+            self._data[p] = [None] * len(circuit_list)
 
     def __len__(self):
         """
@@ -83,31 +80,15 @@ class SolverResult:
                 )
 
         self._data[key] = value
-        self.columns.append(key)
-
-    def append(self, data):
-        """
-        Function to append a new row to the data, if data is empty the function will define the columns then append new
-        row.
-
-        :param data:
-        :return:
-        """
-        if type(data) == dict:
-            # if empty data, define columns then append new row
-            if not self._data:
-                for key, value in data.items():
-                    self._data[key] = [value]
-                self.columns = list(self._data.keys())
-            else:
-                if len(data) == len(self._data):
-                    for key in self._data:
-                        self._data[key].append(data[key])
-                else:
-                    raise ValueError("Length are not the same")
-        return True
 
     def add_properties(self, new_property):
+        """
+
+        :param new_property:
+        :type new_property:
+        :return:
+        :rtype:
+        """
         assert isinstance(new_property, str)
         if new_property not in self._properties:
             self._properties.append(new_property)
@@ -148,7 +129,7 @@ class SolverResult:
         :type column: str
         :param value: value to check
         :type value: object
-        :return: list of all indecies that match the value
+        :return: list of all indices that match the value
         :rtype: list
         """
 
@@ -162,13 +143,57 @@ class SolverResult:
                 r_list.append(i)
         return r_list
 
+    def sort_by(self, prop):
+        """
+        Sort the results by a given property
+
+        :param prop: a property in the list of properties of the result
+        :type prop: str
+        :return: Nothing
+        :rtype: None
+        """
+        data_dict = self._data
+        n_result = len(self)
+        p_index = list(data_dict.keys()).index(prop)
+        data_tuple_list = [
+            tuple(x[i] for x in data_dict.values()) for i in range(n_result)
+        ]
+        sorted_data_tuple = sorted(data_tuple_list, key=lambda x: x[p_index])
+        for j, p in enumerate(data_dict.keys()):
+            self._data[p] = [sorted_data_tuple[i][j] for i in range(n_result)]
+
     def to_df(self):
         """
         Function to convert SolverResult to pandas DataFrame
-
         :return: dataframe
         :rtype: pandas.DataFrame
         """
         df = pd.DataFrame(data=self._data)
 
         return df
+
+    def save2json(self, path, filename):
+        data_dict = self._data.copy()
+        data_dict["g"] = [list(nx.to_edgelist(g)) for g in self._data["g"]]
+        data_dict["circuit"] = [c.to_openqasm() for c in self._data["circuit"]]
+        with open(f"{path}/{filename}.json", "w") as f:
+            json.dump(data_dict, f)
+
+    def load_json(self, path, filename):
+        with open(f"{path}/{filename}.json", "r") as f:
+            loaded_dict = json.load(f)
+        for properties in loaded_dict.keys():
+            if properties == "g":
+                self._data["g"] = [nx.from_edgelist(g) for g in loaded_dict["g"]]
+            else:
+                self._data[properties] = loaded_dict[properties]
+        warnings.warn(
+            "The circuits in the loaded result object are now openqasm strings!"
+        )
+        diff = (
+            set(self.properties) - set(loaded_dict.keys()) - {"circuit", "circuit_id"}
+        )
+        if diff:
+            warnings.warn("")
+        # TODO: from openqasm to circuit object
+        # self._data['circuit'] = [QuantumCircuit.from_qasm_str(c) for c in loaded_dict['circuit']]

@@ -1,10 +1,10 @@
 import copy
 
-from src.circuit import CircuitDAG
+from src.circuit.circuit_dag import CircuitDAG
 from src.state import QuantumState
-from src.backends.stabilizer.tableau import CliffordTableau
+from src.backends.stabilizer.clifford_tableau import CliffordTableau
 from src.backends.stabilizer.compiler import StabilizerCompiler
-import src.ops as ops
+import src.circuit.ops as ops
 import numpy as np
 from itertools import combinations_with_replacement
 import src.noise.model_parameters as mp
@@ -197,7 +197,7 @@ class NoisyEnsemble:
             compiler = StabilizerCompiler()
             normalizer = 1 / self.total_prob()
             for branch in circ_tree:
-                output_tab = compiler.compile(branch[0]).stabilizer.tableau
+                output_tab = compiler.compile(branch[0]).rep_data.data
                 prob, tableau = normalizer * branch[1], output_tab
                 assert isinstance(
                     tableau, CliffordTableau
@@ -205,9 +205,7 @@ class NoisyEnsemble:
                 state_data.append((prob, tableau))
             assert np.isclose(sum([p[0] for p in state_data]), 1)
             n_qubits = state_data[0][1].n_qubits
-            quantum_state = QuantumState(
-                n_qubits, state_data, representation="stabilizer", mixed=True
-            )
+            quantum_state = QuantumState(state_data, rep_type="stab", mixed=True)
         else:
             raise NotImplementedError("non-stabilizer backends not supported yet")
         return quantum_state

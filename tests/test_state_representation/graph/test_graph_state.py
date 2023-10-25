@@ -2,6 +2,7 @@ import pytest
 import matplotlib.pyplot as plt
 
 import src.backends.graph.functions as gfn
+import src.backends.graph.node as gnode
 from src.backends.graph.state import Graph
 from tests.test_flags import visualization
 
@@ -25,16 +26,9 @@ def test_graph_initialization_adding(graph_rep_1):
     }
 
 
-# @visualization
-# def test_graph_draw(graph_rep_1):
-#    graph_rep_1.add_node(4)
-#    graph_rep_1.add_edge(3, 4)
-#    graph_rep_1.draw()
-
-
 def test_get_node_by_id_no_id(graph_rep_1):
-    assert isinstance(graph_rep_1.get_node_by_id(1), gfn.QuNode)
-    assert isinstance(graph_rep_1.get_node_by_id(frozenset([1])), gfn.QuNode)
+    assert isinstance(graph_rep_1.get_node_by_id(1), gnode.QuNode)
+    assert isinstance(graph_rep_1.get_node_by_id(frozenset([1])), gnode.QuNode)
 
     assert graph_rep_1.get_node_by_id(4) is None
     assert graph_rep_1.get_node_by_id(frozenset([4])) is None
@@ -45,7 +39,7 @@ def test_n_redundant_encoding_1(graph_rep_2):
 
 
 def test_n_redundant_encoding_2():
-    state_rep = Graph([], root_node_id=None)
+    state_rep = Graph([])
     assert state_rep.n_redundant_encoding_node == 0
 
 

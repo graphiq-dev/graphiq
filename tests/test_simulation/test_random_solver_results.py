@@ -1,8 +1,8 @@
 import pytest
 import numpy as np
 
-from src.circuit import CircuitDAG
-import src.ops as ops
+from src.circuit.circuit_dag import CircuitDAG
+import src.circuit.ops as ops
 from src.backends.density_matrix.compiler import DensityMatrixCompiler
 from src.metrics import Infidelity
 from benchmarks.benchmark_utils import circuit_measurement_independent
@@ -12,7 +12,6 @@ from benchmarks.circuits import (
     linear_cluster_3qubit_circuit,
     linear_cluster_4qubit_circuit,
 )
-from src.state import QuantumState
 
 
 def ghz3_0():

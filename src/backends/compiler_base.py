@@ -8,8 +8,8 @@ from abc import ABC, abstractmethod
 import logging
 import numpy as np
 
-import src.ops as ops
-from src.circuit import CircuitBase
+import src.circuit.ops as ops
+from src.circuit.circuit_base import CircuitBase
 import src.noise.noise_models as nm
 from src.state import QuantumState
 
@@ -77,21 +77,13 @@ class CompilerBase(ABC):
             assert (
                 initial_state.n_qubits == circuit.n_quantum
             ), "the number of qubits in initial state must match the circuit"
-            if self.__class__.name == "density matrix":
-                state_data = initial_state.dm.data
-            elif self.__class__.name == "stabilizer":
-                state_data = initial_state.stabilizer.data
-            elif self.__class__.name == "graph":
-                state_data = initial_state.graph.data
-            else:
-                state_data = initial_state.all_representations[0].data
+            state_data = initial_state.rep_data.data
         else:
             state_data = circuit.n_quantum
 
         state = QuantumState(
-            n_qubits=circuit.n_quantum,
             data=state_data,  # initialize to |0...0> state
-            representation=self.__class__.name,
+            rep_type=self.__class__.name,
             mixed=True if (self._noise_simulation and not self._monte_carlo) else False,
         )
 

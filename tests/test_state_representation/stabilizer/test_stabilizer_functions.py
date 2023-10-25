@@ -1,17 +1,14 @@
 import pytest
-import numpy as np
-import networkx as nx
 
 import src.backends.stabilizer.functions.rep_conversion as conversion
 import src.backends.stabilizer.functions.utils as sfu
-from src.circuit import CircuitDAG
+from src.circuit.circuit_dag import CircuitDAG
+from src.circuit import ops
 import src.backends.stabilizer.functions.clifford as sfc
 from src.backends.stabilizer.functions.stabilizer import rref
 import src.backends.stabilizer.functions.metric as sfm
-from src.backends.stabilizer.functions.height import height_func_list
 from src.backends.stabilizer.tableau import StabilizerTableau
 from functools import reduce
-import src.ops as ops
 from src.backends.density_matrix.compiler import DensityMatrixCompiler
 from src.backends.stabilizer.compiler import StabilizerCompiler
 from benchmarks.circuits import *
@@ -187,10 +184,10 @@ def test_stabilizer_fidelity2():
     stab_compiler = StabilizerCompiler()
     stab_compiler.measurement_determinism = 1
     state1 = dm_compiler.compile(dag)
-    state1.partial_trace([*range(3)], 4 * [2], measurement_determinism=1)
+    state1.partial_trace([*range(3)], 4 * [2])
     print(metric.evaluate(state1, dag))
     state2 = stab_compiler.compile(dag)
-    state2.partial_trace([*range(3)], 4 * [2], measurement_determinism=1)
+    state2.partial_trace([*range(3)], 4 * [2])
     print(metric.evaluate(state2, dag))
 
 

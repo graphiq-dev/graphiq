@@ -3,7 +3,7 @@ Compilation tools for simulating a circuit with a purely Density Matrix based ba
 """
 
 import src.backends.density_matrix.functions as dm
-from src import ops as ops
+from src.circuit import ops as ops
 from src.backends.compiler_base import CompilerBase
 from src.backends.density_matrix.state import DensityMatrix
 import src.noise.noise_models as nm
@@ -18,7 +18,7 @@ class DensityMatrixCompiler(CompilerBase):
 
     # TODO: [longer term] refactor to take a QuantumState object input instead of creating its own initial state?
 
-    name = "density matrix"
+    name = "dm"
     ops = {  # the accepted operations and the single-qubit action needed for each gate
         ops.Input: lambda: None,
         ops.Identity: lambda: None,
@@ -72,7 +72,7 @@ class DensityMatrixCompiler(CompilerBase):
         assert (
             op.__class__ in self.ops.keys()
         ), f"{op.__class__} is not a valid operation for this compiler"
-        state = state.dm
+        state = state.rep_data
 
         params = op.params
 

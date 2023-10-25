@@ -1,8 +1,8 @@
 import pytest
 from qiskit.qasm import Qasm
-from src.ops import *
+from src.circuit.ops import *
 from src.utils.openqasm_parser import OpenQASMParser
-from src.circuit import CircuitDAG
+from src.circuit.circuit_dag import CircuitDAG
 import math
 
 

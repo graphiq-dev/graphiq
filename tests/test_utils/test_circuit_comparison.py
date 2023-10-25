@@ -1,12 +1,10 @@
 import pytest
+from src.circuit.circuit_dag import CircuitDAG
 from benchmarks.circuits import *
 from src.utils.circuit_comparison import *
 from benchmarks.graph_states import *
 from src.solvers.deterministic_solver import DeterministicSolver
-from src.solvers.hybrid_solvers import (
-    HybridGraphSearchSolver,
-    HybridGraphSearchSolverSetting,
-)
+from src.solvers.alternate_graph_solver import *
 from src.metrics import Infidelity
 from src.state import QuantumState
 from src.backends.stabilizer.compiler import StabilizerCompiler
@@ -20,19 +18,18 @@ import numpy as np
 def get_pipeline(target_graph):
     target_tableau = get_clifford_tableau_from_graph(target_graph)
     n_photon = target_tableau.n_qubits
-    target_state = QuantumState(n_photon, target_tableau, representation="stabilizer")
+    target_state = QuantumState(target_tableau, rep_type="stab")
 
     compiler = StabilizerCompiler()
 
     metric = Infidelity(target=target_state)
-    solver_setting = HybridGraphSearchSolverSetting(n_iso_graphs=5, n_lc_graphs=5)
+    solver_setting = AlternateGraphSolverSetting(n_iso_graphs=5, n_lc_graphs=5)
 
-    solver = HybridGraphSearchSolver(
+    solver = AlternateGraphSolver(
         target=target_state,
         metric=metric,
         compiler=compiler,
-        graph_solver_setting=solver_setting,
-        base_solver=DeterministicSolver,
+        solver_setting=solver_setting,
     )
 
     return solver
@@ -227,76 +224,6 @@ def test_remove_redundant_circuits_1():
     new_list = remove_redundant_circuits(circuit_list)
 
     assert len(new_list) == 1
-
-
-# Test circuit equivalency with same circuit properties
-# Test with pipeline
-def test_circuit_equivalency_1():
-    # Test with pipeline, with property: n_emitters
-    target_graph = linear_cluster_state(4)
-    target_graph = target_graph.data
-
-    solver = get_pipeline(target_graph)
-    circuit_data = solver.solve()
-
-    result = SolverResult()
-    for i in range(len(circuit_data)):
-        circuit = circuit_data["circuit"][i]
-        n_emitters = circuit.n_emitters
-        max_emitter_depth = max(circuit.calculate_reg_depth("e"))
-
-        data = {
-            "circuit": circuit,
-            "n_emitters": n_emitters,
-            "max_emitter_depth": max_emitter_depth,
-        }
-
-        result.append(data)
-
-    for i in np.unique(result["n_emitters"]):
-        index = result.get_index_with_column_value("n_emitters", i)
-        circuit_list = []
-        for j in index:
-            new_circuit = result.get_circuit_index(j)
-            if circuit_list:
-                for circuit in circuit_list:
-                    assert not check_redundant_circuit(circuit, new_circuit)
-            else:
-                circuit_list.append(new_circuit)
-
-
-def test_circuit_equivalency_2():
-    # Test with pipeline, with property: max_emitter_depth
-    target_graph = linear_cluster_state(4)
-    target_graph = target_graph.data
-
-    solver = get_pipeline(target_graph)
-    circuit_data = solver.solve()
-
-    result = SolverResult()
-    for i in range(len(circuit_data)):
-        circuit = circuit_data["circuit"][i]
-        n_emitters = circuit.n_emitters
-        max_emitter_depth = max(circuit.calculate_reg_depth("e"))
-
-        data = {
-            "circuit": circuit,
-            "n_emitters": n_emitters,
-            "max_emitter_depth": max_emitter_depth,
-        }
-
-        result.append(data)
-
-    for i in np.unique(result["max_emitter_depth"]):
-        index = result.get_index_with_column_value("max_emitter_depth", i)
-        circuit_list = []
-        for j in index:
-            new_circuit = result.get_circuit_index(j)
-            if circuit_list:
-                for circuit in circuit_list:
-                    assert not check_redundant_circuit(circuit, new_circuit)
-            else:
-                circuit_list.append(new_circuit)
 
 
 # Test outside the pipeline

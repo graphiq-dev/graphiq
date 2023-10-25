@@ -2,7 +2,7 @@
 Compilation tools for simulating a circuit with a Stabilizer backend
 """
 
-from src import ops as ops
+from src.circuit import ops as ops
 from src.backends.compiler_base import CompilerBase
 from src.backends.stabilizer.state import MixedStabilizer
 
@@ -61,9 +61,8 @@ class StabilizerCompiler(CompilerBase):
         :return: nothing
         :rtype: None
         """
-        state = state.stabilizer
+        state = state.rep_data
 
-        # TODO: should think about the best way to handle inputs/outputs
         if type(op) is ops.Input:
             return
 

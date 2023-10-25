@@ -74,7 +74,7 @@ def test_painter_init_with_gate_mapping():
         ("c", 4, "creg", ["c[4]"], 100),
     ],
 )
-def test_painter_add_regiter(reg_name, size, reg_type, reg_mapping, next_pos):
+def test_painter_add_register(reg_name, size, reg_type, reg_mapping, next_pos):
     painter = Painter()
     painter.add_register(reg_name=reg_name, size=size, reg_type=reg_type)
 

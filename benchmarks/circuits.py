@@ -4,9 +4,8 @@ A suite of circuits for small, known quantum states that can be used for benchma
 
 import networkx as nx
 
-from src.circuit import CircuitDAG
-from src.ops import *
-from src import ops
+from src.circuit.circuit_dag import CircuitDAG
+from src.circuit.ops import *
 from src.backends.density_matrix.functions import (
     state_ketz0,
     state_ketz1,
@@ -15,9 +14,10 @@ from src.backends.density_matrix.functions import (
 )
 from src.backends.density_matrix.state import DensityMatrix
 from src.state import QuantumState
-from src.backends.stabilizer.tableau import CliffordTableau
+from src.backends.stabilizer.clifford_tableau import CliffordTableau
 from src.backends.stabilizer.state import Stabilizer
-import src.backends.state_representation_conversion as converter
+import src.backends.state_rep_conversion as rc
+import src.circuit.ops as ops
 
 
 def bell_state_circuit():
@@ -25,7 +25,7 @@ def bell_state_circuit():
     Two-qubit Bell state preparation circuit
     """
     rho = ket2dm((tensor(2 * [state_ketz0()]) + tensor(2 * [state_ketz1()]))) / 2.0
-    ideal_state = QuantumState(2, rho, representation="density matrix")
+    ideal_state = QuantumState(rho, rep_type="dm")
     circuit = CircuitDAG(n_emitter=2, n_classical=0)
     circuit.add(Hadamard(register=0))
     circuit.add(CNOT(control=0, control_type="e", target=1, target_type="e"))
@@ -37,10 +37,11 @@ def ghz3_state_circuit():
     Three-qubit GHZ state
     """
     rho = ket2dm((tensor(3 * [state_ketz0()]) + tensor(3 * [state_ketz1()]))) / 2.0
-    ideal_state = QuantumState(3, rho, representation="density matrix")
+    ideal_state = QuantumState(rho, rep_type="dm")
     graph = nx.Graph([(0, 1), (1, 2)])
     c_tableau = CliffordTableau(3)
-    c_tableau.stabilizer_from_labels(converter.graph_to_stabilizer(graph))
+    s_tableau = rc.graph_to_stabilizer(graph)[0][1]
+    c_tableau.stabilizer = s_tableau.table
 
     ideal_state.stabilizer = Stabilizer(c_tableau)
     ideal_state.stabilizer.apply_hadamard(1)
@@ -72,10 +73,11 @@ def ghz4_state_circuit():
     """
 
     rho = ket2dm((tensor(4 * [state_ketz0()]) + tensor(4 * [state_ketz1()]))) / 2.0
-    ideal_state = QuantumState(4, rho, representation="density matrix")
+    ideal_state = QuantumState(rho, rep_type="dm")
     graph = nx.Graph([(0, 1), (1, 2), (2, 3)])
     c_tableau = CliffordTableau(4)
-    c_tableau.stabilizer_from_labels(converter.graph_to_stabilizer(graph))
+    s_tableau = rc.graph_to_stabilizer(graph)[0][1]
+    c_tableau.stabilizer = s_tableau.table
 
     ideal_state.stabilizer = Stabilizer(c_tableau)
     ideal_state.stabilizer.apply_hadamard(1)
@@ -109,9 +111,10 @@ def linear_cluster_3qubit_circuit():
     """
     graph = nx.Graph([(1, 2), (2, 3)])
     state = DensityMatrix.from_graph(graph)
-    ideal_state = QuantumState(3, state.data, representation="density matrix")
+    ideal_state = QuantumState(state.data, rep_type="dm")
     c_tableau = CliffordTableau(3)
-    c_tableau.stabilizer_from_labels(converter.graph_to_stabilizer(graph))
+    s_tableau = rc.graph_to_stabilizer(graph)[0][1]
+    c_tableau.stabilizer = s_tableau.table
     ideal_state.stabilizer = Stabilizer(c_tableau)
     circuit = CircuitDAG(n_emitter=1, n_photon=3, n_classical=1)
     circuit.add(Hadamard(register=0, reg_type="e"))
@@ -137,9 +140,10 @@ def linear_cluster_4qubit_circuit():
     """
     graph = nx.Graph([(1, 2), (2, 3), (3, 4)])
     state = DensityMatrix.from_graph(graph)
-    ideal_state = QuantumState(4, state.data, representation="density matrix")
+    ideal_state = QuantumState(state.data, rep_type="dm")
     c_tableau = CliffordTableau(4)
-    c_tableau.stabilizer_from_labels(converter.graph_to_stabilizer(graph))
+    s_tableau = rc.graph_to_stabilizer(graph)[0][1]
+    c_tableau.stabilizer = s_tableau.table
     ideal_state.stabilizer = Stabilizer(c_tableau)
     circuit = CircuitDAG(n_emitter=1, n_photon=4, n_classical=1)
     circuit.add(Hadamard(register=0, reg_type="e"))
@@ -171,7 +175,7 @@ def variational_entangling_layer_2qubit():
         [dmf.state_ketz1(), dmf.state_ketz1()]
     )
     state = DensityMatrix(dmf.ket2dm(ket))
-    ideal_state = QuantumState(2, state.data, representation="density matrix")
+    ideal_state = QuantumState(state.data, rep_type="dm")
 
     circuit = CircuitDAG(n_emitter=2, n_photon=0, n_classical=0)
     circuit.add(ParameterizedOneQubitRotation(register=0, reg_type="e"))
@@ -198,7 +202,7 @@ def strongly_entangling_layer(n_qubits=3, layers=1):
         )
     )
     state = DensityMatrix(dmf.ket2dm(ket))
-    ideal_state = QuantumState(n_qubits, state.data, representation="density matrix")
+    ideal_state = QuantumState(state.data, rep_type="dm")
 
     circuit = CircuitDAG(n_emitter=n_qubits, n_photon=0, n_classical=0)
     for layer in range(layers):

@@ -78,11 +78,11 @@ def check_run_visual(run_info, expected_info):
 
     circuit = hof[0][1]
     circuit.draw_circuit()
-    fig, axs = density_matrix_bars(target_state.dm.data)
+    fig, axs = density_matrix_bars(target_state.rep_data.data)
     fig.suptitle("TARGET DENSITY MATRIX")
     plt.show()
 
-    fig, axs = density_matrix_bars(state.dm.data)
+    fig, axs = density_matrix_bars(state.rep_data.data)
     fig.suptitle("CREATED DENSITY MATRIX")
     plt.show()
 
@@ -95,18 +95,18 @@ def check_run_noise_visual(no_noise_run_info, noise_run_info, expected_info):
     circuit_no_noise = hof_no_noise[0][1]
     circuit_no_noise.draw_circuit()
 
-    fig, axs = density_matrix_bars(target_state.dm.data)
+    fig, axs = density_matrix_bars(target_state.rep_data.data)
     fig.suptitle("TARGET DENSITY MATRIX")
     plt.show()
 
-    fig, axs = density_matrix_bars(state_no_noise.dm.data)
+    fig, axs = density_matrix_bars(state_no_noise.rep_data.data)
     fig.suptitle("CREATED DENSITY MATRIX W/O NOISE")
     plt.show()
 
     circuit_noise = hof_noise[0][1]
     circuit_noise.draw_circuit()
 
-    fig, axs = density_matrix_bars(state_noise.dm.data)
+    fig, axs = density_matrix_bars(state_noise.rep_data.data)
     fig.suptitle("CREATED DENSITY MATRIX WITH NOISE")
     plt.show()
 
@@ -115,7 +115,7 @@ def check_run_noise_visual(no_noise_run_info, noise_run_info, expected_info):
 def linear3_run_noise(density_matrix_compiler, linear3_expected, linear3_noise_model_2):
     """
     Again, we set the fixture scope to module. Arguably, this is more important than last time because actually
-    running the solve takes (relatively) long.
+    running the solve function takes (relatively) long.
 
     Since we want to apply 2 separate tests on the same run (one visual, one non-visual), it makes sense to have a
     common fixture that only gets called once per module

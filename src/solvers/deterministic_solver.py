@@ -12,12 +12,11 @@ import src.backends.stabilizer.functions.transformation as transform
 from src.backends.stabilizer.tableau import StabilizerTableau
 from src.backends.compiler_base import CompilerBase
 
-import src.noise.noise_models as nm
 from src.metrics import MetricBase
 from src.solvers import SolverBase
-from src.circuit import CircuitDAG
+from src.circuit.circuit_dag import CircuitDAG
+from src.circuit import ops
 from src.io import IO
-from src import ops
 
 
 class DeterministicSolver(SolverBase):
@@ -58,8 +57,9 @@ class DeterministicSolver(SolverBase):
         """
 
         super().__init__(target, metric, compiler, circuit, io, *args, **kwargs)
-
-        tableau = target.stabilizer.data.to_stabilizer()
+        if target.rep_type != "s":
+            target.convert_representation("s")
+        tableau = target.rep_data.data.to_stabilizer()
         self.n_emitter = self.determine_n_emitters(tableau)
         self.n_photon = tableau.n_qubits
         self.noise_simulation = True
@@ -88,7 +88,7 @@ class DeterministicSolver(SolverBase):
             n_emitter=self.n_emitter, n_photon=self.n_photon, n_classical=1
         )
 
-        stabilizer_tableau = self.target.stabilizer.data.to_stabilizer()
+        stabilizer_tableau = self.target.rep_data.data.to_stabilizer()
 
         # add emitter qubits in |0> state
         for _ in range(self.n_emitter):

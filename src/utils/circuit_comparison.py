@@ -5,7 +5,7 @@ Functions to compare quantum circuits
 # TODO: GED implementation requires further investigation.
 import networkx as nx
 from networkx.algorithms.isomorphism import is_isomorphic
-from src.ops import *
+from src.circuit.ops import *
 
 
 def compare_circuits(circuit1, circuit2, method="direct"):

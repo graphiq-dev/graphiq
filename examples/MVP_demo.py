@@ -12,13 +12,13 @@ import benchmarks.circuits as circ
 from src.metrics import Infidelity
 from src.visualizers.density_matrix import density_matrix_heatmap
 import src.backends.density_matrix.functions as dmf
-import src.backends.state_representation_conversion as sc
+import src.backends.state_rep_conversion as rc
 
 
 def get_graph_equivalent(target_state):
-    graph_state = sc.density_to_graph(target_state)
+    graph_state = rc.density_to_graph(target_state)
     nx_graph = nx.from_numpy_matrix(graph_state)
-    return Graph(nx_graph, 0)
+    return Graph(nx_graph)
 
 
 def run_solve(target_function, seed, graph=False):

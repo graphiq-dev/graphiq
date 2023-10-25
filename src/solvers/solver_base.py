@@ -7,13 +7,11 @@ Solvers have a main function, .solve(), which runs the search algorithm and retu
 from abc import ABC, abstractmethod
 import numpy as np
 import random
-import warnings
 import copy
 
 from src.metrics import MetricBase
-from src.circuit import CircuitBase
+from src.circuit.circuit_base import CircuitBase, ops
 from src.backends.compiler_base import CompilerBase
-from src import ops
 from src.io import IO
 import src.noise.noise_models as nm
 

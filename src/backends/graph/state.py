@@ -9,10 +9,10 @@ from collections.abc import Iterable
 import numpy as np
 import itertools
 
+from src.backends.graph.node import QuNode
 from src.backends.state_base import StateRepresentationBase
 import src.backends.graph.functions as gf
-from src.backends.graph.functions import QuNode
-from src.backends.lc_equivalence_check import is_lc_equivalent, local_comp_graph
+from src.backends.lc_equivalence_check import is_lc_equivalent
 from src.visualizers.graph import draw_graph
 
 
@@ -20,29 +20,22 @@ class Graph(StateRepresentationBase):
     """
     Graph representation of a graph state.
     As the intermediate states of the process may not be graph states (but assuming still stabilizer states),
-    we may need to keep track of local Cliffords that convert the state to the graph state represented by the graph
+    we may need to keep track of local Clifford gates that convert the state to the graph state represented by the graph
 
     """
 
-    # TODO: set default root_node_id if the user doesn't specify one?
-    #  We should figure out how to handle cases where the root node is not obvious
-    def __init__(self, data, root_node_id, *args, **kwargs):
+    def __init__(self, data, *args, **kwargs):
         """
         Create a Graph representation object
 
         :param data: data used to construct the representation
         :type data: frozenset OR int OR networkx.Graph OR iterable of data pairs
-        :param root_node_id: a node id for the root node
-        :type root_node_id: int
         :return: function returns nothing
         :rtype: None
         """
 
         super().__init__(data, *args, **kwargs)
-        self.root_node, self.node_dict, self.data = gf.convert_data_to_graph(
-            data, root_node_id
-        )
-        self.local_cliffords = None  # set this later
+        self.node_dict, self.data = gf.convert_data_to_graph(data)
 
     def add_node(self, node_to_add):
         """
@@ -214,18 +207,18 @@ class Graph(StateRepresentationBase):
         return len(self.node_dict.keys())
 
     @property
-    def n_qubit(self):
+    def n_qubits(self):
         """
         Returns the number of qubits in the graph (counting the redundant encoding as separate qubits)
 
         :return: the number of qubits
         :rtype: int
         """
-        number_qubit = 0
+        n_qubits = 0
         for node_id in self.node_dict.keys():
-            number_qubit += len(node_id)
+            n_qubits += len(node_id)
 
-        return number_qubit
+        return n_qubits
 
     @property
     def n_redundant_encoding_node(self):
@@ -266,7 +259,6 @@ class Graph(StateRepresentationBase):
         :return: a list of neighbours for the node with node_id
         :rtype: list
         """
-        # TODO: refactor to use https://networkx.org/documentation/stable/reference/classes/generated/networkx.Graph.neighbors.html
         if isinstance(node_id, int):
             node_id = frozenset([node_id])
         return list(self.data.neighbors(self.node_dict[node_id]))
@@ -412,6 +404,8 @@ class Graph(StateRepresentationBase):
         :type show: bool
         :param ax: axis on which to draw the plot (optional)
         :type ax: matplotlib.axis
+        :param with_labels:
+        :type with_labels:
         :return: nothing
         :rtype: None
         """
@@ -505,3 +499,52 @@ class Graph(StateRepresentationBase):
 
         self.remove_node(id1)
         self.remove_node(id2)
+
+
+class MixedGraph(StateRepresentationBase):
+    """
+    Mixed Graph representation
+
+    TODO: finish the implementation
+
+    """
+
+    def __init__(self, data, *args, **kwargs):
+
+        if isinstance(data, int):
+            self._mixture = [
+                (1.0, Graph(data)),
+            ]
+        elif isinstance(data, Graph):
+            self._mixture = [
+                (1.0, data),
+            ]
+        elif isinstance(data, list):
+            assert all(
+                isinstance(p_i, float) and isinstance(t_i, Graph) for (p_i, t_i) in data
+            )
+            assert all
+            self._mixture = data
+        else:
+            raise TypeError(
+                f"Cannot initialize the stabilizer representation with datatype: {type(data)}"
+            )
+
+    @classmethod
+    def valid_datatype(cls, data):
+        valid = isinstance(data, (int, Graph, list))
+        if isinstance(data, list):
+            valid = valid and all(
+                isinstance(p_i, float) and isinstance(t_i, Graph) for (p_i, t_i) in data
+            )
+        return valid
+
+    @property
+    def n_qubits(self):
+        """
+        Returns the number of qubits in the stabilizer state
+
+        :return: the number of qubits in the state
+        :rtype: int
+        """
+        return self._mixture[0][1].n_qubits

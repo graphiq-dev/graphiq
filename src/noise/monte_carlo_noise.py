@@ -7,7 +7,7 @@ import time
 import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
-import src.ops as ops
+import src.circuit.ops as ops
 import matplotlib.pyplot as plt
 
 import src.utils.preprocessing as pre
@@ -17,13 +17,13 @@ import src.backends.lc_equivalence_check as lc
 import src.backends.stabilizer.functions.local_cliff_equi_check as slc
 from src.solvers.evolutionary_solver import (
     EvolutionarySolver,
-    EvolutionarySearchSolverSetting,
+    EvolutionarySolverSetting,
 )
 
 from src.solvers.solver_base import SolverBase
 from src.solvers.deterministic_solver import DeterministicSolver
 from src.backends.compiler_base import CompilerBase
-from src.circuit import CircuitDAG
+from src.circuit.circuit_dag import CircuitDAG
 from src.metrics import MetricBase
 from src.state import QuantumState
 from src.io import IO
@@ -33,7 +33,7 @@ from src.utils.relabel_module import (
     lc_orbit_finder,
     get_relabel_map,
 )
-from src.backends.state_representation_conversion import stabilizer_to_graph
+from src.backends.state_rep_conversion import stabilizer_to_graph
 from src.backends.stabilizer.functions.rep_conversion import (
     get_clifford_tableau_from_graph,
 )
@@ -42,7 +42,7 @@ from src.backends.density_matrix.compiler import DensityMatrixCompiler
 from src.metrics import Infidelity
 from src.backends.stabilizer.state import Stabilizer
 
-# from src.solvers.hybrid_solvers import HybridGraphSearchSolverSetting
+# from src.solvers.hybrid_solvers import AlternateGraphSolverSetting
 # from src.solvers.hybrid_solvers import AlternateGraphSolver
 
 
@@ -389,14 +389,14 @@ def parallel_monte_carlo(mc: MonteCarloNoise, n_parallel, n_single):
     mc.n_sample = n_single
 
     @ray.remote
-    def monte_run(seed):
-        mc.seed = int(seed)
+    def monte_run(seed_i):
+        mc.seed = int(seed_i)
         score = mc.run()
         all_scores = mc.all_scores
         return score, all_scores
 
     # ray.init()
-    ray_scores = [monte_run.remote(seed=x) for x in rnd_array]
+    ray_scores = [monte_run.remote(x) for x in rnd_array]
     score_tuples = ray.get(ray_scores)
     scores = [x[0] for x in score_tuples]
     all_scores = [y for x in score_tuples for y in x[1]]

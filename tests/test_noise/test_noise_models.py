@@ -1,5 +1,4 @@
 import numpy as np
-from src import ops
 
 import src.backends.density_matrix.functions as dmf
 import src.backends.stabilizer.functions.clifford as sfc
@@ -10,17 +9,15 @@ from src.backends.stabilizer.state import MixedStabilizer
 
 def _state_initialization_dm(n_quantum, state=dmf.state_ketz0()):
     return QuantumState(
-        n_quantum,
         dmf.create_n_product_state(n_quantum, state),
-        representation="density matrix",
+        rep_type="dm",
     )
 
 
 def _state_initialization_stabilizer(n_quantum):
     return QuantumState(
-        n_quantum,
         sfc.create_n_ket0_state(n_quantum),
-        representation="stabilizer",
+        rep_type="s",
     )
 
 
@@ -51,9 +48,9 @@ def test_depolarizing_noise():
     ]
 
     noise1.apply(state1, n_quantum, [qubit_position])
-    state2.dm.apply_channel(kraus_ops)
+    state2.rep_data.apply_channel(kraus_ops)
 
-    assert np.allclose(state1.dm.data, state2.dm.data)
+    assert np.allclose(state1.rep_data.data, state2.rep_data.data)
 
 
 def test_no_noise():
@@ -64,7 +61,7 @@ def test_no_noise():
     noise = nm.NoNoise()
     noise.apply(state1)
 
-    assert np.allclose(state1.dm.data, state2.dm.data)
+    assert np.allclose(state1.rep_data.data, state2.rep_data.data)
 
 
 def test_one_qubit_replacement():
@@ -80,8 +77,8 @@ def test_one_qubit_replacement():
 
     noise.apply(state1, n_quantum, [qubit_position])
 
-    state2.dm.apply_unitary(hadamard_gate)
-    assert np.allclose(state1.dm.data, state2.dm.data)
+    state2.rep_data.apply_unitary(hadamard_gate)
+    assert np.allclose(state1.rep_data.data, state2.rep_data.data)
 
 
 def test_two_qubit_replacement():
@@ -100,8 +97,8 @@ def test_two_qubit_replacement():
 
     noise.apply(state1, n_quantum, control_qubit, target_qubit)
 
-    state2.dm.apply_unitary(cnot_gate)
-    assert np.allclose(state1.dm.data, state2.dm.data)
+    state2.rep_data.apply_unitary(cnot_gate)
+    assert np.allclose(state1.rep_data.data, state2.rep_data.data)
 
 
 def test_pauli_error():
@@ -114,8 +111,8 @@ def test_pauli_error():
     x_gate = dmf.get_one_qubit_gate(n_quantum, qubit_position, dmf.sigmax())
     noise.apply(state1, n_quantum, [qubit_position])
 
-    state2.dm.apply_unitary(x_gate)
-    assert np.allclose(state1.dm.data, state2.dm.data)
+    state2.rep_data.apply_unitary(x_gate)
+    assert np.allclose(state1.rep_data.data, state2.rep_data.data)
 
 
 def test_photon_loss_stabilizer():
@@ -123,8 +120,8 @@ def test_photon_loss_stabilizer():
     state = _state_initialization_stabilizer(n_quantum)
     noise = nm.PhotonLoss(0.1)
     noise.apply(state, n_quantum, 1)
-    assert isinstance(state.stabilizer, MixedStabilizer)
-    assert state.stabilizer.probability == 0.9
+    assert isinstance(state.rep_data, MixedStabilizer)
+    assert state.rep_data.probability == 0.9
 
 
 def test_photon_loss_dm():
@@ -132,5 +129,5 @@ def test_photon_loss_dm():
     state = _state_initialization_dm(n_quantum)
     noise = nm.PhotonLoss(0.1)
     noise.apply(state, n_quantum, 1)
-    assert state.dm.trace == 0.9
-    assert not state.dm.normalized
+    assert state.rep_data.trace == 0.9
+    assert not state.rep_data.normalized

@@ -262,3 +262,63 @@ def crazy(n_list: list, pos=False, alternate_order=False):
         return g, pos_dict
     else:
         return g
+
+
+def two_d_cluster(row_col: tuple, pos=False):
+    """
+    Construct a crazy graph state with the emission ordering of column by column
+
+    :param row_col: a tuple of number of rows and columns in the cluster state
+    :param pos: if True the function also returns the position dictionary for the graph
+    :return: a networkx graph that represents the crazy graph or a tuple including the graph and its node-position dict
+    :rtype: networkx.Graph or (networkx.Graph, pos_dict)
+    """
+    g = nx.Graph()
+    row, col = row_col
+    g.add_nodes_from(range(row*col))
+    n_list = [row]*col
+    edges = []
+    pos_dict = {}
+    for i, n in enumerate(n_list):
+        nodes_before = sum(n_list[:i])
+        current_nodes = np.arange(n) + nodes_before
+        positions = [(i, -y) for y in np.arange(n)]
+        new_pos = dict(zip(current_nodes, positions))
+        pos_dict.update(new_pos)
+        if i+1 < len(n_list):
+            next_col_nodes = np.arange(n_list[i+1]) + nodes_before + n
+        else:
+            next_col_nodes = []
+        edges.extend([(current_nodes[i], current_nodes[i+1]) for i in range(len(current_nodes)-1)])
+        if len(next_col_nodes):
+            edges.extend([(current_nodes[i], next_col_nodes[i]) for i in range(len(current_nodes))])
+    g.add_edges_from(edges)
+    if pos:
+        return g, pos_dict
+    else:
+        return g
+
+
+def branching_tree(b_vector):
+    """
+    Generates a tree graph with a given branching vector. The tree starts with a single root and branches at each level
+    according to the branching vector, e.g., [2,3] would result in a 9 node graph with 3 depth levels. The order of
+    nodes is level by level (breadth first).
+    :param b_vector: branching vector
+    :return: tree graph
+    """
+    assert all([b > 0 for b in b_vector]), "all entries of b_vector should be positive numbers"
+    g = nx.Graph()
+    g.add_node(0)
+    last_level = [0]
+    node_list = [0]
+    b_vector = [1] + b_vector
+    for n_branches in b_vector[1:]:
+        n_new_nodes = len(last_level) * n_branches
+        new_nodes = [x+1+node_list[-1] for x in range(n_new_nodes)]
+        g.add_nodes_from(new_nodes)
+        node_list = node_list + new_nodes
+        for b, root_node in enumerate(last_level):
+            g.add_edges_from([(root_node, new_nodes[b*n_branches+i]) for i in range(n_branches)])
+        last_level = new_nodes
+    return g

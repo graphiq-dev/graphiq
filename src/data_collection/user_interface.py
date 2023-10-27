@@ -65,13 +65,14 @@ print("Monte Carlo",
 
 # %%
 # results
-def orbit_analyzer(graph, dir_name='new_orbit', n_lc=None, graph_met_list=None):
+def orbit_analyzer(graph, dir_name='new_orbit', n_lc=None, graph_met_list=None, plots=False):
     """
     The function take a graph and returns the solver result object containing graph and circuit metrics
     :param graph_met_list: list of grpah metrics to consider for correlations. If none given, a default list is used.
     :param n_lc: number of LC graphs to search for. If none, the whole orbit is targeted.
     :param graph: The input graph. The node labels do not change through the process.
     :param dir_name: the directory to save the resulting graph in
+    :param plots: if True the correlation plots are created and saved in the directory given in dir_name
     :return: result object and a list of correlation figures are also saves in the given directory
     """
     user_input = InputParams(
@@ -95,9 +96,10 @@ def orbit_analyzer(graph, dir_name='new_orbit', n_lc=None, graph_met_list=None):
     res = solver.result
     if graph_met_list is None:
         graph_met_list = ["global_efficiency", "n_edges", "mean_nei_deg", "node_connect", "avg_shortest_path",
-                         "max_between", "cluster"]
+                          "max_between", "cluster"]
     res = result_maker(res, graph_met_list=graph_met_list)
-    plot_figs(res, dir_name=dir_name, graph_mets=graph_met_list, circ_mets=None)
+    if plots:
+        plot_figs(res, dir_name=dir_name, graph_mets=graph_met_list, circ_mets=None)
     return res
 
 
@@ -211,7 +213,7 @@ def correlation_checker(result, list_mets1, list_mets2):
             print(f'Pearsons {met1}-{met2}: %.3f' % corr_p, round(p_value_p, 3))
 
 
-def corr_with_mean(list1, list2):
+def corr_with_mean(list1, list2, print_result = True):
     """
     given two lists of data corresponding to each other element by element, it finds the correlation between list1 with
     mean values of list 2. For instance, the average number of cnots corresponding to each case of edge count in graph.
@@ -229,7 +231,8 @@ def corr_with_mean(list1, list2):
     corr_list2 = [np.mean(val) for val in corr_dict.values()]
     corr_list2_std = [np.std(val) for val in corr_dict.values()]
     corr_p, p_value_p = pearsonr(corr_list1, corr_list2)
-    print(f'Pearsons List1 vs Mean_List2: %.3f' % corr_p, round(p_value_p, 3))
+    if print_result:
+        print(f'Pearsons List1 vs Mean_List2: %.3f' % corr_p, round(p_value_p, 3))
     return corr_p, (corr_list1, corr_list2, corr_list2_std)
 
 
@@ -391,7 +394,8 @@ def find_best(adj1, file_name="case1", dir_name="new", conf=0.99, n_reordering=N
     return out_dict
 
 
-def graph_analyzer(edge_seq, graph_class: str, method="lc_with_iso", conf=1, n_lc_graphs=None, n_reordering=None, seed=1):
+def graph_analyzer(edge_seq, graph_class: str, method="lc_with_iso", conf=1, n_lc_graphs=None, n_reordering=None,
+                   seed=1):
     """
     exhaustive graph analyzer given the flattened edge list
     no correlation analysis involved but cost analysis based on circuit metrics is included
@@ -420,7 +424,8 @@ def graph_analyzer(edge_seq, graph_class: str, method="lc_with_iso", conf=1, n_l
     worst_depth = ("", 0, [])
     num_iso_list = []
     for i, adj in enumerate(lc_adjs):
-        out_dict = find_best(adj, file_name=f"case{i}", dir_name=graph_class, conf=conf, n_reordering=n_reordering, seed=seed)
+        out_dict = find_best(adj, file_name=f"case{i}", dir_name=graph_class, conf=conf, n_reordering=n_reordering,
+                             seed=seed)
         num_iso_list.append(len(out_dict['cost']))
         for j, edge_list in enumerate(out_dict['edges']):
             if out_dict['cost'][j] < best_cost[1]:
@@ -609,7 +614,7 @@ def rnd_graph_orbit_cnots(size, number_of_graphs):
     list_cnot_list = []
     restuls_list = []
     rng = np.random.default_rng()
-    rnd_seeds = rng.integers(low=1, high=1000*number_of_graphs, size=number_of_graphs)
+    rnd_seeds = rng.integers(low=1, high=1000 * number_of_graphs, size=number_of_graphs)
     for i in rnd_seeds:
         user_input0 = InputParams(
             n_ordering=1,  # input

@@ -328,7 +328,7 @@ def lc_orbit_finder(graph: nx.Graph, comp_depth=None, orbit_size_thresh=None, wi
     :type with_iso: bool
     :param rand: if true the orbit finder applies LC operations on random nodes instead of exhaustive search
     :type rand: bool
-    :param rand: if true the orbit finder does not check for iso or auto morphism; useful for large graphs.
+    :param rep_allowed: if true the orbit finder does not check for iso or auto morphism; useful for large graphs.
     :type rand: bool
     :return: list of distinct graphs in the orbit of original graph
     :rtype: list[nx.Graph]

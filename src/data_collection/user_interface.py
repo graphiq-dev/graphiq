@@ -2,7 +2,7 @@
 # data collection script #
 ###
 import time
-
+import ray
 import numpy as np
 import pandas as pd
 from src.data_collection.ui_functions import *

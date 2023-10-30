@@ -115,3 +115,40 @@ def rand_graph_sample_analysis(n_samples, n_nodes=9, p=0.9, n_lc=None, graph_met
     plt.legend()
     plt.show()
     return reses, correlations, avg_cor_data, times_list
+
+
+def rand_graph_cost_reduction(n_samples, n_nodes=9, p=0.95, n_lc=100, graph_met='n_edges',
+                               circ_met='max_emit_eff_depth', positive_cor=True, seed=99):
+    """
+
+    :param n_samples: number of random graph to check the cost reduction for
+    :param n_nodes: nodes of graph
+    :param p: edge probability
+    :param n_lc: size of the sample taken from orbit for each graph
+    :param graph_met: graph metric that we want to check the reduction based up on
+    :param circ_met: circuit cost metric
+    :param positive_cor: true if the correlation is positive, false if it is negative
+    :return: the list of tuples (initial cost, correlation reduced cost)
+    """
+    cost_tuples = []
+    extermum = min if positive_cor else max
+    rng = np.random.default_rng(seed)
+    random_integers = rng.integers(0, int(1e6), size=n_samples)
+    for indx, i in enumerate(random_integers):
+        print(indx, " ", end='')
+        g = nx.erdos_renyi_graph(n_nodes, p, seed=int(i))
+        orbit = lc_orbit_finder(g, comp_depth=None, orbit_size_thresh=n_lc, with_iso=True, rand=True, rep_allowed=True)
+        graph_met_vals = [graph_met_value(graph_met, g) for g in orbit]
+        g_min = orbit[graph_met_vals.index(extermum(graph_met_vals))]
+        res1 = orbit_analyzer(g, dir_name='rnd_sampling', n_lc=1,
+                              graph_met_list=[graph_met], plots=False)
+        res2 = orbit_analyzer(g_min, dir_name='rnd_sampling', n_lc=1,
+                              graph_met_list=[graph_met], plots=False)
+        cost_tuples.append((res1[circ_met][0], res2[circ_met][0]))
+    reduction_percentages = [(1-x[1]/x[0])*100 for x in cost_tuples]
+    print(f"\navg {circ_met} reduction by {graph_met}:", round(np.mean(reduction_percentages)), "% "
+          "+/-", round(np.std(reduction_percentages)), "%")
+    return cost_tuples, reduction_percentages
+
+# %% rand_graph_cost_reduction(100, n_nodes=18, p=0.95, n_lc=100, graph_met='n_edges', circ_met='max_emit_eff_depth',
+#                               positive_cor=True, seed=88)

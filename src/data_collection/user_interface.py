@@ -65,7 +65,7 @@ print("Monte Carlo",
 
 # %%
 # results
-def orbit_analyzer(graph, dir_name='new_orbit', n_lc=None, graph_met_list=None, plots=False):
+def orbit_analyzer(graph, dir_name='new_orbit', n_lc=None, graph_met_list=None, plots=False, lc_method=None):
     """
     The function take a graph and returns the solver result object containing graph and circuit metrics
     :param graph_met_list: list of grpah metrics to consider for correlations. If none given, a default list is used.
@@ -80,7 +80,7 @@ def orbit_analyzer(graph, dir_name='new_orbit', n_lc=None, graph_met_list=None, 
         rel_inc_thresh=0.2,  # advanced: (0,1) The closer to 0 the closer we get to an exhaustive search for reordering.
         allow_exhaustive=True,  # advanced*: only reason to deactivate is to save runtime if this is the bottleneck
         n_lc_graphs=n_lc,  # input
-        lc_method=None,  # input
+        lc_method=lc_method,  # input
         noise_simulation=False,  # input
         noise_model_mapping="depolarizing",  # input
         depolarizing_rate=0.005,  # input

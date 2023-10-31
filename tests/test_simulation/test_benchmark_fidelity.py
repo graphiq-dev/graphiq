@@ -3,9 +3,9 @@ import numpy as np
 
 import benchmarks.circuits as circ
 
-from src.metrics import Infidelity
-from src.backends.density_matrix.compiler import DensityMatrixCompiler
-from src.state import QuantumState
+from graphiq.metrics import Infidelity
+from graphiq.backends.density_matrix.compiler import DensityMatrixCompiler
+from graphiq.state import QuantumState
 
 from benchmarks.benchmark_utils import circuit_measurement_independent
 

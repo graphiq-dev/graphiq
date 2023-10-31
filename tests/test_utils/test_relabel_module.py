@@ -1,6 +1,6 @@
 import pytest
 
-from src.utils.relabel_module import *
+from graphiq.utils.relabel_module import *
 import networkx as nx
 import numpy as np
 

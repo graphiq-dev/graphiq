@@ -1,10 +1,10 @@
 import pytest
 import numpy as np
 
-from src.circuit.circuit_dag import CircuitDAG
-import src.circuit.ops as ops
-from src.backends.density_matrix.compiler import DensityMatrixCompiler
-from src.metrics import Infidelity
+from graphiq.circuit.circuit_dag import CircuitDAG
+import graphiq.circuit.ops as ops
+from graphiq.backends.density_matrix.compiler import DensityMatrixCompiler
+from graphiq.metrics import Infidelity
 from benchmarks.benchmark_utils import circuit_measurement_independent
 from benchmarks.circuits import (
     ghz3_state_circuit,

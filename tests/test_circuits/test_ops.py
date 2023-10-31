@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
-import src.circuit.ops as ops
-import src.backends.density_matrix.functions as dmf
+import graphiq.circuit.ops as ops
+import graphiq.backends.density_matrix.functions as dmf
 
 
 def test_single_qubit_clifford_combo():

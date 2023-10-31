@@ -1,5 +1,5 @@
 import pytest
-from src.solvers.solver_base import *
+from graphiq.solvers.solver_base import *
 
 
 # Test for RandomSearchSolverSetting class

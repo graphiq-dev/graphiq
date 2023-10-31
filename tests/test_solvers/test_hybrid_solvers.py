@@ -4,21 +4,21 @@ import numpy as np
 import networkx as nx
 from benchmarks.graph_states import *
 
-from src.backends.stabilizer.compiler import StabilizerCompiler
-from src.backends.stabilizer.functions.rep_conversion import (
+from graphiq.backends.stabilizer.compiler import StabilizerCompiler
+from graphiq.backends.stabilizer.functions.rep_conversion import (
     get_clifford_tableau_from_graph,
 )
-from src.solvers.deterministic_solver import DeterministicSolver
-from src.solvers.evolutionary_solver import EvolutionarySolverSetting
-from src.solvers.hybrid_solvers import (
+from graphiq.solvers.deterministic_solver import DeterministicSolver
+from graphiq.solvers.evolutionary_solver import EvolutionarySolverSetting
+from graphiq.solvers.hybrid_solvers import (
     HybridEvolutionarySolver,
 )
 from benchmarks.circuits import *
-from src.metrics import Infidelity
-from src.state import QuantumState
+from graphiq.metrics import Infidelity
+from graphiq.state import QuantumState
 from benchmarks.alternate_circuits import *
-import src.noise.noise_models as noise
-from src.solvers.solver_result import SolverResult
+import graphiq.noise.noise_models as noise
+from graphiq.solvers.solver_result import SolverResult
 
 
 def graph_stabilizer_setup(graph, solver_class, solver_setting, expected_result):

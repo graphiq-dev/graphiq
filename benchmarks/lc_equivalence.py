@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 from benchmarks.alternate_circuits import exemplary_run, report_alternate_circuits
 from benchmarks.graph_states import repeater_graph_states
-from src.utils.preprocessing import *
+from graphiq.utils.preprocessing import *
 
 
 def run_multiple_graphs_and_report(graph, lc_nodes):

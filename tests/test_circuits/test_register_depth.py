@@ -1,8 +1,8 @@
 import numpy as np
 import numpy.testing as test
 
-from src.circuit.circuit_dag import CircuitDAG
-import src.circuit.ops as ops
+from graphiq.circuit.circuit_dag import CircuitDAG
+import graphiq.circuit.ops as ops
 
 
 # Test initialization

@@ -1,7 +1,7 @@
 import pytest
 import networkx as nx
 
-from src.backends.graph.state import Graph
+from graphiq.backends.graph.state import Graph
 
 
 @pytest.fixture(scope="function")

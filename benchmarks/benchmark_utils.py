@@ -7,13 +7,13 @@ import numpy as np
 import time
 import copy
 
-from src.backends.density_matrix.functions import partial_trace
-from src.backends.density_matrix.compiler import DensityMatrixCompiler
-from src.solvers.evolutionary_solver import EvolutionarySolver
+from graphiq.backends.density_matrix.functions import partial_trace
+from graphiq.backends.density_matrix.compiler import DensityMatrixCompiler
+from graphiq.solvers.evolutionary_solver import EvolutionarySolver
 import benchmarks.circuits as circ
-from src.metrics import Infidelity
+from graphiq.metrics import Infidelity
 
-from src.io import IO
+from graphiq.io import IO
 
 
 def circuit_measurement_independent(circuit, compiler):

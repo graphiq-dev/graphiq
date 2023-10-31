@@ -1,17 +1,17 @@
 import pytest
-from src.circuit.circuit_dag import CircuitDAG
+from graphiq.circuit.circuit_dag import CircuitDAG
 from benchmarks.circuits import *
-from src.utils.circuit_comparison import *
+from graphiq.utils.circuit_comparison import *
 from benchmarks.graph_states import *
-from src.solvers.deterministic_solver import DeterministicSolver
-from src.solvers.alternate_graph_solver import *
-from src.metrics import Infidelity
-from src.state import QuantumState
-from src.backends.stabilizer.compiler import StabilizerCompiler
-from src.backends.stabilizer.functions.rep_conversion import (
+from graphiq.solvers.deterministic_solver import DeterministicSolver
+from graphiq.solvers.alternate_graph_solver import *
+from graphiq.metrics import Infidelity
+from graphiq.state import QuantumState
+from graphiq.backends.stabilizer.compiler import StabilizerCompiler
+from graphiq.backends.stabilizer.functions.rep_conversion import (
     get_clifford_tableau_from_graph,
 )
-from src.solvers.solver_result import SolverResult
+from graphiq.solvers.solver_result import SolverResult
 import numpy as np
 
 

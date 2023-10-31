@@ -2,10 +2,10 @@ import numpy as np
 import networkx as nx
 from functools import reduce
 
-import src.backends.density_matrix.functions as dmf
-import src.backends.stabilizer.functions.utils as sfu
-from src.backends.stabilizer.tableau import StabilizerTableau
-import src.backends.state_rep_conversion as rc
+import graphiq.backends.density_matrix.functions as dmf
+import graphiq.backends.stabilizer.functions.utils as sfu
+from graphiq.backends.stabilizer.tableau import StabilizerTableau
+import graphiq.backends.state_rep_conversion as rc
 
 
 def test_negativity():

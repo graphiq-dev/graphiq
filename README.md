@@ -18,23 +18,23 @@
 
 
 ## Features
-<img src="https://user-images.githubusercontent.com/87783633/198037273-06ec89cf-233d-4c08-9f7a-96313bfcb435.gif" width="225px" align="right">
+<img graphiq="https://user-images.githubusercontent.com/87783633/198037273-06ec89cf-233d-4c08-9f7a-96313bfcb435.gif" width="225px" align="right">
 
-* Diverse [backends](https://github.com/ki3-qbt/graph-compiler/tree/main/src/backends) for the simulation of noisy quantum circuits comprised of hundreds of qubits.
+* Diverse [backends](https://github.com/ki3-qbt/graph-compiler/tree/main/graphiq/backends) for the simulation of noisy quantum circuits comprised of hundreds of qubits.
 
 * Algorithms for the inverse design and optimization of circuits that output a desired quantum state.
 
 * Circuits support emitter and photonic qubits, as a basis for simulations of realistic near-term quantum photonic devices.
 
-* Library of models for the study of [noise](https://github.com/ki3-qbt/graph-compiler/tree/main/src/noise) and optical loss.
+* Library of models for the study of [noise](https://github.com/ki3-qbt/graph-compiler/tree/main/graphiq/noise) and optical loss.
 
 
 ## What's Here
 
 This project includes the following folders:
 
-* [`backends`](https://github.com/ki3-qbt/graph-compiler/tree/main/src/backends) - simulate a quantum circuit using different state representations, e.g., the density matrix or stabilizer formalisms.
-* [`noise`](https://github.com/ki3-qbt/graph-compiler/tree/main/src/noise) - models for the study of noise and optical loss in realistic quantum devices.
+* [`backends`](https://github.com/ki3-qbt/graph-compiler/tree/main/graphiq/backends) - simulate a quantum circuit using different state representations, e.g., the density matrix or stabilizer formalisms.
+* [`noise`](https://github.com/ki3-qbt/graph-compiler/tree/main/graphiq/noise) - models for the study of noise and optical loss in realistic quantum devices.
 * [`solvers`](https://github.com/ki3-qbt/graph-compiler/tree/main/src/solvers) - algorithms that search for quantum circuits satisfying target conditions.
 * [`benchmarks`](https://github.com/ki3-qbt/graph-compiler/tree/main/benchmarks) - a suite of automated tools for benchmarking solvers and compilers, scaled to run on high-performance computing clusters.
 * [`visualizers`](https://github.com/ki3-qbt/graph-compiler/tree/main/src/visualizers) - functions for plotting backends and quantum circuits.

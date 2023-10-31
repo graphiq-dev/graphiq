@@ -1,11 +1,11 @@
 import pytest
 
 from benchmarks.circuits import *
-from src.metrics import Infidelity
-from src.backends.stabilizer.compiler import StabilizerCompiler
-from src.circuit import ops
-import src.noise.model_parameters as mp
-import src.noise.time_depend_noise as tdn
+from graphiq.metrics import Infidelity
+from graphiq.backends.stabilizer.compiler import StabilizerCompiler
+from graphiq.circuit import ops
+import graphiq.noise.model_parameters as mp
+import graphiq.noise.time_depend_noise as tdn
 import numpy as np
 
 

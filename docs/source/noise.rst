@@ -3,5 +3,5 @@ Noise
 
 Noise module
 
-.. automodule:: src.noise.noise_models
+.. automodule:: graphiq.noise.noise_models
    :members:

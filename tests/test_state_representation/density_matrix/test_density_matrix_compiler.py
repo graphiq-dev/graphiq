@@ -2,17 +2,17 @@ from tests.test_flags import visualization
 
 import matplotlib.pyplot as plt
 
-from src.backends.density_matrix import numpy as np
-from src.backends.density_matrix.compiler import DensityMatrixCompiler
-from src.backends.density_matrix.functions import partial_trace, fidelity
+from graphiq.backends.density_matrix import numpy as np
+from graphiq.backends.density_matrix.compiler import DensityMatrixCompiler
+from graphiq.backends.density_matrix.functions import partial_trace, fidelity
 from benchmarks.circuits import (
     ghz3_state_circuit,
     bell_state_circuit,
     ghz4_state_circuit,
 )
-from src.visualizers.density_matrix import density_matrix_bars, density_matrix_heatmap
-from src.circuit.circuit_dag import CircuitDAG
-import src.circuit.ops as ops
+from graphiq.visualizers.density_matrix import density_matrix_bars, density_matrix_heatmap
+from graphiq.circuit.circuit_dag import CircuitDAG
+import graphiq.circuit.ops as ops
 
 
 def test_bell_circuit():

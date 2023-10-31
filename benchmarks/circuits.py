@@ -4,20 +4,20 @@ A suite of circuits for small, known quantum states that can be used for benchma
 
 import networkx as nx
 
-from src.circuit.circuit_dag import CircuitDAG
-from src.circuit.ops import *
-from src.backends.density_matrix.functions import (
+from graphiq.circuit.circuit_dag import CircuitDAG
+from graphiq.circuit.ops import *
+from graphiq.backends.density_matrix.functions import (
     state_ketz0,
     state_ketz1,
     tensor,
     ket2dm,
 )
-from src.backends.density_matrix.state import DensityMatrix
-from src.state import QuantumState
-from src.backends.stabilizer.clifford_tableau import CliffordTableau
-from src.backends.stabilizer.state import Stabilizer
-import src.backends.state_rep_conversion as rc
-import src.circuit.ops as ops
+from graphiq.backends.density_matrix.state import DensityMatrix
+from graphiq.state import QuantumState
+from graphiq.backends.stabilizer.clifford_tableau import CliffordTableau
+from graphiq.backends.stabilizer.state import Stabilizer
+import graphiq.backends.state_rep_conversion as rc
+import graphiq.circuit.ops as ops
 
 
 def bell_state_circuit():

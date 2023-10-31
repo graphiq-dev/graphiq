@@ -1,10 +1,10 @@
 import numpy as np
 
-import src.backends.density_matrix.functions as dmf
-import src.backends.stabilizer.functions.clifford as sfc
-import src.noise.noise_models as nm
-from src.state import QuantumState
-from src.backends.stabilizer.state import MixedStabilizer
+import graphiq.backends.density_matrix.functions as dmf
+import graphiq.backends.stabilizer.functions.clifford as sfc
+import graphiq.noise.noise_models as nm
+from graphiq.state import QuantumState
+from graphiq.backends.stabilizer.state import MixedStabilizer
 
 
 def _state_initialization_dm(n_quantum, state=dmf.state_ketz0()):

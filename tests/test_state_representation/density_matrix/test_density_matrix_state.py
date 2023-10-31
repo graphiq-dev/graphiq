@@ -6,13 +6,13 @@ from importlib import reload
 # @pytest.fixture(params=['numpy_fixture', 'jax_fixture'])
 # def library_fixture(request):
 #     return request.getfixturevalue(request.param)
-# import src.backends.density_matrix
-# from src.backends.density_matrix import numpy as np
-# import src.backends.density_matrix.functions as dmf
+# import graphiq.backends.density_matrix
+# from graphiq.backends.density_matrix import numpy as np
+# import graphiq.backends.density_matrix.functions as dmf
 
-from src.backends.density_matrix import numpy as np
-import src.backends.density_matrix.functions as dmf
-from src.backends.density_matrix.state import DensityMatrix
+from graphiq.backends.density_matrix import numpy as np
+import graphiq.backends.density_matrix.functions as dmf
+from graphiq.backends.density_matrix.state import DensityMatrix
 
 
 def test_density_matrix_creation_ndararay():

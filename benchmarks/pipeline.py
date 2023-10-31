@@ -4,13 +4,13 @@ import psutil
 import itertools
 import platform
 
-from src.backends.density_matrix.compiler import DensityMatrixCompiler
-from src.solvers.evolutionary_solver import EvolutionarySolver
+from graphiq.backends.density_matrix.compiler import DensityMatrixCompiler
+from graphiq.solvers.evolutionary_solver import EvolutionarySolver
 from benchmarks.circuits import *
-from src.metrics import Infidelity
-from src.io import IO
+from graphiq.metrics import Infidelity
+from graphiq.io import IO
 
-from src.visualizers.solver_logs import plot_solver_logs
+from graphiq.visualizers.solver_logs import plot_solver_logs
 
 
 def metadata():

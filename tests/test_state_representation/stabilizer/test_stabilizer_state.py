@@ -1,6 +1,6 @@
 import pytest
 import numpy as np
-from src.backends.stabilizer.state import *
+from graphiq.backends.stabilizer.state import *
 
 
 def test_state1():

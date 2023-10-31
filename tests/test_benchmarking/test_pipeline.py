@@ -1,22 +1,22 @@
 from benchmarks.pipeline import *
-from src.metrics import Infidelity
-from src.io import IO
-from src.solvers.deterministic_solver import DeterministicSolver
-from src.solvers.evolutionary_solver import EvolutionarySolverSetting
-from src.solvers.hybrid_solvers import (
+from graphiq.metrics import Infidelity
+from graphiq.io import IO
+from graphiq.solvers.deterministic_solver import DeterministicSolver
+from graphiq.solvers.evolutionary_solver import EvolutionarySolverSetting
+from graphiq.solvers.hybrid_solvers import (
     HybridEvolutionarySolver,
 )
-from src.solvers.alternate_graph_solver import (
+from graphiq.solvers.alternate_graph_solver import (
     AlternateGraphSolverSetting,
     AlternateGraphSolver,
 )
-from src.backends.stabilizer.compiler import StabilizerCompiler
-from src.backends.stabilizer.functions.rep_conversion import (
+from graphiq.backends.stabilizer.compiler import StabilizerCompiler
+from graphiq.backends.stabilizer.functions.rep_conversion import (
     get_clifford_tableau_from_graph,
 )
-from src.state import QuantumState
+from graphiq.state import QuantumState
 from benchmarks.graph_states import *
-import src.noise.monte_carlo_noise as mcn
+import graphiq.noise.monte_carlo_noise as mcn
 
 
 def test_benchmark_run_graph_search_solver():

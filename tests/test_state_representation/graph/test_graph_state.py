@@ -1,9 +1,9 @@
 import pytest
 import matplotlib.pyplot as plt
 
-import src.backends.graph.functions as gfn
-import src.backends.graph.node as gnode
-from src.backends.graph.state import Graph
+import graphiq.backends.graph.functions as gfn
+import graphiq.backends.graph.node as gnode
+from graphiq.backends.graph.state import Graph
 from tests.test_flags import visualization
 
 

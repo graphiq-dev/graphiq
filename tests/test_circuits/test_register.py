@@ -1,5 +1,5 @@
 import pytest
-from src.circuit.register import Register
+from graphiq.circuit.register import Register
 
 
 @pytest.mark.parametrize(

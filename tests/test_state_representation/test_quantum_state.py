@@ -2,10 +2,10 @@ import pytest
 import numpy as np
 import networkx as nx
 
-from src.backends.density_matrix import numpy as dmnp
-from src.state import QuantumState
-from src.state import DENSITY_MATRIX_QUBIT_THRESH
-from src.backends.stabilizer.clifford_tableau import CliffordTableau
+from graphiq.backends.density_matrix import numpy as dmnp
+from graphiq.state import QuantumState
+from graphiq.state import DENSITY_MATRIX_QUBIT_THRESH
+from graphiq.backends.stabilizer.clifford_tableau import CliffordTableau
 
 
 @pytest.mark.parametrize("n", [1, 2, 3, 4, 5])

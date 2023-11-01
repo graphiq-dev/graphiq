@@ -1,5 +1,5 @@
 State
 =========================
 
-.. automodule:: src.state
+.. automodule:: graphiq.state
    :members:

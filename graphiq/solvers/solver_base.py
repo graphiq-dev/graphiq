@@ -4,16 +4,17 @@ Solvers are implementations of search algorithms to find quantum circuits which 
 Solvers have a main function, .solve(), which runs the search algorithm and return a Hall of Fame circuits.
 """
 
-from abc import ABC, abstractmethod
-import numpy as np
-import random
 import copy
+import random
+from abc import ABC, abstractmethod
 
-from graphiq.metrics import MetricBase
-from graphiq.circuit.circuit_base import CircuitBase, ops
-from graphiq.backends.compiler_base import CompilerBase
-from graphiq.io import IO
+import numpy as np
+
 import graphiq.noise.noise_models as nm
+from graphiq.backends.compiler_base import CompilerBase
+from graphiq.circuit.circuit_base import CircuitBase, ops
+from graphiq.io import IO
+from graphiq.metrics import MetricBase
 
 
 class SolverBase(ABC):
@@ -33,13 +34,13 @@ class SolverBase(ABC):
     ]
 
     def __init__(
-        self,
-        target,
-        metric: MetricBase,
-        compiler: CompilerBase,
-        circuit: CircuitBase = None,
-        io: IO = None,
-        solver_setting=None,
+            self,
+            target,
+            metric: MetricBase,
+            compiler: CompilerBase,
+            circuit: CircuitBase = None,
+            io: IO = None,
+            solver_setting=None,
     ):
         self.target = target
         self.metric = metric
@@ -114,7 +115,7 @@ class SolverBase(ABC):
             # if op is an instance, turn it into the class itself.
             op = type(op)
         if isinstance(op, ops.ControlledPairOperationBase) or isinstance(
-            op, ops.ClassicalControlledPairOperationBase
+                op, ops.ClassicalControlledPairOperationBase
         ):
             op_name = op.__name__
             op_control = op.__name__ + "_control"
@@ -128,7 +129,7 @@ class SolverBase(ABC):
             else:
                 target_noise = nm.NoNoise()
             if op_name in noise_model_mapping.keys() and type(
-                target_noise
+                    target_noise
             ) == nm.NoNoise == type(control_noise):
                 return [noise_model_mapping[op_name], noise_model_mapping[op_name]]
             else:
@@ -143,10 +144,10 @@ class SolverBase(ABC):
 
 class RandomSearchSolverSetting(ABC):
     def __init__(
-        self,
-        n_hof=5,
-        n_stop=50,
-        n_pop=50,
+            self,
+            n_hof=5,
+            n_stop=50,
+            n_pop=50,
     ):
         self._n_hof = n_hof
         self._n_stop = n_stop
@@ -195,15 +196,15 @@ class RandomSearchSolver(SolverBase):
     name = "random-search"
 
     def __init__(
-        self,
-        target,
-        metric: MetricBase,
-        compiler: CompilerBase,
-        circuit: CircuitBase = None,
-        io: IO = None,
-        solver_setting=RandomSearchSolverSetting(),
-        *args,
-        **kwargs,
+            self,
+            target,
+            metric: MetricBase,
+            compiler: CompilerBase,
+            circuit: CircuitBase = None,
+            io: IO = None,
+            solver_setting=RandomSearchSolverSetting(),
+            *args,
+            **kwargs,
     ):
 
         super().__init__(target, metric, compiler, circuit, io)

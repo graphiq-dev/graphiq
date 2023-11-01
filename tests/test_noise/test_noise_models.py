@@ -3,8 +3,8 @@ import numpy as np
 import graphiq.backends.density_matrix.functions as dmf
 import graphiq.backends.stabilizer.functions.clifford as sfc
 import graphiq.noise.noise_models as nm
-from graphiq.state import QuantumState
 from graphiq.backends.stabilizer.state import MixedStabilizer
+from graphiq.state import QuantumState
 
 
 def _state_initialization_dm(n_quantum, state=dmf.state_ketz0()):
@@ -41,7 +41,7 @@ def test_depolarizing_noise():
     )
 
     kraus_ops = [
-        np.sqrt(1 - depolarizing_prob) * np.eye(2**n_quantum),
+        np.sqrt(1 - depolarizing_prob) * np.eye(2 ** n_quantum),
         kraus_x,
         kraus_y,
         kraus_z,

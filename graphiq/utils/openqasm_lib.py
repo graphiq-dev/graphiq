@@ -21,7 +21,7 @@ class OpenQASMInfo:
     """
 
     def __init__(
-        self, gate_name, imports: list, definitions, usage, multi_comp, gate_symbol=None
+            self, gate_name, imports: list, definitions, usage, multi_comp, gate_symbol=None
     ):
         """
         Create a openQASMInfo object
@@ -302,7 +302,7 @@ def single_qubit_wrapper_info(op_list):
         oq_info = op_class.openqasm_info()
         gate_name_dict[oq_info.gate_name] = oq_info
         if (
-            oq_info.gate_name == ""
+                oq_info.gate_name == ""
         ):  # this is a gate we don't actually need (effectively identity)
             continue
 

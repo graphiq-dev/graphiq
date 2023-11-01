@@ -1,5 +1,5 @@
 import pytest
-import numpy as np
+
 from graphiq.backends.density_matrix.functions import *
 
 
@@ -86,8 +86,8 @@ def test_fidelity():
 def test_fidelity_multiqubit(n_qubits):
     rho = create_n_product_state(n_qubits, state_ketx0())
     sigma = (
-        create_n_product_state(n_qubits, state_kety0()) / 2
-        + create_n_product_state(n_qubits, state_kety1()) / 2
+            create_n_product_state(n_qubits, state_kety0()) / 2
+            + create_n_product_state(n_qubits, state_kety1()) / 2
     )
     # works only for even number of qubits
-    assert np.allclose(fidelity(rho, sigma), 0.5**n_qubits)
+    assert np.allclose(fidelity(rho, sigma), 0.5 ** n_qubits)

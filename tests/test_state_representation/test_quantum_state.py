@@ -1,16 +1,15 @@
-import pytest
-import numpy as np
 import networkx as nx
+import numpy as np
+import pytest
 
 from graphiq.backends.density_matrix import numpy as dmnp
-from graphiq.state import QuantumState
-from graphiq.state import DENSITY_MATRIX_QUBIT_THRESH
 from graphiq.backends.stabilizer.clifford_tableau import CliffordTableau
+from graphiq.state import QuantumState
 
 
 @pytest.mark.parametrize("n", [1, 2, 3, 4, 5])
 def test_initializing_dm_1(n):
-    data = dmnp.eye(2**n)
+    data = dmnp.eye(2 ** n)
     state = QuantumState(data, rep_type="dm")
     assert np.allclose(state.rep_data.data, data / np.trace(data))
 

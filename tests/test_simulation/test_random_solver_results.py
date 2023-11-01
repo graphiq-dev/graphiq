@@ -1,10 +1,7 @@
-import pytest
 import numpy as np
+import pytest
 
-from graphiq.circuit.circuit_dag import CircuitDAG
 import graphiq.circuit.ops as ops
-from graphiq.backends.density_matrix.compiler import DensityMatrixCompiler
-from graphiq.metrics import Infidelity
 from benchmarks.benchmark_utils import circuit_measurement_independent
 from benchmarks.circuits import (
     ghz3_state_circuit,
@@ -12,6 +9,9 @@ from benchmarks.circuits import (
     linear_cluster_3qubit_circuit,
     linear_cluster_4qubit_circuit,
 )
+from graphiq.backends.density_matrix.compiler import DensityMatrixCompiler
+from graphiq.circuit.circuit_dag import CircuitDAG
+from graphiq.metrics import Infidelity
 
 
 def ghz3_0():

@@ -1,53 +1,19 @@
-import networkx as nx
-import numpy as np
-from warnings import warn
-from tkinter import messagebox
-import tkinter as tk
 import os
+import tkinter as tk
+from warnings import warn
 
-import graphiq.ops as ops
-import matplotlib.pyplot as plt
+import networkx as nx
+
 import graphiq.noise.monte_carlo_noise as mcn
-import graphiq.utils.preprocessing as pre
-import graphiq.utils.circuit_comparison as comp
-import graphiq.noise.noise_models as nm
-import graphiq.backends.lc_equivalence_check as lc
-import graphiq.backends.stabilizer.functions.local_cliff_equi_check as slc
-from graphiq.solvers.evolutionary_solver import (
-    EvolutionarySolver,
-    EvolutionarySolverSetting,
-)
-
-from graphiq.solvers.solver_base import SolverBase
-from graphiq.solvers.deterministic_solver import DeterministicSolver
-from graphiq.backends.compiler_base import CompilerBase
-from graphiq.circuit import CircuitDAG
-from graphiq.metrics import MetricBase
-from graphiq.state import QuantumState
-from graphiq.io import IO
-from graphiq.utils.relabel_module import (
-    iso_finder,
-    emitter_sorted,
-    lc_orbit_finder,
-    get_relabel_map,
-)
-from graphiq.backends.state_representation_conversion import stabilizer_to_graph
-from graphiq.backends.stabilizer.functions.rep_conversion import (
-    get_clifford_tableau_from_graph,
-)
-from graphiq.backends.stabilizer.compiler import StabilizerCompiler
+from benchmarks.graph_states import *
 from graphiq.backends.density_matrix.compiler import DensityMatrixCompiler
+from graphiq.backends.stabilizer.compiler import StabilizerCompiler
+from graphiq.data_collection.correlation_module import _rep_counter
 from graphiq.metrics import Infidelity
-from graphiq.backends.stabilizer.state import Stabilizer
 from graphiq.solvers.alternate_graph_solver import (
     AlternateGraphSolver,
     AlternateGraphSolverSetting,
 )
-
-from benchmarks.graph_states import *
-from graphiq.data_collection.correlation_module import _rep_counter
-
-import ray
 
 
 # target graph maker
@@ -109,26 +75,27 @@ def t_graph(gtype, n, seed=None, show=False):
 
 class InputParams:
     def __init__(
-        self,
-        n_ordering=10,  # input
-        rel_inc_thresh=0.2,  # advanced: (0,1) The closer to 0 the closer we get to an exhaustive search for reordering.
-        allow_exhaustive=True,  # advanced*: only reason to deactivate is to save runtime if this is the bottleneck
-        iso_thresh=None,  # advanced: if not enough relabeled graphs are found, set it to a larger number!
-        n_lc_graphs=10,  # input
-        lc_orbit_depth=None,  # advanced: if hit the runtime limit, limit len(sequence of Local complementations)
-        lc_method=None,
-        noise_simulation=True,  # input
-        noise_model_mapping="depolarizing",  # input
-        depolarizing_rate=0.01,  # input
-        error_margin=0.01,  # input
-        confidence=0.95,  # input
-        mc_map=None,  # advanced*: pass a manual noise map for the monte carlo simulations
-        n_cores: int = 8,  # advanced: change if processor has different number of cores
-        seed=None,  # input
-        graph_type="rnd",  # input
-        graph_size=5,  # input
-        verbose=False,
-        save_openqasm: str = "none",
+            self,
+            n_ordering=10,  # input
+            rel_inc_thresh=0.2,
+            # advanced: (0,1) The closer to 0 the closer we get to an exhaustive search for reordering.
+            allow_exhaustive=True,  # advanced*: only reason to deactivate is to save runtime if this is the bottleneck
+            iso_thresh=None,  # advanced: if not enough relabeled graphs are found, set it to a larger number!
+            n_lc_graphs=10,  # input
+            lc_orbit_depth=None,  # advanced: if hit the runtime limit, limit len(sequence of Local complementations)
+            lc_method=None,
+            noise_simulation=True,  # input
+            noise_model_mapping="depolarizing",  # input
+            depolarizing_rate=0.01,  # input
+            error_margin=0.01,  # input
+            confidence=0.95,  # input
+            mc_map=None,  # advanced*: pass a manual noise map for the monte carlo simulations
+            n_cores: int = 8,  # advanced: change if processor has different number of cores
+            seed=None,  # input
+            graph_type="rnd",  # input
+            graph_size=5,  # input
+            verbose=False,
+            save_openqasm: str = "none",
     ):
         # other parameters
         self.number_of_cores = n_cores
@@ -176,8 +143,8 @@ class InputParams:
         else:
             self.setting.monte_carlo = True
             n_total = (
-                int(0.5 * np.log(2 / (1 - self.conf_level)) * self.err_margin ** (-2))
-                + 1
+                    int(0.5 * np.log(2 / (1 - self.conf_level)) * self.err_margin ** (-2))
+                    + 1
             )
             n_single = int(n_total / self.number_of_cores) + 1
             n_parallel = self.number_of_cores
@@ -516,7 +483,7 @@ def met_hist(result, met, show_plot=True, store=True, index_list=None, dir_name=
 
 
 def met_met(
-    result, met1, met2, show_plot=True, store=True, index_list=None, dir_name="new"
+        result, met1, met2, show_plot=True, store=True, index_list=None, dir_name="new"
 ):
     met1_list = _met2val(result, met1, index_list=index_list)
     met2_list = _met2val(result, met2, index_list=index_list)
@@ -548,7 +515,7 @@ def _met2val(result, met, index_list=None):
             g_met = True
     if not g_met:
         assert (
-            met in result._data
+                met in result._data
         ), f"the metric: {met} is not calculated in the results"
         values = [result[met][i] for i in index_range]
     return values

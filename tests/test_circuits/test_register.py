@@ -1,4 +1,5 @@
 import pytest
+
 from graphiq.circuit.register import Register
 
 
@@ -23,14 +24,14 @@ def test_register_initialization(reg_dict, is_multi_qubit):
         (None, False, "Register dict can not be None or empty"),
         ({}, False, "Register dict can not be None or empty"),
         (
-            {"e": [1, "test"], "p": [1, 1, 1]},
-            False,
-            "The input data contains non-numerical value",
+                {"e": [1, "test"], "p": [1, 1, 1]},
+                False,
+                "The input data contains non-numerical value",
         ),
         (
-            {"e": [1, 2], "p": [1, 2, 3]},
-            False,
-            "Register is not multi-qubit register but has value more than 1",
+                {"e": [1, 2], "p": [1, 2, 3]},
+                False,
+                "Register is not multi-qubit register but has value more than 1",
         ),
     ],
 )
@@ -60,12 +61,12 @@ def test_get_set_item():
     "reg_dict, error_message",
     [
         (
-            {"e": [1, "test"], "p": [1, 1, 1]},
-            "The input data contains non-numerical value",
+                {"e": [1, "test"], "p": [1, 1, 1]},
+                "The input data contains non-numerical value",
         ),
         (
-            {"e": [1, 2], "p": [1, 1, 1]},
-            "The register only supports single-qubit registers",
+                {"e": [1, 2], "p": [1, 1, 1]},
+                "The register only supports single-qubit registers",
         ),
     ],
 )

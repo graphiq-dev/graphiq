@@ -1,5 +1,5 @@
-import pytest
 import networkx as nx
+import pytest
 
 from graphiq.backends.graph.state import Graph
 

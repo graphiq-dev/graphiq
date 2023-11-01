@@ -2,13 +2,13 @@ import networkx as nx
 import numpy as np
 
 from graphiq.backends.lc_equivalence_check import local_comp_graph
-from graphiq.solvers.deterministic_solver import DeterministicSolver
-from graphiq.metrics import Infidelity
-from graphiq.state import QuantumState
 from graphiq.backends.stabilizer.compiler import StabilizerCompiler
 from graphiq.backends.stabilizer.functions.rep_conversion import (
     get_clifford_tableau_from_graph,
 )
+from graphiq.metrics import Infidelity
+from graphiq.solvers.deterministic_solver import DeterministicSolver
+from graphiq.state import QuantumState
 
 
 def graph_circuit_depth(graph):

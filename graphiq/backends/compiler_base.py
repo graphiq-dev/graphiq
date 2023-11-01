@@ -4,13 +4,14 @@ underlying quantum state.
 
 The Base class defines an API which all compiler implementations should follow
 """
-from abc import ABC, abstractmethod
 import logging
+from abc import ABC, abstractmethod
+
 import numpy as np
 
 import graphiq.circuit.ops as ops
-from graphiq.circuit.circuit_base import CircuitBase
 import graphiq.noise.noise_models as nm
+from graphiq.circuit.circuit_base import CircuitBase
 from graphiq.state import QuantumState
 
 
@@ -75,7 +76,7 @@ class CompilerBase(ABC):
                 initial_state, QuantumState
             ), "the initial state must be a valid QuantumState object"
             assert (
-                initial_state.n_qubits == circuit.n_quantum
+                    initial_state.n_qubits == circuit.n_quantum
             ), "the number of qubits in initial state must match the circuit"
             state_data = initial_state.rep_data.data
         else:
@@ -110,9 +111,9 @@ class CompilerBase(ABC):
 
             if is_controlled_op:
                 no_noise = (
-                    isinstance(op.noise[0], nm.NoNoise)
-                    and isinstance(op.noise[1], nm.NoNoise)
-                ) or no_noise
+                                   isinstance(op.noise[0], nm.NoNoise)
+                                   and isinstance(op.noise[1], nm.NoNoise)
+                           ) or no_noise
             else:
                 no_noise = no_noise or isinstance(op.noise, nm.NoNoise)
 
@@ -124,7 +125,7 @@ class CompilerBase(ABC):
             else:
                 if is_controlled_op:
                     if isinstance(op.noise[0], nm.AdditionNoiseBase) and isinstance(
-                        op.noise[1], nm.AdditionNoiseBase
+                            op.noise[1], nm.AdditionNoiseBase
                     ):
                         after_control = op.noise[0].noise_parameters["After gate"]
                         after_target = op.noise[1].noise_parameters["After gate"]
@@ -314,7 +315,7 @@ class CompilerBase(ABC):
 
     @abstractmethod
     def compile_one_noisy_gate(
-        self, state, op, n_quantum, q_index, classical_registers
+            self, state, op, n_quantum, q_index, classical_registers
     ):
         raise NotImplementedError("Please select a valid compiler")
 

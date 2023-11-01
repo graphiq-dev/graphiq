@@ -1,11 +1,8 @@
-from graphiq.backends.density_matrix.compiler import DensityMatrixCompiler
-from graphiq.solvers.evolutionary_solver import EvolutionarySolver
 from benchmarks.circuits import *
-from graphiq.metrics import Infidelity
+from graphiq.backends.density_matrix.compiler import DensityMatrixCompiler
 from graphiq.io import IO
-
-from benchmarks.pipeline import benchmark
-from graphiq.state import QuantumState
+from graphiq.metrics import Infidelity
+from graphiq.solvers.evolutionary_solver import EvolutionarySolver
 
 
 def test_one_benchmarking_run():

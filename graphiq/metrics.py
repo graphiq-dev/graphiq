@@ -3,11 +3,10 @@ Classes to compute metrics on a circuit and/or system states
 """
 
 from abc import ABC, abstractmethod
+
 import numpy as np
 
 import graphiq.backends.density_matrix.functions as dmf
-from graphiq.backends.density_matrix.state import DensityMatrix
-
 import graphiq.backends.stabilizer.functions.metric as sfm
 from graphiq.backends.stabilizer.state import Stabilizer, MixedStabilizer
 
@@ -250,7 +249,7 @@ class Metrics(MetricBase):
     }
 
     def __init__(
-        self, metrics_list: list, metric_weight=None, log_steps=1, *args, **kwargs
+            self, metrics_list: list, metric_weight=None, log_steps=1, *args, **kwargs
     ):
         """
         Create a Metrics object which acts as a wrapper around Metric functions
@@ -284,9 +283,9 @@ class Metrics(MetricBase):
         self._metrics = _metrics
 
         if (
-            metric_weight is None
-            or isinstance(metric_weight, list)
-            or isinstance(metric_weight, np.ndarray)
+                metric_weight is None
+                or isinstance(metric_weight, list)
+                or isinstance(metric_weight, np.ndarray)
         ):
             if metric_weight is None:
                 metric_weight = np.ones(len(metrics_list)).flatten()

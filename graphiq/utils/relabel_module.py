@@ -1,24 +1,24 @@
+import warnings
+from itertools import permutations
+
+import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
-import matplotlib.pyplot as plt
-import random
-from graphiq.backends.stabilizer.functions.height import height_max
-from itertools import permutations
 from networkx.algorithms import isomorphism
-from graphiq.backends.lc_equivalence_check import local_comp_graph
 
-import warnings
+from graphiq.backends.lc_equivalence_check import local_comp_graph
+from graphiq.backends.stabilizer.functions.height import height_max
 
 
 def iso_finder(
-    adj_matrix,
-    n_iso,
-    rel_inc_thresh=0.2,
-    allow_exhaustive=True,
-    sort_emit=False,
-    label_map=False,
-    thresh=None,
-    seed=None,
+        adj_matrix,
+        n_iso,
+        rel_inc_thresh=0.2,
+        allow_exhaustive=True,
+        sort_emit=False,
+        label_map=False,
+        thresh=None,
+        seed=None,
 ):
     """
     The function permutes the labels of the vertices of a graph to get n_iso distinct isomorphic graphs. The original
@@ -166,7 +166,7 @@ def _perm2matrix(sequence):
 
 
 def _label_finder(
-    n_label, n_node, new_label_set=None, exhaustive=False, seed=None, thresh=None
+        n_label, n_node, new_label_set=None, exhaustive=False, seed=None, thresh=None
 ):
     """
     Finds n_label number of permutations for the sequence {0, 1, ..., n_node-1}. If exhaustive search is enabled the
@@ -197,7 +197,7 @@ def _label_finder(
     elif thresh < n_label:
         thresh = n_label + 1
     assert (
-        n_label <= n_max
+            n_label <= n_max
     ), f"The input number of permutations is more than the maximum possible"
     if n_node < 8 or exhaustive:
         perm = list(permutations([*range(n_node)]))
@@ -312,12 +312,12 @@ def get_relabel_map(g1, g2):
 
 
 def lc_orbit_finder(
-    graph: nx.Graph,
-    comp_depth=None,
-    orbit_size_thresh=None,
-    with_iso=False,
-    rand=False,
-    rep_allowed=False,
+        graph: nx.Graph,
+        comp_depth=None,
+        orbit_size_thresh=None,
+        with_iso=False,
+        rand=False,
+        rep_allowed=False,
 ):
     """
     Given a graph this functions tries all possible local-complementation sequences of length up to comp_depth to
@@ -370,12 +370,12 @@ def lc_orbit_finder(
                         if not check_isomorphism(g_lc, orbit_list, _only_auto=with_iso):
                             orbit_list.append(g_lc)
                 if (
-                    orbit_size_thresh is not None
-                    and len(orbit_list) >= orbit_size_thresh
+                        orbit_size_thresh is not None
+                        and len(orbit_list) >= orbit_size_thresh
                 ):
                     return orbit_list[:orbit_size_thresh]
                 if (
-                    rand and len(orbit_list) > len_before
+                        rand and len(orbit_list) > len_before
                 ):  # in random case we only keep 1 new graph
                     break
         # orbit_list = remove_iso(orbit_list)
@@ -436,7 +436,7 @@ def linear_partial_orbit(graph: nx.Graph):
     # check that graph is linear
     degrees = [degree for _, degree in g.degree()]
     assert (
-        n - 1 == graph.size() and max(degrees) == 2
+            n - 1 == graph.size() and max(degrees) == 2
     ), "input graph is not a linear graph"
     for lc_ops in _partial_orbit(n):
         new_g = g
@@ -575,13 +575,13 @@ def _retrieve_seq(n, seq_dict=None):
     for i in range(2, n - 1):
         middler += _retrieve_seq(i, seq_dict=seq_dict)
     seq = (
-        [n]
-        + middler
-        + [n - 1]
-        + middler[::-1]
-        + [n]
-        + middler
-        + _retrieve_seq(n - 1, seq_dict=seq_dict)
+            [n]
+            + middler
+            + [n - 1]
+            + middler[::-1]
+            + [n]
+            + middler
+            + _retrieve_seq(n - 1, seq_dict=seq_dict)
     )
     return seq
 
@@ -628,7 +628,7 @@ def _partial_orbit(n):
 
 
 def _depth_first(
-    g0, n, g_orbit=None, path=None, path_list=None, orbit_list=None, exact=False
+        g0, n, g_orbit=None, path=None, path_list=None, orbit_list=None, exact=False
 ):
     if g_orbit is None and path is None and path_list is None and orbit_list is None:
         g_orbit = [g0]

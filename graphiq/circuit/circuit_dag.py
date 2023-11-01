@@ -13,20 +13,19 @@ The CircuitDAG class can be:
 Further reading on DAG circuit representation:
 https://qiskit.org/documentation/stubs/qiskit.converters.circuit_to_dag.html
 """
-import networkx as nx
-import matplotlib.pyplot as plt
 import functools
 import re
 import string
+
+import matplotlib.pyplot as plt
+import networkx as nx
 import numpy as np
+
 import graphiq.circuit.ops as ops
 from graphiq.circuit.circuit_base import CircuitBase
 from graphiq.noise.noise_models import NoNoise
-from graphiq.visualizers.dag import dag_topology_pos
 from graphiq.utils.circuit_comparison import compare_circuits
-import json
-
-import json
+from graphiq.visualizers.dag import dag_topology_pos
 
 
 class CircuitDAG(CircuitBase):
@@ -40,12 +39,12 @@ class CircuitDAG(CircuitBase):
     """
 
     def __init__(
-        self,
-        n_emitter=0,
-        n_photon=0,
-        n_classical=0,
-        openqasm_imports=None,
-        openqasm_defs=None,
+            self,
+            n_emitter=0,
+            n_photon=0,
+            n_classical=0,
+            openqasm_imports=None,
+            openqasm_defs=None,
     ):
         """
         Construct a DAG circuit with n_emitter one-qubit emitter quantum registers, n_photon one-qubit photon
@@ -564,10 +563,10 @@ class CircuitDAG(CircuitBase):
         while i in range(len(qasm_commands)):
             command = qasm_commands[i]
             if (
-                ("qreg" in command)
-                or ("creg" in command)
-                or ("barrier" in command)
-                or (command == "")
+                    ("qreg" in command)
+                    or ("creg" in command)
+                    or ("barrier" in command)
+                    or (command == "")
             ):
                 i += 1
                 continue
@@ -646,7 +645,7 @@ class CircuitDAG(CircuitBase):
 
             # Parse single-qubit operations
             if (
-                command.count("[0]") == 1
+                    command.count("[0]") == 1
             ):  # single qubit operation, from current script generation method
                 command_breakdown = command.split()
                 name = command_breakdown[0]
@@ -679,7 +678,7 @@ class CircuitDAG(CircuitBase):
                 )  # we must parse out [0] so -3
                 gate_class = ops.name_to_class_map(name)
                 assert (
-                    gate_class is not None
+                        gate_class is not None
                 ), "gate name not recognized, parsing failed"
                 circuit.add(
                     gate_class(
@@ -777,9 +776,9 @@ class CircuitDAG(CircuitBase):
 
         # get all edges that will need to be removed (i.e. the edges on which the Operation is being added)
         relevant_outputs = [
-            f"{operation.q_registers_type[i]}{operation.q_registers[i]}_out"
-            for i in range(len(operation.q_registers))
-        ] + [f"c{c}_out" for c in operation.c_registers]
+                               f"{operation.q_registers_type[i]}{operation.q_registers[i]}_out"
+                               for i in range(len(operation.q_registers))
+                           ] + [f"c{c}_out" for c in operation.c_registers]
 
         for output in relevant_outputs:
             edges_to_remove = list(
@@ -1170,11 +1169,11 @@ class CircuitDAG(CircuitBase):
                 noisy_ops.append(op)
             else:
                 if isinstance(
-                    op,
-                    (
-                        ops.ControlledPairOperationBase,
-                        ops.ClassicalControlledPairOperationBase,
-                    ),
+                        op,
+                        (
+                                ops.ControlledPairOperationBase,
+                                ops.ClassicalControlledPairOperationBase,
+                        ),
                 ):
                     control_type = op.control_type
                     target_type = op.target_type
@@ -1190,7 +1189,7 @@ class CircuitDAG(CircuitBase):
                 if is_controlled:
                     if isinstance(noise_object, list):
                         assert (
-                            len(noise_object) == 2
+                                len(noise_object) == 2
                         ), "controlled gate noise list must be of length 2"
                         op.noise = noise_object
                     else:

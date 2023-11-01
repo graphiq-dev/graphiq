@@ -15,7 +15,7 @@ function add_to_gate_info_panel(gate, gate_name, register, params, controls) {
     gate_info = d3.select(".gate-panel")
 
     gate_info = d3.select(".gate-panel")
-    gate.on("mouseover", function(d) {
+    gate.on("mouseover", function (d) {
         gate_info.append("p").html(`${gate_name} gate on ${register}`)
         gate_info.append("p").html("Params:")
         for (p in params) {
@@ -26,13 +26,13 @@ function add_to_gate_info_panel(gate, gate_name, register, params, controls) {
         for (let i = 0; i < controls.length; i++) {
             gate_info.append("p").html(`- ${controls[i]}`)
         }
-        })
-    .on("mouseout", function(d) {
-        div.transition()
-            .duration(500)
-            .style("opacity", 0);
-        gate_info.html("Gate Info:")
-    });
+    })
+        .on("mouseout", function (d) {
+            div.transition()
+                .duration(500)
+                .style("opacity", 0);
+            gate_info.html("Gate Info:")
+        });
 }
 
 /**
@@ -65,16 +65,16 @@ function create_params_str(params) {
  * @param {string} color - color of the gate, default is light blue.
  * @return {Object} - Function returns gate object
  */
-function one_qubit_gate(x, y, gate_name, register, params={}, controls=[], color="#33C4FF") {
+function one_qubit_gate(x, y, gate_name, register, params = {}, controls = [], color = "#33C4FF") {
     let width = 0
     let height = 40
     params_str = ""
 
     if (Object.keys(params).length !== 0) {
         params_str = create_params_str(params)
-        width = Math.max(40, 15*2 + gate_name.length*11, 15*2 + params_str.length*5)
+        width = Math.max(40, 15 * 2 + gate_name.length * 11, 15 * 2 + params_str.length * 5)
     } else {
-        width = Math.max(40, 15*2 + gate_name.length*11)
+        width = Math.max(40, 15 * 2 + gate_name.length * 11)
     }
     let gate = d3.select("#circuit-detail-svg").append("g")
 
@@ -88,8 +88,8 @@ function one_qubit_gate(x, y, gate_name, register, params={}, controls=[], color
 
     gate.append("rect")
         .attr("class", gate_name)
-        .attr("x", x - width/2)
-        .attr("y", y - height/2)
+        .attr("x", x - width / 2)
+        .attr("y", y - height / 2)
         .attr("width", width)
         .attr("height", 40)
         .style("fill", color)
@@ -102,18 +102,18 @@ function one_qubit_gate(x, y, gate_name, register, params={}, controls=[], color
         .style("dominant-baseline", "middle")
 
     if (Object.keys(params).length !== 0) {
-        g_name.attr("y", y-5)
+        g_name.attr("y", y - 5)
 
         gate.append("text")
-        .text(params_str)
-        .attr("font-size", "0.8em")
-        .attr("textLength", params_str.length * 5)
-        .attr("x", x)
-        .attr("y", y+10)
-        .style("text-anchor", "middle")
-        .style("dominant-baseline", "middle")
+            .text(params_str)
+            .attr("font-size", "0.8em")
+            .attr("textLength", params_str.length * 5)
+            .attr("x", x)
+            .attr("y", y + 10)
+            .style("text-anchor", "middle")
+            .style("dominant-baseline", "middle")
     }
-    
+
     // add gate info to display on panel
     add_to_gate_info_panel(gate, gate_name, register, params, controls)
 
@@ -132,8 +132,8 @@ function reset(x, y, register) {
 
     gate.append("rect")
         .attr("class", "reset")
-        .attr("x", x-20)
-        .attr("y", y-20)
+        .attr("x", x - 20)
+        .attr("y", y - 20)
         .attr("width", std_gate_width)
         .attr("height", std_gate_height)
         .style("fill", "black")
@@ -141,28 +141,28 @@ function reset(x, y, register) {
         .text("0")
         .attr("font-size", "1.2em")
         .attr("x", x)
-        .attr("y", y+2)
+        .attr("y", y + 2)
         .style("fill", "white")
         .style("text-anchor", "middle")
         .style("dominant-baseline", "middle")
     gate.append("line")
-        .attr("x1", x-10)
-        .attr("x2", x-10)
-        .attr("y1", y-10)
-        .attr("y2", y+10)
+        .attr("x1", x - 10)
+        .attr("x2", x - 10)
+        .attr("y1", y - 10)
+        .attr("y2", y + 10)
         .attr("stroke", "white")
         .style("stroke-width", 1)
     gate.append("line")
-        .attr("x1", x+7)
-        .attr("x2", x+13)
-        .attr("y1", y-10)
+        .attr("x1", x + 7)
+        .attr("x2", x + 13)
+        .attr("y1", y - 10)
         .attr("y2", y)
         .attr("stroke", "white")
         .style("stroke-width", 1)
     gate.append("line")
-        .attr("x1", x+7)
-        .attr("x2", x+13)
-        .attr("y1", y+10)
+        .attr("x1", x + 7)
+        .attr("x2", x + 13)
+        .attr("y1", y + 10)
         .attr("y2", y)
         .attr("stroke", "white")
         .style("stroke-width", 1)
@@ -180,7 +180,7 @@ function reset(x, y, register) {
  * @param {string} color - color of the control
  * @return {Object} - Function returns the element to create control at.
  */
-function create_control_at(element, x1, y1, y2, color="#002D9C") {
+function create_control_at(element, x1, y1, y2, color = "#002D9C") {
     element.append("line")
         .attr("x1", x1)
         .attr("x2", x1)
@@ -216,16 +216,16 @@ function cnot(x1, y1, y2, control, target) {
         .attr("r", 20)
         .attr("fill", "#002D9C")
     gate.append("line")
-        .attr("x1", x1-10)
-        .attr("x2", x1+10)
+        .attr("x1", x1 - 10)
+        .attr("x2", x1 + 10)
         .attr("y1", y1)
         .attr("y2", y1)
         .attr("stroke", "white")
     gate.append("line")
         .attr("x1", x1)
         .attr("x2", x1)
-        .attr("y1", y1+10)
-        .attr("y2", y1-10)
+        .attr("y1", y1 + 10)
+        .attr("y2", y1 - 10)
         .attr("stroke", "white")
     add_to_gate_info_panel(gate, "CX", target, {}, control)
     return gate
@@ -265,54 +265,54 @@ function cz(x1, y1, y2, control, target) {
  * @param {string} cbit - bit number of the classical reegister
  * @return {Object} - Function returns measurement operation object.
  */
-function measure(x1, y1, y2, cbit=0) {
+function measure(x1, y1, y2, cbit = 0) {
     let measure_z = d3.select("#circuit-detail-svg").append("g")
 
     measure_z.append("rect")
         .attr("class", "measure")
-        .attr("x", x1-20)
-        .attr("y", y1-20)
+        .attr("x", x1 - 20)
+        .attr("y", y1 - 20)
         .attr("width", std_gate_width)
         .attr("height", std_gate_height)
         .style("fill", "gray")
     //M 10 30 C 10 15, 30 15, 30 30
     measure_z.append("path")
-        .attr("d", `M ${x1-10} ${y1+10} C ${x1-10} ${y1-5}, ${x1+10} ${y1-5}, ${x1+10} ${y1+10}`)
+        .attr("d", `M ${x1 - 10} ${y1 + 10} C ${x1 - 10} ${y1 - 5}, ${x1 + 10} ${y1 - 5}, ${x1 + 10} ${y1 + 10}`)
         .attr("stroke", "black")
         .style("fill", "transparent")
         .style("stroke-width", 2)
     measure_z.append("line")
         .attr("x1", x1)
-        .attr("y1", y1+10)
-        .attr("x2", x1+10)
-        .attr("y2", y1-5)
+        .attr("y1", y1 + 10)
+        .attr("x2", x1 + 10)
+        .attr("y2", y1 - 5)
         .attr("stroke", "black")
         .style("stroke-width", 2)
     measure_z.append("text")
         .text("z")
         .attr("font-size", "1em")
         .attr("x", x1)
-        .attr("y", y1-10)
+        .attr("y", y1 - 10)
         .style("text-anchor", "middle")
         .style("dominant-baseline", "middle")
     measure_z.append("line")
-        .attr("x1", x1-2)
-        .attr("y1", y1+20)
-        .attr("x2", x1-2)
-        .attr("y2", y2-7)
+        .attr("x1", x1 - 2)
+        .attr("y1", y1 + 20)
+        .attr("x2", x1 - 2)
+        .attr("y2", y2 - 7)
         .attr("stroke", "gray")
         .attr("stroke-width", 2)
         .style("fill", "transparent")
     measure_z.append("line")
-        .attr("x1", x1+2)
-        .attr("y1", y1+20)
-        .attr("x2", x1+2)
-        .attr("y2", y2-7)
+        .attr("x1", x1 + 2)
+        .attr("y1", y1 + 20)
+        .attr("x2", x1 + 2)
+        .attr("y2", y2 - 7)
         .attr("stroke", "gray")
         .attr("stroke-width", 2)
         .style("fill", "transparent")
     measure_z.append("polygon")
-        .attr("points", `${x1-7},${y2-7} ${x1+7},${y2-7} ${x1},${y2}`)
+        .attr("points", `${x1 - 7},${y2 - 7} ${x1 + 7},${y2 - 7} ${x1},${y2}`)
         .style("fill", "gray")
         .style("stroke-width", 2)
 
@@ -328,7 +328,7 @@ function measure(x1, y1, y2, cbit=0) {
  * @param {string} color - color of the classical control
  * @return {Object} - Function returns element that have the classical control.
  */
-function create_classical_control_at(element, x1, y1, y2, color="gray") {
+function create_classical_control_at(element, x1, y1, y2, color = "gray") {
     element.append("line")
         .attr("x1", x1 - 2)
         .attr("x2", x1 - 2)
@@ -369,9 +369,9 @@ function barrier(x, y) {
         .style("fill", "transparent")
     b.append("line")
         .attr("x1", x)
-        .attr("y1", y - (std_gate_width/2))
+        .attr("y1", y - (std_gate_width / 2))
         .attr("x2", x)
-        .attr("y2", y + (std_gate_height/2))
+        .attr("y2", y + (std_gate_height / 2))
         .attr("stroke", "black")
         .style("stroke-width", 2)
         .style("stroke-dasharray", "3,3")

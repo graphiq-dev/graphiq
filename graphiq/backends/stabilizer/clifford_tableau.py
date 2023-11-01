@@ -2,7 +2,8 @@ import copy
 
 import numpy as np
 
-from graphiq.backends.stabilizer.functions import rep_conversion as sfrc, utils as sfu
+import graphiq.backends.stabilizer as stab
+from graphiq.backends.stabilizer.functions import utils as sfu
 from graphiq.backends.stabilizer.tableau import TableauBase, StabilizerTableau
 
 
@@ -27,7 +28,7 @@ class CliffordTableau(TableauBase):
             self._initialize_phase(phase)
         elif isinstance(data, CliffordTableau) or isinstance(data, StabilizerTableau):
             if isinstance(data, StabilizerTableau):
-                data = sfrc.clifford_from_stabilizer(data)
+                data = stab.clifford_from_stabilizer(data)
             self._table = np.copy(data.table)
             self.n_qubits = data.n_qubits
             self._phase = np.copy(data.phase)
@@ -63,7 +64,7 @@ class CliffordTableau(TableauBase):
         :return: the table that contains destabilizer and stabilizer generators for X part
         :rtype: numpy.ndarray
         """
-        return self._table[:, 0 : self.n_qubits]
+        return self._table[:, 0: self.n_qubits]
 
     @table_x.setter
     def table_x(self, value):
@@ -77,7 +78,7 @@ class CliffordTableau(TableauBase):
         """
         assert value.shape == (2 * self.n_qubits, self.n_qubits)
         value = value.astype(int)
-        self._table[:, 0 : self.n_qubits] = value
+        self._table[:, 0: self.n_qubits] = value
 
     @property
     def table_z(self):
@@ -87,7 +88,7 @@ class CliffordTableau(TableauBase):
         :return: the table that contains destabilizer and stabilizer generators of the Z part
         :rtype: numpy.ndarray
         """
-        return self._table[:, self.n_qubits : 2 * self.n_qubits]
+        return self._table[:, self.n_qubits: 2 * self.n_qubits]
 
     @table_z.setter
     def table_z(self, value):
@@ -101,7 +102,7 @@ class CliffordTableau(TableauBase):
         """
         assert value.shape == (2 * self.n_qubits, self.n_qubits)
         value = value.astype(int)
-        self._table[:, self.n_qubits : 2 * self.n_qubits] = value
+        self._table[:, self.n_qubits: 2 * self.n_qubits] = value
 
     @property
     def destabilizer(self):
@@ -111,7 +112,7 @@ class CliffordTableau(TableauBase):
         :return: the destabilizer part of the tableau
         :rtype: numpy.ndarray
         """
-        return self._table[0 : self.n_qubits]
+        return self._table[0: self.n_qubits]
 
     @destabilizer.setter
     def destabilizer(self, value):
@@ -125,7 +126,7 @@ class CliffordTableau(TableauBase):
         """
 
         assert value.shape == (self.n_qubits, 2 * self.n_qubits)
-        self._table[0 : self.n_qubits] = value.astype(int)
+        self._table[0: self.n_qubits] = value.astype(int)
 
     @property
     def destabilizer_x(self):
@@ -135,7 +136,7 @@ class CliffordTableau(TableauBase):
         :return: the X part of the destabilizer in the tableau
         :rtype: numpy.ndarray
         """
-        return self._table[0 : self.n_qubits, 0 : self.n_qubits]
+        return self._table[0: self.n_qubits, 0: self.n_qubits]
 
     @destabilizer_x.setter
     def destabilizer_x(self, value):
@@ -148,7 +149,7 @@ class CliffordTableau(TableauBase):
         :rtype: None
         """
         assert value.shape == (self.n_qubits, self.n_qubits)
-        self._table[0 : self.n_qubits, 0 : self.n_qubits] = value.astype(int)
+        self._table[0: self.n_qubits, 0: self.n_qubits] = value.astype(int)
 
     @property
     def destabilizer_z(self):
@@ -158,7 +159,7 @@ class CliffordTableau(TableauBase):
         :return: the Z part of the destabilizer in the tableau
         :rtype: numpy.ndarray
         """
-        return self._table[0 : self.n_qubits, self.n_qubits : 2 * self.n_qubits]
+        return self._table[0: self.n_qubits, self.n_qubits: 2 * self.n_qubits]
 
     @destabilizer_z.setter
     def destabilizer_z(self, value):
@@ -172,7 +173,7 @@ class CliffordTableau(TableauBase):
         """
         assert value.shape == (self.n_qubits, self.n_qubits)
         value = value.astype(int)
-        self._table[0 : self.n_qubits, self.n_qubits : 2 * self.n_qubits] = value
+        self._table[0: self.n_qubits, self.n_qubits: 2 * self.n_qubits] = value
 
     @property
     def stabilizer(self):
@@ -182,7 +183,7 @@ class CliffordTableau(TableauBase):
         :return: the stabilizer part of the tableau
         :rtype: numpy.ndarray
         """
-        return self._table[self.n_qubits :]
+        return self._table[self.n_qubits:]
 
     @stabilizer.setter
     def stabilizer(self, value):
@@ -196,7 +197,7 @@ class CliffordTableau(TableauBase):
         """
         assert sfu.is_symplectic_self_orthogonal(value)
         assert value.shape == (self.n_qubits, 2 * self.n_qubits)
-        self._table[self.n_qubits :] = value.astype(int)
+        self._table[self.n_qubits:] = value.astype(int)
 
     @property
     def stabilizer_x(self):
@@ -206,7 +207,7 @@ class CliffordTableau(TableauBase):
         :return: the X part of the stabilizer in the tableau
         :rtype: numpy.ndarray
         """
-        return self._table[self.n_qubits :, 0 : self.n_qubits]
+        return self._table[self.n_qubits:, 0: self.n_qubits]
 
     @stabilizer_x.setter
     def stabilizer_x(self, value):
@@ -220,7 +221,7 @@ class CliffordTableau(TableauBase):
         """
 
         assert value.shape == (self.n_qubits, self.n_qubits)
-        self._table[self.n_qubits :, 0 : self.n_qubits] = value.astype(int)
+        self._table[self.n_qubits:, 0: self.n_qubits] = value.astype(int)
 
     @property
     def stabilizer_z(self):
@@ -230,7 +231,7 @@ class CliffordTableau(TableauBase):
         :return: the Z part of the stabilizer in the tableau
         :rtype: numpy.ndarray
         """
-        return self._table[self.n_qubits :, self.n_qubits : 2 * self.n_qubits]
+        return self._table[self.n_qubits:, self.n_qubits: 2 * self.n_qubits]
 
     @stabilizer_z.setter
     def stabilizer_z(self, value):
@@ -245,7 +246,7 @@ class CliffordTableau(TableauBase):
 
         assert value.shape == (self.n_qubits, self.n_qubits)
         value = value.astype(int)
-        self._table[self.n_qubits :, self.n_qubits : 2 * self.n_qubits] = value
+        self._table[self.n_qubits:, self.n_qubits: 2 * self.n_qubits] = value
 
     @property
     def iphase(self):
@@ -320,9 +321,9 @@ class CliffordTableau(TableauBase):
         # check without converting to canonical form
         if isinstance(other, CliffordTableau):
             return (
-                np.all(self.phase == other.phase)
-                and np.all(self.iphase == other.iphase)
-                and np.array_equal(self.table.astype(int), other.table.astype(int))
+                    np.all(self.phase == other.phase)
+                    and np.all(self.iphase == other.iphase)
+                    and np.array_equal(self.table.astype(int), other.table.astype(int))
             )
 
         return False
@@ -334,7 +335,7 @@ class CliffordTableau(TableauBase):
         :return: a StabilizerTableau that contains only the stabilizer part
         :rtype: StabilizerTableau
         """
-        return StabilizerTableau(self.stabilizer, self.phase[self.n_qubits :])
+        return StabilizerTableau(self.stabilizer, self.phase[self.n_qubits:])
 
     def _reset(self, new_table, new_phase, new_iphase):
         new_n_qubits = int(new_table.shape[0] / 2)

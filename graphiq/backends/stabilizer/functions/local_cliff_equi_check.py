@@ -1,25 +1,24 @@
-import numpy as np
 import networkx as nx
+import numpy as np
 
-from graphiq.state import QuantumState
-from graphiq.circuit.circuit_dag import CircuitDAG
-from graphiq.metrics import Infidelity
 import graphiq.circuit.ops as ops
-
-from graphiq.backends.stabilizer.compiler import StabilizerCompiler
-from graphiq.backends.state_rep_conversion import (
-    state_to_graph,
-    _phase_correction,
-)
-from graphiq.backends.stabilizer.tableau import StabilizerTableau
+from graphiq.backends.lc_equivalence_check import is_lc_equivalent, local_clifford_ops
 from graphiq.backends.stabilizer.clifford_tableau import CliffordTableau
-from graphiq.backends.stabilizer.functions.transformation import run_circuit
-from graphiq.backends.stabilizer.functions.stabilizer import canonical_form
+from graphiq.backends.stabilizer.compiler import StabilizerCompiler
 from graphiq.backends.stabilizer.functions.rep_conversion import (
     get_stabilizer_tableau_from_graph,
     clifford_from_stabilizer,
 )
-from graphiq.backends.lc_equivalence_check import is_lc_equivalent, local_clifford_ops
+from graphiq.backends.stabilizer.functions.stabilizer import canonical_form
+from graphiq.backends.stabilizer.functions.transformation import run_circuit
+from graphiq.backends.stabilizer.tableau import StabilizerTableau
+from graphiq.backends.state_rep_conversion import (
+    state_to_graph,
+    _phase_correction,
+)
+from graphiq.circuit.circuit_dag import CircuitDAG
+from graphiq.metrics import Infidelity
+from graphiq.state import QuantumState
 
 
 def lc_check(state1, state2, validate=True):

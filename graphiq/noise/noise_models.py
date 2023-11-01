@@ -14,23 +14,19 @@ Currently, we consider only local errors.
 # TODO: Implement more noise models
 # TODO: Check incompatibility between noise models and operations, between noise models and backend representations
 
-import numpy as np
 import itertools
 from abc import ABC
 
-import graphiq.backends.density_matrix.functions as dmf
-import graphiq.backends.stabilizer.functions.clifford as sfc
-import graphiq.backends.stabilizer.functions.transformation as transform
-from graphiq.backends.stabilizer.functions.stabilizer import canonical_form
+import numpy as np
 
-from graphiq.state import QuantumState
+import graphiq.backends.density_matrix.functions as dmf
+import graphiq.backends.stabilizer.functions.transformation as transform
 from graphiq.backends.density_matrix.state import DensityMatrix
-from graphiq.backends.stabilizer.state import Stabilizer, MixedStabilizer
 from graphiq.backends.graph.state import Graph
-from graphiq.backends.state_base import StateRepresentationBase
+from graphiq.backends.stabilizer.state import Stabilizer, MixedStabilizer
+from graphiq.state import QuantumState
 
 REDUCE_STABILIZER_MIXTURE = True
-
 
 """ Base classes from which any noise model will inherit """
 
@@ -224,11 +220,11 @@ class TwoQubitControlledGateReplacement(ReplacementNoiseBase):
     """
 
     def __init__(
-        self,
-        target_unitary,
-        pre_gate_ctr_noise=np.eye(2),
-        post_gate_ctr_noise=np.eye(2),
-        phase_factor=0,
+            self,
+            target_unitary,
+            pre_gate_ctr_noise=np.eye(2),
+            post_gate_ctr_noise=np.eye(2),
+            phase_factor=0,
     ):
         """
         Construct a TwoQubitControlledGateReplacement noise model
@@ -281,8 +277,8 @@ class TwoQubitControlledGateReplacement(ReplacementNoiseBase):
                 self.noise_parameters["Post-gate noise"],
             )
             target_gate = (
-                np.exp(1j * self.noise_parameters["Phase factor"])
-                * self.noise_parameters["Target gate"]
+                    np.exp(1j * self.noise_parameters["Phase factor"])
+                    * self.noise_parameters["Target gate"]
             )
             cu_gate = dmf.get_two_qubit_controlled_gate(
                 n_quantum,
@@ -349,7 +345,7 @@ class PauliError(AdditionNoiseBase):
             elif pauli_error == "Z":
                 error_op = dmf.get_one_qubit_gate(n_quantum, reg_list[0], dmf.sigmaz())
             elif pauli_error == "I":
-                error_op = np.eye(2**n_quantum)
+                error_op = np.eye(2 ** n_quantum)
             else:
                 raise ValueError("Wrong description of a Pauli matrix.")
 
@@ -414,32 +410,32 @@ class LocalCliffordError(AdditionNoiseBase):
         assert len(reg_list) == 1
         state_rep = state.rep_data
         if isinstance(state_rep, DensityMatrix):
-            unitary = np.eye(2**n_quantum)
+            unitary = np.eye(2 ** n_quantum)
             for gate in clifford_error[::-1]:
                 if gate.lower() == "sigmax":
                     unitary = (
-                        dmf.get_one_qubit_gate(n_quantum, reg_list[0], dmf.sigmax())
-                        @ unitary
+                            dmf.get_one_qubit_gate(n_quantum, reg_list[0], dmf.sigmax())
+                            @ unitary
                     )
                 elif gate.lower() == "sigmay":
                     unitary = (
-                        dmf.get_one_qubit_gate(n_quantum, reg_list[0], dmf.sigmay())
-                        @ unitary
+                            dmf.get_one_qubit_gate(n_quantum, reg_list[0], dmf.sigmay())
+                            @ unitary
                     )
                 elif gate.lower() == "sigmaz":
                     unitary = (
-                        dmf.get_one_qubit_gate(n_quantum, reg_list[0], dmf.sigmaz())
-                        @ unitary
+                            dmf.get_one_qubit_gate(n_quantum, reg_list[0], dmf.sigmaz())
+                            @ unitary
                     )
                 elif gate.lower() == "hadamard":
                     unitary = (
-                        dmf.get_one_qubit_gate(n_quantum, reg_list[0], dmf.hadamard())
-                        @ unitary
+                            dmf.get_one_qubit_gate(n_quantum, reg_list[0], dmf.hadamard())
+                            @ unitary
                     )
                 elif gate.lower() == "phase":
                     unitary = (
-                        dmf.get_one_qubit_gate(n_quantum, reg_list[0], dmf.phase())
-                        @ unitary
+                            dmf.get_one_qubit_gate(n_quantum, reg_list[0], dmf.phase())
+                            @ unitary
                     )
                 elif gate.lower() == "identity":
                     pass
@@ -579,7 +575,7 @@ class DepolarizingNoise(AdditionNoiseBase):
             state_rep.apply_channel(kraus_ops)
 
         elif isinstance(state_rep, Stabilizer) or isinstance(
-            state_rep, MixedStabilizer
+                state_rep, MixedStabilizer
         ):
             if not isinstance(state_rep, MixedStabilizer):
                 rep_data = MixedStabilizer([(1.0, state_rep.data)])

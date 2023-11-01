@@ -1,13 +1,10 @@
-import pytest
 import numpy as np
+import pytest
 
 import benchmarks.circuits as circ
-
-from graphiq.metrics import Infidelity
-from graphiq.backends.density_matrix.compiler import DensityMatrixCompiler
-from graphiq.state import QuantumState
-
 from benchmarks.benchmark_utils import circuit_measurement_independent
+from graphiq.backends.density_matrix.compiler import DensityMatrixCompiler
+from graphiq.metrics import Infidelity
 
 
 @pytest.mark.parametrize("ghz3_state_circuit", [circ.ghz3_state_circuit])

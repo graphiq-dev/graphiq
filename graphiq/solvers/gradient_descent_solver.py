@@ -1,22 +1,20 @@
 """
 Gradient descent algorithms on parameterized circuits.
 """
+import jax
+import optax
 import tqdm
 
 import graphiq
 from graphiq.backends.compiler_base import CompilerBase
-from graphiq.solvers import SolverBase
 from graphiq.circuit.circuit_base import CircuitBase
 from graphiq.circuit.circuit_dag import CircuitDAG
-from graphiq.metrics import MetricBase
-
 from graphiq.io import IO
+from graphiq.metrics import MetricBase
+from graphiq.solvers import SolverBase
 
-import optax
-import jax
 
 # standard optimizers
-from optax import adam, adagrad, rmsprop, adamw, adabelief
 
 
 class GradientDescentSolver(SolverBase):
@@ -29,16 +27,16 @@ class GradientDescentSolver(SolverBase):
     name = "gradient-descent-solver"
 
     def __init__(
-        self,
-        metric: MetricBase,
-        compiler: CompilerBase,
-        circuit: CircuitDAG = None,
-        io: IO = None,
-        optimizer=None,
-        n_step=30,
-        progress=True,
-        *args,
-        **kwargs,
+            self,
+            metric: MetricBase,
+            compiler: CompilerBase,
+            circuit: CircuitDAG = None,
+            io: IO = None,
+            optimizer=None,
+            n_step=30,
+            progress=True,
+            *args,
+            **kwargs,
     ):
         """ """
         super().__init__(
@@ -58,7 +56,7 @@ class GradientDescentSolver(SolverBase):
 
     @staticmethod
     def compute_cost(
-        params: dict, circuit: CircuitBase, compiler: CompilerBase, metric: MetricBase
+            params: dict, circuit: CircuitBase, compiler: CompilerBase, metric: MetricBase
     ):
         """
         Wrapper for simulating and evaluating parameter values.
@@ -96,7 +94,7 @@ class GradientDescentSolver(SolverBase):
         cost_curve = []
         grad = jax.grad(self.compute_cost)
         for step in (
-            pbar := tqdm.tqdm(range(self.n_step), disable=(not self.progress))
+                pbar := tqdm.tqdm(range(self.n_step), disable=(not self.progress))
         ):
             cost = self.compute_cost(params, self.circuit, self.compiler, self.metric)
             gradient = grad(params, self.circuit, self.compiler, self.metric)

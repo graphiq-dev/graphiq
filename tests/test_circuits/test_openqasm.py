@@ -1,7 +1,8 @@
-import pytest
 import matplotlib.pyplot as plt
-from qiskit import QuantumCircuit
 import numpy as np
+import pytest
+from qiskit import QuantumCircuit
+
 import graphiq.circuit.ops as ops
 import graphiq.utils.openqasm_lib as oq_lib
 from graphiq.circuit.circuit_dag import CircuitDAG

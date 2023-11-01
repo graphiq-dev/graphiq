@@ -37,7 +37,7 @@ function draw_classical_control(classical_control) {
         classical_control.gate_info.qargs,
         classical_control.gate_info.params,
     )
-    create_classical_control_at(gate, classical_control.x_pos, qreg_pos+20, creg_pos)
+    create_classical_control_at(gate, classical_control.x_pos, qreg_pos + 20, creg_pos)
 }
 
 /**
@@ -51,12 +51,10 @@ function draw_gate(gate) {
     if (gate.gate_name === "CX") {
         y2 = visualization_info.registers.qreg[gate.controls[0]]
         cnot(gate.x_pos, register, y2, gate.controls, gate.qargs)
-    }
-    else if (gate.gate_name == 'CZ') {
+    } else if (gate.gate_name == 'CZ') {
         y2 = visualization_info.registers.qreg[gate.controls[0]] - register
         cz(gates[i].x_pos, register, y2)
-    }
-    else {
+    } else {
         g = one_qubit_gate(gate.x_pos, register, gate.gate_name, gate.qargs, gate.params, gate.controls)
     }
 }
@@ -72,16 +70,16 @@ function draw(ops) {
             draw_gate(ops[i])
         }
         if (ops[i].type == 'barrier') {
-            qreg_pos =  visualization_info.registers.qreg[ops[i].qreg]
+            qreg_pos = visualization_info.registers.qreg[ops[i].qreg]
             g = barrier(ops[i].x_pos, qreg_pos)
         }
         if (ops[i].type == 'reset') {
-            qreg_pos =  visualization_info.registers.qreg[ops[i].qreg]
+            qreg_pos = visualization_info.registers.qreg[ops[i].qreg]
             g = reset(ops[i].x_pos, qreg_pos, ops[i].qreg)
         }
         if (ops[i].type == 'measure') {
-            qreg_pos =  visualization_info.registers.qreg[ops[i].qreg]
-            creg_pos =  visualization_info.registers.creg[ops[i].creg]
+            qreg_pos = visualization_info.registers.qreg[ops[i].qreg]
+            creg_pos = visualization_info.registers.creg[ops[i].creg]
             g = measure(ops[i].x_pos, qreg_pos, creg_pos)
         }
         if (ops[i].type == 'if') {

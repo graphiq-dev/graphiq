@@ -1,6 +1,5 @@
-import qiskit.transpiler.passes
-from qiskit import QuantumCircuit
 import matplotlib.pyplot as plt
+from qiskit import QuantumCircuit
 
 
 def draw_openqasm(qasm, show=False, ax=None, display_text=None):

@@ -67,9 +67,9 @@ def convert_data_to_graph(graph_data):
                     node_dict[data_pair[0].get_id()], node_dict[data_pair[1].get_id()]
                 )
             elif (
-                isinstance(data_pair[0], int) or isinstance(data_pair[0], frozenset)
+                    isinstance(data_pair[0], int) or isinstance(data_pair[0], frozenset)
             ) and (
-                isinstance(data_pair[1], int) or isinstance(data_pair[1], frozenset)
+                    isinstance(data_pair[1], int) or isinstance(data_pair[1], frozenset)
             ):
                 # Cast ints to frozensets if necessary
                 new_data_pair = [data_pair[0], data_pair[1]]

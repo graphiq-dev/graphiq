@@ -2,8 +2,8 @@
 Compilation tools for simulating a circuit with a Graph backend
 """
 
-from graphiq.circuit import ops as ops
 from graphiq.backends.compiler_base import CompilerBase
+from graphiq.circuit import ops as ops
 
 
 class GraphCompiler(CompilerBase):

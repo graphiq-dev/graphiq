@@ -2,17 +2,18 @@
 Graph representation of quantum state
 
 """
-# TODO: Refactor and revise when building the compiler for graph representation
-import networkx as nx
+import itertools
 import warnings
 from collections.abc import Iterable
-import numpy as np
-import itertools
 
-from graphiq.backends.graph.node import QuNode
-from graphiq.backends.state_base import StateRepresentationBase
+# TODO: Refactor and revise when building the compiler for graph representation
+import networkx as nx
+import numpy as np
+
 import graphiq.backends.graph.functions as gf
+from graphiq.backends.graph.node import QuNode
 from graphiq.backends.lc_equivalence_check import is_lc_equivalent
+from graphiq.backends.state_base import StateRepresentationBase
 from graphiq.visualizers.graph import draw_graph
 
 

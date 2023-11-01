@@ -3,9 +3,9 @@ AlternateGraphSolver uses alternative target graph states as the starting point 
 Alternative target graph states can be found by relabeling (photon emission ordering) and local complementation (local Clifford equivalency).
 """
 
+import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
-import matplotlib.pyplot as plt
 
 from benchmarks.graph_states import repeater_graph_states
 from graphiq.backends.compiler_base import CompilerBase
@@ -40,15 +40,15 @@ from graphiq.utils.relabel_module import (
 
 class AlternateGraphSolver:
     def __init__(
-        self,
-        target: nx.Graph or QuantumState = None,
-        metric: MetricBase = Infidelity,
-        compiler: CompilerBase = StabilizerCompiler(),
-        noise_compiler: CompilerBase = DensityMatrixCompiler(),
-        io: IO = None,
-        noise_model_mapping=None,
-        solver_setting=None,
-        seed=None,
+            self,
+            target: nx.Graph or QuantumState = None,
+            metric: MetricBase = Infidelity,
+            compiler: CompilerBase = StabilizerCompiler(),
+            noise_compiler: CompilerBase = DensityMatrixCompiler(),
+            io: IO = None,
+            noise_model_mapping=None,
+            solver_setting=None,
+            seed=None,
     ):
         """
 
@@ -260,11 +260,11 @@ class AlternateGraphSolver:
                         mc_list.append(mc)
                         if self.mc_params["n_parallel"] is not None:
                             n_total = (
-                                self.mc_params["n_parallel"]
-                                * self.mc_params["n_single"]
+                                    self.mc_params["n_parallel"]
+                                    * self.mc_params["n_single"]
                             )
                             assert (
-                                n_total > 0
+                                    n_total > 0
                             ), "n_single and n_parallel both must be integers > 1 or None"
                             self.solver_setting.monte_carlo_params["n_sample"] = n_total
                             # multicore parallel processing
@@ -492,25 +492,25 @@ class AlternateGraphSolverSetting:
     """
 
     def __init__(
-        self,
-        allow_relabel=True,
-        n_iso_graphs=10,
-        rel_inc_thresh=0.1,
-        allow_exhaustive=False,
-        sort_emit=True,
-        label_map=False,
-        iso_thresh=None,
-        allow_lc=True,
-        n_lc_graphs=10,
-        lc_orbit_depth=None,
-        depolarizing_rate=0.01,
-        monte_carlo=False,
-        monte_carlo_params=None,
-        graph_metric=pre.graph_metric_lists[0],
-        lc_method="max edge",
-        verbose=False,
-        save_openqasm: str = "none",
-        callback_func: dict = {},
+            self,
+            allow_relabel=True,
+            n_iso_graphs=10,
+            rel_inc_thresh=0.1,
+            allow_exhaustive=False,
+            sort_emit=True,
+            label_map=False,
+            iso_thresh=None,
+            allow_lc=True,
+            n_lc_graphs=10,
+            lc_orbit_depth=None,
+            depolarizing_rate=0.01,
+            monte_carlo=False,
+            monte_carlo_params=None,
+            graph_metric=pre.graph_metric_lists[0],
+            lc_method="max edge",
+            verbose=False,
+            save_openqasm: str = "none",
+            callback_func: dict = {},
     ):
         self.allow_relabel = allow_relabel
         self.allow_lc = allow_lc

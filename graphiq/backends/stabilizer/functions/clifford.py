@@ -3,23 +3,23 @@ Functions that are applicable to CliffordTableau.
 """
 
 import numpy as np
+from scipy.linalg import block_diag
 
+from graphiq.backends.stabilizer.clifford_tableau import CliffordTableau
+from graphiq.backends.stabilizer.functions.linalg import (
+    column_swap,
+    row_sum,
+)
 from graphiq.backends.stabilizer.functions.transformation import (
     hadamard_gate,
     phase_gate,
     x_gate,
     phase_dagger_gate,
 )
-from graphiq.backends.stabilizer.clifford_tableau import CliffordTableau
-from graphiq.backends.stabilizer.functions.linalg import (
-    column_swap,
-    row_sum,
-)
-from scipy.linalg import block_diag
 
 
 def z_measurement_gate(
-    tableau, qubit_position, measurement_determinism="probabilistic"
+        tableau, qubit_position, measurement_determinism="probabilistic"
 ):
     """
     Apply a Z-basis measurement on a given qubit in a stabilizer state.
@@ -90,7 +90,7 @@ def z_measurement_gate(
         # add an extra 2n+1 th row to the tableau
         new_table = np.vstack([tableau.table, np.zeros(2 * n_qubits)]).astype(int)
         x_matrix = new_table[:, 0:n_qubits]
-        z_matrix = new_table[:, n_qubits : 2 * n_qubits]
+        z_matrix = new_table[:, n_qubits: 2 * n_qubits]
         r_vector = np.append(tableau.phase, 0).astype(int)
         iphase_vector = np.append(tableau.iphase, 0).astype(int)
         # list of nonzero elements in the x destabilizers
@@ -176,7 +176,7 @@ def measure_z(tableau, qubit_position, measurement_determinism="probabilistic"):
 
 
 def reset_z(
-    tableau, qubit_position, intended_state, measurement_determinism="probabilistic"
+        tableau, qubit_position, intended_state, measurement_determinism="probabilistic"
 ):
     """
     Resets a qubit to a Z basis state. Note that it only works after a measurement gate on the same qubit or if
@@ -214,7 +214,7 @@ def reset_z(
 
 
 def reset_x(
-    tableau, qubit_position, intended_state, measurement_determinism="probabilistic"
+        tableau, qubit_position, intended_state, measurement_determinism="probabilistic"
 ):
     """
     Reset the qubit in one of X-basis states
@@ -242,7 +242,7 @@ def reset_x(
 
 
 def reset_y(
-    tableau, qubit_position, intended_state, measurement_determinism="probabilistic"
+        tableau, qubit_position, intended_state, measurement_determinism="probabilistic"
 ):
     """
     Reset the qubit to one of the eigenstates of the Y basis.
@@ -476,8 +476,8 @@ def create_n_plus_state(n_qubits):
     tableau = create_n_ket0_state(n_qubits)
 
     tableau.table[:, [*range(2 * n_qubits)]] = tableau.table[
-        :, [*range(n_qubits, 2 * n_qubits)] + [*range(0, n_qubits)]
-    ]
+                                               :, [*range(n_qubits, 2 * n_qubits)] + [*range(0, n_qubits)]
+                                               ]
 
     return tableau
 

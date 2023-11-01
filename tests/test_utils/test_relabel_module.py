@@ -1,8 +1,8 @@
+import networkx as nx
+import numpy as np
 import pytest
 
 from graphiq.utils.relabel_module import *
-import networkx as nx
-import numpy as np
 
 
 def random_connected_graph(n, p, seed=None):

@@ -1,14 +1,12 @@
+import numpy as np
 import pytest
 
-import numpy as np
-
-import graphiq.noise.noise_models as nm
-
-from graphiq.circuit.circuit_dag import CircuitDAG
 import graphiq.circuit.ops as ops
+import graphiq.noise.noise_models as nm
 from graphiq.backends.density_matrix.compiler import DensityMatrixCompiler
 from graphiq.backends.stabilizer.compiler import StabilizerCompiler
 from graphiq.backends.stabilizer.state import Stabilizer, MixedStabilizer
+from graphiq.circuit.circuit_dag import CircuitDAG
 from graphiq.metrics import Infidelity
 
 

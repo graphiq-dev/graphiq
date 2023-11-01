@@ -11,7 +11,6 @@ from graphiq.visualizers.solver_logs import plot_solver_logs
 
 from benchmarks.pipeline import benchmark, run_combinations
 
-
 if __name__ == "__main__":
     # %% provide all combinations of solvers, targets, compilers, and metrics to run as a list
     solvers = [

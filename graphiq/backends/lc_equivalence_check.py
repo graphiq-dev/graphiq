@@ -154,9 +154,10 @@ This is repeated until no more eligible element can be found in the diagonal of 
 
 """
 
-import numpy as np
-import networkx as nx
 from itertools import combinations, permutations
+
+import networkx as nx
+import numpy as np
 
 import graphiq.backends.stabilizer.functions.linalg as slinalg
 
@@ -201,7 +202,7 @@ def is_lc_equivalent(adj_matrix1, adj_matrix2, mode="deterministic", seed=0):
     # update the matrix to remove zero rows
     reduced_coeff_matrix = np.array([row for row in reduced_coeff_matrix if row.any()])
     assert (
-        np.shape(reduced_coeff_matrix)[0] == rank
+            np.shape(reduced_coeff_matrix)[0] == rank
     ), "The number of remaining rows is less than the rank!"
     # rank = np.shape(reduced_coeff_matrix)[0]
 
@@ -215,7 +216,7 @@ def is_lc_equivalent(adj_matrix1, adj_matrix2, mode="deterministic", seed=0):
     solution_basis = _solution_basis_finder(reduced_coeff_matrix, col_list)
     if len(solution_basis) < 5:
         basis_dimension = len(solution_basis)
-        all_solutions = [*range(2**basis_dimension)]
+        all_solutions = [*range(2 ** basis_dimension)]
         all_solutions = [list(format(i, f"0{basis_dimension}b")) for i in all_solutions]
         all_solutions = np.array(all_solutions).astype(int)
         all_solutions = all_solutions.T
@@ -270,7 +271,7 @@ def _solution_basis_finder(reduced_coeff_matrix, col_list):
     :param reduced_coeff_matrix: an echelon form matrix of the coefficients in the system of linear equations.
     :type reduced_coeff_matrix: numpy.ndarray
     :param col_list: list of the columns' indices in the coefficient matrix that are linearly dependent.
-    :type col_list: list[int]
+    :type col_list: list[int] or numpy.ndarray
     :raises AssertionError: if the solution basis found is wrong
     :return: an array containing the elements of the total Clifford operation needed to convert one graph to another.
     :rtype: numpy.ndarray
@@ -317,7 +318,7 @@ def _random_checker(reduced_coeff_matrix, col_list, trial_count=10000, seed=0):
     :param reduced_coeff_matrix: an echelon form matrix of the coefficients in the system of linear equations.
     :type reduced_coeff_matrix: numpy.ndarray
     :param col_list: list of the columns' indices in the coefficient matrix that are linearly dependent.
-    :type col_list: list[int]
+    :type col_list: list[int] or numpy.ndarray
     :param trial_count: the number of trials
     :type trial_count: int
     :param seed: set the random seed for the random search approach
@@ -371,8 +372,8 @@ def _vec_solution_finder(reduced_coeff_matrix, col_list, var_vec):
 
     b_nonhomogeneous = (reduced_coeff_matrix @ var_vec) % 2
     x_unknown_part_of_a_basis_vector = (
-        (np.linalg.inv(a_square_reduced_coeff_matrix)) % 2 @ b_nonhomogeneous
-    ) % 2
+                                               (np.linalg.inv(a_square_reduced_coeff_matrix)) % 2 @ b_nonhomogeneous
+                                       ) % 2
 
     # the full var_vec is now the x vector inserted to the var_vec vector to make all 4*n elements
     counter = 0
@@ -401,8 +402,8 @@ def _is_valid_clifford(vector):
     checklist = []
     for i in range(n):
         determinant_of_clifford = (
-            vector_reshaped[i][0, 0] * vector_reshaped[i][1, 1]
-        ) + (vector_reshaped[i][0, 1] * vector_reshaped[i][1, 0])
+                                          vector_reshaped[i][0, 0] * vector_reshaped[i][1, 1]
+                                  ) + (vector_reshaped[i][0, 1] * vector_reshaped[i][1, 0])
         checklist.append(int(determinant_of_clifford % 2))
     return all(checklist)
 
@@ -426,7 +427,7 @@ def _coeff_maker(z1_matrix, z2_matrix):
     n_nodes = np.shape(z1_matrix)[0]
     assert n_nodes == np.shape(z2_matrix)[0], "graphs must be of same size"
 
-    coeff_matrix = np.zeros((n_nodes**2, 4 * n_nodes)).astype(int)
+    coeff_matrix = np.zeros((n_nodes ** 2, 4 * n_nodes)).astype(int)
     for j in range(n_nodes):
         for k in range(n_nodes):
             for m in range(n_nodes):
@@ -629,14 +630,14 @@ def local_comp_graph(input_graph, node_id):
     gamma_matrix[node_id, node_id] = 1
 
     new_adj_matrix = (
-        adj_matrix
-        @ (
-            gamma_matrix @ adj_matrix
-            + adj_matrix[node_id, node_id] * gamma_matrix
-            + identity
-        )
-        % 2
-    ) % 2
+                             adj_matrix
+                             @ (
+                                     gamma_matrix @ adj_matrix
+                                     + adj_matrix[node_id, node_id] * gamma_matrix
+                                     + identity
+                             )
+                             % 2
+                     ) % 2
     for j in range(n_nodes):
         new_adj_matrix[j, j] = 0
     new_graph = nx.to_networkx_graph(new_adj_matrix)
@@ -654,7 +655,7 @@ def _R_matrix(adj_matrix, solution):
     :param adj_matrix: The adjacency matrix of the first graph.
         This is equal to the binary matrix for representing Pauli Z
         part of the symplectic binary representation of the stabilizer generators
-    :type adj_matrix: networkx.Graph
+    :type adj_matrix: numpy.ndarray
     :param solution: an array of single-qubit Clifford :math:`2 \\times 2` matrices in the symplectic formalism
     :type solution: numpy.ndarray
     :return: the R matrix
@@ -687,10 +688,10 @@ def _apply_f(r_matrix, i):
     gamma_matrix = np.zeros((n_nodes, n_nodes))
     gamma_matrix[i, i] = 1
     r_matrix = (
-        r_matrix
-        @ (gamma_matrix @ r_matrix + r_matrix[i, i] * gamma_matrix + identity)
-        % 2
-    ) % 2
+                       r_matrix
+                       @ (gamma_matrix @ r_matrix + r_matrix[i, i] * gamma_matrix + identity)
+                       % 2
+               ) % 2
     return r_matrix
 
 
@@ -708,7 +709,7 @@ def _singles(r_matrix):
     singles_list = []
     for i in range(n_nodes):
         if r_matrix[i, i] == 1 and (
-            not np.array_equal(r_matrix[i], np.eye(n_nodes)[i])
+                not np.array_equal(r_matrix[i], np.eye(n_nodes)[i])
         ):
             singles_list.append(i)
             r_matrix = _apply_f(r_matrix, i)
@@ -752,7 +753,7 @@ def _condition(r_matrix):
     cond = False
     for i in range(n_nodes):
         cond = cond or (
-            r_matrix[i, i] == 1
-            and (not (np.array_equal(r_matrix[i].astype(int), np.eye(n_nodes)[i])))
+                r_matrix[i, i] == 1
+                and (not (np.array_equal(r_matrix[i].astype(int), np.eye(n_nodes)[i])))
         )
     return cond

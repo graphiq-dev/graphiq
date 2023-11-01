@@ -6,12 +6,12 @@ Functions that help calculation of various metrics in the stabilizer backend
 import numpy as np
 
 import graphiq.backends.stabilizer.functions.transformation as transform
+from graphiq.backends.stabilizer.clifford_tableau import CliffordTableau
+from graphiq.backends.stabilizer.functions.linalg import row_sum
 from graphiq.backends.stabilizer.functions.stabilizer import (
     canonical_form,
     inverse_circuit,
 )
-from graphiq.backends.stabilizer.functions.linalg import row_sum
-from graphiq.backends.stabilizer.clifford_tableau import CliffordTableau
 
 
 def fidelity(tableau1, tableau2):
@@ -88,9 +88,9 @@ def inner_product(tableau1, tableau2):
                     n_qubits,
                 )
             if (
-                np.array_equal(x_matrix[-1], x2_matrix[i])
-                and np.array_equal(z_matrix[-1], z2_matrix[i])
-                and r_vector[-1] != r2_vector[i]
+                    np.array_equal(x_matrix[-1], x2_matrix[i])
+                    and np.array_equal(z_matrix[-1], z2_matrix[i])
+                    and r_vector[-1] != r2_vector[i]
             ):
                 # if R = - Q for Q being a generator of the second state
                 return 0

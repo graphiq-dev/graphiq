@@ -1,7 +1,9 @@
-from abc import ABC
-import numpy as np
-import graphiq.backends.stabilizer.functions.utils as sfu
 import copy
+from abc import ABC
+
+import numpy as np
+
+import graphiq.backends.stabilizer.functions.utils as sfu
 
 
 class TableauBase(ABC):
@@ -123,7 +125,7 @@ class StabilizerTableau(TableauBase):
         :return: the table that contains stabilizer generators for X part
         :rtype: numpy.ndarray
         """
-        return self._table[:, 0 : self.n_qubits]
+        return self._table[:, 0: self.n_qubits]
 
     @x_matrix.setter
     def x_matrix(self, value):
@@ -135,7 +137,7 @@ class StabilizerTableau(TableauBase):
         :return:
         """
         assert value.shape == (self.n_qubits, self.n_qubits)
-        self._table[:, 0 : self.n_qubits] = value.astype(int)
+        self._table[:, 0: self.n_qubits] = value.astype(int)
 
     @property
     def z_matrix(self):
@@ -145,7 +147,7 @@ class StabilizerTableau(TableauBase):
         :return: the table that contains stabilizer generators for Z part
         :rtype: numpy.ndarray
         """
-        return self._table[:, self.n_qubits : 2 * self.n_qubits]
+        return self._table[:, self.n_qubits: 2 * self.n_qubits]
 
     @z_matrix.setter
     def z_matrix(self, value):
@@ -158,7 +160,7 @@ class StabilizerTableau(TableauBase):
         :rtype: None
         """
         assert value.shape == (self.n_qubits, self.n_qubits)
-        self._table[:, self.n_qubits : 2 * self.n_qubits] = value.astype(int)
+        self._table[:, self.n_qubits: 2 * self.n_qubits] = value.astype(int)
 
     def __str__(self):
         """

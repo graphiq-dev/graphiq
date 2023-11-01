@@ -1,17 +1,15 @@
-import pytest
 import matplotlib.pyplot as plt
-import numpy as np
+import pytest
+
 import graphiq.backends.stabilizer.functions.stabilizer as sfs
 from benchmarks.circuits import *
-from tests.test_flags import visualization
-from graphiq.solvers.evolutionary_solver import EvolutionarySolver
 from graphiq.backends.density_matrix.compiler import DensityMatrixCompiler
 from graphiq.backends.stabilizer.compiler import StabilizerCompiler
-
-from graphiq.metrics import Infidelity
-from graphiq.state import QuantumState
 from graphiq.io import IO
+from graphiq.metrics import Infidelity
+from graphiq.solvers.evolutionary_solver import EvolutionarySolver
 from graphiq.visualizers.density_matrix import density_matrix_bars
+from tests.test_flags import visualization
 
 
 @pytest.fixture(scope="module")
@@ -188,7 +186,7 @@ def test_solver_ghz3(ghz3_run, ghz3_expected, density_matrix_compiler):
 
 
 def test_solver_ghz3_stabilizer(
-    ghz3_run_stabilizer, ghz3_expected, stabilizer_compiler
+        ghz3_run_stabilizer, ghz3_expected, stabilizer_compiler
 ):
     check_run(ghz3_run_stabilizer, ghz3_expected)
 

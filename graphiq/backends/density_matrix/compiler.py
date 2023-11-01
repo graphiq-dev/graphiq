@@ -3,10 +3,10 @@ Compilation tools for simulating a circuit with a purely Density Matrix based ba
 """
 
 import graphiq.backends.density_matrix.functions as dm
-from graphiq.circuit import ops as ops
+import graphiq.noise.noise_models as nm
 from graphiq.backends.compiler_base import CompilerBase
 from graphiq.backends.density_matrix.state import DensityMatrix
-import graphiq.noise.noise_models as nm
+from graphiq.circuit import ops as ops
 
 
 class DensityMatrixCompiler(CompilerBase):
@@ -70,7 +70,7 @@ class DensityMatrixCompiler(CompilerBase):
         :rtype: None
         """
         assert (
-            op.__class__ in self.ops.keys()
+                op.__class__ in self.ops.keys()
         ), f"{op.__class__} is not a valid operation for this compiler"
         state = state.rep_data
 
@@ -156,7 +156,7 @@ class DensityMatrixCompiler(CompilerBase):
             )
 
     def compile_one_noisy_gate(
-        self, state, op, n_quantum, q_index, classical_registers
+            self, state, op, n_quantum, q_index, classical_registers
     ):
         """
         Compile one noisy gate

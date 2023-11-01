@@ -1,7 +1,8 @@
 import pytest
+
+from benchmarks.circuits import *
 from graphiq.utils.draw import Columns
 from graphiq.utils.draw import Painter
-from benchmarks.circuits import *
 
 
 # Test Columns class
@@ -92,46 +93,46 @@ def test_painter_add_register_error():
     "gate_name, qargs, params, controls, expected_output",
     [
         (
-            "H",
-            ["p[1]"],
-            {},
-            [],
-            {
-                "type": "gate",
-                "gate_name": "H",
-                "params": {},
-                "qargs": ["p[1]"],
-                "controls": [],
-                "col": 0,
-            },
+                "H",
+                ["p[1]"],
+                {},
+                [],
+                {
+                    "type": "gate",
+                    "gate_name": "H",
+                    "params": {},
+                    "qargs": ["p[1]"],
+                    "controls": [],
+                    "col": 0,
+                },
         ),
         (
-            "CX",
-            ["p[1]"],
-            {},
-            ["p[2]"],
-            {
-                "type": "gate",
-                "gate_name": "CX",
-                "params": {},
-                "qargs": ["p[1]"],
-                "controls": ["p[2]"],
-                "col": 0,
-            },
+                "CX",
+                ["p[1]"],
+                {},
+                ["p[2]"],
+                {
+                    "type": "gate",
+                    "gate_name": "CX",
+                    "params": {},
+                    "qargs": ["p[1]"],
+                    "controls": ["p[2]"],
+                    "col": 0,
+                },
         ),
         (
-            "RX",
-            ["p[1]"],
-            {"theta": "pi/2"},
-            [],
-            {
-                "type": "gate",
-                "gate_name": "RX",
-                "params": {"theta": "pi/2"},
-                "qargs": ["p[1]"],
-                "controls": [],
-                "col": 0,
-            },
+                "RX",
+                ["p[1]"],
+                {"theta": "pi/2"},
+                [],
+                {
+                    "type": "gate",
+                    "gate_name": "RX",
+                    "params": {"theta": "pi/2"},
+                    "qargs": ["p[1]"],
+                    "controls": [],
+                    "col": 0,
+                },
         ),
     ],
 )
@@ -148,7 +149,7 @@ def test_painter_add_gate_error():
     painter.add_register("p", 4)
 
     with pytest.raises(
-        ValueError, match="Gate that act on multi-qargs is not supported yet."
+            ValueError, match="Gate that act on multi-qargs is not supported yet."
     ):
         gate_info = painter.add_gate("test", ["p[1]", "p[2]"])
 
@@ -208,8 +209,8 @@ def test_add_classical_error():
     painter.add_register("c", 4, "creg")
 
     with pytest.raises(
-        ValueError,
-        match="Multiple qubits gate is not supported in classical control right now",
+            ValueError,
+            match="Multiple qubits gate is not supported in classical control right now",
     ):
         classical_control_info = painter.add_classical_control(
             creg="c[4]", gate_name="X", qargs=["p[1]", "p[2]"]

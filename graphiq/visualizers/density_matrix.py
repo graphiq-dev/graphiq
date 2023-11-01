@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
-import seaborn as sns
-import qutip as qt
 import numpy as np
+import qutip as qt
+import seaborn as sns
 
 cmap_uni = sns.color_palette("crest", as_cmap=True)
 cmap_div = sns.diverging_palette(220, 20, as_cmap=True)
@@ -81,10 +81,10 @@ def density_matrix_bars(rho):
         labels = ["" for tick in ticks]
         if n_qubits < 3:
             labels[0] = (
-                r"$\vert" + "".join(["0" for i in range(n_qubits)]) + r"\rangle$"
+                    r"$\vert" + "".join(["0" for i in range(n_qubits)]) + r"\rangle$"
             )
             labels[-1] = (
-                r"$\vert" + "".join(["1" for i in range(n_qubits)]) + r"\rangle$"
+                    r"$\vert" + "".join(["1" for i in range(n_qubits)]) + r"\rangle$"
             )
         else:
             labels[0] = r"$\vert 00...0\rangle$"

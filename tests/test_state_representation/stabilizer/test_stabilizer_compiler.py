@@ -1,10 +1,11 @@
 import pytest
-from benchmarks.circuits import *
-from graphiq.backends.stabilizer.tableau import *
-from graphiq.backends.stabilizer.compiler import StabilizerCompiler
-import graphiq.backends.state_rep_conversion as rc
+
 import graphiq.backends.stabilizer.functions.stabilizer as sfs
+import graphiq.backends.state_rep_conversion as rc
 import graphiq.circuit.ops as ops
+from benchmarks.circuits import *
+from graphiq.backends.stabilizer.compiler import StabilizerCompiler
+from graphiq.backends.stabilizer.tableau import *
 
 
 @pytest.mark.parametrize(

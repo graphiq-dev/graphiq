@@ -1,9 +1,11 @@
+import math
+
 import pytest
 from qiskit.qasm import Qasm
+
+from graphiq.circuit.circuit_dag import CircuitDAG
 from graphiq.circuit.ops import *
 from graphiq.utils.openqasm_parser import OpenQASMParser
-from graphiq.circuit.circuit_dag import CircuitDAG
-import math
 
 
 @pytest.mark.parametrize(
@@ -52,12 +54,12 @@ def test_parser_parse_creg(creg, expected):
     "gate, expected",
     [
         (
-            "gate h q {U(pi,0,pi) q;}",
-            {"type": "gate", "name": "h", "params": [], "qargs": ["q"]},
+                "gate h q {U(pi,0,pi) q;}",
+                {"type": "gate", "name": "h", "params": [], "qargs": ["q"]},
         ),
         (
-            "gate rx(theta) q {U(pi/2,theta,pi/2) q;}",
-            {"type": "gate", "name": "rx", "params": ["theta"], "qargs": ["q"]},
+                "gate rx(theta) q {U(pi/2,theta,pi/2) q;}",
+                {"type": "gate", "name": "rx", "params": ["theta"], "qargs": ["q"]},
         ),
     ],
 )

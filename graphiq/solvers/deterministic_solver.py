@@ -28,15 +28,15 @@ class DeterministicSolver(SolverBase):
     one_qubit_ops = list(ops.one_qubit_cliffords())
 
     def __init__(
-            self,
-            target,
-            metric: MetricBase,
-            compiler: CompilerBase,
-            circuit: CircuitDAG = None,
-            io: IO = None,
-            noise_model_mapping=None,
-            *args,
-            **kwargs,
+        self,
+        target,
+        metric: MetricBase,
+        compiler: CompilerBase,
+        circuit: CircuitDAG = None,
+        io: IO = None,
+        noise_model_mapping=None,
+        *args,
+        **kwargs,
     ):
         """
         Initialize a DeterministicSolver object
@@ -116,11 +116,11 @@ class DeterministicSolver(SolverBase):
 
         # make sure that all photonic qubits are in the |0> state
         assert np.array_equal(
-            stabilizer_tableau.x_matrix[0: self.n_photon, 0: self.n_photon],
+            stabilizer_tableau.x_matrix[0 : self.n_photon, 0 : self.n_photon],
             np.zeros((self.n_photon, self.n_photon)),
         )
         assert np.array_equal(
-            stabilizer_tableau.z_matrix[0: self.n_photon, 0: self.n_photon],
+            stabilizer_tableau.z_matrix[0 : self.n_photon, 0 : self.n_photon],
             np.eye(self.n_photon),
         )
 
@@ -178,8 +178,8 @@ class DeterministicSolver(SolverBase):
 
         # find the generators that act only on the emitters
         sum_table = (
-                tableau.x_matrix[:, 0: self.n_photon]
-                + tableau.z_matrix[:, 0: self.n_photon]
+            tableau.x_matrix[:, 0 : self.n_photon]
+            + tableau.z_matrix[:, 0 : self.n_photon]
         )
         possible_generators = np.where(~sum_table.any(axis=1))[0]
 
@@ -443,7 +443,7 @@ class DeterministicSolver(SolverBase):
         circuit.insert_at(gate, [edge0, edge1])
 
     def _transform_generator_emitters(
-            self, circuit, tableau, generator_index, emitter_index
+        self, circuit, tableau, generator_index, emitter_index
     ):
         """
         Transform a given generator such that it contains only one Pauli Z on emitter qubits
@@ -465,7 +465,7 @@ class DeterministicSolver(SolverBase):
 
         # only Z
         assert not np.any(tableau.x_matrix[generator_index])
-        emitters = np.nonzero(tableau.z_matrix[generator_index, self.n_photon:])[0]
+        emitters = np.nonzero(tableau.z_matrix[generator_index, self.n_photon :])[0]
         target_emitter = emitter_index
         rest_emitters = np.setdiff1d(emitters, [target_emitter])
         for control_emitter in rest_emitters:
@@ -500,7 +500,7 @@ class DeterministicSolver(SolverBase):
             return 0
 
         assert not np.any(tableau.x_matrix[generator_index])
-        emitters = np.nonzero(tableau.z_matrix[generator_index, self.n_photon:])[0]
+        emitters = np.nonzero(tableau.z_matrix[generator_index, self.n_photon :])[0]
         while len(emitters) > 1:
             # find two emitters with ZZ in the generator specified by generator_index
             # if multiple, find these two with the shortest circuit depths
@@ -516,7 +516,7 @@ class DeterministicSolver(SolverBase):
                 self.n_photon + target_emitter,
             )
 
-            emitters = np.nonzero(tableau.z_matrix[generator_index, self.n_photon:])[0]
+            emitters = np.nonzero(tableau.z_matrix[generator_index, self.n_photon :])[0]
         return int(emitters[0])
 
     def _add_emitter_photon_cnot(self, circuit, emitter_index, photon_index):
@@ -557,8 +557,8 @@ class DeterministicSolver(SolverBase):
         """
 
         generator_sum = (
-                tableau.x_matrix[generator_index, self.n_photon:]
-                + tableau.z_matrix[generator_index, self.n_photon:]
+            tableau.x_matrix[generator_index, self.n_photon :]
+            + tableau.z_matrix[generator_index, self.n_photon :]
         )
         return np.nonzero(generator_sum)[0]
 

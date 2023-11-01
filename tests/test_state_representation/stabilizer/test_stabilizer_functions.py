@@ -155,7 +155,7 @@ def test_stabilizer_fidelity():
     tableau1 = sfc.create_n_plus_state(4)
     tableau2 = sfc.create_n_ket0_state(4)
     tableau3 = sfc.create_n_ket1_state(4)
-    assert sfm.fidelity(tableau1, tableau2) == 0.25 ** 2
+    assert sfm.fidelity(tableau1, tableau2) == 0.25**2
     assert sfm.fidelity(tableau1, tableau1) == 1.0
     assert sfm.fidelity(tableau2, tableau3) == 0.0
 

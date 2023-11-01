@@ -250,7 +250,7 @@ class Painter:
             self._columns.expand_cols(size=1)
 
     def add_gate(
-            self, gate_name: str, qargs: list, params: dict = None, controls: list = None
+        self, gate_name: str, qargs: list, params: dict = None, controls: list = None
     ):
         """
         Add a gate to in the Painter class. This function constructs the correct position to draw the gate in a
@@ -379,7 +379,7 @@ class Painter:
 
     # Classical control gate
     def add_classical_control(
-            self, creg, gate_name: str, qargs: list, params: dict = None
+        self, creg, gate_name: str, qargs: list, params: dict = None
     ):
         """
         Add classical control to the Painter class. The function constructs visualization info for classical control
@@ -496,10 +496,10 @@ class Painter:
                 self.add_gate(str.upper(node["name"]), qargs)
             if node["type"] == "cnot":
                 qargs = (
-                        node["target"]["name"] + "[" + str(node["target"]["index"]) + "]"
+                    node["target"]["name"] + "[" + str(node["target"]["index"]) + "]"
                 )
                 controls = (
-                        node["control"]["name"] + "[" + str(node["control"]["index"]) + "]"
+                    node["control"]["name"] + "[" + str(node["control"]["index"]) + "]"
                 )
                 self.add_gate(gate_name="CX", qargs=[qargs], controls=[controls])
             if node["type"] == "measure":
@@ -514,7 +514,7 @@ class Painter:
                     )
                 else:
                     for i in range(
-                            parser.get_register_size(node["qreg"]["name"], "qreg")
+                        parser.get_register_size(node["qreg"]["name"], "qreg")
                     ):
                         qreg = self.to_reg_label(node["qreg"]["name"], i)
                         creg = self.to_reg_label(node["creg"]["name"], creg_size)
@@ -535,10 +535,10 @@ class Painter:
                 self.add_barriers(qreg_list)
             if node["type"] == "if":
                 creg = (
-                        node["creg"]["name"]
-                        + "["
-                        + str(parser.ast["def"]["creg"][node["creg"]["name"]]["size"])
-                        + "]"
+                    node["creg"]["name"]
+                    + "["
+                    + str(parser.ast["def"]["creg"][node["creg"]["name"]]["size"])
+                    + "]"
                 )
                 qargs = [
                     self.to_reg_label(

@@ -27,16 +27,16 @@ class GradientDescentSolver(SolverBase):
     name = "gradient-descent-solver"
 
     def __init__(
-            self,
-            metric: MetricBase,
-            compiler: CompilerBase,
-            circuit: CircuitDAG = None,
-            io: IO = None,
-            optimizer=None,
-            n_step=30,
-            progress=True,
-            *args,
-            **kwargs,
+        self,
+        metric: MetricBase,
+        compiler: CompilerBase,
+        circuit: CircuitDAG = None,
+        io: IO = None,
+        optimizer=None,
+        n_step=30,
+        progress=True,
+        *args,
+        **kwargs,
     ):
         """ """
         super().__init__(
@@ -56,7 +56,7 @@ class GradientDescentSolver(SolverBase):
 
     @staticmethod
     def compute_cost(
-            params: dict, circuit: CircuitBase, compiler: CompilerBase, metric: MetricBase
+        params: dict, circuit: CircuitBase, compiler: CompilerBase, metric: MetricBase
     ):
         """
         Wrapper for simulating and evaluating parameter values.
@@ -94,7 +94,7 @@ class GradientDescentSolver(SolverBase):
         cost_curve = []
         grad = jax.grad(self.compute_cost)
         for step in (
-                pbar := tqdm.tqdm(range(self.n_step), disable=(not self.progress))
+            pbar := tqdm.tqdm(range(self.n_step), disable=(not self.progress))
         ):
             cost = self.compute_cost(params, self.circuit, self.compiler, self.metric)
             gradient = grad(params, self.circuit, self.compiler, self.metric)

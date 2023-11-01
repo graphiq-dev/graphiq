@@ -81,10 +81,10 @@ def density_matrix_bars(rho):
         labels = ["" for tick in ticks]
         if n_qubits < 3:
             labels[0] = (
-                    r"$\vert" + "".join(["0" for i in range(n_qubits)]) + r"\rangle$"
+                r"$\vert" + "".join(["0" for i in range(n_qubits)]) + r"\rangle$"
             )
             labels[-1] = (
-                    r"$\vert" + "".join(["1" for i in range(n_qubits)]) + r"\rangle$"
+                r"$\vert" + "".join(["1" for i in range(n_qubits)]) + r"\rangle$"
             )
         else:
             labels[0] = r"$\vert 00...0\rangle$"

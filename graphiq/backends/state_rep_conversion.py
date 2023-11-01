@@ -74,7 +74,7 @@ def _density_to_graph_pure(input_matrix, threshold=0.1):
     :rtype: numpy.ndarray
     """
     if isinstance(
-            input_matrix, (np.ndarray, dmnp.ndarray)
+        input_matrix, (np.ndarray, dmnp.ndarray)
     ):  # check if numpy array or numpy/jax array
         rho = input_matrix
     else:
@@ -280,10 +280,10 @@ def _stabilizer_to_density_pure(input_stabilizer):
     """
     n_qubits = input_stabilizer.n_qubits
     generator_string = input_stabilizer.to_labels()
-    rho = np.eye(2 ** n_qubits)
+    rho = np.eye(2**n_qubits)
     for generator in generator_string:
         stabilizer_elem = sfu.get_stabilizer_element_by_string(generator)
-        rho = np.matmul(rho, (stabilizer_elem + np.eye(2 ** n_qubits)) / 2)
+        rho = np.matmul(rho, (stabilizer_elem + np.eye(2**n_qubits)) / 2)
 
     return rho
 

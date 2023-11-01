@@ -41,7 +41,7 @@ def test_depolarizing_noise():
     )
 
     kraus_ops = [
-        np.sqrt(1 - depolarizing_prob) * np.eye(2 ** n_quantum),
+        np.sqrt(1 - depolarizing_prob) * np.eye(2**n_quantum),
         kraus_x,
         kraus_y,
         kraus_z,

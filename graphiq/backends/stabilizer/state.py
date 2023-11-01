@@ -104,7 +104,7 @@ class Stabilizer(StateRepresentationBase):
         transform.run_circuit(self._tableau, gate_list_str, reverse=reverse)
 
     def apply_measurement(
-            self, qubit_position, measurement_determinism="probabilistic"
+        self, qubit_position, measurement_determinism="probabilistic"
     ):
         """
         Apply the measurement in the computational basis to a given qubit
@@ -124,7 +124,7 @@ class Stabilizer(StateRepresentationBase):
         return outcome
 
     def apply_x_measurement(
-            self, qubit_position, measurement_determinism="probabilistic"
+        self, qubit_position, measurement_determinism="probabilistic"
     ):
         """
         Apply the measurement in the computational basis to a given qubit
@@ -270,7 +270,7 @@ class Stabilizer(StateRepresentationBase):
         )
 
     def trace_out_qubits(
-            self, qubit_positions, measurement_determinism="probabilistic"
+        self, qubit_positions, measurement_determinism="probabilistic"
     ):
         """
         Trace out qubits after disentangling them from the rest
@@ -401,7 +401,7 @@ class MixedStabilizer(StateRepresentationBase):
                 for (p_i, t_i) in value
             )
             assert (
-                    len(set([t_i.n_qubits for p_i, t_i in value])) == 1
+                len(set([t_i.n_qubits for p_i, t_i in value])) == 1
             )  # all tableaux are same number of qubits
             self._mixture = value
 
@@ -511,7 +511,7 @@ class MixedStabilizer(StateRepresentationBase):
                 self._mixture[i] = (p_i, trans(t_i, qubit_position))
 
     def apply_measurement(
-            self, qubit_position, measurement_determinism="probabilistic"
+        self, qubit_position, measurement_determinism="probabilistic"
     ):
         """
         Apply the measurement in the computational basis to a given qubit. For the MixedStabilizer state,
@@ -688,7 +688,7 @@ class MixedStabilizer(StateRepresentationBase):
         ]
 
     def trace_out_qubits(
-            self, qubit_positions, measurement_determinism="probabilistic"
+        self, qubit_positions, measurement_determinism="probabilistic"
     ):
         """
         Trace out qubits after disentangling them from the rest

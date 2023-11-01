@@ -23,7 +23,7 @@ class NoisyEnsemble:
     """
 
     def __init__(
-            self, circ, noisy_regs=None, noise_parameters=None, gate_duration_dict=None
+        self, circ, noisy_regs=None, noise_parameters=None, gate_duration_dict=None
     ):
         """
         Creates a NoisyEnsemble object that allows an ideal circuit to turn into a noisy one by inserting errors to the
@@ -72,7 +72,7 @@ class NoisyEnsemble:
 
     @staticmethod
     def to_event_tree(
-            prob_tree_found, reg=0, reg_type="e", noise_type="x"
+        prob_tree_found, reg=0, reg_type="e", noise_type="x"
     ):  # turn it to the NoiseEvent class instance
         """
         A helper function that translate the output of the prob_tree_finder function into a list of NoiseEvent objects.
@@ -377,7 +377,7 @@ def multi_reg_nodes(circ, node_list):
 
 
 def reg_as_control(
-        circ, node_list, reg, reg_type
+    circ, node_list, reg, reg_type
 ):  # find the multi-reg gates where the control register is the reg
     """
     Given a certain register and a list of nodes in a circuit DAG, it returns nodes in the list that have the given
@@ -398,8 +398,8 @@ def reg_as_control(
     origin_nodes = []
     for nod in multi_nodes:
         if (
-                circ.dag.nodes[nod]["op"].control == reg
-                and circ.dag.nodes[nod]["op"].control_type == reg_type
+            circ.dag.nodes[nod]["op"].control == reg
+            and circ.dag.nodes[nod]["op"].control_type == reg_type
         ):
             origin_nodes.append(nod)
     return origin_nodes
@@ -574,7 +574,7 @@ def cut_off_counter(cut_off_prob, time, rate):
 
 
 def prob_tree_finder(
-        circ, list_of_sections, error_rate, cut_off_prob, gate_duration_dict
+    circ, list_of_sections, error_rate, cut_off_prob, gate_duration_dict
 ):
     """
     Given a list of sections, this function calculated all possible needed outcomes in a probability tree, where each

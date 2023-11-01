@@ -62,8 +62,8 @@ class QuantumState:
             )
         if rep_type is None:
             if (
-                    self.n_qubits < DENSITY_MATRIX_QUBIT_THRESH
-                    and DensityMatrix.valid_datatype(data)
+                self.n_qubits < DENSITY_MATRIX_QUBIT_THRESH
+                and DensityMatrix.valid_datatype(data)
             ):
                 self._rep_data = self._initialize_dm(data)
             elif Stabilizer.valid_datatype(data):
@@ -153,7 +153,7 @@ class QuantumState:
         else:
             dm = DensityMatrix(data)
 
-        assert dm.data.shape[0] == dm.data.shape[1] == 2 ** self.n_qubits
+        assert dm.data.shape[0] == dm.data.shape[1] == 2**self.n_qubits
         return dm
 
     def _initialize_graph(self, data):
@@ -361,7 +361,7 @@ class QuantumState:
             n_qubits = data
         elif isinstance(data, np.ndarray):
             assert (
-                    data.shape[0] == data.shape[1]
+                data.shape[0] == data.shape[1]
             ), "Input data is a matrix but it is not a square matrix."
             n_qubits = int(np.log2(data.shape[0]))
         elif isinstance(data, CliffordTableau):
@@ -372,7 +372,7 @@ class QuantumState:
             n_qubits = len(data)
         elif isinstance(data, list):
             if isinstance(data[0][1], CliffordTableau) or isinstance(
-                    data[0][1], nx.Graph
+                data[0][1], nx.Graph
             ):
                 n_qubits = data[0][1].n_qubits
             else:

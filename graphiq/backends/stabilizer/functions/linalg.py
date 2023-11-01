@@ -97,7 +97,7 @@ def multiply_columns(matrix_one, matrix_two, first_col, second_col):
     assert n_rows1 == n_rows2
 
     assert (
-            first_col < n_columns1 and second_col < n_columns2
+        first_col < n_columns1 and second_col < n_columns2
     ), "the specified column index is out of range in one of the matrices"
 
     resulting_col = np.multiply(matrix_one[:, first_col], matrix_two[:, second_col])

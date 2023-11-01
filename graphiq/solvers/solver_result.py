@@ -192,7 +192,7 @@ class SolverResult:
             "The circuits in the loaded result object are now openqasm strings!"
         )
         diff = (
-                set(self.properties) - set(loaded_dict.keys()) - {"circuit", "circuit_id"}
+            set(self.properties) - set(loaded_dict.keys()) - {"circuit", "circuit_id"}
         )
         if diff:
             warnings.warn("")

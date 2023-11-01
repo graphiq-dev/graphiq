@@ -194,12 +194,12 @@ def strongly_entangling_layer(n_qubits=3, layers=1):
     """
 
     ket = (
-            1
-            / np.sqrt(2 ** n_qubits)
-            * (
-                    dmf.tensor(n_qubits * [dmf.state_ketz0()])
-                    + dmf.tensor(n_qubits * [dmf.state_ketz1()])
-            )
+        1
+        / np.sqrt(2**n_qubits)
+        * (
+            dmf.tensor(n_qubits * [dmf.state_ketz0()])
+            + dmf.tensor(n_qubits * [dmf.state_ketz1()])
+        )
     )
     state = DensityMatrix(dmf.ket2dm(ket))
     ideal_state = QuantumState(state.data, rep_type="dm")

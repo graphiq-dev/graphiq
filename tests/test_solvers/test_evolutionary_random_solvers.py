@@ -186,7 +186,7 @@ def test_solver_ghz3(ghz3_run, ghz3_expected, density_matrix_compiler):
 
 
 def test_solver_ghz3_stabilizer(
-        ghz3_run_stabilizer, ghz3_expected, stabilizer_compiler
+    ghz3_run_stabilizer, ghz3_expected, stabilizer_compiler
 ):
     check_run(ghz3_run_stabilizer, ghz3_expected)
 

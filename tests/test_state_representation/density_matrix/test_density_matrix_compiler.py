@@ -10,7 +10,10 @@ from graphiq.backends.density_matrix import numpy as np
 from graphiq.backends.density_matrix.compiler import DensityMatrixCompiler
 from graphiq.backends.density_matrix.functions import partial_trace, fidelity
 from graphiq.circuit.circuit_dag import CircuitDAG
-from graphiq.visualizers.density_matrix import density_matrix_bars, density_matrix_heatmap
+from graphiq.visualizers.density_matrix import (
+    density_matrix_bars,
+    density_matrix_heatmap,
+)
 from tests.test_flags import visualization
 
 

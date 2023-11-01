@@ -17,7 +17,7 @@ import graphiq.noise.noise_models as noise
 
 
 def search_for_alternative_circuits(
-        graph, noise_model_mapping, metric_class, solver_setting, random_seed=1
+    graph, noise_model_mapping, metric_class, solver_setting, random_seed=1
 ):
     """
     Run arbitrary input graph state with noise simulation using the given metric. It first calls the deterministic
@@ -84,7 +84,7 @@ def search_for_alternative_circuits(
         alternate_circuit = hybrid_solver.hof[i][1]
 
         if alternate_score <= benchmark_score + tolerance and not compare_circuits(
-                benchmark_circuit, alternate_circuit
+            benchmark_circuit, alternate_circuit
         ):
             compiler.noise_simulation = True
             compiled_state = compiler.compile(alternate_circuit)
@@ -250,7 +250,7 @@ def exemplary_test(graph, noise_model_mapping, solver_setting=None, random_seed=
 
 
 def exemplary_multiple_test(
-        graph, noise_model_mapping, random_numbers, solver_setting=None
+    graph, noise_model_mapping, random_numbers, solver_setting=None
 ):
     """
     Run exemplary test multiple times

@@ -25,15 +25,15 @@ class HybridEvolutionarySolver(EvolutionarySolver):
     name = "hybrid evolutionary-search"
 
     def __init__(
-            self,
-            target,
-            metric: MetricBase,
-            compiler: CompilerBase,
-            io: IO = None,
-            solver_setting=EvolutionarySolverSetting(),
-            noise_model_mapping=None,
-            *args,
-            **kwargs,
+        self,
+        target,
+        metric: MetricBase,
+        compiler: CompilerBase,
+        io: IO = None,
+        solver_setting=EvolutionarySolverSetting(),
+        noise_model_mapping=None,
+        *args,
+        **kwargs,
     ):
         """
         Initialize a hybrid solver based on DeterministicSolver and EvolutionarySolver

@@ -26,15 +26,15 @@ class EvolutionarySolverSetting(RandomSearchSolverSetting):
     """
 
     def __init__(
-            self,
-            n_hof=5,
-            n_stop=50,
-            n_pop=50,
-            tournament_k=2,
-            selection_active=False,
-            use_adapt_probability=False,
-            verbose=False,
-            save_openqasm: str = "none",
+        self,
+        n_hof=5,
+        n_stop=50,
+        n_pop=50,
+        tournament_k=2,
+        selection_active=False,
+        use_adapt_probability=False,
+        verbose=False,
+        save_openqasm: str = "none",
     ):
         super().__init__(n_hof=n_hof, n_stop=n_stop, n_pop=n_pop)
         self._tournament_k = tournament_k
@@ -108,18 +108,18 @@ class EvolutionarySolver(RandomSearchSolver):
     one_qubit_ops = list(ops.one_qubit_cliffords())
 
     def __init__(
-            self,
-            target,
-            metric: MetricBase,
-            compiler: CompilerBase,
-            circuit: CircuitDAG = None,
-            io: IO = None,
-            n_emitter=1,
-            n_photon=1,
-            solver_setting=EvolutionarySolverSetting(),
-            noise_model_mapping=None,
-            *args,
-            **kwargs,
+        self,
+        target,
+        metric: MetricBase,
+        compiler: CompilerBase,
+        circuit: CircuitDAG = None,
+        io: IO = None,
+        n_emitter=1,
+        n_photon=1,
+        solver_setting=EvolutionarySolverSetting(),
+        noise_model_mapping=None,
+        *args,
+        **kwargs,
     ):
         """
         Initialize an EvolutionarySolver object. When selection_active and use_adapt_probability are False, this solver
@@ -288,7 +288,7 @@ class EvolutionarySolver(RandomSearchSolver):
             self.trans_probs[key] *= 1 / total
 
     def initialization(
-            self, emission_assignment, measurement_assignment, noise_model_mapping=None
+        self, emission_assignment, measurement_assignment, noise_model_mapping=None
     ):
         """
         Initialize a quantum circuit with photon emission, emitter measurements
@@ -598,7 +598,7 @@ class EvolutionarySolver(RandomSearchSolver):
             edge
             for edge in circuit.edge_dict["p"]
             if type(circuit.dag.nodes[edge[0]]["op"]) is ops.CNOT
-               and type(circuit.dag.nodes[edge[1]]["op"]) is not ops.OneQubitGateWrapper
+            and type(circuit.dag.nodes[edge[1]]["op"]) is not ops.OneQubitGateWrapper
         ]
 
         if len(edges) == 0:
@@ -632,8 +632,8 @@ class EvolutionarySolver(RandomSearchSolver):
             edge
             for edge in circuit.edge_dict["e"]
             if type(circuit.dag.nodes[edge[1]]["op"]) is not ops.Output
-               and type(circuit.dag.nodes[edge[0]]["op"]) is not ops.OneQubitGateWrapper
-               and type(circuit.dag.nodes[edge[1]]["op"]) is not ops.OneQubitGateWrapper
+            and type(circuit.dag.nodes[edge[0]]["op"]) is not ops.OneQubitGateWrapper
+            and type(circuit.dag.nodes[edge[1]]["op"]) is not ops.OneQubitGateWrapper
         ]
 
         if len(edges) == 0:
@@ -780,18 +780,18 @@ class EvolutionarySolver(RandomSearchSolver):
             edge
             for edge in circuit.edge_dict["e"]
             if type(circuit.dag.nodes[edge[1]]["op"]) is not ops.Output
-               and type(circuit.dag.nodes[edge[1]]["op"])
-               is not ops.MeasurementCNOTandReset
-               and type(circuit.dag.nodes[edge[0]]["op"]) is not ops.Input
-               and type(circuit.dag.nodes[edge[0]]["op"])
-               is not ops.MeasurementCNOTandReset
+            and type(circuit.dag.nodes[edge[1]]["op"])
+            is not ops.MeasurementCNOTandReset
+            and type(circuit.dag.nodes[edge[0]]["op"]) is not ops.Input
+            and type(circuit.dag.nodes[edge[0]]["op"])
+            is not ops.MeasurementCNOTandReset
         ]
 
         p_edges = [
             edge
             for edge in circuit.edge_dict["p"]
             if type(circuit.dag.nodes[edge[1]]["op"]) is not ops.MeasurementCNOTandReset
-               and type(circuit.dag.nodes[edge[0]]["op"]) is not ops.Input
+            and type(circuit.dag.nodes[edge[0]]["op"]) is not ops.Input
         ]
 
         for edge in e_edges:

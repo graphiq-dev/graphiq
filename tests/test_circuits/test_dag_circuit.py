@@ -64,11 +64,11 @@ def test_add_op_1():
     op_order = dag.sequence()
     # check that topological order is correct
     assert (
-            op_order.index(op_q0_in)
-            < op_order.index(op1)
-            < op_order.index(op2)
-            < op_order.index(op3)
-            < op_order.index(op_q0_out)
+        op_order.index(op_q0_in)
+        < op_order.index(op1)
+        < op_order.index(op2)
+        < op_order.index(op3)
+        < op_order.index(op_q0_out)
     )
     assert op_order.index(op_q1_in) < op_order.index(op4) < op_order.index(op_q1_out)
 
@@ -115,13 +115,13 @@ def test_add_op2():
     assert op_order.index(op_e0_in) < op_order.index(op1) < op_order.index(op2)
     assert op_order.index(op_p0_in) < op_order.index(op2)
     assert (
-            op_order.index(op3)
-            < op_order.index(op2)
-            < op_order.index(op7)
-            < op_order.index(op4)
-            < op_order.index(op5)
-            < op_order.index(op6)
-            < op_order.index(op_e0_out)
+        op_order.index(op3)
+        < op_order.index(op2)
+        < op_order.index(op7)
+        < op_order.index(op4)
+        < op_order.index(op5)
+        < op_order.index(op6)
+        < op_order.index(op_e0_out)
     )
     assert op_order.index(op_c0_in) < op_order.index(op3)
     assert op_order.index(op_c1_in) < op_order.index(op6)
@@ -266,10 +266,10 @@ def test_dynamic_register_2():
     assert op_order.index(op_q0_in) < op_order.index(op3) < op_order.index(op_q0_out)
     assert op_order.index(op_q1_in) < op_order.index(op1) < op_order.index(op_q1_out)
     assert (
-            op_order.index(op_q2_in)
-            < op_order.index(op1)
-            < op_order.index(op2)
-            < op_order.index(op_q2_out)
+        op_order.index(op_q2_in)
+        < op_order.index(op1)
+        < op_order.index(op2)
+        < op_order.index(op_q2_out)
     )
 
     assert dag.n_quantum == 5
@@ -376,10 +376,10 @@ def test_sequence_unwinding():
 
     op_order = dag.sequence()
     assert (
-            op_order.index(op_e0_in)
-            < op_order.index(operation)
-            < op_order.index(op2)
-            < op_order.index(op_e0_out)
+        op_order.index(op_e0_in)
+        < op_order.index(operation)
+        < op_order.index(op2)
+        < op_order.index(op_e0_out)
     )
     assert op_order.index(op_p0_in) < op_order.index(op2) < op_order.index(op_p0_out)
 

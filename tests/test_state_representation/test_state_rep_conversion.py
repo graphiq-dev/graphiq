@@ -190,6 +190,6 @@ def test_graph_to_density_3_linear_cluster():
     # Get density matrix
     rho = rc.graph_to_density(graph)
     # test expected size
-    assert np.size(rho) == 8 ** 2
+    assert np.size(rho) == 8**2
     # Test Hermiticity
     assert (np.conjugate(rho.transpose()) == rho).all()

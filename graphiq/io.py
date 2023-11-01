@@ -60,13 +60,13 @@ class IO:
 
     @classmethod
     def new_directory(
-            cls,
-            path=None,
-            folder="",
-            include_date=False,
-            include_time=False,
-            include_id=False,
-            verbose=True,
+        cls,
+        path=None,
+        folder="",
+        include_date=False,
+        include_time=False,
+        include_id=False,
+        verbose=True,
     ):
         """
 
@@ -110,7 +110,7 @@ class IO:
 
         if include_id:
             _str = (
-                    _str + "_" + "".join(random.choice(string.hexdigits) for _ in range(4))
+                _str + "_" + "".join(random.choice(string.hexdigits) for _ in range(4))
             )
 
         path = path.joinpath(_str)

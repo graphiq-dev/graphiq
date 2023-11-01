@@ -88,9 +88,9 @@ def inner_product(tableau1, tableau2):
                     n_qubits,
                 )
             if (
-                    np.array_equal(x_matrix[-1], x2_matrix[i])
-                    and np.array_equal(z_matrix[-1], z2_matrix[i])
-                    and r_vector[-1] != r2_vector[i]
+                np.array_equal(x_matrix[-1], x2_matrix[i])
+                and np.array_equal(z_matrix[-1], z2_matrix[i])
+                and r_vector[-1] != r2_vector[i]
             ):
                 # if R = - Q for Q being a generator of the second state
                 return 0

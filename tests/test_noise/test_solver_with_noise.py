@@ -22,7 +22,7 @@ def density_matrix_compiler():
 
 
 def generate_run_noise(
-        n_photon, n_emitter, expected_triple, compiler, noise_model_mapping, seed
+    n_photon, n_emitter, expected_triple, compiler, noise_model_mapping, seed
 ):
     target, _, metric = expected_triple
 
@@ -137,9 +137,9 @@ def linear3_run_no_noise(density_matrix_compiler, linear3_expected):
 
 @pytest.fixture(scope="module")
 def linear3_run_trace_distance(
-        density_matrix_compiler,
-        linear3_expected_trace_distance,
-        linear3_noise_model,
+    density_matrix_compiler,
+    linear3_expected_trace_distance,
+    linear3_noise_model,
 ):
     """
     Again, we set the fixture scope to module. Arguably, this is more important than last time because actually
@@ -224,9 +224,9 @@ def linear4_run_no_noise(density_matrix_compiler, linear4_expected):
 
 @pytest.fixture(scope="module")
 def linear4_run_trace_distance(
-        density_matrix_compiler,
-        linear4_expected_trace_distance,
-        linear4_noise_model,
+    density_matrix_compiler,
+    linear4_expected_trace_distance,
+    linear4_noise_model,
 ):
     """
     Again, we set the fixture scope to module. Arguably, this is more important than last time because actually
@@ -289,7 +289,7 @@ def test_solver_linear3(linear3_run_noise, linear3_expected):
 
 
 def test_solver_linear3_trace_distance(
-        linear3_run_trace_distance, linear3_expected_trace_distance
+    linear3_run_trace_distance, linear3_expected_trace_distance
 ):
     check_run(linear3_run_trace_distance, linear3_expected_trace_distance)
 
@@ -317,7 +317,7 @@ def linear3_noise_model_2():
 
 @visualization
 def test_solver_linear3_visualized(
-        linear3_run_no_noise, linear3_run_noise, linear3_expected
+    linear3_run_no_noise, linear3_run_noise, linear3_expected
 ):
     check_run_noise_visual(linear3_run_no_noise, linear3_run_noise, linear3_expected)
 
@@ -349,14 +349,14 @@ def test_solver_linear4(linear4_run_noise, linear4_expected):
 
 
 def test_solver_linear4_trace_distance(
-        linear4_run_trace_distance, linear4_expected_trace_distance
+    linear4_run_trace_distance, linear4_expected_trace_distance
 ):
     check_run(linear4_run_trace_distance, linear4_expected_trace_distance)
 
 
 @visualization
 def test_solver_linear4_visualized(
-        linear4_run_no_noise, linear4_run_noise, linear4_expected
+    linear4_run_no_noise, linear4_run_noise, linear4_expected
 ):
     check_run_noise_visual(linear4_run_no_noise, linear4_run_noise, linear4_expected)
 

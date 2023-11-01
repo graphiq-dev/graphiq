@@ -196,7 +196,7 @@ class StabilizerCompiler(CompilerBase):
             )
 
     def compile_one_noisy_gate(
-            self, state, op, n_quantum, q_index, classical_registers
+        self, state, op, n_quantum, q_index, classical_registers
     ):
         """
         Compile one noisy gate

@@ -10,7 +10,10 @@ from graphiq.backends.density_matrix import numpy as np
 from graphiq.backends.graph.state import Graph
 from graphiq.backends.state_base import StateRepresentationBase
 from graphiq.backends.state_rep_conversion import graph_to_density
-from graphiq.visualizers.density_matrix import density_matrix_heatmap, density_matrix_bars
+from graphiq.visualizers.density_matrix import (
+    density_matrix_heatmap,
+    density_matrix_bars,
+)
 
 
 class DensityMatrix(StateRepresentationBase):
@@ -182,7 +185,7 @@ class DensityMatrix(StateRepresentationBase):
         return outcome
 
     def apply_measurement_controlled_gate(
-            self, projectors, target_gate, measurement_determinism=1
+        self, projectors, target_gate, measurement_determinism=1
     ):
         """
         Apply a measurement, either deterministically (with a certain outcome) or probabilistically

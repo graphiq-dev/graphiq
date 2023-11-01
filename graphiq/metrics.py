@@ -249,7 +249,7 @@ class Metrics(MetricBase):
     }
 
     def __init__(
-            self, metrics_list: list, metric_weight=None, log_steps=1, *args, **kwargs
+        self, metrics_list: list, metric_weight=None, log_steps=1, *args, **kwargs
     ):
         """
         Create a Metrics object which acts as a wrapper around Metric functions
@@ -283,9 +283,9 @@ class Metrics(MetricBase):
         self._metrics = _metrics
 
         if (
-                metric_weight is None
-                or isinstance(metric_weight, list)
-                or isinstance(metric_weight, np.ndarray)
+            metric_weight is None
+            or isinstance(metric_weight, list)
+            or isinstance(metric_weight, np.ndarray)
         ):
             if metric_weight is None:
                 metric_weight = np.ones(len(metrics_list)).flatten()

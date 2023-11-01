@@ -21,14 +21,14 @@ class GraphCorr:
     """
 
     def __init__(
-            self,
-            graph_metric=None,
-            circ_metric=None,
-            initial_graph=None,
-            graph_list=None,
-            trials=None,
-            relabel_trials=None,
-            num_isomorph=1,
+        self,
+        graph_metric=None,
+        circ_metric=None,
+        initial_graph=None,
+        graph_list=None,
+        trials=None,
+        relabel_trials=None,
+        num_isomorph=1,
     ):
         """
 
@@ -120,7 +120,7 @@ class GraphCorr:
     @initial_graph.setter
     def initial_graph(self, g):
         assert isinstance(g, nx.Graph) or (
-                g is None
+            g is None
         ), "initial graph must be a networkx graph object"
         self._initial_graph = g
         self.graph_list = self._graph_list_maker(
@@ -369,7 +369,7 @@ class GraphCorr:
             )
             p_list = [constant_np / n for n in n_list]
             assert (
-                    min(p_list) > 0.05
+                min(p_list) > 0.05
             ), "the constant_np is too low to get connected graphs for large graph size"
         for i, n in enumerate(n_list):
             p = p_list[i] if constant_np else p
@@ -383,7 +383,7 @@ class GraphCorr:
         plt.show()
 
     def met_distribution(
-            self, n=None, p=None, met="num_emit", hist_bins=None, show_plot=False
+        self, n=None, p=None, met="num_emit", hist_bins=None, show_plot=False
     ):
         """
         plots the distribution and calculates the average and standard deviation of a certain metric for the graphs in
@@ -678,12 +678,12 @@ class NodeCorr:
     """
 
     def __init__(
-            self,
-            graph,
-            relabel_trials=None,
-            metric=None,
-            circ_met="num_emit",
-            show_plot=True,
+        self,
+        graph,
+        relabel_trials=None,
+        metric=None,
+        circ_met="num_emit",
+        show_plot=True,
     ):
         """
         Initialize a node correlation object for a specific graph (state), number of relabeling, and metrics to be used.
@@ -919,7 +919,7 @@ class NodeCorr:
         for i in range(g.number_of_nodes() - 1):
             sorted_nodes = self._metric_sorted_nodes(g)
             error = sorted_nodes.index(i)
-            sum_squared += error ** 2
+            sum_squared += error**2
             g.remove_node(i)
         return sum_squared
 

@@ -43,7 +43,7 @@ class McNoiseMap:
                     )
                     prob_sum += noise_tuple[1]
                 assert (
-                        prob_sum <= 1
+                    prob_sum <= 1
                 ), f"sum of noise probabilities of a gate is now {prob_sum}, it must not exceed 1"
 
         self._mapping = new_map
@@ -143,12 +143,12 @@ class MonteCarloNoise:
 
     # TODO: implement save circuits option
     def __init__(
-            self,
-            circuit,
-            n_sample: int = 1,
-            mc_noise_model: dict = None,
-            compiler=None,
-            seed=None,
+        self,
+        circuit,
+        n_sample: int = 1,
+        mc_noise_model: dict = None,
+        compiler=None,
+        seed=None,
     ):
         """
         Construct a MonteCarloNoise object
@@ -279,11 +279,11 @@ class MonteCarloNoise:
                 noisy_ops.append(op)
             else:
                 if isinstance(
-                        op,
-                        (
-                                ops.ControlledPairOperationBase,
-                                ops.ClassicalControlledPairOperationBase,
-                        ),
+                    op,
+                    (
+                        ops.ControlledPairOperationBase,
+                        ops.ClassicalControlledPairOperationBase,
+                    ),
                 ):
                     control_type = op.control_type
                     target_type = op.target_type
@@ -302,7 +302,7 @@ class MonteCarloNoise:
                 if is_controlled:
                     if isinstance(noise_object, list):
                         assert (
-                                len(noise_object) == 2
+                            len(noise_object) == 2
                         ), "controlled gate noise list must be of length 2"
                         op.noise = noise_object
                     else:

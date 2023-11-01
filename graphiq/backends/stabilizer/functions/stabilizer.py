@@ -108,8 +108,8 @@ def inverse_circuit(tableau):
             tableau = tab_row_swap(tableau, pivot[0], y_list[0])
         elif z_list:
             tableau = tab_row_swap(tableau, pivot[0], z_list[-1])
-            if np.any(tableau.x_matrix[pivot[0], j + 1: n_qubits]) or np.any(
-                    tableau.z_matrix[pivot[0], j + 1: n_qubits]
+            if np.any(tableau.x_matrix[pivot[0], j + 1 : n_qubits]) or np.any(
+                tableau.z_matrix[pivot[0], j + 1 : n_qubits]
             ):
                 circuit_list.append(("H", j))
                 tableau = transform.hadamard_gate(tableau, j)
@@ -230,11 +230,11 @@ def _process_one_pauli(tableau, pivot, pauli_list):
 
 
 def _process_two_pauli(
-        tableau,
-        pivot,
-        pauli_list_dict,
-        pauli_type1,
-        pauli_type2,
+    tableau,
+    pivot,
+    pauli_list_dict,
+    pauli_type1,
+    pauli_type2,
 ):
     """
     Helper function to process two Pauli lists
@@ -273,8 +273,8 @@ def _process_two_pauli(
     pauli_list_dict["y"] = pauli_y_list
     pauli_list_dict["z"] = pauli_z_list
     assert (
-            pauli_list_dict[pauli_type1][0] == pivot[0]
-            and pauli_list_dict[pauli_type2][0] == pivot[0] + 1
+        pauli_list_dict[pauli_type1][0] == pivot[0]
+        and pauli_list_dict[pauli_type2][0] == pivot[0] + 1
     ), "row operations failed"
 
     # remove the first element of the list
@@ -373,7 +373,7 @@ def rref(tableau):
         tableau, pivot = one_step_rref(tableau, pivot)
     # rank check
     assert (
-            pivot[0] >= n_qubits - 1
+        pivot[0] >= n_qubits - 1
     ), "Invalid input. One of the stabilizers is identity on all qubits!"
     return tableau
 

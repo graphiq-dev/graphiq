@@ -396,12 +396,12 @@ def find_best(adj1, file_name="case1", dir_name="new", conf=0.99, n_reordering=N
 
 
 def graph_analyzer(
-        edge_seq,
-        graph_class: str,
-        method="lc_with_iso",
-        conf=1,
-        n_lc_graphs=None,
-        n_reordering=None,
+    edge_seq,
+    graph_class: str,
+    method="lc_with_iso",
+    conf=1,
+    n_lc_graphs=None,
+    n_reordering=None,
 ):
     """
     exhaustive graph analyzer given the flattened edge list
@@ -517,12 +517,12 @@ def graph_analyzer(
 
 # %%
 def LC_scaling_test(
-        g,
-        graph_class: str,
-        method="random_with_iso",
-        conf=0,
-        n_lc_list=[*(range(1, 10))],
-        n_reordering=1,
+    g,
+    graph_class: str,
+    method="random_with_iso",
+    conf=0,
+    n_lc_list=[*(range(1, 10))],
+    n_reordering=1,
 ):
     edge_list = [*g.edges]
     edges = [x for sublist in edge_list for x in sublist]
@@ -570,12 +570,12 @@ def LC_scaling_test(
 
 
 def iso_scaling_test(
-        g,
-        graph_class: str,
-        method=None,
-        conf=0,
-        n_lc_graphs=1,
-        n_iso_list=[*(range(1, 10))],
+    g,
+    graph_class: str,
+    method=None,
+    conf=0,
+    n_lc_graphs=1,
+    n_iso_list=[*(range(1, 10))],
 ):
     adj_matrix = nx.to_numpy_array(g)
     nodes = [*g.nodes]
@@ -747,6 +747,7 @@ def rnd_graph_orbit_cnots(size, number_of_graphs):
         restuls_list.append(result0)
         list_cnot_list.append(n_cnots)
     return list_cnot_list, restuls_list
+
 
 # %%
 # graph_analyzer([0,1,1,2,2,3,3,4,4,5,5,0,0,2,5,3,1,4], "class 19", method="", conf=1)

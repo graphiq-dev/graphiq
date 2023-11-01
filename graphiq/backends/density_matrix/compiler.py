@@ -70,7 +70,7 @@ class DensityMatrixCompiler(CompilerBase):
         :rtype: None
         """
         assert (
-                op.__class__ in self.ops.keys()
+            op.__class__ in self.ops.keys()
         ), f"{op.__class__} is not a valid operation for this compiler"
         state = state.rep_data
 
@@ -156,7 +156,7 @@ class DensityMatrixCompiler(CompilerBase):
             )
 
     def compile_one_noisy_gate(
-            self, state, op, n_quantum, q_index, classical_registers
+        self, state, op, n_quantum, q_index, classical_registers
     ):
         """
         Compile one noisy gate

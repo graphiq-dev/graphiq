@@ -9,7 +9,7 @@ from graphiq.state import QuantumState
 
 @pytest.mark.parametrize("n", [1, 2, 3, 4, 5])
 def test_initializing_dm_1(n):
-    data = dmnp.eye(2 ** n)
+    data = dmnp.eye(2**n)
     state = QuantumState(data, rep_type="dm")
     assert np.allclose(state.rep_data.data, data / np.trace(data))
 

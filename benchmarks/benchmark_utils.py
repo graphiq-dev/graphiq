@@ -40,14 +40,14 @@ def circuit_measurement_independent(circuit, compiler):
 
 
 def benchmark_data(
-        solver_class,
-        targets,
-        metric_class,
-        compiler,
-        target_type="dm",
-        per_target_retries=1,
-        seed_offset=0,
-        save_directory=None,
+    solver_class,
+    targets,
+    metric_class,
+    compiler,
+    target_type="dm",
+    per_target_retries=1,
+    seed_offset=0,
+    save_directory=None,
 ):
     """
     Benchmarks a solver performance on a series of target circuits/states

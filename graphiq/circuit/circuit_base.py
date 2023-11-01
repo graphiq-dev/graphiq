@@ -100,11 +100,11 @@ class CircuitBase(ABC):
         :rtype: str
         """
         header_info = (
-                oq_lib.openqasm_header()
-                + "\n"
-                + "\n".join(self.openqasm_imports.keys())
-                + "\n"
-                + "\n".join(self.openqasm_defs.keys())
+            oq_lib.openqasm_header()
+            + "\n"
+            + "\n".join(self.openqasm_imports.keys())
+            + "\n"
+            + "\n".join(self.openqasm_defs.keys())
         )
 
         openqasm_str = [
@@ -145,7 +145,7 @@ class CircuitBase(ABC):
             if (opened_barrier or oq_info.multi_comp) and gate_application != "":
                 openqasm_str.append(f"barrier {barrier_str};")
             if (
-                    oq_info.multi_comp
+                oq_info.multi_comp
             ):  # i.e. multiple visual blocks make this one Operation
                 opened_barrier = True
             elif gate_application != "":

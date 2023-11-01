@@ -83,8 +83,8 @@ def direct(circuit1, circuit2):
                 op1 = circuit1.dag.nodes[node1]["op"]
                 op2 = circuit2.dag.nodes[node2]["op"]
                 control_match = (
-                        op1.q_registers_type == op2.q_registers_type
-                        and op1.q_registers == op2.q_registers
+                    op1.q_registers_type == op2.q_registers_type
+                    and op1.q_registers == op2.q_registers
                 )
                 if isinstance(op1, type(op2)) and control_match:
                     pass
@@ -110,7 +110,7 @@ def ged_adaptive(circuit1, circuit2, threshold=30):
     """
 
     full = (
-            max(circuit1.dag.number_of_nodes(), circuit2.dag.number_of_nodes()) < threshold
+        max(circuit1.dag.number_of_nodes(), circuit2.dag.number_of_nodes()) < threshold
     )
     sim = ged(circuit1, circuit2, full=full)
     return sim
@@ -143,8 +143,8 @@ def ged(circuit1, circuit2, full=True):
 
     def node_match(n1, n2):
         reg_match = (
-                n1["op"].q_registers_type == n2["op"].q_registers_type
-                and n1["op"].q_registers == n2["op"].q_registers
+            n1["op"].q_registers_type == n2["op"].q_registers_type
+            and n1["op"].q_registers == n2["op"].q_registers
         )
         ops_match = isinstance(n1["op"], type(n2["op"]))
 
@@ -203,8 +203,8 @@ def circuit_is_isomorphic(circuit1, circuit2):
         # For ControlledPairOperationBase, compare the control_type and target_type
         if isinstance(op1, ControlledPairOperationBase):
             if (
-                    op1.control_type != op2.control_type
-                    or op1.target_type != op2.target_type
+                op1.control_type != op2.control_type
+                or op1.target_type != op2.target_type
             ):
                 return False
 

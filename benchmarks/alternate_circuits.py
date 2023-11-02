@@ -2,18 +2,18 @@
 A script to find alternative circuits with hybrid solver
 """
 
-from src.solvers.hybrid_solvers import HybridEvolutionarySolver
-from src.solvers.deterministic_solver import DeterministicSolver
-from src.backends.stabilizer.functions.rep_conversion import (
+from graphiq.solvers.hybrid_solvers import HybridEvolutionarySolver
+from graphiq.solvers.deterministic_solver import DeterministicSolver
+from graphiq.backends.stabilizer.functions.rep_conversion import (
     get_clifford_tableau_from_graph,
 )
-from src.state import QuantumState
-from src.backends.stabilizer.state import MixedStabilizer
-from src.backends.stabilizer.compiler import StabilizerCompiler
-from src.utils.circuit_comparison import compare_circuits
-from src.metrics import Infidelity
-from src.solvers.evolutionary_solver import EvolutionarySolverSetting
-import src.noise.noise_models as noise
+from graphiq.state import QuantumState
+from graphiq.backends.stabilizer.state import MixedStabilizer
+from graphiq.backends.stabilizer.compiler import StabilizerCompiler
+from graphiq.utils.circuit_comparison import compare_circuits
+from graphiq.metrics import Infidelity
+from graphiq.solvers.evolutionary_solver import EvolutionarySolverSetting
+import graphiq.noise.noise_models as noise
 
 
 def search_for_alternative_circuits(

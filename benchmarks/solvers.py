@@ -2,15 +2,14 @@
 Example script for benchmarking multiple solvers
 """
 
-from src.backends.density_matrix.compiler import DensityMatrixCompiler
-from src.solvers.evolutionary_solver import EvolutionarySolver
+from graphiq.backends.density_matrix.compiler import DensityMatrixCompiler
+from graphiq.solvers.evolutionary_solver import EvolutionarySolver
 from benchmarks.circuits import *
-from src.metrics import Infidelity
-from src.io import IO
-from src.visualizers.solver_logs import plot_solver_logs
+from graphiq.metrics import Infidelity
+from graphiq.io import IO
+from graphiq.visualizers.solver_logs import plot_solver_logs
 
 from benchmarks.pipeline import benchmark, run_combinations
-
 
 if __name__ == "__main__":
     # %% provide all combinations of solvers, targets, compilers, and metrics to run as a list

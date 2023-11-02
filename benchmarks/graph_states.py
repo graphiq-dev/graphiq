@@ -10,7 +10,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import itertools
 
-from src.backends.graph.state import Graph
+from graphiq.backends.graph.state import Graph
 
 
 def linear_cluster_state(n_qubits):

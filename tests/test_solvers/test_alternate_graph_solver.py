@@ -1,14 +1,11 @@
 import pytest as pytest
-import networkx as nx
-from src.backends.density_matrix.compiler import DensityMatrixCompiler
-from src.backends.stabilizer.compiler import StabilizerCompiler
-from src.metrics import Infidelity
-import src.noise.monte_carlo_noise as mcn
-from src.solvers.alternate_graph_solver import *
 
 from benchmarks.graph_states import repeater_graph_states, linear_cluster_state
+from graphiq.solvers.alternate_graph_solver import *
 
 linear_cluster = nx.from_numpy_array(nx.to_numpy_array(linear_cluster_state(4).data))
+
+
 # setting
 
 

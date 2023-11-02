@@ -1,19 +1,19 @@
-import pytest
-
-from benchmarks.graph_states import repeater_graph_states
-from src.backends.stabilizer.compiler import StabilizerCompiler
-from src.backends.density_matrix.compiler import DensityMatrixCompiler
-from src.backends.density_matrix.functions import fidelity
-from src.backends.state_rep_conversion import graph_to_density
-from src.backends.stabilizer.functions.rep_conversion import (
-    get_clifford_tableau_from_graph,
-)
-from src.solvers.deterministic_solver import DeterministicSolver
-from benchmarks.circuits import *
-from src.metrics import Infidelity
-from src.state import QuantumState
 import networkx as nx
 import numpy as np
+import pytest
+
+from benchmarks.circuits import *
+from benchmarks.graph_states import repeater_graph_states
+from graphiq.backends.density_matrix.compiler import DensityMatrixCompiler
+from graphiq.backends.density_matrix.functions import fidelity
+from graphiq.backends.stabilizer.compiler import StabilizerCompiler
+from graphiq.backends.stabilizer.functions.rep_conversion import (
+    get_clifford_tableau_from_graph,
+)
+from graphiq.backends.state_rep_conversion import graph_to_density
+from graphiq.metrics import Infidelity
+from graphiq.solvers.deterministic_solver import DeterministicSolver
+from graphiq.state import QuantumState
 
 
 def test_linear4():

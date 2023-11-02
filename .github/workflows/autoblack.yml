@@ -1,6 +1,6 @@
 name: Lint
 
-on: [pull_request]
+on: [ pull_request ]
 
 jobs:
   lint:
@@ -10,6 +10,6 @@ jobs:
       - uses: psf/black@stable
         with:
           options: "--check --verbose"
-          src: "./src"
+          src: "./graphiq"
           jupyter: true
           version: "~= 22.0"

@@ -1,7 +1,8 @@
 import pytest
-from src.utils.draw import Columns
-from src.utils.draw import Painter
+
 from benchmarks.circuits import *
+from graphiq.utils.draw import Columns
+from graphiq.utils.draw import Painter
 
 
 # Test Columns class

@@ -5,14 +5,14 @@ import networkx as nx
 import numpy as np
 import matplotlib.pyplot as plt
 
-from src.backends.density_matrix.compiler import DensityMatrixCompiler
-from src.backends.graph.state import Graph
-from src.solvers.evolutionary_solver import EvolutionarySolver
+from graphiq.backends.density_matrix.compiler import DensityMatrixCompiler
+from graphiq.backends.graph.state import Graph
+from graphiq.solvers.evolutionary_solver import EvolutionarySolver
 import benchmarks.circuits as circ
-from src.metrics import Infidelity
-from src.visualizers.density_matrix import density_matrix_heatmap
-import src.backends.density_matrix.functions as dmf
-import src.backends.state_rep_conversion as rc
+from graphiq.metrics import Infidelity
+from graphiq.visualizers.density_matrix import density_matrix_heatmap
+import graphiq.backends.density_matrix.functions as dmf
+import graphiq.backends.state_rep_conversion as rc
 
 
 def get_graph_equivalent(target_state):

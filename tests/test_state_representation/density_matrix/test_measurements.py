@@ -1,10 +1,10 @@
-import src.backends.state_rep_conversion as rc
-from src.backends.density_matrix.state import DensityMatrix
-from src.backends.density_matrix.compiler import DensityMatrixCompiler
-import src.backends.density_matrix.functions as dmf
+import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
-import matplotlib.pyplot as plt
+
+import graphiq.backends.density_matrix.functions as dmf
+import graphiq.backends.state_rep_conversion as rc
+from graphiq.backends.density_matrix.state import DensityMatrix
 
 
 def test_y_measurement():

@@ -1,18 +1,17 @@
+from functools import reduce
+
 import pytest
 
-import src.backends.stabilizer.functions.rep_conversion as conversion
-import src.backends.stabilizer.functions.utils as sfu
-from src.circuit.circuit_dag import CircuitDAG
-from src.circuit import ops
-import src.backends.stabilizer.functions.clifford as sfc
-from src.backends.stabilizer.functions.stabilizer import rref
-import src.backends.stabilizer.functions.metric as sfm
-from src.backends.stabilizer.tableau import StabilizerTableau
-from functools import reduce
-from src.backends.density_matrix.compiler import DensityMatrixCompiler
-from src.backends.stabilizer.compiler import StabilizerCompiler
+import graphiq.backends.stabilizer.functions.clifford as sfc
+import graphiq.backends.stabilizer.functions.metric as sfm
+import graphiq.backends.stabilizer.functions.rep_conversion as conversion
+import graphiq.backends.stabilizer.functions.utils as sfu
 from benchmarks.circuits import *
-from src.metrics import Infidelity
+from graphiq.backends.density_matrix.compiler import DensityMatrixCompiler
+from graphiq.backends.stabilizer.compiler import StabilizerCompiler
+from graphiq.backends.stabilizer.functions.stabilizer import rref
+from graphiq.backends.stabilizer.tableau import StabilizerTableau
+from graphiq.metrics import Infidelity
 
 
 def test_symplectic_to_string():

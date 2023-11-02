@@ -1,11 +1,11 @@
 Circuit
 =========================
 
-.. automodule:: src.circuit.register
+.. automodule:: graphiq.circuit.register
    :members:
-.. automodule:: src.circuit.circuit_base
+.. automodule:: graphiq.circuit.circuit_base
    :members:
-.. automodule:: src.circuit.circuit_dag
+.. automodule:: graphiq.circuit.circuit_dag
    :members:
 
 Operations
@@ -13,5 +13,5 @@ Operations
 
 Currently, single-qubit, two-qubit, and measurement operations are implemented.
 
-.. automodule:: src.circuit.ops
+.. automodule:: graphiq.circuit.ops
    :members:

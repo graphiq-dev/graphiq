@@ -1,11 +1,11 @@
-import numpy as np
-import networkx as nx
 from functools import reduce
 
-import src.backends.density_matrix.functions as dmf
-import src.backends.stabilizer.functions.utils as sfu
-from src.backends.stabilizer.tableau import StabilizerTableau
-import src.backends.state_rep_conversion as rc
+import networkx as nx
+import numpy as np
+
+import graphiq.backends.density_matrix.functions as dmf
+import graphiq.backends.state_rep_conversion as rc
+from graphiq.backends.stabilizer.tableau import StabilizerTableau
 
 
 def test_negativity():
@@ -118,7 +118,6 @@ def test_mixed_stabilizer_equivalency():
 
 
 def test_mixed_graph_equivalency():
-
     graph1 = nx.Graph([(1, 2), (2, 3), (3, 4), (3, 5)])
     graph2 = nx.Graph([(1, 3), (2, 3), (3, 4), (1, 5)])
     graph3 = nx.Graph([(1, 3), (2, 5), (2, 3), (2, 4)])

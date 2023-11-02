@@ -7,59 +7,59 @@ Currently, three compilers are in development using the density matrix, graph, a
 
 Density Matrix Backend
 ------------------------------
-.. automodule:: src.backends.density_matrix
+.. automodule:: graphiq.backends.density_matrix
    :members:
-.. automodule:: src.backends.density_matrix.compiler
+.. automodule:: graphiq.backends.density_matrix.compiler
    :members:
-.. automodule:: src.backends.density_matrix.state
+.. automodule:: graphiq.backends.density_matrix.state
    :members:
-.. automodule:: src.backends.density_matrix.functions
+.. automodule:: graphiq.backends.density_matrix.functions
    :members:
 
 Graph Representation Backend
 ------------------------------
-.. automodule:: src.backends.graph
+.. automodule:: graphiq.backends.graph
    :members:
-.. automodule:: src.backends.graph.compiler
+.. automodule:: graphiq.backends.graph.compiler
    :members:
-.. automodule:: src.backends.graph.state
+.. automodule:: graphiq.backends.graph.state
    :members:
-.. automodule:: src.backends.graph.functions
+.. automodule:: graphiq.backends.graph.functions
    :members:
 
 Stabilizer Representation Backend
 -----------------------------------
-.. automodule:: src.backends.stabilizer
+.. automodule:: graphiq.backends.stabilizer
    :members:
-.. automodule:: src.backends.stabilizer.compiler
+.. automodule:: graphiq.backends.stabilizer.compiler
    :members:
-.. automodule:: src.backends.stabilizer.state
+.. automodule:: graphiq.backends.stabilizer.state
    :members:
-.. automodule:: src.backends.stabilizer.functions
+.. automodule:: graphiq.backends.stabilizer.functions
    :members:
-.. automodule:: src.backends.stabilizer.functions.clifford
+.. automodule:: graphiq.backends.stabilizer.functions.clifford
    :members:
-.. automodule:: src.backends.stabilizer.functions.height
+.. automodule:: graphiq.backends.stabilizer.functions.height
    :members:
-.. automodule:: src.backends.stabilizer.functions.linalg
+.. automodule:: graphiq.backends.stabilizer.functions.linalg
    :members:
-.. automodule:: src.backends.stabilizer.functions.metric
+.. automodule:: graphiq.backends.stabilizer.functions.metric
    :members:
-.. automodule:: src.backends.stabilizer.functions.rep_conversion
+.. automodule:: graphiq.backends.stabilizer.functions.rep_conversion
    :members:
-.. automodule:: src.backends.stabilizer.functions.stabilizer
+.. automodule:: graphiq.backends.stabilizer.functions.stabilizer
    :members:
-.. automodule:: src.backends.stabilizer.functions.transformation
+.. automodule:: graphiq.backends.stabilizer.functions.transformation
    :members:
-.. automodule:: src.backends.stabilizer.functions.utils
+.. automodule:: graphiq.backends.stabilizer.functions.utils
    :members:
 
 Local-Clifford Equivalence Check Module
 -----------------------------------------
-.. automodule:: src.backends.lc_equivalence_check
+.. automodule:: graphiq.backends.lc_equivalence_check
    :members:
 
 State Representation Conversion Module
 -----------------------------------------
-.. automodule:: src.backends.state_representation_conversion
+.. automodule:: graphiq.backends.state_representation_conversion
    :members:

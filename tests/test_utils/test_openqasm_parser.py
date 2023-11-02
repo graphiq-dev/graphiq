@@ -1,9 +1,11 @@
+import math
+
 import pytest
 from qiskit.qasm import Qasm
-from src.circuit.ops import *
-from src.utils.openqasm_parser import OpenQASMParser
-from src.circuit.circuit_dag import CircuitDAG
-import math
+
+from graphiq.circuit.circuit_dag import CircuitDAG
+from graphiq.circuit.ops import *
+from graphiq.utils.openqasm_parser import OpenQASMParser
 
 
 @pytest.mark.parametrize(

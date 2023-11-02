@@ -4,14 +4,14 @@ Example of using a solver to discover circuits to generate a target state
 import matplotlib.pyplot as plt
 import time
 
-from src.backends.density_matrix.compiler import DensityMatrixCompiler
-from src.solvers.evolutionary_solver import EvolutionarySolver
-from src.metrics import Infidelity
-import src.backends.density_matrix.functions as dmf
+from graphiq.backends.density_matrix.compiler import DensityMatrixCompiler
+from graphiq.solvers.evolutionary_solver import EvolutionarySolver
+from graphiq.metrics import Infidelity
+import graphiq.backends.density_matrix.functions as dmf
 
 from benchmarks.circuits import *
-from src.visualizers.density_matrix import density_matrix_bars
-from src.visualizers.solver_logs import plot_solver_logs
+from graphiq.visualizers.density_matrix import density_matrix_bars
+from graphiq.visualizers.solver_logs import plot_solver_logs
 
 if __name__ == "__main__":
     # %% here we have access

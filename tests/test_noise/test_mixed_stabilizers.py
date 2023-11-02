@@ -1,15 +1,13 @@
+import numpy as np
 import pytest
 
-import numpy as np
-
-import src.noise.noise_models as nm
-
-from src.circuit.circuit_dag import CircuitDAG
-import src.circuit.ops as ops
-from src.backends.density_matrix.compiler import DensityMatrixCompiler
-from src.backends.stabilizer.compiler import StabilizerCompiler
-from src.backends.stabilizer.state import Stabilizer, MixedStabilizer
-from src.metrics import Infidelity
+import graphiq.circuit.ops as ops
+import graphiq.noise.noise_models as nm
+from graphiq.backends.density_matrix.compiler import DensityMatrixCompiler
+from graphiq.backends.stabilizer.compiler import StabilizerCompiler
+from graphiq.backends.stabilizer.state import Stabilizer, MixedStabilizer
+from graphiq.circuit.circuit_dag import CircuitDAG
+from graphiq.metrics import Infidelity
 
 
 def create_circuits(n_emitters, n_photons, d_emitter, lam):

@@ -8,24 +8,28 @@
     <script src="{{ url_for('static', filename='js/gates.js') }}"></script>
     <script src="{{ url_for('static', filename='js/draw.js') }}"></script>
     <script>
-        let visualization_info = {{ visualization_info | safe }}
+        let visualization_info = {
+        {
+            visualization_info | safe
+        }
+        }
     </script>
 </head>
 <body>
-    <div class="gate-panel">
-        Gate Info:
-    </div>
-    <div class="circuit-container"></div>
-    <script>
-        var div = d3.select("body").append("div")	
-            .attr("class", "tooltip")				
-            .style("opacity", 0);
-    </script>
-    <script>
-        register_detail_init(1000, 500)
+<div class="gate-panel">
+    Gate Info:
+</div>
+<div class="circuit-container"></div>
+<script>
+    var div = d3.select("body").append("div")
+        .attr("class", "tooltip")
+        .style("opacity", 0);
+</script>
+<script>
+    register_detail_init(1000, 500)
 
-        draw_register_info(visualization_info.registers)
-        draw(visualization_info.ops)
-    </script>
+    draw_register_info(visualization_info.registers)
+    draw(visualization_info.ops)
+</script>
 </body>
 </html>

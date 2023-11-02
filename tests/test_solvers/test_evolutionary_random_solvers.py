@@ -1,17 +1,15 @@
-import pytest
 import matplotlib.pyplot as plt
-import numpy as np
-import src.backends.stabilizer.functions.stabilizer as sfs
-from benchmarks.circuits import *
-from tests.test_flags import visualization
-from src.solvers.evolutionary_solver import EvolutionarySolver
-from src.backends.density_matrix.compiler import DensityMatrixCompiler
-from src.backends.stabilizer.compiler import StabilizerCompiler
+import pytest
 
-from src.metrics import Infidelity
-from src.state import QuantumState
-from src.io import IO
-from src.visualizers.density_matrix import density_matrix_bars
+import graphiq.backends.stabilizer.functions.stabilizer as sfs
+from benchmarks.circuits import *
+from graphiq.backends.density_matrix.compiler import DensityMatrixCompiler
+from graphiq.backends.stabilizer.compiler import StabilizerCompiler
+from graphiq.io import IO
+from graphiq.metrics import Infidelity
+from graphiq.solvers.evolutionary_solver import EvolutionarySolver
+from graphiq.visualizers.density_matrix import density_matrix_bars
+from tests.test_flags import visualization
 
 
 @pytest.fixture(scope="module")

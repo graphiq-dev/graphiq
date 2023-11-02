@@ -1,22 +1,18 @@
-import pytest
-import matplotlib.pyplot as plt
 import jax
-import optax
 import jax.numpy as np
-import numpy
-import src
-
-# src.DENSITY_MATRIX_ARRAY_LIBRARY = "jax"
-
-from tests.test_flags import visualization, jax_library, VISUAL_TEST, JAX_TEST
+import matplotlib.pyplot as plt
+import pytest
+from optax import adagrad
 
 import benchmarks.circuits
+from graphiq.backends.density_matrix.compiler import DensityMatrixCompiler
+from graphiq.metrics import Infidelity
+from graphiq.solvers.gradient_descent_solver import GradientDescentSolver
+from tests.test_flags import visualization, jax_library, VISUAL_TEST
 
-from src.solvers.gradient_descent_solver import GradientDescentSolver, adagrad
-from src.backends.density_matrix.compiler import DensityMatrixCompiler
-from src.metrics import Infidelity
 
-from src.visualizers.density_matrix import density_matrix_bars
+# graphiq.DENSITY_MATRIX_ARRAY_LIBRARY = "jax"
+
 
 # todo, split into different test functions
 # 1) just compute loss function and associated gradient of parameters (done)

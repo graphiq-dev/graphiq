@@ -3,26 +3,26 @@ Solvers
 
 Solvers are individual algorithm implementations for synthesizing or identifying circuits.
 
-.. automodule:: src.solvers
-.. automodule:: src.solvers.solver_base
+.. automodule:: graphiq.solvers
+.. automodule:: graphiq.solvers.solver_base
    :members:
 
 Evolutionary Solver
 ------------------------------
-.. automodule:: src.solvers.evolutionary_solver
+.. automodule:: graphiq.solvers.evolutionary_solver
    :members:
 
 Deterministic Solver
 ------------------------------
-.. automodule:: src.solvers.deterministic_solver
+.. automodule:: graphiq.solvers.deterministic_solver
    :members:
 
 Hybrid Solver
 ------------------------------
-.. automodule:: src.solvers.hybrid_solvers
+.. automodule:: graphiq.solvers.hybrid_solvers
    :members:
 
 Gradient Descent Solvers
 ------------------------------
-.. automodule:: src.solvers.gradient_descent_solver
+.. automodule:: graphiq.solvers.gradient_descent_solver
    :members:

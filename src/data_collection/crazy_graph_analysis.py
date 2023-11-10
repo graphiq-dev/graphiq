@@ -1,3 +1,4 @@
+import networkx as nx
 import numpy as np
 from scipy.optimize import curve_fit
 from scipy.stats import linregress
@@ -159,12 +160,13 @@ def rand_graph_cost_reduction(n_samples, n_nodes=9, p=0.95, n_lc=100, graph_met=
 
 
 # %%
-def smart_edge_reducer(g, only_cluster=False, deg_exp=1, normalized_deg=False):
+def smart_edge_reducer(g, only_cluster=False, deg_exp=1, normalized_deg=False, show=False):
     g_new = nx.Graph(g)
     g_new2 = nx.Graph(g)
     n_edges_i = g.number_of_edges()
     n_edges = 0
     counter = 0
+    pos = nx.circular_layout(g)
     while n_edges < n_edges_i:
         if counter > 0:
             n_edges_i = n_edges
@@ -181,6 +183,9 @@ def smart_edge_reducer(g, only_cluster=False, deg_exp=1, normalized_deg=False):
             node = max(clust_dict, key=clust_dict.get)
         else:
             node = max(subgraph_edges_dict, key=subgraph_edges_dict.get)
+        if show:
+            nx.draw_networkx(g_new, pos=pos)
+            plt.show()
         g_new2 = local_comp_graph(g_new, node)
         n_edges = g_new2.number_of_edges()
     # print("edge reduction from", g.number_of_edges(), "to", g_new.number_of_edges(), "over", counter

@@ -35,7 +35,7 @@ def crazy_list_maker(row, col):
 
 # %%
 
-graph = crazy(crazy_list_maker(2, 2))
+# graph = crazy(crazy_list_maker(2, 2))
 # orbit = lc_orbit_finder(graph, comp_depth=None, orbit_size_thresh=None, with_iso=False, rand=False, rep_allowed=False)
 # print(len(orbit))
 times_list = []
@@ -134,7 +134,7 @@ def rand_graph_cost_reduction(n_samples, n_nodes=9, p=0.95, n_lc=100, graph_met=
     :return: the list of tuples (initial cost, correlation reduced cost)
     """
     cost_tuples = []
-    extermum = min if positive_cor else max
+    extremum = min if positive_cor else max
     rng = np.random.default_rng(seed)
     random_integers = rng.integers(0, int(1e6), size=n_samples)
     for indx, i in enumerate(random_integers):
@@ -146,11 +146,11 @@ def rand_graph_cost_reduction(n_samples, n_nodes=9, p=0.95, n_lc=100, graph_met=
             orbit = lc_orbit_finder(g, comp_depth=None, orbit_size_thresh=n_lc, with_iso=True, rand=True,
                                     rep_allowed=True)
             graph_met_vals = [graph_met_value(graph_met, g) for g in orbit]
-            g_min = orbit[graph_met_vals.index(extermum(graph_met_vals))]
+            g_min = orbit[graph_met_vals.index(extremum(graph_met_vals))]
         res1 = orbit_analyzer(g, dir_name='rnd_sampling', n_lc=1,
-                              graph_met_list=[graph_met], plots=False)
+                              circ_met_list=[circ_met], plots=False)
         res2 = orbit_analyzer(g_min, dir_name='rnd_sampling', n_lc=1,
-                              graph_met_list=[graph_met], plots=False)
+                              circ_met_list=[circ_met], plots=False)
         cost_tuples.append((res1[circ_met][0], res2[circ_met][0]))
     reduction_percentages = [(1 - x[1] / x[0]) * 100 for x in cost_tuples]
     print(f"\navg {circ_met} reduction by {graph_met}:", round(np.mean(reduction_percentages)), "% "

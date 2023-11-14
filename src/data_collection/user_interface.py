@@ -65,10 +65,11 @@ print("Monte Carlo",
 
 # %%
 # results
-def orbit_analyzer(graph, dir_name='new_orbit', n_lc=None, graph_met_list=None, plots=False, lc_method=None):
+def orbit_analyzer(graph, dir_name='new_orbit', n_lc=None, graph_met_list=None, circ_met_list=None, plots=False, lc_method=None):
     """
     The function take a graph and returns the solver result object containing graph and circuit metrics
-    :param graph_met_list: list of grpah metrics to consider for correlations. If none given, a default list is used.
+    :param graph_met_list: list of graph metrics to consider for correlations. If none given, a default list is used.
+    :param circ_met_list: list of circuit metrics to consider for correlations. If none given, a default list is used.
     :param n_lc: number of LC graphs to search for. If none, the whole orbit is targeted.
     :param graph: The input graph. The node labels do not change through the process.
     :param dir_name: the directory to save the resulting graph in
@@ -97,13 +98,15 @@ def orbit_analyzer(graph, dir_name='new_orbit', n_lc=None, graph_met_list=None, 
     if graph_met_list is None:
         graph_met_list = ["global_efficiency", "n_edges", "mean_nei_deg", "node_connect", "avg_shortest_path",
                           "max_between", "cluster"]
-    res = result_maker(res, graph_met_list=graph_met_list)
+    if circ_met_list is None:
+        circ_met_list = ["n_emitters", "n_cnots", "max_emit_depth", "max_emit_eff_depth", "depth", "std of score"]
+    res = result_maker(res, graph_met_list=graph_met_list, circ_met_list=circ_met_list)
     if plots:
         plot_figs(res, dir_name=dir_name, graph_mets=graph_met_list, circ_mets=None)
     return res
 
 
-def result_maker(result, graph_met_list=[]):
+def result_maker(result, graph_met_list=[], circ_met_list=[]):
     # default properties: "g": alternative graph, "score": infidelity, "map": order permutation map
     # print("number of cases found:", len(result))
     # print("The infidelity", [x[1]["score"] for x in d])
@@ -114,13 +117,9 @@ def result_maker(result, graph_met_list=[]):
     # graph_met_list = ["node_connect", "cluster", "local_efficiency", "global_efficiency", "max_between", "max_close",
     #                   "min_close", "mean_nei_deg", "edge_connect", "assort", "radius", "diameter", "periphery",
     #                   "center", "pop", "max_deg", "n_edges", "avg_shortest_path"]  # input
-
-    result.add_properties("n_emitters")
-    result.add_properties("n_cnots")
-    result.add_properties("max_emit_depth")
-    result.add_properties("max_emit_eff_depth")
-    result.add_properties("depth")
-    result.add_properties("std of score")
+    # circ_met_list = ["n_emitters", "n_cnots", "max_emit_depth", "max_emit_eff_depth", "depth", "std of score"]
+    for met in circ_met_list:
+        result.add_properties(met)
     # circ metrics calculations
     # for depth calculation purposes we need to remove identity gates first
     unwrapped_circ = [c.copy() for c in result["circuit"]]
@@ -136,32 +135,42 @@ def result_maker(result, graph_met_list=[]):
         e_depth = {}
         eff_depth = {}
         for e_i in range(c.n_emitters):
-            e_depth[e_i] = len(c.reg_gate_history(reg=e_i)[1]) - 2
+            if "max_emit_depth" in circ_met_list:
+                e_depth[e_i] = len(c.reg_gate_history(reg=e_i)[1]) - 2
             # find the max topological depth between two consecutive measurements on the same emitter
             node_list = []
-            for i, oper in enumerate(c.reg_gate_history(reg=e_i)[0]):
-                # first find a list of nodes in DAG corresponding to measurements
-                if type(oper).__name__ in ['Input', 'MeasurementCNOTandReset', 'Output']:
-                    node_list.append(c.reg_gate_history(reg=e_i)[1][i])
-            node_depth_list = [c._max_depth(n) for n in node_list]
-            depth_diff = [node_depth_list[j + 1] - node_depth_list[j] for j in range(len(node_list) - 1)]
-            eff_depth[e_i] = max(depth_diff)
-
-        max_emit_depth.append(max(e_depth.values()))
-        max_emit_eff_depth.append(max(eff_depth.values()))
-        depth.append(max(c.register_depth["e"]))
+            if "max_emit_eff_depth" in circ_met_list:
+                for i, oper in enumerate(c.reg_gate_history(reg=e_i)[0]):
+                    # first find a list of nodes in DAG corresponding to measurements
+                    if type(oper).__name__ in ['Input', 'MeasurementCNOTandReset', 'Output']:
+                        node_list.append(c.reg_gate_history(reg=e_i)[1][i])
+                node_depth_list = [c._max_depth(n) for n in node_list]
+                depth_diff = [node_depth_list[j + 1] - node_depth_list[j] for j in range(len(node_list) - 1)]
+                eff_depth[e_i] = max(depth_diff)
+        if "max_emit_depth" in circ_met_list:
+            max_emit_depth.append(max(e_depth.values()))
+        if "max_emit_eff_depth" in circ_met_list:
+            max_emit_eff_depth.append(max(eff_depth.values()))
+        if "depth" in circ_met_list:
+            depth.append(max(c.register_depth["e"]))
         # calculate n_emitter and n_cnots
-        n_emitters.append(c.n_emitters)
-        if "Emitter-Emitter" in c.node_dict:
-            n_cnots.append(len(c.get_node_by_labels(["Emitter-Emitter", "CNOT"])))
-        else:
-            n_cnots.append(0)
-
-    result["n_emitters"] = n_emitters
-    result["n_cnots"] = n_cnots
-    result["max_emit_depth"] = max_emit_depth
-    result["max_emit_eff_depth"] = max_emit_eff_depth
-    result["depth"] = depth
+        if "n_emitters" in circ_met_list:
+            n_emitters.append(c.n_emitters)
+        if "n_cnots" in circ_met_list:
+            if "Emitter-Emitter" in c.node_dict:
+                n_cnots.append(len(c.get_node_by_labels(["Emitter-Emitter", "CNOT"])))
+            else:
+                n_cnots.append(0)
+    if "n_emitters" in circ_met_list:
+        result["n_emitters"] = n_emitters
+    if "n_cnots" in circ_met_list:
+        result["n_cnots"] = n_cnots
+    if "max_emit_depth" in circ_met_list:
+        result["max_emit_depth"] = max_emit_depth
+    if "max_emit_eff_depth" in circ_met_list:
+        result["max_emit_eff_depth"] = max_emit_eff_depth
+    if "depth" in circ_met_list:
+        result["depth"] = depth
     # result["std of score"] = [np.std(x.all_scores) for x in solver.mc_list] if settings.monte_carlo else len(result) * [
     #     0]
 

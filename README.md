@@ -18,8 +18,7 @@
 
 ## Features
 
-<img="https://user-images.githubusercontent.com/87783633/198037273-06ec89cf-233d-4c08-9f7a-96313bfcb435.gif" width="225px" align="right">
-
+<img src="https://user-images.githubusercontent.com/87783633/198037273-06ec89cf-233d-4c08-9f7a-96313bfcb435.gif" width="225px" align="right">
 * Diverse [backends](https://github.com/ki3-qbt/graph-compiler/tree/main/graphiq/backends) for the simulation of noisy
   quantum circuits comprised of hundreds of qubits.
 

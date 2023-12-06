@@ -1,5 +1,5 @@
 <h1 align="center">
- Graph Compiler
+ GraphiQ
 </h1>
 
 <div align="center">
@@ -13,12 +13,12 @@
 </div>
 
 <p align="center" style="font-size:20px">
-  Graph Compiler is a Python library for the simulation, inverse design, and optimization of noisy quantum circuits
+  GraphiQ is a Python library for the simulation, design, and optimization of quantum photonic circuits.
 </p>
 
 ## Features
 
-<img graphiq="https://user-images.githubusercontent.com/87783633/198037273-06ec89cf-233d-4c08-9f7a-96313bfcb435.gif" width="225px" align="right">
+<img="https://user-images.githubusercontent.com/87783633/198037273-06ec89cf-233d-4c08-9f7a-96313bfcb435.gif" width="225px" align="right">
 
 * Diverse [backends](https://github.com/ki3-qbt/graph-compiler/tree/main/graphiq/backends) for the simulation of noisy
   quantum circuits comprised of hundreds of qubits.

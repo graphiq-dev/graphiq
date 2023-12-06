@@ -428,7 +428,6 @@ class GraphCorr:
             fig = plt.figure(figsize=(8, 6), dpi=300)
             fig.tight_layout()
             if not hist_bins:
-
                 plt.scatter(dist_dict.keys(), dist_dict.values())
                 if self.graph_list is None:
                     plt.figtext(

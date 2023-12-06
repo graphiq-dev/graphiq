@@ -511,7 +511,6 @@ class MixedGraph(StateRepresentationBase):
     """
 
     def __init__(self, data, *args, **kwargs):
-
         if isinstance(data, int):
             self._mixture = [
                 (1.0, Graph(data)),

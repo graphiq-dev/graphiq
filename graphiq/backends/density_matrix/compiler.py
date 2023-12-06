@@ -194,7 +194,6 @@ class DensityMatrixCompiler(CompilerBase):
 
         # TODO: Handle the following two-qubit noisy gates, currently no replacement or partial replacement
         else:
-
             if isinstance(op, ops.ClassicalControlledPairOperationBase):
                 projectors = dm.projectors_zbasis(
                     n_quantum, q_index(op.control, op.control_type)

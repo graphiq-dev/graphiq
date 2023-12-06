@@ -198,7 +198,7 @@ class OneQubitGateReplacement(ReplacementNoiseBase):
             gate_list = []
             if isinstance(state_rep, MixedStabilizer):
                 mixture = state_rep.mixture
-                for (p_i, tableau_i) in mixture:
+                for p_i, tableau_i in mixture:
                     tableau_i.apply_circuit(gate_list)
             else:
                 state_rep.apply_circuit(gate_list)
@@ -593,7 +593,7 @@ class DepolarizingNoise(AdditionNoiseBase):
             trans_iter = itertools.product(single_qubit_trans, repeat=len(reg_list))
             trans_iter = list(trans_iter)
 
-            for (p_i, tableau_i) in state_rep.mixture:
+            for p_i, tableau_i in state_rep.mixture:
                 for k in range(len(trans_iter)):
                     if p_i * factors[k] > 0:
                         new_tableau_i = tableau_i.copy()

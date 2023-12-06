@@ -244,7 +244,6 @@ def is_lc_equivalent(adj_matrix1, adj_matrix2, mode="deterministic", seed=0):
             return False, None
 
     elif mode == "deterministic":
-
         basis = _solution_basis_finder(reduced_coeff_matrix, col_list)
         possible_combinations = combinations(basis, 2)
         solution_set = []
@@ -460,9 +459,7 @@ def _col_finder(row_reduced_coeff_matrix):
     pivot = [0, 0]
     n_row, n_column = np.shape(row_reduced_coeff_matrix)
     for i in range(n_column - 1):
-
         if row_reduced_coeff_matrix[pivot[0], pivot[1]] == 1:
-
             if pivot[0] == (n_row - 1):
                 pivot = [pivot[0], pivot[1] + 1]
                 dependent_columns.extend([*range(pivot[1], n_column)])

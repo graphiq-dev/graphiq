@@ -604,7 +604,6 @@ class EvolutionarySolver(RandomSearchSolver):
         if len(edges) == 0:
             self.replace_photon_one_qubit_op(circuit)
         else:
-
             # select relevant register and location of the gate to be inserted
             ind = np.random.randint(len(edges))
             edge = list(edges)[ind]
@@ -795,7 +794,6 @@ class EvolutionarySolver(RandomSearchSolver):
         ]
 
         for edge in e_edges:
-
             possible_edges = set(p_edges) - circuit.find_incompatible_edges(edge)
 
             for another_edge in possible_edges:

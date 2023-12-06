@@ -314,7 +314,6 @@ def graph_gui():
                 print(f"({edge[0].x}, {edge[0].y}) - ({edge[1].x}, {edge[1].y})")
 
     def create_point(event):
-
         x = round(event.x / GRID_SIZE) * GRID_SIZE
         y = round(event.y / GRID_SIZE) * GRID_SIZE
         graph.add_point(x, y)

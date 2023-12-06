@@ -73,15 +73,12 @@ class StabilizerCompiler(CompilerBase):
             return
 
         elif type(op) is ops.Hadamard:
-
             state.apply_hadamard(q_index(op.register, op.reg_type))
 
         elif type(op) is ops.Phase:
-
             state.apply_phase(q_index(op.register, op.reg_type))
 
         elif type(op) is ops.PhaseDagger:
-
             state.apply_phase_dagger(q_index(op.register, op.reg_type))
 
         elif type(op) is ops.SigmaX:
@@ -106,7 +103,6 @@ class StabilizerCompiler(CompilerBase):
             )
 
         elif type(op) is ops.ClassicalCNOT:
-
             # apply an X gate on the target qubit conditioned on the measurement outcome = 1
             if isinstance(state, MixedStabilizer):
                 outcome = state.apply_measurement(

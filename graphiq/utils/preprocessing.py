@@ -160,7 +160,6 @@ def get_lc_graph_by_max_edge(graph, n_graphs, graph_metric, n_trial=5):
     for i in range(n_trial):
         tmp_graphs = []
         for score, each_graph in candidate_graphs:
-
             adj_matrix = nx.to_numpy_array(each_graph)
             nonzero_counts = np.count_nonzero(adj_matrix, axis=0)
             max_node_ids = np.argwhere(nonzero_counts == np.amax(nonzero_counts))
@@ -221,7 +220,6 @@ def get_lc_graph_by_max_neighbor_edge(graph, n_graphs, graph_metric, n_trial=5):
     for i in range(n_trial):
         tmp_graphs = []
         for score, each_graph in candidate_graphs:
-
             adj_matrix = nx.to_numpy_array(each_graph)
             edges_count_list = _count_n_neighbor_edges(adj_matrix)
 

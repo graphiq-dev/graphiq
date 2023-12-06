@@ -247,7 +247,6 @@ def stabilizer_to_density(input_stabilizer):
     :rtype: numpy.ndarray
     """
     if isinstance(input_stabilizer, list):
-
         if isinstance(input_stabilizer[0], str):
             x_matrix, z_matrix = sfu.string_to_symplectic(input_stabilizer)
             stab = StabilizerTableau([x_matrix, z_matrix])
@@ -368,10 +367,8 @@ def mixed_stabilizer_equivalency(stab1, stab2):
         stab2 = stab2[0][1]
     if isinstance(stab1, list) and isinstance(stab2, list):
         if len(stab1) == len(stab2):
-
             stab2_copy = copy.deepcopy(stab2)
             for p_i, s_i in stab1:
-
                 for q_i, t_i in stab2_copy:
                     if np.equal(p_i, q_i) and s_i == t_i:
                         stab2_copy.remove((q_i, t_i))

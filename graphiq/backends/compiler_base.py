@@ -229,7 +229,6 @@ class CompilerBase(ABC):
                             state, op, circuit.n_quantum, q_index, classical_registers
                         )
                     else:
-
                         raise ValueError("Noise position is not acceptable.")
 
         return state

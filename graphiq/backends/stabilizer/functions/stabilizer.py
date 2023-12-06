@@ -341,7 +341,6 @@ def one_step_rref(tableau, pivot):
 
     # case of all three kinds of paulis available in the column
     else:
-
         tableau, _ = _process_two_pauli(tableau, pivot, pauli_list_dict, "x", "z")
         # update pauli lists
         pauli_x_list, pauli_y_list, pauli_z_list = pauli_type_finder(

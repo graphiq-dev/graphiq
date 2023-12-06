@@ -82,7 +82,6 @@ def convert_data_to_graph(graph_data):
                 raise ValueError("Edges contain invalid data type.")
 
     else:
-
         for data_pair in graph_data:
             # data_pair is a pair of vertices in a tuple
 

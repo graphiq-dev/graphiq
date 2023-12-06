@@ -9,5 +9,9 @@
 ## 4-qubit cluster state
 ``` py
 from graphiq import *
-   
+
+n = 100
+circuit = examples.circuit.ghz(4)
+backend = DensityMatrixCompiler()
+state = backend.run(circuit)
 ```

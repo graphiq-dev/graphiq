@@ -1,0 +1,34 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+
+[project]
+name = "graphiq"
+version = "0.0.4"
+requires-python = ">=3.9"
+dependencies = [
+    "numpy",
+    "networkx",
+    "matplotlib",
+    "tqdm",
+    "seaborn",
+    "pandas"
+]
+readme = "README.md"
+keywords = ["quantum", "photonic", "circuit"]
+license = {text = "Apache 2.0"}
+authors = [
+    {name = "Benjamin MacLellan", email = "benjamin@ki3photonics.com"},
+    {name = "Jie Lin", email = "jie@qbt.io"},
+    {name = "Sohban Ghanbari", email = "sohban@qbt.io"},
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+]
+
+
+[project.optional-dependencies]
+jax = ["jax", "optax"]
+ray = ["ray"]
+all = ["jax", "optax", "ray"]

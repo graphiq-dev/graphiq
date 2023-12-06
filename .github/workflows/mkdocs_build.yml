@@ -1,9 +1,6 @@
 name: mkdocs-build
 on:
-  push:
-    branches:
-      - master
-      - main
+  pull_request
 permissions:
   contents: write
 jobs:

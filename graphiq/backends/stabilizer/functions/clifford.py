@@ -3,19 +3,19 @@ Functions that are applicable to CliffordTableau.
 """
 
 import numpy as np
+from scipy.linalg import block_diag
 
+from graphiq.backends.stabilizer.clifford_tableau import CliffordTableau
+from graphiq.backends.stabilizer.functions.linalg import (
+    column_swap,
+    row_sum,
+)
 from graphiq.backends.stabilizer.functions.transformation import (
     hadamard_gate,
     phase_gate,
     x_gate,
     phase_dagger_gate,
 )
-from graphiq.backends.stabilizer.clifford_tableau import CliffordTableau
-from graphiq.backends.stabilizer.functions.linalg import (
-    column_swap,
-    row_sum,
-)
-from scipy.linalg import block_diag
 
 
 def z_measurement_gate(

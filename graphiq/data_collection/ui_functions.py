@@ -1,53 +1,19 @@
-import networkx as nx
-import numpy as np
-from warnings import warn
-from tkinter import messagebox
-import tkinter as tk
 import os
+import tkinter as tk
+from warnings import warn
 
-import graphiq.ops as ops
-import matplotlib.pyplot as plt
+import networkx as nx
+
 import graphiq.noise.monte_carlo_noise as mcn
-import graphiq.utils.preprocessing as pre
-import graphiq.utils.circuit_comparison as comp
-import graphiq.noise.noise_models as nm
-import graphiq.backends.lc_equivalence_check as lc
-import graphiq.backends.stabilizer.functions.local_cliff_equi_check as slc
-from graphiq.solvers.evolutionary_solver import (
-    EvolutionarySolver,
-    EvolutionarySolverSetting,
-)
-
-from graphiq.solvers.solver_base import SolverBase
-from graphiq.solvers.deterministic_solver import DeterministicSolver
-from graphiq.backends.compiler_base import CompilerBase
-from graphiq.circuit import CircuitDAG
-from graphiq.metrics import MetricBase
-from graphiq.state import QuantumState
-from graphiq.io import IO
-from graphiq.utils.relabel_module import (
-    iso_finder,
-    emitter_sorted,
-    lc_orbit_finder,
-    get_relabel_map,
-)
-from graphiq.backends.state_representation_conversion import stabilizer_to_graph
-from graphiq.backends.stabilizer.functions.rep_conversion import (
-    get_clifford_tableau_from_graph,
-)
-from graphiq.backends.stabilizer.compiler import StabilizerCompiler
+from benchmarks.graph_states import *
 from graphiq.backends.density_matrix.compiler import DensityMatrixCompiler
+from graphiq.backends.stabilizer.compiler import StabilizerCompiler
+from graphiq.data_collection.correlation_module import _rep_counter
 from graphiq.metrics import Infidelity
-from graphiq.backends.stabilizer.state import Stabilizer
 from graphiq.solvers.alternate_graph_solver import (
     AlternateGraphSolver,
     AlternateGraphSolverSetting,
 )
-
-from benchmarks.graph_states import *
-from graphiq.data_collection.correlation_module import _rep_counter
-
-import ray
 
 
 # target graph maker
@@ -111,7 +77,8 @@ class InputParams:
     def __init__(
         self,
         n_ordering=10,  # input
-        rel_inc_thresh=0.2,  # advanced: (0,1) The closer to 0 the closer we get to an exhaustive search for reordering.
+        rel_inc_thresh=0.2,
+        # advanced: (0,1) The closer to 0 the closer we get to an exhaustive search for reordering.
         allow_exhaustive=True,  # advanced*: only reason to deactivate is to save runtime if this is the bottleneck
         iso_thresh=None,  # advanced: if not enough relabeled graphs are found, set it to a larger number!
         n_lc_graphs=10,  # input

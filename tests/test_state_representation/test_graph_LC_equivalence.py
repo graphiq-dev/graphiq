@@ -1,16 +1,17 @@
-import pytest
-from graphiq.backends.lc_equivalence_check import *
 import matplotlib.pyplot as plt
 import numpy as np
+import pytest
+
 import benchmarks.graph_states as gs
-from graphiq.backends.stabilizer.functions.transformation import run_circuit
-from graphiq.backends.stabilizer.functions.rep_conversion import (
-    get_stabilizer_tableau_from_graph,
-)
+from graphiq.backends.lc_equivalence_check import *
 from graphiq.backends.stabilizer.functions.local_cliff_equi_check import (
     lc_check,
     state_converter_circuit,
 )
+from graphiq.backends.stabilizer.functions.rep_conversion import (
+    get_stabilizer_tableau_from_graph,
+)
+from graphiq.backends.stabilizer.functions.transformation import run_circuit
 
 
 def _tester(n):

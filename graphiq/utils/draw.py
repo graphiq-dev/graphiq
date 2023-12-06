@@ -1,5 +1,7 @@
 import json
+
 import requests
+
 from graphiq.utils.openqasm_parser import OpenQASMParser
 
 standard_gate_width_mapping = {

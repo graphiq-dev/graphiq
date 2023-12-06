@@ -5,22 +5,21 @@ graphiq.backends.*.states
 """
 import copy
 
+import networkx as nx
 import numpy as np
 import numpy.linalg as linalg
-import networkx as nx
 
 import graphiq.backends.density_matrix.functions as dmf
-from graphiq.backends.density_matrix import numpy as dmnp
-import graphiq.backends.graph.functions as gf
-import graphiq.backends.stabilizer.functions.utils as sfu
 import graphiq.backends.stabilizer.functions.linalg as sla
+import graphiq.backends.stabilizer.functions.utils as sfu
+from graphiq.backends.density_matrix import numpy as dmnp
+from graphiq.backends.stabilizer.clifford_tableau import CliffordTableau
 from graphiq.backends.stabilizer.functions.rep_conversion import (
     get_stabilizer_tableau_from_graph,
 )
 from graphiq.backends.stabilizer.functions.stabilizer import canonical_form
 from graphiq.backends.stabilizer.functions.transformation import run_circuit
 from graphiq.backends.stabilizer.tableau import StabilizerTableau
-from graphiq.backends.stabilizer.clifford_tableau import CliffordTableau
 
 
 # TODO: Currently the rc functions assume no redundant encoding. Next step is to include redundant encoding.

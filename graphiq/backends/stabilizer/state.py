@@ -1,14 +1,13 @@
 """
 State representation using the stabilizer formalism
 """
-import copy
 import numpy as np
 
-import graphiq.backends.stabilizer.functions.transformation as transform
-from graphiq.backends.state_base import StateRepresentationBase
 import graphiq.backends.stabilizer.functions.clifford as sfc
+import graphiq.backends.stabilizer.functions.transformation as transform
 from graphiq.backends.stabilizer.clifford_tableau import CliffordTableau
 from graphiq.backends.stabilizer.functions.stabilizer import canonical_form
+from graphiq.backends.state_base import StateRepresentationBase
 
 
 class Stabilizer(StateRepresentationBase):

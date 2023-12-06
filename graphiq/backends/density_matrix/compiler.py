@@ -3,10 +3,10 @@ Compilation tools for simulating a circuit with a purely Density Matrix based ba
 """
 
 import graphiq.backends.density_matrix.functions as dm
-from graphiq.circuit import ops as ops
+import graphiq.noise.noise_models as nm
 from graphiq.backends.compiler_base import CompilerBase
 from graphiq.backends.density_matrix.state import DensityMatrix
-import graphiq.noise.noise_models as nm
+from graphiq.circuit import ops as ops
 
 
 class DensityMatrixCompiler(CompilerBase):

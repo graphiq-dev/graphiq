@@ -2,16 +2,16 @@
 Contains various hybrid solvers
 """
 
+from graphiq.backends.compiler_base import CompilerBase
+from graphiq.circuit.circuit_dag import CircuitDAG
+from graphiq.io import IO
+from graphiq.metrics import MetricBase
+from graphiq.solvers.deterministic_solver import DeterministicSolver
 from graphiq.solvers.evolutionary_solver import (
     EvolutionarySolver,
     EvolutionarySolverSetting,
 )
-from graphiq.solvers.deterministic_solver import DeterministicSolver
-from graphiq.backends.compiler_base import CompilerBase
-from graphiq.circuit.circuit_dag import CircuitDAG
-from graphiq.metrics import MetricBase
 from graphiq.state import QuantumState
-from graphiq.io import IO
 from graphiq.utils.relabel_module import *
 
 

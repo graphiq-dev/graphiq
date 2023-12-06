@@ -3,7 +3,6 @@ from flask import Flask, jsonify, render_template, json, request, redirect, url_
 
 app = Flask(__name__)  # Flask constructor
 
-
 # A decorator used to tell the application
 # which URL is associated function
 cache = {

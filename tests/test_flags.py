@@ -1,4 +1,5 @@
 import pytest
+
 import graphiq
 
 # TODO: long term, we might want this to be only the default, and for this parameter to be passed as a flag in testing

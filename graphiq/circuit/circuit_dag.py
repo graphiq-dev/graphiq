@@ -13,20 +13,19 @@ The CircuitDAG class can be:
 Further reading on DAG circuit representation:
 https://qiskit.org/documentation/stubs/qiskit.converters.circuit_to_dag.html
 """
-import networkx as nx
-import matplotlib.pyplot as plt
 import functools
 import re
 import string
+
+import matplotlib.pyplot as plt
+import networkx as nx
 import numpy as np
+
 import graphiq.circuit.ops as ops
 from graphiq.circuit.circuit_base import CircuitBase
 from graphiq.noise.noise_models import NoNoise
-from graphiq.visualizers.dag import dag_topology_pos
 from graphiq.utils.circuit_comparison import compare_circuits
-import json
-
-import json
+from graphiq.visualizers.dag import dag_topology_pos
 
 
 class CircuitDAG(CircuitBase):

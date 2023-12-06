@@ -4,16 +4,17 @@ Solvers are implementations of search algorithms to find quantum circuits which 
 Solvers have a main function, .solve(), which runs the search algorithm and return a Hall of Fame circuits.
 """
 
-from abc import ABC, abstractmethod
-import numpy as np
-import random
 import copy
+import random
+from abc import ABC, abstractmethod
 
-from graphiq.metrics import MetricBase
-from graphiq.circuit.circuit_base import CircuitBase, ops
-from graphiq.backends.compiler_base import CompilerBase
-from graphiq.io import IO
+import numpy as np
+
 import graphiq.noise.noise_models as nm
+from graphiq.backends.compiler_base import CompilerBase
+from graphiq.circuit.circuit_base import CircuitBase, ops
+from graphiq.io import IO
+from graphiq.metrics import MetricBase
 
 
 class SolverBase(ABC):

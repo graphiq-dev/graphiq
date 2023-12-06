@@ -5,17 +5,18 @@ One can define these rules via the allowed DAG transformations.
 
 """
 
-import numpy as np
 import warnings
+
+import numpy as np
 import pandas as pd
 
 import graphiq.noise.noise_models as nm
 from graphiq.backends.compiler_base import CompilerBase
-from graphiq.solvers.solver_base import RandomSearchSolver, RandomSearchSolverSetting
-from graphiq.circuit.circuit_dag import CircuitDAG
 from graphiq.circuit import ops
-from graphiq.metrics import MetricBase
+from graphiq.circuit.circuit_dag import CircuitDAG
 from graphiq.io import IO
+from graphiq.metrics import MetricBase
+from graphiq.solvers.solver_base import RandomSearchSolver, RandomSearchSolverSetting
 
 
 class EvolutionarySolverSetting(RandomSearchSolverSetting):
@@ -437,7 +438,6 @@ class EvolutionarySolver(RandomSearchSolver):
                     population, k=self.setting.tournament_k
                 )
             if self.setting.verbose:
-
                 print(f"Iteration {i} | Best score: {self.hof[0][0]:.6f}")
 
         self.logs_to_df()  # convert the logs to a DataFrame

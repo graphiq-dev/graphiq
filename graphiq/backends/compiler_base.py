@@ -4,13 +4,14 @@ underlying quantum state.
 
 The Base class defines an API which all compiler implementations should follow
 """
-from abc import ABC, abstractmethod
 import logging
+from abc import ABC, abstractmethod
+
 import numpy as np
 
 import graphiq.circuit.ops as ops
-from graphiq.circuit.circuit_base import CircuitBase
 import graphiq.noise.noise_models as nm
+from graphiq.circuit.circuit_base import CircuitBase
 from graphiq.state import QuantumState
 
 

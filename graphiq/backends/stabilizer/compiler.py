@@ -2,9 +2,9 @@
 Compilation tools for simulating a circuit with a Stabilizer backend
 """
 
-from graphiq.circuit import ops as ops
 from graphiq.backends.compiler_base import CompilerBase
 from graphiq.backends.stabilizer.state import MixedStabilizer
+from graphiq.circuit import ops as ops
 
 
 class StabilizerCompiler(CompilerBase):

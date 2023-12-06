@@ -12,7 +12,7 @@ function register_label_init(width, height) {
         .attr("id", "circuit-label-svg")
         .attr("width", width)
         .attr("height", height)
-    
+
     return register_label_container
 }
 
@@ -31,11 +31,11 @@ function register_detail_init(width, height) {
         .attr("width", width)
         .attr("height", height)
     let zoom = d3.zoom()
-      .on('zoom', handleZoom);
+        .on('zoom', handleZoom);
 
     function handleZoom(e) {
-      d3.selectAll('#circuit-detail-svg g')
-        .attr('transform', e.transform);
+        d3.selectAll('#circuit-detail-svg g')
+            .attr('transform', e.transform);
     }
 
     svg.call(zoom);
@@ -80,16 +80,16 @@ function draw_classical_register(x, y, width) {
     g.append('line')
         .style("stroke", "black")
         .attr("x1", x)
-        .attr("y1", y-1)
+        .attr("y1", y - 1)
         .attr("x2", width)
-        .attr("y2", y-1)
+        .attr("y2", y - 1)
     g.append('line')
         .style("stroke", "black")
         .attr("x1", x)
-        .attr("y1", y+2)
+        .attr("y1", y + 2)
         .attr("x2", width)
-        .attr("y2", y+2)
-    
+        .attr("y2", y + 2)
+
     return register
 }
 

@@ -154,9 +154,10 @@ This is repeated until no more eligible element can be found in the diagonal of 
 
 """
 
-import numpy as np
-import networkx as nx
 from itertools import combinations, permutations
+
+import networkx as nx
+import numpy as np
 
 import graphiq.backends.stabilizer.functions.linalg as slinalg
 
@@ -270,7 +271,7 @@ def _solution_basis_finder(reduced_coeff_matrix, col_list):
     :param reduced_coeff_matrix: an echelon form matrix of the coefficients in the system of linear equations.
     :type reduced_coeff_matrix: numpy.ndarray
     :param col_list: list of the columns' indices in the coefficient matrix that are linearly dependent.
-    :type col_list: list[int]
+    :type col_list: list[int] or numpy.ndarray
     :raises AssertionError: if the solution basis found is wrong
     :return: an array containing the elements of the total Clifford operation needed to convert one graph to another.
     :rtype: numpy.ndarray
@@ -317,7 +318,7 @@ def _random_checker(reduced_coeff_matrix, col_list, trial_count=10000, seed=0):
     :param reduced_coeff_matrix: an echelon form matrix of the coefficients in the system of linear equations.
     :type reduced_coeff_matrix: numpy.ndarray
     :param col_list: list of the columns' indices in the coefficient matrix that are linearly dependent.
-    :type col_list: list[int]
+    :type col_list: list[int] or numpy.ndarray
     :param trial_count: the number of trials
     :type trial_count: int
     :param seed: set the random seed for the random search approach
@@ -654,7 +655,7 @@ def _R_matrix(adj_matrix, solution):
     :param adj_matrix: The adjacency matrix of the first graph.
         This is equal to the binary matrix for representing Pauli Z
         part of the symplectic binary representation of the stabilizer generators
-    :type adj_matrix: networkx.Graph
+    :type adj_matrix: numpy.ndarray
     :param solution: an array of single-qubit Clifford :math:`2 \\times 2` matrices in the symplectic formalism
     :type solution: numpy.ndarray
     :return: the R matrix

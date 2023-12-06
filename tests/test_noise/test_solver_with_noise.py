@@ -1,15 +1,13 @@
-import pytest
-from tests.test_flags import visualization
-import numpy as np
-from graphiq.solvers.evolutionary_solver import EvolutionarySolver
 import matplotlib.pyplot as plt
+import pytest
+
+import graphiq.noise.noise_models as nm
+from benchmarks.circuits import *
 from graphiq.backends.density_matrix.compiler import DensityMatrixCompiler
 from graphiq.metrics import Infidelity, TraceDistance
-import graphiq.backends.density_matrix.functions as dmf
+from graphiq.solvers.evolutionary_solver import EvolutionarySolver
 from graphiq.visualizers.density_matrix import density_matrix_bars
-from benchmarks.circuits import *
-import graphiq.noise.noise_models as nm
-from graphiq.state import QuantumState
+from tests.test_flags import visualization
 
 
 @pytest.fixture(scope="module")

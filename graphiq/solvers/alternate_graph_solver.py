@@ -3,9 +3,9 @@ AlternateGraphSolver uses alternative target graph states as the starting point 
 Alternative target graph states can be found by relabeling (photon emission ordering) and local complementation (local Clifford equivalency).
 """
 
+import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
-import matplotlib.pyplot as plt
 
 from benchmarks.graph_states import repeater_graph_states
 from graphiq.backends.compiler_base import CompilerBase

@@ -1,20 +1,17 @@
-from graphiq.utils.relabel_module import *
-import networkx as nx
-import numpy as np
 import random
-
-import matplotlib.pyplot as plt
-from scipy.stats import pearsonr
 from math import ceil
-from graphiq.backends.stabilizer.functions.height import height_max
+
+import graphiq.backends.state_representation_conversion as converter
+import networkx as nx
+from scipy.stats import pearsonr
 
 from graphiq.backends.stabilizer.compiler import StabilizerCompiler
-import graphiq.backends.state_representation_conversion as converter
 from graphiq.backends.stabilizer.tableau import CliffordTableau
-from graphiq.metrics import Infidelity
-from graphiq.state import QuantumState
 from graphiq.circuit import CircuitDAG
+from graphiq.metrics import Infidelity
 from graphiq.solvers.deterministic_solver import DeterministicSolver
+from graphiq.state import QuantumState
+from graphiq.utils.relabel_module import *
 
 
 class GraphCorr:

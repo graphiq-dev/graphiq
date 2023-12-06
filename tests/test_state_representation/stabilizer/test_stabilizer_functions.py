@@ -1,17 +1,16 @@
+from functools import reduce
+
 import pytest
 
+import graphiq.backends.stabilizer.functions.clifford as sfc
+import graphiq.backends.stabilizer.functions.metric as sfm
 import graphiq.backends.stabilizer.functions.rep_conversion as conversion
 import graphiq.backends.stabilizer.functions.utils as sfu
-from graphiq.circuit.circuit_dag import CircuitDAG
-from graphiq.circuit import ops
-import graphiq.backends.stabilizer.functions.clifford as sfc
-from graphiq.backends.stabilizer.functions.stabilizer import rref
-import graphiq.backends.stabilizer.functions.metric as sfm
-from graphiq.backends.stabilizer.tableau import StabilizerTableau
-from functools import reduce
+from benchmarks.circuits import *
 from graphiq.backends.density_matrix.compiler import DensityMatrixCompiler
 from graphiq.backends.stabilizer.compiler import StabilizerCompiler
-from benchmarks.circuits import *
+from graphiq.backends.stabilizer.functions.stabilizer import rref
+from graphiq.backends.stabilizer.tableau import StabilizerTableau
 from graphiq.metrics import Infidelity
 
 

@@ -4,13 +4,11 @@ Helper functions for the density matrix representation backend
 Includes functions to generate commonly used matrices, apply certain gates, etc.
 
 """
-from functools import reduce
 import string
-import os
-import inspect
+from functools import reduce
 
+from graphiq.backends.density_matrix import eigh
 from graphiq.backends.density_matrix import numpy as np
-from graphiq.backends.density_matrix import eig, eigh
 
 
 def dagger(matrix):

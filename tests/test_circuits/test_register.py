@@ -1,4 +1,5 @@
 import pytest
+
 from graphiq.circuit.register import Register
 
 

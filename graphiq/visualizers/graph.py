@@ -1,8 +1,8 @@
 """
 Graph representation visualization helper
 """
-import networkx as nx
 import matplotlib.pyplot as plt
+import networkx as nx
 
 
 def draw_graph(state_graph, show=False, ax=None, with_labels=True):

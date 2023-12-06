@@ -6,12 +6,12 @@ Functions that help calculation of various metrics in the stabilizer backend
 import numpy as np
 
 import graphiq.backends.stabilizer.functions.transformation as transform
+from graphiq.backends.stabilizer.clifford_tableau import CliffordTableau
+from graphiq.backends.stabilizer.functions.linalg import row_sum
 from graphiq.backends.stabilizer.functions.stabilizer import (
     canonical_form,
     inverse_circuit,
 )
-from graphiq.backends.stabilizer.functions.linalg import row_sum
-from graphiq.backends.stabilizer.clifford_tableau import CliffordTableau
 
 
 def fidelity(tableau1, tableau2):

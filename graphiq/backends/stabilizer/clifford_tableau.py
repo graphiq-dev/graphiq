@@ -2,7 +2,8 @@ import copy
 
 import numpy as np
 
-from graphiq.backends.stabilizer.functions import rep_conversion as sfrc, utils as sfu
+import graphiq.backends.stabilizer as stab
+from graphiq.backends.stabilizer.functions import utils as sfu
 from graphiq.backends.stabilizer.tableau import TableauBase, StabilizerTableau
 
 
@@ -27,7 +28,7 @@ class CliffordTableau(TableauBase):
             self._initialize_phase(phase)
         elif isinstance(data, CliffordTableau) or isinstance(data, StabilizerTableau):
             if isinstance(data, StabilizerTableau):
-                data = sfrc.clifford_from_stabilizer(data)
+                data = stab.clifford_from_stabilizer(data)
             self._table = np.copy(data.table)
             self.n_qubits = data.n_qubits
             self._phase = np.copy(data.phase)

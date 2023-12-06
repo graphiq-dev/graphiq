@@ -1,13 +1,14 @@
 import copy
+from itertools import combinations_with_replacement
 
-from graphiq.circuit.circuit_dag import CircuitDAG
-from graphiq.state import QuantumState
+import numpy as np
+
+import graphiq.circuit.ops as ops
+import graphiq.noise.model_parameters as mp
 from graphiq.backends.stabilizer.clifford_tableau import CliffordTableau
 from graphiq.backends.stabilizer.compiler import StabilizerCompiler
-import graphiq.circuit.ops as ops
-import numpy as np
-from itertools import combinations_with_replacement
-import graphiq.noise.model_parameters as mp
+from graphiq.circuit.circuit_dag import CircuitDAG
+from graphiq.state import QuantumState
 
 
 # TODO: Whole module considers 1 qubit registers, must be checked/ refactored for consistency with multiple qubits in

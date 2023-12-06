@@ -20,13 +20,16 @@ We can also use a mixture of registers an qubits: q_registers=(a, (b, c)) means 
 between EACH QUBIT of register a, and qubit c of register b
 
 """
+import itertools
+
 # TODO: consider refactoring register notation to not use tuples (which can be confusing).
 from abc import ABC
-import itertools
+
 import numpy as np
-import graphiq.utils.openqasm_lib as oq_lib
-import graphiq.noise.noise_models as nm
+
 import graphiq.backends.density_matrix.functions as dmf
+import graphiq.noise.noise_models as nm
+import graphiq.utils.openqasm_lib as oq_lib
 
 """ Base classes from which operations will inherit """
 

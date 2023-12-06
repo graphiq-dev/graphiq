@@ -14,23 +14,19 @@ Currently, we consider only local errors.
 # TODO: Implement more noise models
 # TODO: Check incompatibility between noise models and operations, between noise models and backend representations
 
-import numpy as np
 import itertools
 from abc import ABC
 
-import graphiq.backends.density_matrix.functions as dmf
-import graphiq.backends.stabilizer.functions.clifford as sfc
-import graphiq.backends.stabilizer.functions.transformation as transform
-from graphiq.backends.stabilizer.functions.stabilizer import canonical_form
+import numpy as np
 
-from graphiq.state import QuantumState
+import graphiq.backends.density_matrix.functions as dmf
+import graphiq.backends.stabilizer.functions.transformation as transform
 from graphiq.backends.density_matrix.state import DensityMatrix
-from graphiq.backends.stabilizer.state import Stabilizer, MixedStabilizer
 from graphiq.backends.graph.state import Graph
-from graphiq.backends.state_base import StateRepresentationBase
+from graphiq.backends.stabilizer.state import Stabilizer, MixedStabilizer
+from graphiq.state import QuantumState
 
 REDUCE_STABILIZER_MIXTURE = True
-
 
 """ Base classes from which any noise model will inherit """
 

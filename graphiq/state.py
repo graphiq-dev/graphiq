@@ -11,16 +11,15 @@ State representations that we intend to support in the near future are:
 """
 import copy
 import warnings
+
 import networkx as nx
 import numpy as np
 
-from graphiq.backends.graph.state import Graph, MixedGraph
-from graphiq.backends.density_matrix.state import DensityMatrix
-from graphiq.backends.stabilizer.state import Stabilizer, MixedStabilizer
-from graphiq.backends.stabilizer.clifford_tableau import CliffordTableau
-import graphiq.backends.density_matrix.functions as dmf
-import graphiq.backends.stabilizer.functions.clifford as sfc
 import graphiq.backends.state_rep_conversion as rc
+from graphiq.backends.density_matrix.state import DensityMatrix
+from graphiq.backends.graph.state import Graph, MixedGraph
+from graphiq.backends.stabilizer.clifford_tableau import CliffordTableau
+from graphiq.backends.stabilizer.state import Stabilizer, MixedStabilizer
 
 # threshold above which density matrix rep_type is discouraged
 DENSITY_MATRIX_QUBIT_THRESH = 10

@@ -1,13 +1,13 @@
+import warnings
+from itertools import permutations
+
+import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
-import matplotlib.pyplot as plt
-import random
-from graphiq.backends.stabilizer.functions.height import height_max
-from itertools import permutations
 from networkx.algorithms import isomorphism
-from graphiq.backends.lc_equivalence_check import local_comp_graph
 
-import warnings
+from graphiq.backends.lc_equivalence_check import local_comp_graph
+from graphiq.backends.stabilizer.functions.height import height_max
 
 
 def iso_finder(

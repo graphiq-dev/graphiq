@@ -1,8 +1,9 @@
-import pytest
 import random
 
-from graphiq.circuit.circuit_dag import CircuitDAG
+import pytest
+
 import graphiq.circuit.ops as ops
+from graphiq.circuit.circuit_dag import CircuitDAG
 from tests.test_flags import visualization
 
 

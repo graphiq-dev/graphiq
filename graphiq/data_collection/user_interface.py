@@ -3,13 +3,11 @@
 ###
 import time
 
-import numpy as np
 import pandas as pd
-from graphiq.data_collection.ui_functions import *
-from correlation_module import *
-from scipy.stats import spearmanr, pearsonr
+from scipy.stats import spearmanr
 
-from graphiq.utils.relabel_module import lc_orbit_finder
+from correlation_module import *
+from graphiq.data_collection.ui_functions import *
 
 # %% initialize target graph
 # options are "rnd": random, "tree": random tree, "rgs": repeater graph state, "linear": linear cluster state,

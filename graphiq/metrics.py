@@ -3,11 +3,10 @@ Classes to compute metrics on a circuit and/or system states
 """
 
 from abc import ABC, abstractmethod
+
 import numpy as np
 
 import graphiq.backends.density_matrix.functions as dmf
-from graphiq.backends.density_matrix.state import DensityMatrix
-
 import graphiq.backends.stabilizer.functions.metric as sfm
 from graphiq.backends.stabilizer.state import Stabilizer, MixedStabilizer
 

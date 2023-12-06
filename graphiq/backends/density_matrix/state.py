@@ -2,15 +2,18 @@
 Density matrix representation for states.
 Supports unitary operations, quantum channels, and state measurements.
 """
-import numpy
 import matplotlib.pyplot as plt
-import graphiq.backends.density_matrix.functions as dmf
+import numpy
 
+import graphiq.backends.density_matrix.functions as dmf
 from graphiq.backends.density_matrix import numpy as np
-from graphiq.backends.state_base import StateRepresentationBase
 from graphiq.backends.graph.state import Graph
-from graphiq.visualizers.density_matrix import density_matrix_heatmap, density_matrix_bars
+from graphiq.backends.state_base import StateRepresentationBase
 from graphiq.backends.state_rep_conversion import graph_to_density
+from graphiq.visualizers.density_matrix import (
+    density_matrix_heatmap,
+    density_matrix_bars,
+)
 
 
 class DensityMatrix(StateRepresentationBase):

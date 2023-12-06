@@ -1,5 +1,5 @@
 import pytest
-import numpy as np
+
 from graphiq.backends.density_matrix.functions import *
 
 

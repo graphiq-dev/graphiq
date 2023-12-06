@@ -9,14 +9,13 @@ import numpy as np
 import graphiq.backends.stabilizer.functions.height as height
 import graphiq.backends.stabilizer.functions.stabilizer as sfs
 import graphiq.backends.stabilizer.functions.transformation as transform
-from graphiq.backends.stabilizer.tableau import StabilizerTableau
 from graphiq.backends.compiler_base import CompilerBase
-
+from graphiq.backends.stabilizer.tableau import StabilizerTableau
+from graphiq.circuit import ops
+from graphiq.circuit.circuit_dag import CircuitDAG
+from graphiq.io import IO
 from graphiq.metrics import MetricBase
 from graphiq.solvers import SolverBase
-from graphiq.circuit.circuit_dag import CircuitDAG
-from graphiq.circuit import ops
-from graphiq.io import IO
 
 
 class DeterministicSolver(SolverBase):

@@ -2,12 +2,13 @@
 Functions that are specific for StabilizerTableau
 """
 import numpy as np
-from graphiq.backends.stabilizer.tableau import StabilizerTableau
+
+import graphiq.backends.stabilizer.functions.transformation as transform
 from graphiq.backends.stabilizer.functions.linalg import (
     row_swap,
     row_sum,
 )
-import graphiq.backends.stabilizer.functions.transformation as transform
+from graphiq.backends.stabilizer.tableau import StabilizerTableau
 
 
 def one_pauli_type_finder(x_matrix, z_matrix, pivot, pauli_type):

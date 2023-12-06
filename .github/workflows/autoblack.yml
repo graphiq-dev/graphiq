@@ -12,4 +12,4 @@ jobs:
           options: "--check --verbose"
           src: "./graphiq"
           jupyter: true
-          version: "~= 22.0"
+          version: "~= 23.0"

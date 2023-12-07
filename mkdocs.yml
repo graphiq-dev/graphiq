@@ -9,10 +9,9 @@ nav:
   - Introduction: index.md
   - Tutorials:
       - Getting started: tutorials.md
-      - Example notebook: simulate_circuit.ipynb
+      - Example notebook: tutorials/simulate.ipynb
   - How to guides: how-to-guides.md
   - Reference:
-      - Overview: reference.md
       - States: reference/states.md
       - Circuits: reference/circuit.md
       - Backends: reference/backends.md

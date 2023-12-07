@@ -1,10 +1,6 @@
 name: mkdocs-build
 on:
-  push:
-    branches:
-      - main
-permissions:
-  contents: write
+  pull_request
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -25,4 +21,4 @@ jobs:
           restore-keys: |
             mkdocs-material-
       - run: pip install mkdocs-material mkdocstrings mkdocstrings-python pymdown-extensions mkdocs-jupyter
-      - run: mkdocs gh-deploy --force
+      - run: mkdocs build

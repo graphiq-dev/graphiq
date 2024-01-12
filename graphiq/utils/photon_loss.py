@@ -1,3 +1,6 @@
+"""
+Utility functions for analyzing the effect of photon loss on circuit performance.
+"""
 from graphiq.noise.noise_models import PhotonLoss
 
 

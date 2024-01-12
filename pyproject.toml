@@ -13,10 +13,10 @@ dependencies = [
     "matplotlib",
     "tqdm",
     "seaborn",
-    "pandas"
+    "scipy"
 ]
 readme = "README.md"
-keywords = ["quantum", "photonic", "circuit"]
+keywords = ["quantum", "photonic", "circuit", "design", ""]
 license = {text = "Apache 2.0"}
 authors = [
     {name = "Benjamin MacLellan", email = "benjamin@ki3photonics.com"},
@@ -30,5 +30,6 @@ classifiers = [
 
 [project.optional-dependencies]
 jax = ["jax", "optax"]
-ray = ["ray"]
-all = ["jax", "optax", "ray"]
+ray = ["ray", "pandas"]
+qiskit = ["qiskit"]
+all = ["jax", "optax", "ray", "pandads", "qiskit"]

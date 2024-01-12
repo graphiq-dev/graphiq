@@ -1,7 +1,5 @@
 """
-State representation conversion module. This state representation conversion module uses the internal representations instead of classes from
-graphiq.backends.*.states
-
+Convert between different representations of quantum states; including density matrices, graph, and stabilizer.
 """
 import copy
 
@@ -25,7 +23,6 @@ from graphiq.backends.stabilizer.tableau import StabilizerTableau
 # TODO: Currently the rc functions assume no redundant encoding. Next step is to include redundant encoding.
 # TODO: We currently assume exact state rep conversion, that is, no need to check local-Clifford equivalency. Need to be
 #       able to convert local-Clifford equivalent states.
-# TODO: need to check compatibility with JAX numpy for density matrix related functions
 # Assumption: each stabilizer state has a phase vector consisting of all zeros.
 
 

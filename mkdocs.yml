@@ -2,16 +2,32 @@
 site_name: GraphiQ
 site_description: GraphiQ - A design framework for quantum photonic circuits
 #site_url: http://0.0.0.0:8000
-
-#use_directory_urls: false  # good for opening HTML files directly, but should be 'true' for deployment
+repo_url: https://github.com/benjimaclellan/aesop/
+docs_dir: docs
+use_directory_urls: false  # good for opening HTML files directly, but should be 'true' for deployment
 
 nav:
-  - Introduction: index.md
+  - Introduction:
+    - Welcome: index.md
+    - Installation: installation.md
   - Tutorials:
-      - Getting started: tutorials.md
-      - Example notebook: tutorials/simulate.ipynb
-  - How to guides: how-to-guides.md
+    - Getting started: tutorials.md
+    - Circuits: examples/startup_guide/1_circuits.ipynb
+    - States: examples/startup_guide/2_states.ipynb
+    - Compiler backends: examples/startup_guide/3_compilers.ipynb
+    - Noise models: examples/startup_guide/4_noise_models.ipynb
+    - Metrics: examples/startup_guide/5_metrics.ipynb
+    - Solvers: examples/startup_guide/6_solvers.ipynb
+    - Benchmarking solvers: examples/startup_guide/7_benchmarking.ipynb
+    - Variational circuits: examples/startup_guide/8_variational_circuits.ipynb
+    - Visualization tools: examples/startup_guide/9_html_visualization_tutorial.ipynb
+  - How to guides:
+    - Use-cases of GraphiQ: how-to-guides.md
+    - Simulate a photonic circuit: examples/simulate.ipynb
+    - Map target state to generating circuit: examples/evaluate.ipynb
+    - Explore alternative circuits: examples/explore.ipynb
   - Reference:
+      - API: reference.md
       - States: reference/states.md
       - Circuits: reference/circuit.md
       - Backends: reference/backends.md
@@ -19,7 +35,6 @@ nav:
       - Noise: reference/noise.md
       - Metrics: reference/metrics.md
       - Utilities: reference/utils.md
-  - Explanation: explanation.md
 
 
 
@@ -28,10 +43,32 @@ theme:
 
 #  logo: img/oqd-logo.png
 
+  palette:
+    - media: '(prefers-color-scheme: light)'
+      scheme: default
+      primary: blue grey
+      accent: amber
+      toggle:
+        icon: material/lightbulb
+        name: Switch to dark mode
+    - media: '(prefers-color-scheme: dark)'
+      scheme: slate
+      primary: teal
+      accent: amber
+      toggle:
+        icon: material/lightbulb-outline
+        name: Switch to light mode
+  font:
+    text: Roboto
+    code: Roboto Mono
+  favicon: assets/favicon.png
+  icon:
+    logo: logo
+
   features:
     - announce.dismiss
-    - content.action.edit
-    - content.action.view
+#    - content.action.edit
+#    - content.action.view
     - content.code.annotate
     - content.code.copy
     # - content.code.select
@@ -54,41 +91,11 @@ theme:
     - search.share
     - search.suggest
     - toc.follow
-    # - toc.integrate
-  palette:
-    - scheme: default
-      primary: indigo
-      accent: indigo
-      toggle:
-        icon: material/brightness-7
-        name: Switch to dark mode
-    - scheme: slate
-      primary: black
-      accent: indigo
-      toggle:
-        icon: material/brightness-4
-        name: Switch to light mode
-  font:
-    text: Roboto
-    code: Roboto Mono
-  favicon: assets/favicon.png
-  icon:
-    logo: logo
-
-#  features:
-#  - search.suggest
-#  - search.highlight
-##  - content.tabs.link
-#  - navigation.indexes
-#  - content.tooltips
-##  - navigation.path
-#  - content.code.annotate
-#  - content.code.copy
-#  - content.code.select
-##  - navigation.tabs
 
 plugins:
   - search
+#  - markdownextradata:
+#      folder: examples
   - mkdocstrings:
       handlers:
         python:
@@ -97,7 +104,12 @@ plugins:
             show_root_heading: yes
   - mkdocs-jupyter:
       ignore_h1_titles: True
-
+      include_source: True
+#  - mknotebooks:
+#      execute: false
+#      timeout: 100
+#      preamble: "/examples"
+#      allow_errors: True
 
 markdown_extensions:
   - toc:

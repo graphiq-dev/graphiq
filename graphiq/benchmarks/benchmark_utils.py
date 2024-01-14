@@ -7,10 +7,9 @@ import numpy as np
 import time
 import copy
 
-from graphiq.backends.density_matrix.functions import partial_trace
 from graphiq.backends.density_matrix.compiler import DensityMatrixCompiler
 from graphiq.solvers.evolutionary_solver import EvolutionarySolver
-import benchmarks.circuits as circ
+from graphiq import benchmarks as circ
 from graphiq.metrics import Infidelity
 
 from graphiq.io import IO

@@ -7,9 +7,7 @@ import time
 from graphiq.backends.density_matrix.compiler import DensityMatrixCompiler
 from graphiq.solvers.evolutionary_solver import EvolutionarySolver
 from graphiq.metrics import Infidelity
-import graphiq.backends.density_matrix.functions as dmf
 
-from benchmarks.circuits import *
 from graphiq.visualizers.density_matrix import density_matrix_bars
 from graphiq.visualizers.solver_logs import plot_solver_logs
 

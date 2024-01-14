@@ -1,6 +1,6 @@
 import pytest as pytest
 
-from benchmarks.graph_states import repeater_graph_states, linear_cluster_state
+from graphiq.benchmarks.graph_states import linear_cluster_state
 from graphiq.solvers.alternate_graph_solver import *
 
 linear_cluster = nx.from_numpy_array(nx.to_numpy_array(linear_cluster_state(4).data))

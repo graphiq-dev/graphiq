@@ -1,6 +1,5 @@
 import pytest
 
-from benchmarks.circuits import *
 from graphiq.utils.draw import Columns
 from graphiq.utils.draw import Painter
 

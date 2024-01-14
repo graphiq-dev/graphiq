@@ -1,9 +1,3 @@
-import graphiq.noise.noise_models as noise
-from benchmarks.alternate_circuits import *
-from benchmarks.circuits import *
-from benchmarks.graph_states import *
-
-
 def graph_stabilizer_setup(graph, solver_class, solver_setting, expected_result):
     """
     A common piece of code to run a graph state with the stabilizer backend

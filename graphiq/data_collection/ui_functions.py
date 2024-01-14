@@ -5,7 +5,6 @@ from warnings import warn
 import networkx as nx
 
 import graphiq.noise.monte_carlo_noise as mcn
-from benchmarks.graph_states import *
 from graphiq.backends.density_matrix.compiler import DensityMatrixCompiler
 from graphiq.backends.stabilizer.compiler import StabilizerCompiler
 from graphiq.data_collection.correlation_module import _rep_counter

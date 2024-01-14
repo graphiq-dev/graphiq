@@ -3,7 +3,6 @@ import pytest
 import graphiq.backends.stabilizer.functions.stabilizer as sfs
 import graphiq.backends.state_rep_conversion as rc
 import graphiq.circuit.ops as ops
-from benchmarks.circuits import *
 from graphiq.backends.stabilizer.compiler import StabilizerCompiler
 from graphiq.backends.stabilizer.tableau import *
 

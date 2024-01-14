@@ -4,7 +4,6 @@ import matplotlib.pyplot as plt
 import pytest
 from optax import adagrad
 
-import benchmarks.circuits
 from graphiq.backends.density_matrix.compiler import DensityMatrixCompiler
 from graphiq.metrics import Infidelity
 from graphiq.solvers.gradient_descent_solver import GradientDescentSolver
@@ -29,7 +28,7 @@ def compute_loss(params, circuit, compiler, metric):
 
 
 def run(nqubit):
-    circuit, target = benchmarks.circuits.strongly_entangling_layer(nqubit)
+    circuit, target = graphiq.benchmarks.circuits.strongly_entangling_layer(nqubit)
     compiler = DensityMatrixCompiler()
     metric = Infidelity(target=target)
     return circuit, compiler, metric

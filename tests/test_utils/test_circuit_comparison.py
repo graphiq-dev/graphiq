@@ -1,11 +1,5 @@
 import pytest
 
-from benchmarks.circuits import *
-from graphiq.backends.stabilizer.compiler import StabilizerCompiler
-from graphiq.backends.stabilizer.functions.rep_conversion import (
-    get_clifford_tableau_from_graph,
-)
-from graphiq.metrics import Infidelity
 from graphiq.solvers.alternate_graph_solver import *
 from graphiq.state import QuantumState
 from graphiq.utils.circuit_comparison import *

@@ -3,7 +3,6 @@ import pytest
 
 import graphiq.noise.model_parameters as mp
 import graphiq.noise.time_depend_noise as tdn
-from benchmarks.circuits import *
 from graphiq.backends.stabilizer.compiler import StabilizerCompiler
 from graphiq.circuit import ops
 from graphiq.metrics import Infidelity

@@ -1,4 +1,3 @@
-from benchmarks.circuits import *
 from graphiq.solvers.solver_result import *
 
 

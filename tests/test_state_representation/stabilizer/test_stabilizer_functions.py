@@ -6,7 +6,6 @@ import graphiq.backends.stabilizer.functions.clifford as sfc
 import graphiq.backends.stabilizer.functions.metric as sfm
 import graphiq.backends.stabilizer.functions.rep_conversion as conversion
 import graphiq.backends.stabilizer.functions.utils as sfu
-from benchmarks.circuits import *
 from graphiq.backends.density_matrix.compiler import DensityMatrixCompiler
 from graphiq.backends.stabilizer.compiler import StabilizerCompiler
 from graphiq.backends.stabilizer.functions.stabilizer import rref

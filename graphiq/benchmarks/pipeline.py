@@ -6,7 +6,6 @@ import platform
 
 from graphiq.backends.density_matrix.compiler import DensityMatrixCompiler
 from graphiq.solvers.evolutionary_solver import EvolutionarySolver
-from benchmarks.circuits import *
 from graphiq.metrics import Infidelity
 from graphiq.io import IO
 

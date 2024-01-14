@@ -2,7 +2,6 @@ import matplotlib.pyplot as plt
 import pytest
 
 import graphiq.backends.stabilizer.functions.stabilizer as sfs
-from benchmarks.circuits import *
 from graphiq.backends.density_matrix.compiler import DensityMatrixCompiler
 from graphiq.backends.stabilizer.compiler import StabilizerCompiler
 from graphiq.io import IO

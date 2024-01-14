@@ -2,7 +2,6 @@ import matplotlib.pyplot as plt
 import pytest
 
 import graphiq.noise.noise_models as nm
-from benchmarks.circuits import *
 from graphiq.backends.density_matrix.compiler import DensityMatrixCompiler
 from graphiq.metrics import Infidelity, TraceDistance
 from graphiq.solvers.evolutionary_solver import EvolutionarySolver

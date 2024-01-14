@@ -1,4 +1,3 @@
-from benchmarks.circuits import *
 from graphiq.backends.density_matrix.compiler import DensityMatrixCompiler
 from graphiq.io import IO
 from graphiq.metrics import Infidelity

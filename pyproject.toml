@@ -13,10 +13,11 @@ dependencies = [
     "matplotlib",
     "tqdm",
     "seaborn",
-    "scipy"
+    "scipy",
+    "flask",
 ]
 readme = "README.md"
-keywords = ["quantum", "photonic", "circuit", "design", ""]
+keywords = ["quantum", "photonic", "circuit", "design"]
 license = {text = "Apache 2.0"}
 authors = [
     {name = "Benjamin MacLellan", email = "benjamin@ki3photonics.com"},

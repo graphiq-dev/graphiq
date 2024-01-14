@@ -23,5 +23,24 @@
 ## About the project
 **GraphiQ** is a Python library for the design of quantum photonic circuits.
 
+## Basic usage
+```
+from graphiq import states
 
+```
 
+## Installation
+``` py
+import graphiq as gq
+import networkx as nx
+
+n = 100
+circuit = gq.examples.circuit.ghz(4)
+backend = gq.StabilizerCompiler()
+state = backend.run(circuit)
+
+target_state = nx.Graph([(1, 2), (2, 3)])
+solver = gq.solvers.DeterministicSolver()
+
+generating_circuit = solver.run(target=target)
+```

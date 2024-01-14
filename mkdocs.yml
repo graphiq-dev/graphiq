@@ -12,12 +12,12 @@ nav:
     - Installation: installation.md
   - Tutorials:
     - Getting started: tutorials.md
-    - Circuits: examples/startup_guide/1_circuits.ipynb
-    - States: examples/startup_guide/2_states.ipynb
+    - Quantum circuits: examples/startup_guide/1_circuits.ipynb
+    - Quantum states: examples/startup_guide/2_states.ipynb
     - Compiler backends: examples/startup_guide/3_compilers.ipynb
     - Noise models: examples/startup_guide/4_noise_models.ipynb
-    - Metrics: examples/startup_guide/5_metrics.ipynb
-    - Solvers: examples/startup_guide/6_solvers.ipynb
+    - Objective metrics: examples/startup_guide/5_metrics.ipynb
+    - Solvers & algorithms: examples/startup_guide/6_solvers.ipynb
     - Benchmarking solvers: examples/startup_guide/7_benchmarking.ipynb
     - Variational circuits: examples/startup_guide/8_variational_circuits.ipynb
     - Visualization tools: examples/startup_guide/9_html_visualization_tutorial.ipynb

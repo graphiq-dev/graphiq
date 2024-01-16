@@ -1,13 +1,13 @@
 import random
 from math import ceil
 
-import graphiq.backends.state_representation_conversion as converter
+import graphiq.backends.state_rep_conversion as converter
 import networkx as nx
 from scipy.stats import pearsonr
 
 from graphiq.backends.stabilizer.compiler import StabilizerCompiler
-from graphiq.backends.stabilizer.tableau import CliffordTableau
-from graphiq.circuit import CircuitDAG
+from graphiq.backends.stabilizer.clifford_tableau import CliffordTableau
+from graphiq.circuit.circuit_dag import CircuitDAG
 from graphiq.metrics import Infidelity
 from graphiq.solvers.deterministic_solver import DeterministicSolver
 from graphiq.state import QuantumState

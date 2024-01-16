@@ -1,8 +1,9 @@
 import os
 import tkinter as tk
 from warnings import warn
-
+import matplotlib.pyplot as plt
 import networkx as nx
+import numpy as np
 
 import graphiq.noise.monte_carlo_noise as mcn
 from graphiq.backends.density_matrix.compiler import DensityMatrixCompiler
@@ -13,6 +14,7 @@ from graphiq.solvers.alternate_graph_solver import (
     AlternateGraphSolver,
     AlternateGraphSolverSetting,
 )
+from graphiq.benchmarks.graph_states import repeater_graph_states, random_graph_state, linear_cluster_state, lattice_cluster_state, star_graph_state
 
 
 # target graph maker

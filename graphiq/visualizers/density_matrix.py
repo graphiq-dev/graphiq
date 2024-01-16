@@ -16,7 +16,7 @@ def density_matrix_heatmap(rho, axs=None):
     :param axs: axis to plot on
     :type axs: plt.Axis
     :return: fig (figure handle), axs (list of axes handles)
-    :rtype: matplotlib.figure, matplotlib.axes
+    :rtype: matplotlib.Figure, matplotlib.Axes
     """
     if type(rho) is qt.Qobj:
         rho = rho.full()
@@ -43,7 +43,7 @@ def density_matrix_bars(rho):
     :param rho: a complex numpy array representing the density matrix
     :type rho: numpy.ndarray
     :return: fig (figure handle), axs (list of axes handles)
-    :rtype: matplotlib.figure, matplotlib.axes
+    :rtype: matplotlib.Figure, matplotlib.Axes
     """
 
     def bar_plot(deltaz, ax):

@@ -11,11 +11,11 @@ def draw_openqasm(qasm, show=False, ax=None, display_text=None):
     :param show: If True, draw and show the circuit. Otherwise, draw but do not show the circuit
     :type show: bool
     :param ax: axis on which to plot the figure drawing
-    :type ax: matplotlib.axis
+    :type ax: matplotlib.Axis
     :param display_text: a dictionary specifying the symbol to be used for each gate (as defined in openQASM)
     :type display_text: dictionary (or None)
     :return: fig, ax (fig might be None)
-    :rtype: matplotlib.figure, matplotlib.axis
+    :rtype: matplotlib.Figure, matplotlib.Axis
 
     """
     # https://qiskit.org/documentation/tutorials/circuits_advanced/03_advanced_circuit_visualization.html

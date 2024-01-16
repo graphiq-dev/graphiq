@@ -42,7 +42,7 @@ a $2n \times 2n$ matrix $Q$,which is made of 4 diagonal square matrices $A, B, C
 that is,
 
  $$
-   Q = \begin{bmatrix} A& B\\C& D \end{bmatrix}.
+   Q = \begin{bmatrix} A & B \\ C & D \end{bmatrix}.
 $$
 
 Each $2 \times 2$ sub-matrix, consisting of $i$-th diagonal elements of the $A, B, C, D$, acts locally
@@ -102,7 +102,6 @@ linear equations.
 
 $$
    A &x =& y \in B_{dependent}
-
    &x =& A^{-1} y = b \in B
 $$
 

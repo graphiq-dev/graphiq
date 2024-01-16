@@ -10,6 +10,8 @@ from graphiq.metrics import Infidelity
 
 from graphiq.visualizers.density_matrix import density_matrix_bars
 from graphiq.visualizers.solver_logs import plot_solver_logs
+from graphiq.benchmarks.circuits import linear_cluster_3qubit_circuit
+
 
 if __name__ == "__main__":
     # %% here we have access
@@ -54,11 +56,11 @@ if __name__ == "__main__":
     state.partial_trace(keep=[*range(n_photon)], dims=(n_photon + n_emitter) * [2])
 
     # extract the best performing circuit
-    fig, axs = density_matrix_bars(target_state.dm.data)
+    fig, axs = density_matrix_bars(target_state.rep_data.data)
     fig.suptitle("Target density matrix")
     plt.show()
 
-    fig, axs = density_matrix_bars(state.dm.data)
+    fig, axs = density_matrix_bars(state.rep_data.data)
     fig.suptitle("Simulated density matrix")
     plt.show()
 

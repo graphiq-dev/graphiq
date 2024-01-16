@@ -11,6 +11,20 @@ import numpy as np
 import networkx as nx
 import time
 
+from graphiq.backends.stabilizer.compiler import StabilizerCompiler
+from graphiq.metrics import Infidelity
+from graphiq.state import QuantumState
+from graphiq.solvers.deterministic_solver import DeterministicSolver
+from graphiq.solvers.evolutionary_solver import EvolutionarySolverSetting
+from graphiq.benchmarks.graph_states import repeater_graph_states
+from graphiq.backends.stabilizer.functions.rep_conversion import (
+    get_clifford_tableau_from_graph,
+)
+from graphiq.benchmarks.alternate_circuits import (
+    noise_model_loss_and_depolarizing,
+    exemplary_multiple_test,
+)
+
 
 def deterministic_solver_runtime(n_low, n_high, n_step):
     """
@@ -133,6 +147,6 @@ def six_qubit_repeater_graph_state_example():
 
 
 if __name__ == "__main__":
-    deterministic_solver_runtime(10, 100, 5)
+    deterministic_solver_runtime(4, 10, 2)
     linear3_example_no_noise()
     six_qubit_repeater_graph_state_example()

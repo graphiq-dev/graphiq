@@ -8,7 +8,7 @@ from graphiq.backends.density_matrix.compiler import DensityMatrixCompiler
 from graphiq.solvers.evolutionary_solver import EvolutionarySolver
 from graphiq.metrics import Infidelity
 from graphiq.io import IO
-
+from graphiq.benchmarks.circuits import ghz3_state_circuit
 from graphiq.visualizers.solver_logs import plot_solver_logs
 
 

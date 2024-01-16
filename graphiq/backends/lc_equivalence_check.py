@@ -40,8 +40,7 @@ and the $Z$ matrix is the adjacency matrix of the graph usually shown by $\theta
 A general $n$-qubit local Clifford operation in this formalism can be represented by
 a $2n \times 2n$ matrix $Q$,which is made of 4 diagonal square matrices $A, B, C$ and $D$,
 that is,
-
- $$
+$$
    Q = \begin{bmatrix} A & B \\ C & D \end{bmatrix}.
 $$
 
@@ -101,8 +100,10 @@ complete basis $B_{dependent}$ for that subspace, and use each member of that ba
 linear equations.
 
 $$
-   A &x =& y \in B_{dependent}
+   \begin{align}
+   A &x =& y \in B_{dependent} \\
    &x =& A^{-1} y = b \in B
+   \end{align}
 $$
 
 Where the new full rank coefficient matrix $A$ is obtained from the old coefficient matrix after row-reduction and

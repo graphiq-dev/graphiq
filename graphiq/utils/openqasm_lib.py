@@ -6,7 +6,7 @@ openQASM for anything other than visualization purposes
 """
 
 
-# TODO: consider what to do if we move onto qudits
+# TODO: consider qudit registers
 # TODO: gate definitions drawn from openQASM 3, so there's actually a global phase shift in the implementations
 # TODO: refactor to use: https://github.com/Qiskit/qiskit-terra/blob/main/qiskit/qasm/libs/qelib1.inc
 #       I think this may allow us to have all the ops we need?
@@ -214,7 +214,7 @@ def phase_dagger_info():  #################################
         return f"sdg {q_reg_type[0]}{q_reg[0]}[0];"
 
     return OpenQASMInfo(
-        "sdg", imports, definition, usage, False, gate_symbol="P^{\dag}"
+        "sdg", imports, definition, usage, False, gate_symbol=r"P^{\dag}"
     )
 
 

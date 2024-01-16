@@ -1,17 +1,4 @@
-# How-to: A hands on guide
-!!! note
-
-    This part of the project documentation focuses on a
-    **problem-oriented** approach. You'll tackle common
-    tasks that you might have, with the help of the code
-    provided in this project.
-
-## 4-qubit cluster state
-``` py
-from graphiq import *
-
-n = 100
-circuit = examples.circuit.ghz(4)
-backend = DensityMatrixCompiler()
-state = backend.run(circuit)
-```
+# How-to: A hands-on guide
+![GraphiQ framework](img/fig1.png)
+Graphiq is useful for a variety of use-cases when design photonic quantum technologies.
+Here, we will walk a few examples use-cases of the software tools, starting with a simple example of simulating a quantum circuit, and then move on to more advanced use-cases.

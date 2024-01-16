@@ -7,8 +7,9 @@ from graphiq.solvers.evolutionary_solver import EvolutionarySolver
 from graphiq.metrics import Infidelity
 from graphiq.io import IO
 from graphiq.visualizers.solver_logs import plot_solver_logs
-
+from graphiq.benchmarks.circuits import ghz3_state_circuit, ghz4_state_circuit
 from graphiq.benchmarks.pipeline import benchmark, run_combinations
+
 
 if __name__ == "__main__":
     # %% provide all combinations of solvers, targets, compilers, and metrics to run as a list

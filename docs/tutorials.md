@@ -1,11 +1,7 @@
-!!! note
-
-    This part of the project documentation focuses on a
-    **learning-oriented** approach. You'll learn how to
-    get started with the code in this project.
-
-
-## 4-qubit cluster state
-```py
-from graphiq import *
-```
+Here, you will find examples of using the core features of GraphiQ, including:
+* defining a quantum circuit
+* simulating a quantum circuit
+* evaluating quantum circuits and states
+* mapping a target state to a generating circuit
+* benchmarking tools
+* utility and visualization tools in Graphiq

@@ -7,6 +7,7 @@ from graphiq.backends.density_matrix.compiler import DensityMatrixCompiler
 
 from graphiq.metrics import Infidelity
 from graphiq.visualizers.density_matrix import density_matrix_bars
+from graphiq.benchmarks.circuits import *
 
 if __name__ == "__main__":
     # example_circuit = bell_state_circuit

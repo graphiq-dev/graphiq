@@ -2,14 +2,14 @@
 site_name: GraphiQ
 site_description: GraphiQ - A design framework for quantum photonic circuits
 #site_url: http://0.0.0.0:8000
-repo_url: https://github.com/benjimaclellan/aesop/
+repo_url: https://github.com/ki3-qbt/graph-compiler
 docs_dir: docs
 use_directory_urls: false  # good for opening HTML files directly, but should be 'true' for deployment
 
 nav:
   - Introduction:
     - Welcome: index.md
-    - Installation: installation.md
+#    - Installation: installation.md
   - Tutorials:
     - Getting started: tutorials.md
     - Quantum circuits: examples/startup_guide/1_circuits.ipynb
@@ -19,7 +19,7 @@ nav:
     - Objective metrics: examples/startup_guide/5_metrics.ipynb
     - Solvers & algorithms: examples/startup_guide/6_solvers.ipynb
     - Benchmarking solvers: examples/startup_guide/7_benchmarking.ipynb
-    - Variational circuits: examples/startup_guide/8_variational_circuits.ipynb
+#    - Variational circuits: examples/startup_guide/8_variational_circuits.ipynb
     - Visualization tools: examples/startup_guide/9_html_visualization_tutorial.ipynb
   - How to guides:
     - Use-cases of GraphiQ: how-to-guides.md

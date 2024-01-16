@@ -6,7 +6,11 @@ import graphiq.backends.state_rep_conversion as rc
 import graphiq.circuit.ops as ops
 from graphiq.backends.stabilizer.compiler import StabilizerCompiler
 from graphiq.backends.stabilizer.tableau import *
-from graphiq.benchmarks.circuits import linear_cluster_4qubit_circuit, linear_cluster_3qubit_circuit, ghz3_state_circuit
+from graphiq.benchmarks.circuits import (
+    linear_cluster_4qubit_circuit,
+    linear_cluster_3qubit_circuit,
+    ghz3_state_circuit,
+)
 
 
 @pytest.mark.parametrize(

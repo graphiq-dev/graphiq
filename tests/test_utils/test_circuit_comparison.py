@@ -3,7 +3,10 @@ import pytest
 from graphiq.solvers.alternate_graph_solver import *
 from graphiq.state import QuantumState
 from graphiq.utils.circuit_comparison import *
-from graphiq.benchmarks.circuits import ghz3_state_circuit, linear_cluster_3qubit_circuit
+from graphiq.benchmarks.circuits import (
+    ghz3_state_circuit,
+    linear_cluster_3qubit_circuit,
+)
 from graphiq.circuit.circuit_dag import CircuitDAG
 
 

@@ -40,7 +40,7 @@ def run_combinations(solvers, targets, compilers, metrics):
     """
 
     runs = {}
-    for (i, c) in enumerate(itertools.product(solvers, targets, compilers, metrics)):
+    for i, c in enumerate(itertools.product(solvers, targets, compilers, metrics)):
         ((Solver, solver_attr), (target, target_attr), Compiler, Metric) = c
 
         metric = Metric(target=target)

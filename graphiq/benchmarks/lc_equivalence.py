@@ -1,5 +1,8 @@
 import matplotlib.pyplot as plt
-from graphiq.benchmarks.alternate_circuits import exemplary_run, report_alternate_circuits
+from graphiq.benchmarks.alternate_circuits import (
+    exemplary_run,
+    report_alternate_circuits,
+)
 from graphiq.benchmarks.graph_states import repeater_graph_states
 from graphiq.utils.preprocessing import *
 

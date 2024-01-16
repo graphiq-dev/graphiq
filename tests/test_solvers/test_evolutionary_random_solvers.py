@@ -10,7 +10,12 @@ from graphiq.metrics import Infidelity
 from graphiq.solvers.evolutionary_solver import EvolutionarySolver
 from graphiq.visualizers.density_matrix import density_matrix_bars
 from tests.test_flags import visualization
-from graphiq.benchmarks.circuits import linear_cluster_4qubit_circuit, linear_cluster_3qubit_circuit, bell_state_circuit, ghz3_state_circuit
+from graphiq.benchmarks.circuits import (
+    linear_cluster_4qubit_circuit,
+    linear_cluster_3qubit_circuit,
+    bell_state_circuit,
+    ghz3_state_circuit,
+)
 
 
 @pytest.fixture(scope="module")

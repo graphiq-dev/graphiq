@@ -28,6 +28,7 @@ def my_setting():
 
 # solver
 
+
 # without noise
 @pytest.mark.parametrize("target_graph", [linear_cluster, repeater_graph_states(3)])
 def test_solver_no_noise(target_graph, setting=my_setting()):

@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import pytest
 
-from graphiq import benchmarks as gs
+from graphiq.benchmarks import graph_states as gs
 from graphiq.backends.lc_equivalence_check import *
 from graphiq.backends.stabilizer.functions.local_cliff_equi_check import (
     lc_check,

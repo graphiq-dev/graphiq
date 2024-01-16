@@ -1,4 +1,5 @@
 from graphiq.solvers.solver_result import *
+from graphiq.benchmarks.circuits import ghz3_state_circuit, linear_cluster_3qubit_circuit, ghz4_state_circuit
 
 
 # Test SolverResult class

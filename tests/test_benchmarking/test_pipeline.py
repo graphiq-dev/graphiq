@@ -10,6 +10,8 @@ from graphiq.solvers.alternate_graph_solver import (
     AlternateGraphSolver,
 )
 from graphiq.state import QuantumState
+from graphiq.benchmarks.graph_states import linear_cluster_state
+from graphiq.benchmarks.pipeline import benchmark_run_graph_search_solver
 
 
 def test_benchmark_run_graph_search_solver():

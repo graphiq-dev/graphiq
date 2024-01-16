@@ -8,7 +8,7 @@ from graphiq.backends.density_matrix.compiler import DensityMatrixCompiler
 from graphiq.metrics import Infidelity
 from graphiq.solvers.gradient_descent_solver import GradientDescentSolver
 from tests.test_flags import visualization, jax_library, VISUAL_TEST
-
+from graphiq.benchmarks.circuits import strongly_entangling_layer
 
 # graphiq.DENSITY_MATRIX_ARRAY_LIBRARY = "jax"
 
@@ -28,7 +28,7 @@ def compute_loss(params, circuit, compiler, metric):
 
 
 def run(nqubit):
-    circuit, target = graphiq.benchmarks.circuits.strongly_entangling_layer(nqubit)
+    circuit, target = strongly_entangling_layer(nqubit)
     compiler = DensityMatrixCompiler()
     metric = Infidelity(target=target)
     return circuit, compiler, metric

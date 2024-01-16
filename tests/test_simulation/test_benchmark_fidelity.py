@@ -1,8 +1,8 @@
 import numpy as np
 import pytest
 
-from graphiq import benchmarks as circ
-from graphiq.benchmarks import circuit_measurement_independent
+from graphiq.benchmarks import circuits as circ
+from graphiq.benchmarks.benchmark_utils import circuit_measurement_independent
 from graphiq.backends.density_matrix.compiler import DensityMatrixCompiler
 from graphiq.metrics import Infidelity
 

@@ -6,6 +6,7 @@ import graphiq.noise.time_depend_noise as tdn
 from graphiq.backends.stabilizer.compiler import StabilizerCompiler
 from graphiq.circuit import ops
 from graphiq.metrics import Infidelity
+from graphiq.benchmarks.circuits import linear_cluster_3qubit_circuit, linear_cluster_4qubit_circuit, ghz3_state_circuit, ghz4_state_circuit
 
 
 @pytest.mark.parametrize(

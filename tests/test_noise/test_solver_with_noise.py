@@ -1,8 +1,11 @@
 import matplotlib.pyplot as plt
 import pytest
+import numpy as np
 
+from graphiq.benchmarks.circuits import (linear_cluster_3qubit_circuit, linear_cluster_4qubit_circuit, ghz3_state_circuit)
 import graphiq.noise.noise_models as nm
 from graphiq.backends.density_matrix.compiler import DensityMatrixCompiler
+import graphiq.backends.density_matrix.functions as dmf
 from graphiq.metrics import Infidelity, TraceDistance
 from graphiq.solvers.evolutionary_solver import EvolutionarySolver
 from graphiq.visualizers.density_matrix import density_matrix_bars

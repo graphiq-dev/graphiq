@@ -645,12 +645,13 @@ def fidelity(rho, sigma):
 
 def trace_distance(rho, sigma):
     """
-    Return the trace distance between two hermitian matrices, :math:`\\rho` and :math:`\\sigma`
+    Return the trace distance between two hermitian matrices, $\rho$ and $\sigma$
     The trace distance is computed as:
+    $$
+    T(\rho, \sigma) = \frac{1}{2} \text{Tr}\left( \sqrt{ (\rho - \sigma)^2 } \right)
+     = \frac{1}{2} \sum_i | \lambda_i |
+    $$
 
-    :math:`T(\\rho, \\sigma) = \\frac{1}{2} Tr\\left( \\sqrt{ (\\rho - \\sigma)^2 } \\right)
-     = \\frac{1}{2} \\sum_i | \\lambda_i |
-     `
 
     :param rho: the first state
     :type rho: numpy.ndarray
@@ -712,10 +713,10 @@ def bipartite_partial_transpose(rho, dim1, dim2, subsys):
 
 
 def negativity(rho, dim1, dim2):
-    """
+    r"""
     Return the negativity of the matrix rho.
 
-    :math:`\\mathcal{N}(\\rho) = \\frac{|| \\rho^{\\Lambda_A} - 1}{2}`
+    $$ N(\rho) = \frac{|| \rho^{\Lambda_A} - 1}{2} $$
 
     :param rho: the density matrix to evaluate the negativity
     :type rho: numpy.ndarray

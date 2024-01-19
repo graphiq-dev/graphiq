@@ -70,20 +70,25 @@ class Infidelity(MetricBase):
         self.differentiable = False
 
     def evaluate(self, state, circuit):
-        """
-        Evaluates the infidelity between a state, :math:`\\rho`, and a target state, :math:`\\rho_{t}`.
+        r"""
+        Evaluates the infidelity between a state, $\rho$, and a target state, $\rho_{t}$.
 
-        The infidelity is :math:`1- F(\\rho, \\rho_{t})`
+        The infidelity is $1- F(\rho, \rho_{t})$
 
         For density matrices the fidelity is:
-        :math:`F(\\rho, \\rho_{t}):=Tr[\\sqrt{\\sqrt{\\rho} \\rho_{t} \\sqrt{\\rho}}]^2`
-
-        or if either :math:`\\rho` or :math:`\\rho_{t}` is pure, then it simplifies to:
-        :math:`F(\\rho, \\rho_{t}):=Tr[\\rho \\rho_{t}]`
+        $$
+        F(\rho, \rho_{t}):=\text{Tr}[\sqrt{\sqrt{\rho} \rho_{t} \sqrt{\rho}}]^2
+        $$
+        or if either $\rho$ or $\rho_{t}$ is pure, then it simplifies to:
+        $$
+        F(\rho, \rho_{t}):=\text{Tr}[\rho \rho_{t}]
+        $$
 
         Using the branched mixed stabilizer representation, the fidelity is:
-        :math:`F(\\rho, \\mathcal{T}_t) := \\sum_i p_i F(\\mathcal{T}_i, \\mathcal{T}_{t})`
-        which assumes the target state is pure and represented by a single tableau :math:`\\mathcal{T}_t`.
+        $$
+        F(\rho, T_t) := \sum_i p_i F(T_i, T_{t})
+        $$
+        which assumes the target state is pure and represented by a single tableau $T_t$.
 
         :param state: the state to evaluate
         :type state: QuantumState
@@ -152,13 +157,14 @@ class TraceDistance(MetricBase):
         self.differentiable = False
 
     def evaluate(self, state, circuit):
-        """
+        r"""
         Evaluates the trace distance between the state to the target state.
 
-        The trace distance is computed between two density matrices :math:`\\rho` and :math:`\\sigma` as:
-        :math:`T(\\rho, \\sigma) = \\frac{1}{2} Tr\\left( \\sqrt{ (\\rho - \\sigma)^2 } \\right)
-         = \\frac{1}{2} \\sum_i | \\lambda_i |
-         `
+        The trace distance is computed between two density matrices $\rho$ and $\sigma$ as:
+        $$
+        T(\rho, \sigma) = \frac{1}{2} \text{Tr}\left( \sqrt{ (\rho - \sigma)^2 } \right)
+         = \\frac{1}{2} \sum_i | \lambda_i |
+         $$
         :param state: the state to evaluate
         :type state: QuantumState
         :param circuit: circuit which generated state

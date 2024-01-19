@@ -5,8 +5,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "graphiq"
-version = "0.0.4"
-requires-python = ">=3.9"
+version = "0.1.0"
+requires-python = ">=3.8"
 dependencies = [
     "numpy",
     "networkx",
@@ -15,14 +15,20 @@ dependencies = [
     "seaborn",
     "scipy",
     "flask",
+    "qutip",
+    "qiskit",
+    "pandas",
+    "psutil",
 ]
 readme = "README.md"
 keywords = ["quantum", "photonic", "circuit", "design"]
 license = {text = "Apache 2.0"}
 authors = [
     {name = "Benjamin MacLellan", email = "benjamin@ki3photonics.com"},
-    {name = "Jie Lin", email = "jie@qbt.io"},
-    {name = "Sohban Ghanbari", email = "sohban@qbt.io"},
+    {name = "Jie Lin", email = "jie.lin@quantumbridgetech.com"},
+    {name = "Sohban Ghanbari", email = "sobhan.ghanbari@quantumbridgetech.com"},
+    {name = "Luc Robichaud", email = "luc.robichaud@qubridge.io"},
+    {name = "Piotr Roztocki", email = "piotr@ki3photonics.com"},
 ]
 classifiers = [
     "Programming Language :: Python :: 3",
@@ -30,7 +36,4 @@ classifiers = [
 
 
 [project.optional-dependencies]
-jax = ["jax", "optax"]
-ray = ["ray", "pandas"]
-qiskit = ["qiskit"]
-all = ["jax", "optax", "ray", "pandads", "qiskit"]
+all = ["jax", "optax", "ray"]

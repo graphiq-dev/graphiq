@@ -1,6 +1,5 @@
 import matplotlib.pyplot as plt
 import numpy as np
-import qutip as qt
 import seaborn as sns
 
 cmap_uni = sns.color_palette("crest", as_cmap=True)
@@ -18,9 +17,6 @@ def density_matrix_heatmap(rho, axs=None):
     :return: fig (figure handle), axs (list of axes handles)
     :rtype: matplotlib.Figure, matplotlib.Axes
     """
-    if type(rho) is qt.Qobj:
-        rho = rho.full()
-
     if axs is None:
         fig, axs = plt.subplots(nrows=1, ncols=2, figsize=[10, 4])
     else:
@@ -99,9 +95,6 @@ def density_matrix_bars(rho):
         ax.set_xticklabels(labels, ha="right", va="center")
         ax.set_yticklabels(labels, ha="left", va="center")
         return ax
-
-    if type(rho) is qt.Qobj:
-        rho = rho.full()
 
     fig = plt.figure()  # create a canvas, tell matplotlib it's 3d
     axs = [fig.add_subplot(1, 2, k, projection="3d") for k in range(1, 3)]

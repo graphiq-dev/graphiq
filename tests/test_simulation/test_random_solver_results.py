@@ -2,8 +2,8 @@ import numpy as np
 import pytest
 
 import graphiq.circuit.ops as ops
-from benchmarks.benchmark_utils import circuit_measurement_independent
-from benchmarks.circuits import (
+from graphiq.benchmarks.benchmark_utils import circuit_measurement_independent
+from graphiq.benchmarks.circuits import (
     ghz3_state_circuit,
     ghz4_state_circuit,
     linear_cluster_3qubit_circuit,

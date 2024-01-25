@@ -10,7 +10,6 @@ pandas~=1.5.0
 seaborn~=0.12.0
 defusedxml
 qiskit~=0.38.0
-qutip~=4.7.0
 pylatexenc
 ray[default]
 Flask~=2.2.2

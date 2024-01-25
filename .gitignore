@@ -140,5 +140,5 @@ data/
 jobs/
 
 # benchmark data directory
-benchmarks/save_benchmarks/*
+graphiq/benchmarks/save_benchmarks/*
 experiments/

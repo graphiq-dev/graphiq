@@ -254,7 +254,7 @@ class QuantumState:
         data = rep.data
         if self.mixed:
             data_list = []
-            for (p_i, t_i) in data.mixture:
+            for p_i, t_i in data.mixture:
                 data_list.append((p_i, t_i.to_stabilizer()))
             rho = rc.stabilizer_to_density(data_list)
         else:
@@ -265,7 +265,7 @@ class QuantumState:
         data = rep.data
         if self.mixed:
             data_list = []
-            for (p_i, t_i) in data.mixture:
+            for p_i, t_i in data.mixture:
                 data_list.append((p_i, t_i.data))
             graph_list = rc.stabilizer_to_graph(data_list)
             return MixedGraph(graph_list)

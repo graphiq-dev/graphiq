@@ -1,6 +1,4 @@
 import graphiq.noise.monte_carlo_noise as mcn
-from benchmarks.graph_states import *
-from benchmarks.pipeline import *
 from graphiq.backends.stabilizer.compiler import StabilizerCompiler
 from graphiq.backends.stabilizer.functions.rep_conversion import (
     get_clifford_tableau_from_graph,
@@ -12,6 +10,8 @@ from graphiq.solvers.alternate_graph_solver import (
     AlternateGraphSolver,
 )
 from graphiq.state import QuantumState
+from graphiq.benchmarks.graph_states import linear_cluster_state
+from graphiq.benchmarks.pipeline import benchmark_run_graph_search_solver
 
 
 def test_benchmark_run_graph_search_solver():

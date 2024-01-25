@@ -72,8 +72,8 @@ def hadamard():
 
 
 def phase():
-    """
-    Return the phase matrix :math:`P = \\begin{bmatrix} 1 & 0 \\\ 0 & i \\end{bmatrix}`
+    r"""
+    Return the phase matrix $P = \begin{bmatrix} 1 & 0 \\ 0 & i \end{bmatrix}$
 
     :return: the phase matrix
     :rtype: numpy.ndarray
@@ -82,8 +82,8 @@ def phase():
 
 
 def phase_dag():
-    """
-    Return the phase matrix :math:`P^{\\dag} = \\begin{bmatrix} 1 & 0 \\\ 0 & -i \\end{bmatrix}`
+    r"""
+    Return the phase matrix $P^{\dag} = \begin{bmatrix} 1 & 0 \\ 0 & -i \end{bmatrix}$
 
     :return: the phase dagger matrix
     :rtype: numpy.ndarray
@@ -92,8 +92,8 @@ def phase_dag():
 
 
 def state_ketx0():
-    """
-    Return normalized eigenvector of :math:`\\sigma_x` matrix with eigenvalue +1
+    r"""
+    Return normalized eigenvector of $\sigma_x$ matrix with eigenvalue +1
 
     :return: normalized eigenvector of :math:`\\sigma_x` matrix, with eigenvalue +1
     :rtype: numpy.ndarray
@@ -102,50 +102,50 @@ def state_ketx0():
 
 
 def state_ketx1():
-    """
-    Return normalized eigenvector of :math:`\\sigma_x` matrix with eigenvalue -1
+    r"""
+    Return normalized eigenvector of $\sigma_x$ matrix with eigenvalue -1
 
-    :return: normalized eigenvector of :math:`\\sigma_x` matrix, with eigenvalue -1
+    :return: normalized eigenvector of $\sigma_x$ matrix, with eigenvalue -1
     :rtype: numpy.ndarray
     """
     return 1 / np.sqrt(2) * np.array([[1.0], [-1.0]])
 
 
 def state_ketz0():
-    """
-    Return normalized eigenvector of :math:`\\sigma_z` matrix with eigenvalue +1
+    r"""
+    Return normalized eigenvector of $\sigma_z$ matrix with eigenvalue +1
 
-    :return: normalized eigenvector of :math:`\\sigma_z` matrix, with eigenvalue +1
+    :return: normalized eigenvector of $\sigma_z$ matrix, with eigenvalue +1
     :rtype: numpy.ndarray
     """
     return np.array([[1.0], [0.0]])
 
 
 def state_ketz1():
-    """
-    Return normalized eigenvector of :math:`\\sigma_z` matrix with eigenvalue -1
+    r"""
+    Return normalized eigenvector of $\sigma_z$ matrix with eigenvalue -1
 
-    :return: normalized eigenvector of :math:`\\sigma_z` matrix, with eigenvalue -1
+    :return: normalized eigenvector of $\sigma_z$ matrix, with eigenvalue -1
     :rtype: numpy.ndarray
     """
     return np.array([[0.0], [1.0]])
 
 
 def state_kety0():
-    """
-    Return normalized eigenvector of sigma y matrix with eigenvalue +1
+    r"""
+    Return normalized eigenvector of $\sigma_y$ matrix with eigenvalue +1
 
-    :return: normalized eigenvector of sigma y matrix, with eigenvalue +1
+    :return: normalized eigenvector of $\sigma_y$ matrix, with eigenvalue +1
     :rtype: numpy.ndarray
     """
     return 1 / np.sqrt(2) * np.array([[1.0], [1.0j]])
 
 
 def state_kety1():
-    """
-    Return normalized eigenvector of sigma y matrix with eigenvalue -1
+    r"""
+    Return normalized eigenvector of $\sigma_y$ matrix with eigenvalue -1
 
-    :return: normalized eigenvector of sigma y matrix, with eigenvalue -1
+    :return: normalized eigenvector of $\sigma_y$ matrix, with eigenvalue -1
     :rtype: numpy.ndarray
     """
     return 1 / np.sqrt(2) * np.array([[1.0], [-1.0j]])
@@ -645,12 +645,13 @@ def fidelity(rho, sigma):
 
 def trace_distance(rho, sigma):
     """
-    Return the trace distance between two hermitian matrices, :math:`\\rho` and :math:`\\sigma`
+    Return the trace distance between two hermitian matrices, $\rho$ and $\sigma$
     The trace distance is computed as:
+    $$
+    T(\rho, \sigma) = \frac{1}{2} \text{Tr}\left( \sqrt{ (\rho - \sigma)^2 } \right)
+     = \frac{1}{2} \sum_i | \lambda_i |
+    $$
 
-    :math:`T(\\rho, \\sigma) = \\frac{1}{2} Tr\\left( \\sqrt{ (\\rho - \\sigma)^2 } \\right)
-     = \\frac{1}{2} \\sum_i | \\lambda_i |
-     `
 
     :param rho: the first state
     :type rho: numpy.ndarray
@@ -712,10 +713,10 @@ def bipartite_partial_transpose(rho, dim1, dim2, subsys):
 
 
 def negativity(rho, dim1, dim2):
-    """
+    r"""
     Return the negativity of the matrix rho.
 
-    :math:`\\mathcal{N}(\\rho) = \\frac{|| \\rho^{\\Lambda_A} - 1}{2}`
+    $$ N(\rho) = \frac{|| \rho^{\Lambda_A} - 1}{2} $$
 
     :param rho: the density matrix to evaluate the negativity
     :type rho: numpy.ndarray
@@ -773,13 +774,14 @@ def project_and_remove(rho, locations):
 
 
 def parameterized_one_qubit_unitary(theta, phi, lam):
-    """
+    r"""
     Define a generic 3-parameter one-qubit unitary gate.
 
-    :math:`U(\\theta, \\phi, \\lambda) = \\begin{bmatrix} \\cos(\\frac{\\theta}{2}) & -e^{i \\lambda}
-    \\sin(\\frac{\\theta}{2})\\\ e^{i \\phi}\\sin(\\frac{\\theta}{2}) &
-    e^{i (\\phi+\\lambda)}\\cos(\\frac{\\theta}{2})\\end{bmatrix}`
-
+    $$
+        U(\theta, \phi, \lambda) = \begin{bmatrix} \cos(\frac{\theta}{2}) & -e^{i \lambda}
+        \sin(\frac{\theta}{2})\\ e^{i \phi}\sin(\frac{\theta}{2}) &
+        e^{i (\phi+\lambda)}\cos(\frac{\theta}{2})\end{bmatrix}
+    $$
     :param theta: an angle
     :type theta: float or double
     :param phi: an angle
@@ -802,12 +804,14 @@ def parameterized_one_qubit_unitary(theta, phi, lam):
 
 
 def full_one_qubit_unitary(n_qubits, qubit_position, theta, phi, lam):
-    """
+    r"""
     Define a generic 3-parameter one-qubit unitary gate that acts on the whole space.
 
-    :math:`U(\\theta, \\phi, \\lambda) = \\begin{bmatrix} \\cos(\\frac{\\theta}{2}) & -e^{i \\lambda}
-    \\sin(\\frac{\\theta}{2})\\\ e^{i \\phi}\\sin(\\frac{\\theta}{2}) &
-    e^{i (\\phi+\\lambda)}\\cos(\\frac{\\theta}{2})\\end{bmatrix}`
+    $$
+    U(\theta, \phi, \lambda) = \begin{bmatrix} \cos(\frac{\theta}{2}) & -e^{i \lambda}
+    \sin(\frac{\theta}{2})\\ e^{i \phi}\sin(\frac{\theta}{2}) &
+    e^{i (\phi+\lambda)}\cos(\frac{\theta}{2})\end{bmatrix}
+    $$
 
     :param n_qubits: number of qubits
     :type n_qubits: int
@@ -829,13 +833,18 @@ def full_one_qubit_unitary(n_qubits, qubit_position, theta, phi, lam):
 def full_two_qubit_controlled_unitary(
     n_qubits, ctr_qubit, target_qubit, theta, phi, lam, gamma
 ):
-    """
+    r"""
     Define a generic 4-parameter two-qubit gate that is a controlled unitary gate.
-    :math:`|0\\rangle \\langle 0|\\otimes I +
-    e^{i \\gamma} |1\\rangle \\langle 1| \\otimes U(\\theta, \\phi, \\lambda)`,
-    where :math:`U(\\theta,\\phi, \\lambda) =\\begin{bmatrix} \\cos(\\frac{\\theta}{2}) & -e^{i \\lambda}
-    \\sin(\\frac{\\theta}{2})\\\ e^{i \\phi}\\sin(\\frac{\\theta}{2}) &
-    e^{i (\\phi+\\lambda)}\\cos(\\frac{\\theta}{2})\\end{bmatrix}`
+    $$
+    |0\rangle \langle 0|\otimes I +
+    e^{i \gamma} |1\rangle \langle 1| \otimes U(\theta, \phi, \lambda)
+    $$
+    where,
+    $$
+    U(\theta,\phi, \lambda) =\begin{bmatrix} \cos(\frac{\theta}{2}) & -e^{i \lambda}
+    \sin(\frac{\theta}{2})\\ e^{i \phi}\sin(\frac{\theta}{2}) &
+    e^{i (\phi+\lambda)}\cos(\frac{\theta}{2})\end{bmatrix}
+    $$
 
     :param n_qubits: number of qubits
     :type n_qubits: int

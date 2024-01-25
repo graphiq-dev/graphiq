@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
 
-from benchmarks.graph_states import repeater_graph_states
+from graphiq.benchmarks.graph_states import repeater_graph_states
 from graphiq.backends.compiler_base import CompilerBase
 from graphiq.backends.density_matrix.compiler import DensityMatrixCompiler
 from graphiq.backends.stabilizer.compiler import StabilizerCompiler

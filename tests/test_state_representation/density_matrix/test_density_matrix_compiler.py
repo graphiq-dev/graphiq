@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 
 import graphiq.circuit.ops as ops
-from benchmarks.circuits import (
+from graphiq.benchmarks.circuits import (
     ghz3_state_circuit,
     bell_state_circuit,
     ghz4_state_circuit,

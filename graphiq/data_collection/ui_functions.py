@@ -1,11 +1,11 @@
 import os
 import tkinter as tk
 from warnings import warn
-
+import matplotlib.pyplot as plt
 import networkx as nx
+import numpy as np
 
 import graphiq.noise.monte_carlo_noise as mcn
-from benchmarks.graph_states import *
 from graphiq.backends.density_matrix.compiler import DensityMatrixCompiler
 from graphiq.backends.stabilizer.compiler import StabilizerCompiler
 from graphiq.data_collection.correlation_module import _rep_counter
@@ -13,6 +13,13 @@ from graphiq.metrics import Infidelity
 from graphiq.solvers.alternate_graph_solver import (
     AlternateGraphSolver,
     AlternateGraphSolverSetting,
+)
+from graphiq.benchmarks.graph_states import (
+    repeater_graph_states,
+    random_graph_state,
+    linear_cluster_state,
+    lattice_cluster_state,
+    star_graph_state,
 )
 
 
@@ -314,7 +321,6 @@ def graph_gui():
                 print(f"({edge[0].x}, {edge[0].y}) - ({edge[1].x}, {edge[1].y})")
 
     def create_point(event):
-
         x = round(event.x / GRID_SIZE) * GRID_SIZE
         y = round(event.y / GRID_SIZE) * GRID_SIZE
         graph.add_point(x, y)

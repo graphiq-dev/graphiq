@@ -2,7 +2,7 @@
 # data collection script #
 ###
 import time
-
+import ray
 import pandas as pd
 from scipy.stats import spearmanr
 

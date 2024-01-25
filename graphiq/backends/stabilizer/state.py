@@ -118,7 +118,11 @@ class Stabilizer(StateRepresentationBase):
         :return: the measurement outcome
         :rtype: int
         """
-        self._tableau, outcome, _, = sfc.z_measurement_gate(
+        (
+            self._tableau,
+            outcome,
+            _,
+        ) = sfc.z_measurement_gate(
             self._tableau, qubit_position, measurement_determinism
         )
         return outcome
@@ -138,7 +142,11 @@ class Stabilizer(StateRepresentationBase):
         :return: the measurement outcome
         :rtype: int
         """
-        self._tableau, outcome, _, = sfc.x_measurement_gate(
+        (
+            self._tableau,
+            outcome,
+            _,
+        ) = sfc.x_measurement_gate(
             self._tableau, qubit_position, measurement_determinism
         )
         return outcome
@@ -334,7 +342,6 @@ class MixedStabilizer(StateRepresentationBase):
     """
 
     def __init__(self, data, *args, **kwargs):
-
         if isinstance(data, int):
             self._mixture = [
                 (1.0, CliffordTableau(data)),

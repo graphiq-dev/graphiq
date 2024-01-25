@@ -1,8 +1,8 @@
-from benchmarks.circuits import *
 from graphiq.backends.density_matrix.compiler import DensityMatrixCompiler
 from graphiq.io import IO
 from graphiq.metrics import Infidelity
 from graphiq.solvers.evolutionary_solver import EvolutionarySolver
+from graphiq.benchmarks.circuits import ghz3_state_circuit
 
 
 def test_one_benchmarking_run():

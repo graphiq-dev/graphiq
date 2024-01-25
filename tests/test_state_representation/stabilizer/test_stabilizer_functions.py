@@ -1,12 +1,18 @@
 from functools import reduce
 
 import pytest
-
+import networkx as nx
+import numpy as np
 import graphiq.backends.stabilizer.functions.clifford as sfc
 import graphiq.backends.stabilizer.functions.metric as sfm
 import graphiq.backends.stabilizer.functions.rep_conversion as conversion
 import graphiq.backends.stabilizer.functions.utils as sfu
-from benchmarks.circuits import *
+from graphiq.circuit import ops
+from graphiq.benchmarks.circuits import (
+    linear_cluster_3qubit_circuit,
+    linear_cluster_4qubit_circuit,
+)
+from graphiq.circuit.circuit_dag import CircuitDAG
 from graphiq.backends.density_matrix.compiler import DensityMatrixCompiler
 from graphiq.backends.stabilizer.compiler import StabilizerCompiler
 from graphiq.backends.stabilizer.functions.stabilizer import rref

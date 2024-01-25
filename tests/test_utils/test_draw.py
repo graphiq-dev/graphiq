@@ -1,8 +1,8 @@
 import pytest
 
-from benchmarks.circuits import *
 from graphiq.utils.draw import Columns
 from graphiq.utils.draw import Painter
+from graphiq.benchmarks.circuits import ghz3_state_circuit
 
 
 # Test Columns class

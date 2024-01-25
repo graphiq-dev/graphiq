@@ -206,7 +206,6 @@ class RandomSearchSolver(SolverBase):
         *args,
         **kwargs,
     ):
-
         super().__init__(target, metric, compiler, circuit, io)
 
         # hof stores the best circuits and their scores in the form of: (scores, circuits)

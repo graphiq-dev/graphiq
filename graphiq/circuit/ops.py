@@ -610,7 +610,6 @@ class OneQubitGateWrapper(OneQubitOperationBase):
                 for i in range(len(self.operations))
             ]
         else:
-
             gates = [
                 self.operations[i](
                     register=self.register, reg_type=self.reg_type, noise=nm.NoNoise()

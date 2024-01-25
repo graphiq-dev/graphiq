@@ -2,8 +2,7 @@ import networkx as nx
 import numpy as np
 import pytest
 
-from benchmarks.circuits import *
-from benchmarks.graph_states import repeater_graph_states
+from graphiq.benchmarks.graph_states import repeater_graph_states
 from graphiq.backends.density_matrix.compiler import DensityMatrixCompiler
 from graphiq.backends.density_matrix.functions import fidelity
 from graphiq.backends.stabilizer.compiler import StabilizerCompiler
@@ -14,6 +13,7 @@ from graphiq.backends.state_rep_conversion import graph_to_density
 from graphiq.metrics import Infidelity
 from graphiq.solvers.deterministic_solver import DeterministicSolver
 from graphiq.state import QuantumState
+from graphiq.benchmarks.circuits import linear_cluster_4qubit_circuit
 
 
 def test_linear4():

@@ -4,9 +4,18 @@
 
 [//]: # (</h1>)
 
-<div align="center">
-<img src=docs/img/logo.png width="225px" align="right">
-</div>
+[//]: # (<div align="center">)
+
+[//]: # (  <img src=docs/img/logo.png width="400px">)
+
+[//]: # (</div>)
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset=docs/img/logo.png>
+  <source media="(prefers-color-scheme: light)" srcset=docs/img/logo.png>
+  <img alt="Shows a black logo in light color mode and a white one in dark color mode." src=docs/img/logo.png>
+</picture>
+
 
 <div align="center">
 

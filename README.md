@@ -1,6 +1,12 @@
-<h1 align="center">
- GraphiQ
-</h1>
+[//]: # (<h1 align="center">)
+
+[//]: # ( GraphiQ)
+
+[//]: # (</h1>)
+
+<div align="center">
+<img src=docs/img/logo.png width="225px" align="right">
+</div>
 
 <div align="center">
 
@@ -30,42 +36,25 @@
 * Library of models for the study of [noise](https://github.com/ki3-qbt/graph-compiler/tree/main/graphiq/noise) and
   optical loss.
 
-## What's Here
-
-This project includes the following folders:
-
+## What's here
 * [`backends`](https://github.com/ki3-qbt/graph-compiler/tree/main/graphiq/backends) - simulate a quantum circuit using
-  different state representations, e.g., the density matrix or stabilizer formalisms.
+  different state representations, including, the density matrix, stabilizer, and graph formalisms.
 * [`noise`](https://github.com/ki3-qbt/graph-compiler/tree/main/graphiq/noise) - models for the study of noise and
   optical loss in realistic quantum devices.
-* [`solvers`](https://github.com/ki3-qbt/graph-compiler/tree/main/graphiq/solvers) - algorithms that search for quantum
-  circuits satisfying target conditions.
+* [`solvers`](https://github.com/ki3-qbt/graph-compiler/tree/main/graphiq/solvers) - design and optimization algorithms that identifying
+  circuits satisfying which generate target quantum states.
 * [`benchmarks`](https://github.com/ki3-qbt/graph-compiler/tree/main/benchmarks) - a suite of automated tools for
   benchmarking solvers and compilers, scaled to run on high-performance computing clusters.
 * [`visualizers`](https://github.com/ki3-qbt/graph-compiler/tree/main/graphiq/visualizers) - functions for plotting
   backends and quantum circuits.
-* [`tests`](https://github.com/ki3-qbt/graph-compiler/tree/main/tests) - automated code testing framework (powered by
-  pytest).
+* [`tests`](https://github.com/ki3-qbt/graph-compiler/tree/main/tests) - automated code testing framework
 
-## Getting Started
-
-The [startup guide](https://github.com/ki3-qbt/graph-compiler/tree/main/examples/startup_guide) introduces the most
-important classes used in our framework, alongside code usage examples and tutorials. The folder also features an
-introduction to our version control and testing standards for interested contributors.
-
-## Contributors
-
-This project is a collaboration between [Ki3 Photonics Technologies](https://www.ki3photonics.com/)
+## Get involved
+Community contributions to this project are encouraged and welcomed!
+This project has been developed collaboratively between [Ki3 Photonics Technologies](https://www.ki3photonics.com/)
 and [Quantum Bridge Technologies](https://qubridge.io/).
 
-We encourage and welcome contributions to this project. Interested developers should use
-the [PEP8 style](https://peps.python.org/pep-0008/) for code-style consistency and submit contributions via pull-request
-or raising an issue.
-
-## Acknowledgements
-
-We acknowledge funding support from the Air Force Office of Scientific Research (AFOSR) under Grant FA9550-22-1-0062, as
-well as support from the Mitacs and the Vanier CGS (NSERC).
+## Citing
 
 
 

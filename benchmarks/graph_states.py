@@ -237,8 +237,8 @@ def crazy(n_list: list, pos=False, alternate_order=False):
         positions = [(i, -y) for y in np.arange(n)]
         new_pos = dict(zip(current_nodes, positions))
         pos_dict.update(new_pos)
-        if i+1 < len(n_list):
-            next_col_nodes = np.arange(n_list[i+1]) + nodes_before + n
+        if i + 1 < len(n_list):
+            next_col_nodes = np.arange(n_list[i + 1]) + nodes_before + n
         else:
             next_col_nodes = []
         edges.extend([(x, y) for x in current_nodes for y in next_col_nodes])
@@ -266,7 +266,7 @@ def crazy(n_list: list, pos=False, alternate_order=False):
 
 def two_d_cluster(row_col: tuple, pos=False):
     """
-    Construct a crazy graph state with the emission ordering of column by column
+    Construct a 2D cluster state with the emission ordering of column by column
 
     :param row_col: a tuple of number of rows and columns in the cluster state
     :param pos: if True the function also returns the position dictionary for the graph
@@ -275,8 +275,8 @@ def two_d_cluster(row_col: tuple, pos=False):
     """
     g = nx.Graph()
     row, col = row_col
-    g.add_nodes_from(range(row*col))
-    n_list = [row]*col
+    g.add_nodes_from(range(row * col))
+    n_list = [row] * col
     edges = []
     pos_dict = {}
     for i, n in enumerate(n_list):
@@ -285,13 +285,73 @@ def two_d_cluster(row_col: tuple, pos=False):
         positions = [(i, -y) for y in np.arange(n)]
         new_pos = dict(zip(current_nodes, positions))
         pos_dict.update(new_pos)
-        if i+1 < len(n_list):
-            next_col_nodes = np.arange(n_list[i+1]) + nodes_before + n
+        if i + 1 < len(n_list):
+            next_col_nodes = np.arange(n_list[i + 1]) + nodes_before + n
         else:
             next_col_nodes = []
-        edges.extend([(current_nodes[i], current_nodes[i+1]) for i in range(len(current_nodes)-1)])
+        edges.extend([(current_nodes[i], current_nodes[i + 1]) for i in range(len(current_nodes) - 1)])
         if len(next_col_nodes):
             edges.extend([(current_nodes[i], next_col_nodes[i]) for i in range(len(current_nodes))])
+    g.add_edges_from(edges)
+    if pos:
+        return g, pos_dict
+    else:
+        return g
+
+
+def three_d_cluster(row_col_depth: tuple, pos=False):
+    """
+    Construct a 3D cluster state with the emission ordering of column by column
+
+    :param row_col_depth: a tuple of number of rows and columns and depth of the cluster state
+    :param pos: if True the function also returns the position dictionary for the graph
+    :return: a networkx graph that represents the crazy graph or a tuple including the graph and its node-position dict
+    :rtype: networkx.Graph or (networkx.Graph, pos_dict)
+    """
+    g = nx.Graph()
+    row, col, depth = row_col_depth
+    g.add_nodes_from(range(row * col * depth))
+    n_list = [*range(row * col * depth)]
+    created_nodes = set()
+    edges = set()
+    pos_dict = {0: (0, 0)}
+    # 3D perspective
+    dx = 0.562
+    dy = 0.308
+    for n in n_list:
+        m = row * col
+        k = row
+        l = 1
+        if n + m in n_list:
+            edges.add((n, n + m))
+            if n + m not in created_nodes:
+                created_nodes.add(n + m)
+                pos_dict[n + m] = (pos_dict[n][0] + dx, pos_dict[n][1] + dy)
+        if n - m in n_list:
+            edges.add((n, n - m))
+            if n - m not in created_nodes:
+                created_nodes.add(n - m)
+                pos_dict[n - m] = (pos_dict[n][0] - dx, pos_dict[n][1] - dy)
+        if n + k in n_list and (n % m) < (m - k):
+            edges.add((n, n + k))
+            if n + k not in created_nodes:
+                created_nodes.add(n + k)
+                pos_dict[n + k] = (pos_dict[n][0] + 1, pos_dict[n][1])
+        if n - k in n_list and (n % m) >= k:
+            edges.add((n, n - k))
+            if n - k not in created_nodes:
+                created_nodes.add(n - k)
+                pos_dict[n - k] = (pos_dict[n][0] - 1, pos_dict[n][1])
+        if n + l in n_list and (n + l) % row:
+            edges.add((n, n + l))
+            if n + l not in created_nodes:
+                created_nodes.add(n + l)
+                pos_dict[n + l] = (pos_dict[n][0], pos_dict[n][1] + 1)
+        if n - l in n_list and n % row:
+            edges.add((n, n - l))
+            if n - l not in created_nodes:
+                created_nodes.add(n - l)
+                pos_dict[n - l] = (pos_dict[n][0], pos_dict[n][1] - 1)
     g.add_edges_from(edges)
     if pos:
         return g, pos_dict
@@ -315,10 +375,10 @@ def branching_tree(b_vector):
     b_vector = [1] + b_vector
     for n_branches in b_vector[1:]:
         n_new_nodes = len(last_level) * n_branches
-        new_nodes = [x+1+node_list[-1] for x in range(n_new_nodes)]
+        new_nodes = [x + 1 + node_list[-1] for x in range(n_new_nodes)]
         g.add_nodes_from(new_nodes)
         node_list = node_list + new_nodes
         for b, root_node in enumerate(last_level):
-            g.add_edges_from([(root_node, new_nodes[b*n_branches+i]) for i in range(n_branches)])
+            g.add_edges_from([(root_node, new_nodes[b * n_branches + i]) for i in range(n_branches)])
         last_level = new_nodes
     return g

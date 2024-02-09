@@ -4,6 +4,7 @@
 import time
 import ray
 import numpy as np
+from math import factorial
 import pandas as pd
 from src.data_collection.ui_functions import *
 from correlation_module import *
@@ -48,19 +49,18 @@ user_input = InputParams(
     verbose=False,
     save_openqasm="none")
 
-settings = user_input.setting
-solver = user_input.solver
-nx.draw_networkx(user_input.target_graph, with_labels=True)
-plt.show()
-
-ray.init()
-start0 = time.time()
+# settings = user_input.setting
+# solver = user_input.solver
+# nx.draw_networkx(user_input.target_graph, with_labels=True)
+# plt.show()
+# ray.init()
+# start0 = time.time()
 # d = solver.solve()
-end0 = time.time()
-ray.shutdown()
-print("runtime0 = ", end0 - start0)
-print("Monte Carlo",
-      [(param, settings.monte_carlo_params[param]) for param in ["n_sample", "n_single", "n_parallel", "seed"]])
+# end0 = time.time()
+# ray.shutdown()
+# print("runtime0 = ", end0 - start0)
+# print("Monte Carlo",
+#       [(param, settings.monte_carlo_params[param]) for param in ["n_sample", "n_single", "n_parallel", "seed"]])
 
 
 # %%
@@ -99,7 +99,8 @@ def orbit_analyzer(graph, dir_name='new_orbit', n_lc=None, graph_met_list=None, 
         graph_met_list = ["global_efficiency", "n_edges", "mean_nei_deg", "node_connect", "avg_shortest_path",
                           "max_between", "cluster"]
     if circ_met_list is None:
-        circ_met_list = ["n_emitters", "n_cnots", "max_emit_depth", "max_emit_eff_depth", "depth", "std of score"]
+        circ_met_list = ["n_emitters", "n_cnots", "max_emit_depth", "max_emit_reset_depth", "max_emit_eff_depth",
+                         "depth", "std of score", "n_measurements", "n_unitary"]
     res = result_maker(res, graph_met_list=graph_met_list, circ_met_list=circ_met_list)
     if plots:
         plot_figs(res, dir_name=dir_name, graph_mets=graph_met_list, circ_mets=None)
@@ -118,28 +119,46 @@ def result_maker(result, graph_met_list=[], circ_met_list=[]):
     #                   "min_close", "mean_nei_deg", "edge_connect", "assort", "radius", "diameter", "periphery",
     #                   "center", "pop", "max_deg", "n_edges", "avg_shortest_path"]  # input
     # circ_met_list = ["n_emitters", "n_cnots", "max_emit_depth", "max_emit_eff_depth", "depth", "std of score"]
+    if graph_met_list == []:
+        graph_met_list = ["global_efficiency", "n_edges", "mean_nei_deg", "node_connect", "avg_shortest_path",
+                          "max_between", "cluster"]
+    if circ_met_list == []:
+        circ_met_list = ["n_emitters", "n_cnots", "max_emit_depth", "max_emit_reset_depth", "max_emit_eff_depth",
+                         "depth", "std of score", "n_measurements", "n_unitary"]
     for met in circ_met_list:
         result.add_properties(met)
     # circ metrics calculations
     # for depth calculation purposes we need to remove identity gates first
     unwrapped_circ = [c.copy() for c in result["circuit"]]
     max_emit_depth = []
+    max_emit_reset_depth = []
     max_emit_eff_depth = []
     depth = []
     n_emitters = []
     n_cnots = []
+    n_measure = []
+    n_unitary = []
     for c in unwrapped_circ:
         c.unwrap_nodes()
         c.remove_identity()
         # calculate emitter depths
         e_depth = {}
+        reset_depths = {}
         eff_depth = {}
         for e_i in range(c.n_emitters):
             if "max_emit_depth" in circ_met_list:
                 e_depth[e_i] = len(c.reg_gate_history(reg=e_i)[1]) - 2
+            if "max_emit_reset_depth" in circ_met_list:
+                m_list = []  # list of indices of measurement nodes in emitters gate history
+                for i, oper in enumerate(c.reg_gate_history(reg=e_i)[0]):
+                    # first find a list of nodes in DAG corresponding to measurements
+                    if type(oper).__name__ in ['Input', 'MeasurementCNOTandReset', 'Output']:
+                        m_list.append(i)
+                reset_intervals = [m_list[j + 1] - m_list[j] for j in range(len(m_list) - 1)]
+                reset_depths[e_i] = max(reset_intervals)
             # find the max topological depth between two consecutive measurements on the same emitter
-            node_list = []
             if "max_emit_eff_depth" in circ_met_list:
+                node_list = []
                 for i, oper in enumerate(c.reg_gate_history(reg=e_i)[0]):
                     # first find a list of nodes in DAG corresponding to measurements
                     if type(oper).__name__ in ['Input', 'MeasurementCNOTandReset', 'Output']:
@@ -149,6 +168,8 @@ def result_maker(result, graph_met_list=[], circ_met_list=[]):
                 eff_depth[e_i] = max(depth_diff)
         if "max_emit_depth" in circ_met_list:
             max_emit_depth.append(max(e_depth.values()))
+        if "max_emit_reset_depth" in circ_met_list:
+            max_emit_reset_depth.append(max(reset_depths.values()))
         if "max_emit_eff_depth" in circ_met_list:
             max_emit_eff_depth.append(max(eff_depth.values()))
         if "depth" in circ_met_list:
@@ -156,6 +177,14 @@ def result_maker(result, graph_met_list=[], circ_met_list=[]):
         # calculate n_emitter and n_cnots
         if "n_emitters" in circ_met_list:
             n_emitters.append(c.n_emitters)
+        if "n_unitary" in circ_met_list:
+            n_u = 0
+            for label in ["SigmaX", "SigmaX", "SigmaX", "Phase", "Hadamard", "CNOT"]:
+                if label in c.node_dict:
+                    n_u += len(c.get_node_by_labels([label]))
+            n_unitary.append(n_u)
+        if "n_measurements" in circ_met_list:
+            n_measure.append(len(c.get_node_by_labels(["MeasurementCNOTandReset"])))
         if "n_cnots" in circ_met_list:
             if "Emitter-Emitter" in c.node_dict:
                 n_cnots.append(len(c.get_node_by_labels(["Emitter-Emitter", "CNOT"])))
@@ -165,8 +194,14 @@ def result_maker(result, graph_met_list=[], circ_met_list=[]):
         result["n_emitters"] = n_emitters
     if "n_cnots" in circ_met_list:
         result["n_cnots"] = n_cnots
+    if "n_unitary" in circ_met_list:
+        result["n_unitary"] = n_unitary
+    if "n_measurements" in circ_met_list:
+        result["n_measurements"] = n_measure
     if "max_emit_depth" in circ_met_list:
         result["max_emit_depth"] = max_emit_depth
+    if "max_emit_reset_depth" in circ_met_list:
+        result["max_emit_reset_depth"] = max_emit_reset_depth
     if "max_emit_eff_depth" in circ_met_list:
         result["max_emit_eff_depth"] = max_emit_eff_depth
     if "depth" in circ_met_list:
@@ -353,9 +388,9 @@ def lcs(edge_seq, method="lc_with_iso", n_lc_graphs=None, seed=1):
     return lc_adjs
 
 
-def find_best(adj1, file_name="case1", dir_name="new", conf=0.99, n_reordering=None, seed=1):
+def find_best(adj1, file_name="case1", dir_name="new", conf=0.99, n_reordering=None, circ_met_list=[], seed=1):
     nn = np.shape(adj1)[0]
-    max_relabel = np.math.factorial(nn) if n_reordering is None else n_reordering
+    max_relabel = factorial(nn) if n_reordering is None else n_reordering
     user_input = InputParams(
         n_ordering=max_relabel,  # input
         rel_inc_thresh=0.2,  # advanced: (0,1) The closer to 0 the closer we get to an exhaustive search for reordering.
@@ -380,14 +415,14 @@ def find_best(adj1, file_name="case1", dir_name="new", conf=0.99, n_reordering=N
     settings = user_input.setting
     solver.solve()
     result = solver.result
-    result = result_maker(result)
+    result = result_maker(result, graph_met_list=['n_edges'], circ_met_list=circ_met_list)
     out_dict = (result._data).copy()
-    out_dict['fidelity'] = [round(1 - s, 5) for s in out_dict['score']]
+    # out_dict['fidelity'] = [round(1 - s, 5) for s in out_dict['score']]
     out_dict['edges'] = [list(g.edges) for g in out_dict['g']]
     del out_dict['g']
     del out_dict['score']
     del out_dict['circuit']
-    del out_dict['std of score']
+    # del out_dict['std of score']
     del out_dict['graph_metric']
     df = pd.DataFrame(out_dict)
     new_path = f'/Users/sobhan/Desktop/EntgClass/{dir_name}'
@@ -398,13 +433,13 @@ def find_best(adj1, file_name="case1", dir_name="new", conf=0.99, n_reordering=N
     result.save2json(new_path, f'res_{file_name}')
     cost = []
     for i in range(len(result)):
-        cost.append(result['n_emitters'][i] * 100 + result['n_cnots'][i] * 10 + result['max_emit_eff_depth'][i])
+        cost.append(result['n_emitters'][i] * 100 + result['n_cnots'][i] * 10 + result['max_emit_reset_depth'][i])
     out_dict['cost'] = cost
     return out_dict
 
 
 def graph_analyzer(edge_seq, graph_class: str, method="lc_with_iso", conf=1, n_lc_graphs=None, n_reordering=None,
-                   seed=1):
+                   circ_met_list=[], seed=1):
     """
     exhaustive graph analyzer given the flattened edge list
     no correlation analysis involved but cost analysis based on circuit metrics is included
@@ -424,9 +459,9 @@ def graph_analyzer(edge_seq, graph_class: str, method="lc_with_iso", conf=1, n_l
     # file_name = new_path + f'/iso_info.csv'
     # df.to_csv(file_name, index=False)
     best_cost = ("", 10E6, [])  # 1st element is which iso and lc is this graph, 2nd is the cost, 3rd is the edge list
-    best_fid = ("", 0, [])
+    best_fid = ("", 0, [0])
     worst_cost = ("", 0, [])
-    worst_fid = ("", 1, [])
+    worst_fid = ("", 1, [0])
     best_ncnot = ("", 10E6, [])
     worst_ncnot = ("", 0, [])
     best_depth = ("", 10E6, [])
@@ -434,7 +469,7 @@ def graph_analyzer(edge_seq, graph_class: str, method="lc_with_iso", conf=1, n_l
     num_iso_list = []
     for i, adj in enumerate(lc_adjs):
         out_dict = find_best(adj, file_name=f"case{i}", dir_name=graph_class, conf=conf, n_reordering=n_reordering,
-                             seed=seed)
+                             circ_met_list=circ_met_list, seed=seed)
         num_iso_list.append(len(out_dict['cost']))
         for j, edge_list in enumerate(out_dict['edges']):
             if out_dict['cost'][j] < best_cost[1]:
@@ -445,24 +480,24 @@ def graph_analyzer(edge_seq, graph_class: str, method="lc_with_iso", conf=1, n_l
                 best_ncnot = (f"LC: {i} iso: {j}", out_dict['n_cnots'][j], edge_list)
             if out_dict['n_cnots'][j] > worst_ncnot[1]:
                 worst_ncnot = (f"LC: {i} iso: {j}", out_dict['n_cnots'][j], edge_list)
-            if out_dict['max_emit_eff_depth'][j] < best_depth[1]:
-                best_depth = (f"LC: {i} iso: {j}", out_dict['max_emit_eff_depth'][j], edge_list)
-            if out_dict['max_emit_eff_depth'][j] > worst_depth[1]:
-                worst_depth = (f"LC: {i} iso: {j}", out_dict['max_emit_eff_depth'][j], edge_list)
-            if out_dict['fidelity'][j] > best_fid[1]:
-                best_fid = (f"LC: {i} iso: {j}", out_dict['fidelity'][j], edge_list)
-            if out_dict['fidelity'][j] < best_fid[1]:
-                worst_fid = (f"LC: {i} iso: {j}", out_dict['fidelity'][j], edge_list)
+            if out_dict['max_emit_reset_depth'][j] < best_depth[1]:
+                best_depth = (f"LC: {i} iso: {j}", out_dict['max_emit_reset_depth'][j], edge_list)
+            if out_dict['max_emit_reset_depth'][j] > worst_depth[1]:
+                worst_depth = (f"LC: {i} iso: {j}", out_dict['max_emit_reset_depth'][j], edge_list)
+            # if out_dict['fidelity'][j] > best_fid[1]:
+            #     best_fid = (f"LC: {i} iso: {j}", out_dict['fidelity'][j], edge_list)
+            # if out_dict['fidelity'][j] < best_fid[1]:
+            #     worst_fid = (f"LC: {i} iso: {j}", out_dict['fidelity'][j], edge_list)
     print("number of LC graphs = ", len(lc_adjs))
     print("number of iso found = ", num_iso_list, f"\ntotal number of cases = {sum(num_iso_list)}")
 
     text = f"number of LC graphs = {len(lc_adjs)}\nnumber of iso found = {num_iso_list}" \
-           f"\nbest graph w.r.t cost {best_cost[0]}\nbest graph w.r.t fidelity {best_fid[0]}" \
-           f"\nworst graph w.r.t cost {worst_cost[0]}\nworst graph w.r.t fidelity {worst_fid[0]}" \
            f"\nbest n cnot {best_ncnot[1]}: {best_ncnot[0]}\nworst n cnot {worst_ncnot[1]}: {worst_ncnot[0]}" \
            f"\nbest depth {best_depth[1]}: {best_depth[0]}\nworst depth {worst_depth[1]}: {worst_depth[0]}" \
            f"\ntotal number of cases = {sum(num_iso_list)}" \
            f"\nLC method {method}, none exhaustive? LC {n_lc_graphs}, n_order {n_reordering}"
+        # f"\nbest graph w.r.t cost {best_cost[0]}\nbest graph w.r.t fidelity {best_fid[0]}" \
+        # f"\nworst graph w.r.t cost {worst_cost[0]}\nworst graph w.r.t fidelity {worst_fid[0]}" \
     filename = new_path + f'/bests.txt'
     with open(filename, "w") as file:
         file.write(text)
@@ -477,12 +512,12 @@ def graph_analyzer(edge_seq, graph_class: str, method="lc_with_iso", conf=1, n_l
     nx.draw_networkx(g1, pos=nx.kamada_kawai_layout(g1))
     plt.savefig(new_path + f'/best_cost.png')
     plt.close(fig)
-    g2 = nx.Graph()
-    g2.add_edges_from(best_fid[2])
-    fig = plt.figure(figsize=(4, 3), dpi=150)
-    nx.draw_networkx(g2, pos=nx.kamada_kawai_layout(g2))
-    plt.savefig(new_path + f'/best_fid.png')
-    plt.close(fig)
+    # g2 = nx.Graph()
+    # g2.add_edges_from(best_fid[2])
+    # fig = plt.figure(figsize=(4, 3), dpi=150)
+    # nx.draw_networkx(g2, pos=nx.kamada_kawai_layout(g2))
+    # plt.savefig(new_path + f'/best_fid.png')
+    # plt.close(fig)
     return best_fid, best_cost, best_ncnot, best_depth, worst_fid, worst_cost, worst_ncnot, worst_depth
 
 

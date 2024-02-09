@@ -421,7 +421,10 @@ class AlternateGraphSolver:
                     slc.state_converter_circuit(lc_graph, iso_graph, validate=True)
                 except:
                     raise UserWarning("LC conversion failed")
-                conversion_ops = slc.str_to_op(conversion_gates)
+                if not lc_graph.adj == iso_graph.adj:
+                    conversion_ops = slc.str_to_op(conversion_gates)
+                else:
+                    conversion_ops = []
                 for op in conversion_ops:
                     circuit.add(op)
                 if self.noise_simulation:
@@ -553,9 +556,9 @@ class AlternateGraphSolver:
         rate = self.depolarizing_rate
         dep_noise_model_mapping = dict()
         dep_noise_model_mapping["e"] = {
-            # "SigmaX": nm.DepolarizingNoise(rate),
-            # "SigmaY": nm.DepolarizingNoise(rate),
-            # "SigmaZ": nm.DepolarizingNoise(rate),
+            "SigmaX": nm.DepolarizingNoise(rate),
+            "SigmaY": nm.DepolarizingNoise(rate),
+            "SigmaZ": nm.DepolarizingNoise(rate),
             "Phase": nm.DepolarizingNoise(rate),
             "PhaseDagger": nm.DepolarizingNoise(rate),
             "Hadamard": nm.DepolarizingNoise(rate),
@@ -575,33 +578,17 @@ class AlternateGraphSolver:
         """
         rate = self.depolarizing_rate / 3
         mc_noise = mcn.McNoiseMap()
-        mc_noise.add_gate_noise(
-            "e",
-            "Hadamard",
-            [
-                (nm.PauliError("X"), rate),
-                (nm.PauliError("Y"), rate),
-                (nm.PauliError("Z"), rate),
-            ],
-        )
-        mc_noise.add_gate_noise(
-            "e",
-            "Phase",
-            [
-                (nm.PauliError("X"), rate),
-                (nm.PauliError("Y"), rate),
-                (nm.PauliError("Z"), rate),
-            ],
-        )
-        mc_noise.add_gate_noise(
-            "e",
-            "PhaseDagger",
-            [
-                (nm.PauliError("X"), rate),
-                (nm.PauliError("Y"), rate),
-                (nm.PauliError("Z"), rate),
-            ],
-        )
+        for gate_type in ["Hadamard", "Phase", "PhaseDagger", "SigmaX", "SigmaY", "SigmaZ"]:
+            mc_noise.add_gate_noise(
+                "e",
+                gate_type,
+                [
+                    (nm.PauliError("X"), rate),
+                    (nm.PauliError("Y"), rate),
+                    (nm.PauliError("Z"), rate),
+                ],
+            )
+
         mc_noise.add_gate_noise(
             "ee",
             "CNOT",

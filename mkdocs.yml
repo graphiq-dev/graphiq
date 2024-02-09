@@ -1,0 +1,147 @@
+
+site_name: GraphiQ
+site_description: GraphiQ - A design framework for quantum photonic circuits
+#site_url: http://0.0.0.0:8000
+repo_url: https://github.com/ki3-qbt/graph-compiler
+docs_dir: docs
+use_directory_urls: false  # good for opening HTML files directly, but should be 'true' for deployment
+
+nav:
+  - Introduction:
+    - Welcome: index.md
+#    - Installation: installation.md
+  - Tutorials:
+    - Getting started: tutorials.md
+    - Quantum circuits: examples/startup_guide/1_circuits.ipynb
+    - Quantum states: examples/startup_guide/2_states.ipynb
+    - Compiler backends: examples/startup_guide/3_compilers.ipynb
+    - Noise models: examples/startup_guide/4_noise_models.ipynb
+    - Objective metrics: examples/startup_guide/5_metrics.ipynb
+    - Solvers & algorithms: examples/startup_guide/6_solvers.ipynb
+    - Benchmarking solvers: examples/startup_guide/7_benchmarking.ipynb
+#    - Variational circuits: examples/startup_guide/8_variational_circuits.ipynb
+    - Visualization tools: examples/startup_guide/9_html_visualization_tutorial.ipynb
+  - How to guides:
+    - Use-cases of GraphiQ: how-to-guides.md
+    - Simulate a photonic circuit: examples/simulate.ipynb
+    - Map target state to generating circuit: examples/evaluate.ipynb
+    - Explore alternative circuits: examples/explore.ipynb
+  - Reference:
+      - API: reference.md
+      - States: reference/states.md
+      - Circuits: reference/circuit.md
+      - Backends: reference/backends.md
+      - Solvers: reference/solvers.md
+      - Noise: reference/noise.md
+      - Metrics: reference/metrics.md
+      - Utilities: reference/utils.md
+
+
+
+theme:
+  name: material
+
+#  logo: img/oqd-logo.png
+
+  palette:
+    - media: '(prefers-color-scheme: light)'
+      scheme: default
+      primary: blue grey
+      accent: amber
+      toggle:
+        icon: material/lightbulb
+        name: Switch to dark mode
+    - media: '(prefers-color-scheme: dark)'
+      scheme: slate
+      primary: teal
+      accent: amber
+      toggle:
+        icon: material/lightbulb-outline
+        name: Switch to light mode
+  font:
+    text: Roboto
+    code: Roboto Mono
+  favicon: assets/favicon.png
+  icon:
+    logo: logo
+
+  features:
+    - announce.dismiss
+#    - content.action.edit
+#    - content.action.view
+    - content.code.annotate
+    - content.code.copy
+    # - content.code.select
+    # - content.tabs.link
+    - content.tooltips
+    # - header.autohide
+    # - navigation.expand
+    - navigation.footer
+    - navigation.indexes
+    # - navigation.instant
+    # - navigation.instant.prefetch
+    # - navigation.instant.progress
+    # - navigation.prune
+    - navigation.sections
+    - navigation.tabs
+    # - navigation.tabs.sticky
+    - navigation.top
+    - navigation.tracking
+    - search.highlight
+    - search.share
+    - search.suggest
+    - toc.follow
+
+plugins:
+  - search
+#  - markdownextradata:
+#      folder: examples
+  - mkdocstrings:
+      handlers:
+        python:
+          options:
+            docstring_style: sphinx
+            show_root_heading: yes
+  - mkdocs-jupyter:
+      ignore_h1_titles: True
+      include_source: True
+#  - mknotebooks:
+#      execute: false
+#      timeout: 100
+#      preamble: "/examples"
+#      allow_errors: True
+
+markdown_extensions:
+  - toc:
+      permalink: true
+      toc_depth: 3
+      baselevel: 1
+      title: "Table of contents"
+
+  # for code snippets/syntax highlighting
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+
+  # for notes/admonitions
+  - admonition
+  - pymdownx.details
+
+#  # for flow diagrams
+#  - pymdownx.superfences:
+#      custom_fences:
+#        - name: mermaid
+#          class: mermaid
+#          format: !!python/name:pymdownx.superfences.fence_code_format
+
+  - pymdownx.arithmatex:
+      generic: true
+
+extra_javascript:
+  - javascripts/mathjax.js
+  - https://polyfill.io/v3/polyfill.min.js?features=es6
+  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js

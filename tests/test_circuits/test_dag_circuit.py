@@ -1,8 +1,9 @@
-import pytest
 import random
 
-from src.circuit import CircuitDAG
-import src.ops as ops
+import pytest
+
+import graphiq.circuit.ops as ops
+from graphiq.circuit.circuit_dag import CircuitDAG
 from tests.test_flags import visualization
 
 
@@ -570,8 +571,8 @@ def test_circuit_comparison_4():
 
 def test_circuit_comparison_5():
     # lager circuit comparison
-    from benchmarks.circuits import ghz3_state_circuit
-    from benchmarks.circuits import ghz4_state_circuit
+    from graphiq.benchmarks.circuits import ghz3_state_circuit
+    from graphiq.benchmarks.circuits import ghz4_state_circuit
 
     circuit1, _ = ghz3_state_circuit()
     circuit2, _ = ghz4_state_circuit()

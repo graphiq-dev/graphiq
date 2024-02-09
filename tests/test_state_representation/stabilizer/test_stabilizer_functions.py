@@ -1,21 +1,23 @@
-import pytest
-import numpy as np
-import networkx as nx
-
-import src.backends.stabilizer.functions.rep_conversion as conversion
-import src.backends.stabilizer.functions.utils as sfu
-from src.circuit import CircuitDAG
-import src.backends.stabilizer.functions.clifford as sfc
-from src.backends.stabilizer.functions.stabilizer import rref
-import src.backends.stabilizer.functions.metric as sfm
-from src.backends.stabilizer.functions.height import height_func_list
-from src.backends.stabilizer.tableau import StabilizerTableau
 from functools import reduce
-import src.ops as ops
-from src.backends.density_matrix.compiler import DensityMatrixCompiler
-from src.backends.stabilizer.compiler import StabilizerCompiler
-from benchmarks.circuits import *
-from src.metrics import Infidelity
+
+import pytest
+import networkx as nx
+import numpy as np
+import graphiq.backends.stabilizer.functions.clifford as sfc
+import graphiq.backends.stabilizer.functions.metric as sfm
+import graphiq.backends.stabilizer.functions.rep_conversion as conversion
+import graphiq.backends.stabilizer.functions.utils as sfu
+from graphiq.circuit import ops
+from graphiq.benchmarks.circuits import (
+    linear_cluster_3qubit_circuit,
+    linear_cluster_4qubit_circuit,
+)
+from graphiq.circuit.circuit_dag import CircuitDAG
+from graphiq.backends.density_matrix.compiler import DensityMatrixCompiler
+from graphiq.backends.stabilizer.compiler import StabilizerCompiler
+from graphiq.backends.stabilizer.functions.stabilizer import rref
+from graphiq.backends.stabilizer.tableau import StabilizerTableau
+from graphiq.metrics import Infidelity
 
 
 def test_symplectic_to_string():
@@ -187,10 +189,10 @@ def test_stabilizer_fidelity2():
     stab_compiler = StabilizerCompiler()
     stab_compiler.measurement_determinism = 1
     state1 = dm_compiler.compile(dag)
-    state1.partial_trace([*range(3)], 4 * [2], measurement_determinism=1)
+    state1.partial_trace([*range(3)], 4 * [2])
     print(metric.evaluate(state1, dag))
     state2 = stab_compiler.compile(dag)
-    state2.partial_trace([*range(3)], 4 * [2], measurement_determinism=1)
+    state2.partial_trace([*range(3)], 4 * [2])
     print(metric.evaluate(state2, dag))
 
 

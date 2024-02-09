@@ -1,9 +1,9 @@
-import pytest
-from src.backends.stabilizer.functions.stabilizer import rref
-from src.backends.stabilizer.functions.height import height_func_list
-from src.backends.stabilizer.tableau import StabilizerTableau
 import numpy as np
-import networkx as nx
+import pytest
+
+from graphiq.backends.stabilizer.functions.height import height_func_list
+from graphiq.backends.stabilizer.functions.stabilizer import rref
+from graphiq.backends.stabilizer.tableau import StabilizerTableau
 
 
 def case1():

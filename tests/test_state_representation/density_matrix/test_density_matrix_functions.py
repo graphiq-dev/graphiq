@@ -1,6 +1,6 @@
 import pytest
-import numpy as np
-from src.backends.density_matrix.functions import *
+
+from graphiq.backends.density_matrix.functions import *
 
 
 def test_measurement_prob():

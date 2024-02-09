@@ -1,5 +1,9 @@
-from benchmarks.circuits import *
-from src.solvers.solver_result import *
+from graphiq.solvers.solver_result import *
+from graphiq.benchmarks.circuits import (
+    ghz3_state_circuit,
+    linear_cluster_3qubit_circuit,
+    ghz4_state_circuit,
+)
 
 
 # Test SolverResult class
@@ -38,7 +42,7 @@ def test_get_index_data():
     data = result.get_index_data(0)
     assert data == {
         "circuit": circuit_1,
-        'circuit_id': 'c0',
+        "circuit_id": "c0",
         "test_property": 1,
     }
 

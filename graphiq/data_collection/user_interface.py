@@ -70,7 +70,7 @@ user_input = InputParams(
 # results
 def orbit_analyzer(graph, dir_name='new_orbit', n_lc=None, graph_met_list=None, circ_met_list=None, plots=False, lc_method=None):
     """
-    The function take a graph and returns the solver result object containing graph and circuit metrics
+    The function take a graph and returns the solver result object containing LC graph and circuit metrics
     :param graph_met_list: list of graph metrics to consider for correlations. If none given, a default list is used.
     :param circ_met_list: list of circuit metrics to consider for correlations. If none given, a default list is used.
     :param n_lc: number of LC graphs to search for. If none, the whole orbit is targeted.
@@ -110,7 +110,7 @@ def orbit_analyzer(graph, dir_name='new_orbit', n_lc=None, graph_met_list=None, 
     return res
 
 
-def result_maker(result, graph_met_list=[], circ_met_list=[]):
+def result_maker(result, graph_met_list=None, circ_met_list=None):
     # default properties: "g": alternative graph, "score": infidelity, "map": order permutation map
     # print("number of cases found:", len(result))
     # print("The infidelity", [x[1]["score"] for x in d])
@@ -122,10 +122,10 @@ def result_maker(result, graph_met_list=[], circ_met_list=[]):
     #                   "min_close", "mean_nei_deg", "edge_connect", "assort", "radius", "diameter", "periphery",
     #                   "center", "pop", "max_deg", "n_edges", "avg_shortest_path"]  # input
     # circ_met_list = ["n_emitters", "n_cnots", "max_emit_depth", "max_emit_eff_depth", "depth", "std of score"]
-    if graph_met_list == []:
+    if graph_met_list is None:
         graph_met_list = ["global_efficiency", "n_edges", "mean_nei_deg", "node_connect", "avg_shortest_path",
                           "max_between", "cluster"]
-    if circ_met_list == []:
+    if circ_met_list is None:
         circ_met_list = ["n_emitters", "n_cnots", "max_emit_depth", "max_emit_reset_depth", "max_emit_eff_depth",
                          "depth", "std of score", "n_measurements", "n_unitary"]
     for met in circ_met_list:
@@ -215,17 +215,13 @@ def result_maker(result, graph_met_list=[], circ_met_list=[]):
     # graph metric:
     result.add_properties("graph_metric")
     # a bit complicated: for each index in the result object, there is a corresponding dict of graph_metrics.
-    # for each graph, this dict contains the metric values for the metrics selected by user: {"met1": val1, ...} for each g
+    # for each graph, this dict contains metric values for the metrics selected by user: {"met1": val1, ...} for each g
     result["graph_metric"] = [dict() for _ in range(len(result))]
 
     for met in graph_met_list:
         for i, g in enumerate(result["g"]):
             result["graph_metric"][i][met] = graph_met_value(met, g)
     return result
-
-
-# result = solver.result
-# result = result_maker(result)
 
 
 # %% Plot
@@ -408,13 +404,17 @@ def lcs(edge_seq, method="lc_with_iso", n_lc_graphs=None, seed=1):
     # plt.close()
     solver.solve()
     result0 = solver.result
-    result0 = result_maker(result0)
     lc_list = [g for g in result0["g"]]
     lc_adjs = [nx.to_numpy_array(g) for g in lc_list]
     return lc_adjs
 
 
-def find_best(adj1, file_name="case1", dir_name="new", conf=0.99, n_reordering=None, circ_met_list=[], seed=1):
+def find_best(adj1, file_name="case1", dir_path: str = None, conf=0.99, n_reordering=None, circ_met_list=None, seed=1):
+    """
+    For a given graph (in the form of an adjacency matrix), enumerate over different reordering of nodes and return the
+    results in a dictionary including the calculated metrics for each case. A cost function is also calculated based on
+    the number of emitters, CNOTs, and emitter depth with descending priority.
+    """
     nn = np.shape(adj1)[0]
     max_relabel = factorial(nn) if n_reordering is None else n_reordering
     user_input = InputParams(
@@ -444,7 +444,7 @@ def find_best(adj1, file_name="case1", dir_name="new", conf=0.99, n_reordering=N
     result = solver.result
     result = result_maker(result, graph_met_list=['n_edges'], circ_met_list=circ_met_list)
     out_dict = (result._data).copy()
-    # out_dict['fidelity'] = [round(1 - s, 5) for s in out_dict['score']]
+    out_dict['fidelity'] = [round(1 - s, 5) for s in out_dict['score']]
     out_dict['edges'] = [list(g.edges) for g in out_dict['g']]
     del out_dict['g']
     del out_dict['score']
@@ -452,12 +452,11 @@ def find_best(adj1, file_name="case1", dir_name="new", conf=0.99, n_reordering=N
     # del out_dict['std of score']
     del out_dict['graph_metric']
     df = pd.DataFrame(out_dict)
-    new_path = f"/Users/sobhan/Desktop/EntgClass/{dir_name}"
-    if not os.path.exists(new_path):
-        os.makedirs(new_path)
-    filename = new_path + f"/{file_name}.csv"
+    if not os.path.exists(dir_path):
+        os.makedirs(dir_path)
+    filename = dir_path + f"/{file_name}.csv"
     df.to_csv(filename, index=False)
-    result.save2json(new_path, f"res_{file_name}")
+    result.save2json(dir_path, f"res_{file_name}")
     cost = []
     for i in range(len(result)):
         cost.append(result['n_emitters'][i] * 100 + result['n_cnots'][i] * 10 + result['max_emit_reset_depth'][i])
@@ -465,8 +464,8 @@ def find_best(adj1, file_name="case1", dir_name="new", conf=0.99, n_reordering=N
     return out_dict
 
 
-def graph_analyzer(edge_seq, graph_class: str, method="lc_with_iso", conf=1, n_lc_graphs=None, n_reordering=None,
-                   circ_met_list=[], seed=1):
+def graph_analyzer(edge_seq, dir_path: str, graph_class: str, method=None, conf=1, n_lc_graphs=None, n_reordering=None,
+                   circ_met_list=None, fidelity=True, seed=1):
     """
     exhaustive graph analyzer given the flattened edge list
     no correlation analysis involved but cost analysis based on circuit metrics is included
@@ -480,7 +479,7 @@ def graph_analyzer(edge_seq, graph_class: str, method="lc_with_iso", conf=1, n_l
     print("number of LC graphs = ", len(lc_adjs))
     # relabeled_info = {'index': list(range(len(n_es))), 'map': maps, 'n_emitters': n_es}###
     # df = pd.DataFrame(relabeled_info)
-    new_path = f"/Users/sobhan/Desktop/EntgClass/{graph_class}"
+    new_path = f"{dir_path}/{graph_class}"
     if not os.path.exists(new_path):
         os.makedirs(new_path)
     # file_name = new_path + f'/iso_info.csv'
@@ -495,7 +494,7 @@ def graph_analyzer(edge_seq, graph_class: str, method="lc_with_iso", conf=1, n_l
     worst_depth = ("", 0, [])
     num_iso_list = []
     for i, adj in enumerate(lc_adjs):
-        out_dict = find_best(adj, file_name=f"case{i}", dir_name=graph_class, conf=conf, n_reordering=n_reordering,
+        out_dict = find_best(adj, file_name=f"case{i}", dir_path=new_path, conf=conf, n_reordering=n_reordering,
                              circ_met_list=circ_met_list, seed=seed)
         num_iso_list.append(len(out_dict['cost']))
         for j, edge_list in enumerate(out_dict['edges']):
@@ -511,10 +510,11 @@ def graph_analyzer(edge_seq, graph_class: str, method="lc_with_iso", conf=1, n_l
                 best_depth = (f"LC: {i} iso: {j}", out_dict['max_emit_reset_depth'][j], edge_list)
             if out_dict['max_emit_reset_depth'][j] > worst_depth[1]:
                 worst_depth = (f"LC: {i} iso: {j}", out_dict['max_emit_reset_depth'][j], edge_list)
-            # if out_dict['fidelity'][j] > best_fid[1]:
-            #     best_fid = (f"LC: {i} iso: {j}", out_dict['fidelity'][j], edge_list)
-            # if out_dict['fidelity'][j] < best_fid[1]:
-            #     worst_fid = (f"LC: {i} iso: {j}", out_dict['fidelity'][j], edge_list)
+            if fidelity:
+                if out_dict['fidelity'][j] > best_fid[1]:
+                    best_fid = (f"LC: {i} iso: {j}", out_dict['fidelity'][j], edge_list)
+                if out_dict['fidelity'][j] < best_fid[1]:
+                    worst_fid = (f"LC: {i} iso: {j}", out_dict['fidelity'][j], edge_list)
     print("number of LC graphs = ", len(lc_adjs))
     print(
         "number of iso found = ",
@@ -527,8 +527,10 @@ def graph_analyzer(edge_seq, graph_class: str, method="lc_with_iso", conf=1, n_l
            f"\nbest depth {best_depth[1]}: {best_depth[0]}\nworst depth {worst_depth[1]}: {worst_depth[0]}" \
            f"\ntotal number of cases = {sum(num_iso_list)}" \
            f"\nLC method {method}, none exhaustive? LC {n_lc_graphs}, n_order {n_reordering}"
-        # f"\nbest graph w.r.t cost {best_cost[0]}\nbest graph w.r.t fidelity {best_fid[0]}" \
-        # f"\nworst graph w.r.t cost {worst_cost[0]}\nworst graph w.r.t fidelity {worst_fid[0]}" \
+    if fidelity:
+        fid_tex = f"\nbest graph w.r.t cost {best_cost[0]}\nbest graph w.r.t fidelity {best_fid[0]}" \
+                  f"\nworst graph w.r.t cost {worst_cost[0]}\nworst graph w.r.t fidelity {worst_fid[0]}"
+        text += fid_tex
     filename = new_path + f'/bests.txt'
     with open(filename, "w") as file:
         file.write(text)
@@ -555,12 +557,15 @@ def graph_analyzer(edge_seq, graph_class: str, method="lc_with_iso", conf=1, n_l
 # %%
 def LC_scaling_test(
     g,
+    dir_path: str,
     graph_class: str,
     method="random_with_iso",
     conf=0,
-    n_lc_list=[*(range(1, 10))],
+    n_lc_list=None,
     n_reordering=1,
 ):
+    if n_lc_list is None:
+        n_lc_list = [*(range(1, 10))]
     edge_list = [*g.edges]
     edges = [x for sublist in edge_list for x in sublist]
     bw = []  # best worst cases
@@ -574,7 +579,8 @@ def LC_scaling_test(
             bw[i].append(
                 graph_analyzer(
                     edges,
-                    f"{graph_class}/LC{n}/T{j}",
+                    dir_path=dir_path,
+                    graph_class=f"{graph_class}/LC{n}/T{j}",
                     method=method,
                     conf=conf,
                     n_lc_graphs=n,
@@ -599,21 +605,24 @@ def LC_scaling_test(
     df_cnot = pd.DataFrame((avgs_cnots, stds_cnots))
     df_depth = pd.DataFrame((avgs_depths, stds_depths))
 
-    output_path1 = f"/Users/sobhan/Desktop/EntgClass/{graph_class}/bwCNOT.csv"
+    output_path1 = f"{dir_path}/{graph_class}/bwCNOT.csv"
     df_cnot.to_csv(output_path1, index=False, header=False)
-    output_path2 = f"/Users/sobhan/Desktop/EntgClass/{graph_class}/bwDepth.csv"
+    output_path2 = f"{dir_path}/{graph_class}/bwDepth.csv"
     df_depth.to_csv(output_path2, index=False, header=False)
     return avgs_cnots, stds_cnots, avgs_depths, stds_depths, bw
 
 
 def iso_scaling_test(
     g,
+    dir_path: str,
     graph_class: str,
     method=None,
     conf=0,
     n_lc_graphs=1,
-    n_iso_list=[*(range(1, 10))],
+    n_iso_list=None,
 ):
+    if n_iso_list is None:
+        n_iso_list = [*(range(1, 10))]
     adj_matrix = nx.to_numpy_array(g)
     nodes = [*g.nodes]
     bw = []  # best worst cases
@@ -634,7 +643,8 @@ def iso_scaling_test(
             bw[i].append(
                 graph_analyzer(
                     edges,
-                    f"{graph_class}/ISO{n}/T{j}",
+                    dir_path=dir_path,
+                    graph_class=f"{graph_class}/ISO{n}/T{j}",
                     method=method,
                     conf=conf,
                     n_lc_graphs=n_lc_graphs,
@@ -659,14 +669,14 @@ def iso_scaling_test(
     df_cnot = pd.DataFrame((avgs_cnots, stds_cnots))
     df_depth = pd.DataFrame((avgs_depths, stds_depths))
 
-    output_path1 = f"/Users/sobhan/Desktop/EntgClass/{graph_class}/bwCNOT.csv"
+    output_path1 = f"{dir_path}/{graph_class}/bwCNOT.csv"
     df_cnot.to_csv(output_path1, index=False, header=False)
-    output_path2 = f"/Users/sobhan/Desktop/EntgClass/{graph_class}/bwDepth.csv"
+    output_path2 = f"{dir_path}/{graph_class}/bwDepth.csv"
     df_depth.to_csv(output_path2, index=False, header=False)
     return avgs_cnots, stds_cnots, avgs_depths, stds_depths, bw
 
 
-def LC_scaling_known(result, graph_class: str, n_lc_list=None):
+def LC_scaling_known(result, dir_path: str, graph_class: str, n_lc_list=None):
     if n_lc_list is None:
         n_lc_list = [*(range(1, 10))]
     b = len(result)
@@ -690,14 +700,14 @@ def LC_scaling_known(result, graph_class: str, n_lc_list=None):
     df_cnot = pd.DataFrame((c_means, c_stds))
     df_depth = pd.DataFrame((d_means, d_stds))
 
-    output_path1 = f"/Users/sobhan/Desktop/EntgClass/{graph_class}/bwCNOT.csv"
+    output_path1 = f"{dir_path}/{graph_class}/bwCNOT.csv"
     df_cnot.to_csv(output_path1, index=False, header=False)
-    output_path2 = f"/Users/sobhan/Desktop/EntgClass/{graph_class}/bwDepth.csv"
+    output_path2 = f"{dir_path}/{graph_class}/bwDepth.csv"
     df_depth.to_csv(output_path2, index=False, header=False)
     return c_means, c_stds, d_means, d_stds
 
 
-def rgs_analysis(res_rgsn, filename: str):
+def rgs_analysis(res_rgsn, dir_path: str, filename: str):
     n_cnots = []
     for c in res_rgsn["circuit"]:
         if "Emitter-Emitter" in c.node_dict:
@@ -731,7 +741,7 @@ def rgs_analysis(res_rgsn, filename: str):
     for met in graph_met_list:
         for i, g in enumerate(res_rgsn["g"]):
             res_rgsn["graph_metric"][i][met] = graph_met_value(met, g)
-    res_rgsn.save2json(f"/Users/sobhan/Desktop/EntgClass/RGS/{filename}", f"{filename}")
+    res_rgsn.save2json(f"{dir_path}/RGS/{filename}", f"{filename}")
     correlation_checker(res_rgsn, ["n_cnots"], graph_met_list)
     plot_figs(
         res_rgsn,

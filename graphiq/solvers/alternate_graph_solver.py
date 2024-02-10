@@ -40,15 +40,15 @@ from graphiq.utils.relabel_module import (
 
 class AlternateGraphSolver:
     def __init__(
-        self,
-        target: nx.Graph or QuantumState = None,
-        metric: MetricBase = Infidelity,
-        compiler: CompilerBase = StabilizerCompiler(),
-        noise_compiler: CompilerBase = DensityMatrixCompiler(),
-        io: IO = None,
-        noise_model_mapping=None,
-        solver_setting=None,
-        seed=None,
+            self,
+            target: nx.Graph or QuantumState = None,
+            metric: MetricBase = Infidelity,
+            compiler: CompilerBase = StabilizerCompiler(),
+            noise_compiler: CompilerBase = DensityMatrixCompiler(),
+            io: IO = None,
+            noise_model_mapping=None,
+            solver_setting=None,
+            seed=None,
     ):
         """
 
@@ -228,7 +228,10 @@ class AlternateGraphSolver:
                     slc.state_converter_circuit(lc_graph, iso_graph, validate=True)
                 except:
                     raise UserWarning("LC conversion failed")
-                conversion_ops = slc.str_to_op(conversion_gates)
+                if not lc_graph.adj == iso_graph.adj:
+                    conversion_ops = slc.str_to_op(conversion_gates)
+                else:
+                    conversion_ops = []
                 for op in conversion_ops:
                     circuit.add(op)
                 if self.noise_simulation:
@@ -260,11 +263,11 @@ class AlternateGraphSolver:
                         mc_list.append(mc)
                         if self.mc_params["n_parallel"] is not None:
                             n_total = (
-                                self.mc_params["n_parallel"]
-                                * self.mc_params["n_single"]
+                                    self.mc_params["n_parallel"]
+                                    * self.mc_params["n_single"]
                             )
                             assert (
-                                n_total > 0
+                                    n_total > 0
                             ), "n_single and n_parallel both must be integers > 1 or None"
                             self.solver_setting.monte_carlo_params["n_sample"] = n_total
                             # multicore parallel processing
@@ -375,9 +378,9 @@ class AlternateGraphSolver:
         rate = self.depolarizing_rate
         dep_noise_model_mapping = dict()
         dep_noise_model_mapping["e"] = {
-            # "SigmaX": nm.DepolarizingNoise(rate),
-            # "SigmaY": nm.DepolarizingNoise(rate),
-            # "SigmaZ": nm.DepolarizingNoise(rate),
+            "SigmaX": nm.DepolarizingNoise(rate),
+            "SigmaY": nm.DepolarizingNoise(rate),
+            "SigmaZ": nm.DepolarizingNoise(rate),
             "Phase": nm.DepolarizingNoise(rate),
             "PhaseDagger": nm.DepolarizingNoise(rate),
             "Hadamard": nm.DepolarizingNoise(rate),
@@ -392,39 +395,22 @@ class AlternateGraphSolver:
     def mc_depol(self):
         """
         Returns a Monte-Carlo noise map for depolarizing noise. Currently only emitter gates are noisy.
-
         :return: mcn.McNoiseMap
         :rtype: mcn.McNoiseMap
         """
         rate = self.depolarizing_rate / 3
         mc_noise = mcn.McNoiseMap()
-        mc_noise.add_gate_noise(
-            "e",
-            "Hadamard",
-            [
-                (nm.PauliError("X"), rate),
-                (nm.PauliError("Y"), rate),
-                (nm.PauliError("Z"), rate),
-            ],
-        )
-        mc_noise.add_gate_noise(
-            "e",
-            "Phase",
-            [
-                (nm.PauliError("X"), rate),
-                (nm.PauliError("Y"), rate),
-                (nm.PauliError("Z"), rate),
-            ],
-        )
-        mc_noise.add_gate_noise(
-            "e",
-            "PhaseDagger",
-            [
-                (nm.PauliError("X"), rate),
-                (nm.PauliError("Y"), rate),
-                (nm.PauliError("Z"), rate),
-            ],
-        )
+        for gate_type in ["Hadamard", "Phase", "PhaseDagger", "SigmaX", "SigmaY", "SigmaZ"]:
+            mc_noise.add_gate_noise(
+                "e",
+                gate_type,
+                [
+                    (nm.PauliError("X"), rate),
+                    (nm.PauliError("Y"), rate),
+                    (nm.PauliError("Z"), rate),
+                ],
+            )
+
         mc_noise.add_gate_noise(
             "ee",
             "CNOT",
@@ -492,25 +478,25 @@ class AlternateGraphSolverSetting:
     """
 
     def __init__(
-        self,
-        allow_relabel=True,
-        n_iso_graphs=10,
-        rel_inc_thresh=0.1,
-        allow_exhaustive=False,
-        sort_emit=True,
-        label_map=False,
-        iso_thresh=None,
-        allow_lc=True,
-        n_lc_graphs=10,
-        lc_orbit_depth=None,
-        depolarizing_rate=0.01,
-        monte_carlo=False,
-        monte_carlo_params=None,
-        graph_metric=pre.graph_metric_lists[0],
-        lc_method="max edge",
-        verbose=False,
-        save_openqasm: str = "none",
-        callback_func: dict = {},
+            self,
+            allow_relabel=True,
+            n_iso_graphs=10,
+            rel_inc_thresh=0.1,
+            allow_exhaustive=False,
+            sort_emit=True,
+            label_map=False,
+            iso_thresh=None,
+            allow_lc=True,
+            n_lc_graphs=10,
+            lc_orbit_depth=None,
+            depolarizing_rate=0.01,
+            monte_carlo=False,
+            monte_carlo_params=None,
+            graph_metric=pre.graph_metric_lists[0],
+            lc_method="max edge",
+            verbose=False,
+            save_openqasm: str = "none",
+            callback_func: dict = {},
     ):
         self.allow_relabel = allow_relabel
         self.allow_lc = allow_lc

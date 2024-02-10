@@ -9,65 +9,9 @@ from correlation_module import *
 from graphiq.data_collection.ui_functions import *
 from graphiq.metrics import graph_met_value
 
-# %% initialize target graph
-# options are "rnd": random, "tree": random tree, "rgs": repeater graph state, "linear": linear cluster state,
-# "lattice": 2-d cluster state, "star": star graph or GHZ
-# g = t_graph(gtype="rgs", n=4, seed=99, show=True)
 
-# %%
-adj1 = np.array(
-    [
-        [0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
-        [1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
-        [1.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-        [1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-        [1.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0],
-        [1.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-        [1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0],
-        [1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
-        [1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0],
-        [1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0],
-    ]
-)
-user_input = InputParams(
-    n_ordering=1,  # input
-    rel_inc_thresh=0.2,  # advanced: (0,1) The closer to 0 the closer we get to an exhaustive search for reordering.
-    allow_exhaustive=True,  # advanced*: only reason to deactivate is to save runtime if this is the bottleneck
-    iso_thresh=None,  # advanced: if not enough relabeled graphs are found, set it to a larger number!
-    n_lc_graphs=1,  # input
-    lc_orbit_depth=None,  # advanced: if hit the runtime limit, limit len(sequence of Local complementations)
-    lc_method=None,  # input
-    noise_simulation=False,  # input
-    noise_model_mapping="depolarizing",  # input
-    depolarizing_rate=0.005,  # input
-    error_margin=0.1,  # input
-    confidence=1,  # input
-    mc_map=None,  # advanced*: pass a manual noise map for the monte carlo simulations
-    n_cores=8,  # advanced: change if processor has different number of cores
-    seed=1,  # input
-    graph_type="linear",  # input
-    graph_size=2,  # input
-    verbose=False,
-    save_openqasm="none",
-)
-
-# settings = user_input.setting
-# solver = user_input.solver
-# nx.draw_networkx(user_input.target_graph, with_labels=True)
-# plt.show()
-# ray.init()
-# start0 = time.time()
-# d = solver.solve()
-# end0 = time.time()
-# ray.shutdown()
-# print("runtime0 = ", end0 - start0)
-# print("Monte Carlo",
-#       [(param, settings.monte_carlo_params[param]) for param in ["n_sample", "n_single", "n_parallel", "seed"]])
-
-
-# %%
-# results
-def orbit_analyzer(graph, dir_name='new_orbit', n_lc=None, graph_met_list=None, circ_met_list=None, plots=False, lc_method=None):
+def orbit_analyzer(graph, dir_name='new_orbit', n_lc=None, graph_met_list=None, circ_met_list=None, plots=False,
+                   lc_method=None):
     """
     The function take a graph and returns the solver result object containing LC graph and circuit metrics
     :param graph_met_list: list of graph metrics to consider for correlations. If none given, a default list is used.
@@ -110,17 +54,6 @@ def orbit_analyzer(graph, dir_name='new_orbit', n_lc=None, graph_met_list=None, 
 
 
 def result_maker(result, graph_met_list=None, circ_met_list=None):
-    # default properties: "g": alternative graph, "score": infidelity, "map": order permutation map
-    # print("number of cases found:", len(result))
-    # print("The infidelity", [x[1]["score"] for x in d])
-
-    # print("RunTime: ", end1 - start1, )  # "\nStabiliTime: ", end0-start0)
-    # print("1-p method inFidelity:", 1 - (1 - s.depolarizing_rate) ** n_noisy_gate(d[0][0]))
-
-    # graph_met_list = ["node_connect", "cluster", "local_efficiency", "global_efficiency", "max_between", "max_close",
-    #                   "min_close", "mean_nei_deg", "edge_connect", "assort", "radius", "diameter", "periphery",
-    #                   "center", "pop", "max_deg", "n_edges", "avg_shortest_path"]  # input
-    # circ_met_list = ["n_emitters", "n_cnots", "max_emit_depth", "max_emit_eff_depth", "depth", "std of score"]
     if graph_met_list is None:
         graph_met_list = ["global_efficiency", "n_edges", "mean_nei_deg", "node_connect", "avg_shortest_path",
                           "max_between", "cluster"]
@@ -277,7 +210,7 @@ def correlation_checker(result, list_mets1, list_mets2):
             print(f"Pearsons {met1}-{met2}: %.3f" % corr_p, round(p_value_p, 3))
 
 
-def corr_with_mean(list1, list2, print_result = True):
+def corr_with_mean(list1, list2, print_result=True):
     """
     given two lists of data corresponding to each other element by element, it finds the correlation between list1 with
     mean values of list 2. For instance, the average number of cnots corresponding to each case of edge count in graph.
@@ -327,35 +260,6 @@ def plot_graphs(result):
         plt.show()
 
 
-# plot_figs()
-# plot_graphs()
-# plot_map_based()
-
-# %% analyze
-# corr = GraphCorr(graph_list=g_list)
-# corr._graph_circ_dictionary = dict(zip(g_list, circ_list))
-# corr.met_distribution(met="max_emit_depth", show_plot=True)
-# # %%
-#
-# corr.met_distribution(met="max_emit_depth", show_plot=True)
-# corr.met_distribution(met="cnot", show_plot=True)
-# corr.met_met("cnot", "depth", n=None, p=None, show_plot=True)
-#
-# sort_by_emit = sorted(circ_list, key=lambda x: x[0].n_emitters)
-# min_min_emit_cnot = sorted(circ_list, key=lambda x: len(x[0].get_node_by_labels(["Emitter-Emitter", "CNOT"])))
-# min_min_emit_depth = sorted(circ_list, key=lambda x: x[0].depth)
-# min_min_emit_cnot[0][0].draw_circuit()
-# min_min_emit_depth[0][0].draw_circuit()
-# circ_list[0][0].draw_circuit()
-# nx.draw_networkx(min_min_emit_cnot[0][1]['g'], with_labels=1)
-# nx.draw_networkx(min_min_emit_depth[0][1]['g'], with_labels=1)
-# plt.show()
-
-
-# %%
-# ll=[(i,result['max_emit_eff_depth'][i]) for i, x in enumerate(result['n_cnots']) if x==2]
-# ll.sort(key=lambda x: x[1])
-# print([result['n_emitters'][i] for i, x in enumerate(result['n_cnots']) if x==2])
 # %%
 def _edge2adj(e_list):
     assert len(e_list) % 2 == 0
@@ -476,13 +380,11 @@ def graph_analyzer(edge_seq, dir_path: str, graph_class: str, method=None, conf=
     """
     lc_adjs = lcs(edge_seq, method=method, n_lc_graphs=n_lc_graphs, seed=seed)  ###
     print("number of LC graphs = ", len(lc_adjs))
-    # relabeled_info = {'index': list(range(len(n_es))), 'map': maps, 'n_emitters': n_es}###
-    # df = pd.DataFrame(relabeled_info)
+
     new_path = f"{dir_path}/{graph_class}"
     if not os.path.exists(new_path):
         os.makedirs(new_path)
-    # file_name = new_path + f'/iso_info.csv'
-    # df.to_csv(file_name, index=False)
+
     best_cost = ("", 10e6, [])  # 1st element is which iso and lc is this graph, 2nd is the cost, 3rd is the edge list
     best_fid = ("", 0, [0])
     worst_cost = ("", 0, [])
@@ -544,24 +446,19 @@ def graph_analyzer(edge_seq, dir_path: str, graph_class: str, method=None, conf=
     nx.draw_networkx(g1, pos=nx.kamada_kawai_layout(g1))
     plt.savefig(new_path + f"/best_cost.png")
     plt.close(fig)
-    # g2 = nx.Graph()
-    # g2.add_edges_from(best_fid[2])
-    # fig = plt.figure(figsize=(4, 3), dpi=150)
-    # nx.draw_networkx(g2, pos=nx.kamada_kawai_layout(g2))
-    # plt.savefig(new_path + f'/best_fid.png')
-    # plt.close(fig)
+
     return best_fid, best_cost, best_ncnot, best_depth, worst_fid, worst_cost, worst_ncnot, worst_depth
 
 
 # %%
 def LC_scaling_test(
-    g,
-    dir_path: str,
-    graph_class: str,
-    method="random_with_iso",
-    conf=0,
-    n_lc_list=None,
-    n_reordering=1,
+        g,
+        dir_path: str,
+        graph_class: str,
+        method="random_with_iso",
+        conf=0,
+        n_lc_list=None,
+        n_reordering=1,
 ):
     if n_lc_list is None:
         n_lc_list = [*(range(1, 10))]
@@ -612,13 +509,13 @@ def LC_scaling_test(
 
 
 def iso_scaling_test(
-    g,
-    dir_path: str,
-    graph_class: str,
-    method=None,
-    conf=0,
-    n_lc_graphs=1,
-    n_iso_list=None,
+        g,
+        dir_path: str,
+        graph_class: str,
+        method=None,
+        conf=0,
+        n_lc_graphs=1,
+        n_iso_list=None,
 ):
     if n_iso_list is None:
         n_iso_list = [*(range(1, 10))]
@@ -795,6 +692,6 @@ def rnd_graph_orbit_cnots(size, number_of_graphs):
     return list_cnot_list, restuls_list
 
 
-# %%
-# graph_analyzer([0,1,1,2,2,3,3,4,4,5,5,0,0,2,5,3,1,4], "class 19", method=None, conf=1)
-# LC_scaling_test(g,"random_8_05", method="random_with_iso", conf=0, n_lc_list=[*(range(2, 10))], n_reordering=1)
+# %% example use case
+# graph_analyzer([0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 0, 0, 2, 0, 3, 0, 4, 1, 3, 1, 4], graph_class="class 19",
+#                n_lc_graphs=10, n_reordering=10, method=None, conf=0.7)

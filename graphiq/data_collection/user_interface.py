@@ -1,14 +1,13 @@
 ###
 # data collection script #
 ###
-import time
-import ray
 from math import factorial
 import pandas as pd
 from scipy.stats import spearmanr
 
 from correlation_module import *
 from graphiq.data_collection.ui_functions import *
+from graphiq.metrics import graph_met_value
 
 # %% initialize target graph
 # options are "rnd": random, "tree": random tree, "rgs": repeater graph state, "linear": linear cluster state,

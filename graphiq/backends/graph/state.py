@@ -2,6 +2,7 @@
 Graph representation of quantum state
 
 """
+
 import itertools
 import warnings
 from collections.abc import Iterable

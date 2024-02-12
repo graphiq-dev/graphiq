@@ -1,6 +1,7 @@
 """
 Miscellaneous functions
 """
+
 import numpy as np
 
 from graphiq.backends.density_matrix import functions as dmf

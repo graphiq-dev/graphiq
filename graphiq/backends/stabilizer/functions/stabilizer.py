@@ -1,6 +1,7 @@
 """
 Functions that are specific for StabilizerTableau
 """
+
 import numpy as np
 
 import graphiq.backends.stabilizer.functions.transformation as transform

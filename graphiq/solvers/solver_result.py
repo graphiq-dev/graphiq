@@ -5,6 +5,7 @@ import networkx as nx
 import numpy as np
 import pandas as pd
 
+
 class SolverResult:
     """
     Class to keep track of the solver result.

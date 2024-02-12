@@ -4,6 +4,7 @@ Deterministic solver which follows the paper by Li et al [1]_.
 .. [1] Bikun Li, Sophia E. Economou and Edwin Barnes, npj. Quantum Information 8, 11 (2022)
 
 """
+
 import numpy as np
 
 import graphiq.backends.stabilizer.functions.height as height

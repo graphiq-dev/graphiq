@@ -10,8 +10,15 @@ from graphiq.data_collection.ui_functions import *
 from graphiq.metrics import graph_met_value
 
 
-def orbit_analyzer(graph, dir_name='new_orbit', n_lc=None, graph_met_list=None, circ_met_list=None, plots=False,
-                   lc_method=None):
+def orbit_analyzer(
+    graph,
+    dir_name="new_orbit",
+    n_lc=None,
+    graph_met_list=None,
+    circ_met_list=None,
+    plots=False,
+    lc_method=None,
+):
     """
     The function take a graph and returns the solver result object containing LC graph and circuit metrics
     :param graph_met_list: list of graph metrics to consider for correlations. If none given, a default list is used.
@@ -37,16 +44,33 @@ def orbit_analyzer(graph, dir_name='new_orbit', n_lc=None, graph_met_list=None, 
         seed=1,  # input
         graph_type="nx",  # input
         graph_size=graph,  # input
-        verbose=False)
+        verbose=False,
+    )
     solver = user_input.solver
     solver.solve()
     res = solver.result
     if graph_met_list is None:
-        graph_met_list = ["global_efficiency", "n_edges", "mean_nei_deg", "node_connect", "avg_shortest_path",
-                          "max_between", "cluster"]
+        graph_met_list = [
+            "global_efficiency",
+            "n_edges",
+            "mean_nei_deg",
+            "node_connect",
+            "avg_shortest_path",
+            "max_between",
+            "cluster",
+        ]
     if circ_met_list is None:
-        circ_met_list = ["n_emitters", "n_cnots", "max_emit_depth", "max_emit_reset_depth", "max_emit_eff_depth",
-                         "depth", "std of score", "n_measurements", "n_unitary"]
+        circ_met_list = [
+            "n_emitters",
+            "n_cnots",
+            "max_emit_depth",
+            "max_emit_reset_depth",
+            "max_emit_eff_depth",
+            "depth",
+            "std of score",
+            "n_measurements",
+            "n_unitary",
+        ]
     res = result_maker(res, graph_met_list=graph_met_list, circ_met_list=circ_met_list)
     if plots:
         plot_figs(res, dir_name=dir_name, graph_mets=graph_met_list, circ_mets=None)
@@ -55,11 +79,27 @@ def orbit_analyzer(graph, dir_name='new_orbit', n_lc=None, graph_met_list=None, 
 
 def result_maker(result, graph_met_list=None, circ_met_list=None):
     if graph_met_list is None:
-        graph_met_list = ["global_efficiency", "n_edges", "mean_nei_deg", "node_connect", "avg_shortest_path",
-                          "max_between", "cluster"]
+        graph_met_list = [
+            "global_efficiency",
+            "n_edges",
+            "mean_nei_deg",
+            "node_connect",
+            "avg_shortest_path",
+            "max_between",
+            "cluster",
+        ]
     if circ_met_list is None:
-        circ_met_list = ["n_emitters", "n_cnots", "max_emit_depth", "max_emit_reset_depth", "max_emit_eff_depth",
-                         "depth", "std of score", "n_measurements", "n_unitary"]
+        circ_met_list = [
+            "n_emitters",
+            "n_cnots",
+            "max_emit_depth",
+            "max_emit_reset_depth",
+            "max_emit_eff_depth",
+            "depth",
+            "std of score",
+            "n_measurements",
+            "n_unitary",
+        ]
     for met in circ_met_list:
         result.add_properties(met)
     # circ metrics calculations
@@ -84,22 +124,37 @@ def result_maker(result, graph_met_list=None, circ_met_list=None):
             if "max_emit_depth" in circ_met_list:
                 e_depth[e_i] = len(c.reg_gate_history(reg=e_i)[1]) - 2
             if "max_emit_reset_depth" in circ_met_list:
-                m_list = []  # list of indices of measurement nodes in emitters gate history
+                m_list = (
+                    []
+                )  # list of indices of measurement nodes in emitters gate history
                 for i, oper in enumerate(c.reg_gate_history(reg=e_i)[0]):
                     # first find a list of nodes in DAG corresponding to measurements
-                    if type(oper).__name__ in ['Input', 'MeasurementCNOTandReset', 'Output']:
+                    if type(oper).__name__ in [
+                        "Input",
+                        "MeasurementCNOTandReset",
+                        "Output",
+                    ]:
                         m_list.append(i)
-                reset_intervals = [m_list[j + 1] - m_list[j] for j in range(len(m_list) - 1)]
+                reset_intervals = [
+                    m_list[j + 1] - m_list[j] for j in range(len(m_list) - 1)
+                ]
                 reset_depths[e_i] = max(reset_intervals)
             # find the max topological depth between two consecutive measurements on the same emitter
             if "max_emit_eff_depth" in circ_met_list:
                 node_list = []
                 for i, oper in enumerate(c.reg_gate_history(reg=e_i)[0]):
                     # first find a list of nodes in DAG corresponding to measurements
-                    if type(oper).__name__ in ['Input', 'MeasurementCNOTandReset', 'Output']:
+                    if type(oper).__name__ in [
+                        "Input",
+                        "MeasurementCNOTandReset",
+                        "Output",
+                    ]:
                         node_list.append(c.reg_gate_history(reg=e_i)[1][i])
                 node_depth_list = [c._max_depth(n) for n in node_list]
-                depth_diff = [node_depth_list[j + 1] - node_depth_list[j] for j in range(len(node_list) - 1)]
+                depth_diff = [
+                    node_depth_list[j + 1] - node_depth_list[j]
+                    for j in range(len(node_list) - 1)
+                ]
                 eff_depth[e_i] = max(depth_diff)
         if "max_emit_depth" in circ_met_list:
             max_emit_depth.append(max(e_depth.values()))
@@ -229,7 +284,7 @@ def corr_with_mean(list1, list2, print_result=True):
     corr_list2_std = [np.std(val) for val in corr_dict.values()]
     corr_p, p_value_p = pearsonr(corr_list1, corr_list2)
     if print_result:
-        print(f'Pearsons List1 vs Mean_List2: %.3f' % corr_p, round(p_value_p, 3))
+        print(f"Pearsons List1 vs Mean_List2: %.3f" % corr_p, round(p_value_p, 3))
     return corr_p, (corr_list1, corr_list2, corr_list2_std)
 
 
@@ -312,7 +367,15 @@ def lcs(edge_seq, method="lc_with_iso", n_lc_graphs=None, seed=1):
     return lc_adjs
 
 
-def find_best(adj1, file_name="case1", dir_path: str = None, conf=0.99, n_reordering=None, circ_met_list=None, seed=1):
+def find_best(
+    adj1,
+    file_name="case1",
+    dir_path: str = None,
+    conf=0.99,
+    n_reordering=None,
+    circ_met_list=None,
+    seed=1,
+):
     """
     For a given graph (in the form of an adjacency matrix), enumerate over different reordering of nodes and return the
     results in a dictionary including the calculated metrics for each case. A cost function is also calculated based on
@@ -345,15 +408,17 @@ def find_best(adj1, file_name="case1", dir_path: str = None, conf=0.99, n_reorde
     settings = user_input.setting
     solver.solve()
     result = solver.result
-    result = result_maker(result, graph_met_list=['n_edges'], circ_met_list=circ_met_list)
+    result = result_maker(
+        result, graph_met_list=["n_edges"], circ_met_list=circ_met_list
+    )
     out_dict = (result._data).copy()
-    out_dict['fidelity'] = [round(1 - s, 5) for s in out_dict['score']]
-    out_dict['edges'] = [list(g.edges) for g in out_dict['g']]
-    del out_dict['g']
-    del out_dict['score']
-    del out_dict['circuit']
+    out_dict["fidelity"] = [round(1 - s, 5) for s in out_dict["score"]]
+    out_dict["edges"] = [list(g.edges) for g in out_dict["g"]]
+    del out_dict["g"]
+    del out_dict["score"]
+    del out_dict["circuit"]
     # del out_dict['std of score']
-    del out_dict['graph_metric']
+    del out_dict["graph_metric"]
     df = pd.DataFrame(out_dict)
     if not os.path.exists(dir_path):
         os.makedirs(dir_path)
@@ -362,13 +427,27 @@ def find_best(adj1, file_name="case1", dir_path: str = None, conf=0.99, n_reorde
     result.save2json(dir_path, f"res_{file_name}")
     cost = []
     for i in range(len(result)):
-        cost.append(result['n_emitters'][i] * 100 + result['n_cnots'][i] * 10 + result['max_emit_reset_depth'][i])
-    out_dict['cost'] = cost
+        cost.append(
+            result["n_emitters"][i] * 100
+            + result["n_cnots"][i] * 10
+            + result["max_emit_reset_depth"][i]
+        )
+    out_dict["cost"] = cost
     return out_dict
 
 
-def graph_analyzer(edge_seq, dir_path: str, graph_class: str, method=None, conf=1, n_lc_graphs=None, n_reordering=None,
-                   circ_met_list=None, fidelity=True, seed=1):
+def graph_analyzer(
+    edge_seq,
+    dir_path: str,
+    graph_class: str,
+    method=None,
+    conf=1,
+    n_lc_graphs=None,
+    n_reordering=None,
+    circ_met_list=None,
+    fidelity=True,
+    seed=1,
+):
     """
     exhaustive graph analyzer given the flattened edge list
     no correlation analysis involved but cost analysis based on circuit metrics is included
@@ -385,7 +464,11 @@ def graph_analyzer(edge_seq, dir_path: str, graph_class: str, method=None, conf=
     if not os.path.exists(new_path):
         os.makedirs(new_path)
 
-    best_cost = ("", 10e6, [])  # 1st element is which iso and lc is this graph, 2nd is the cost, 3rd is the edge list
+    best_cost = (
+        "",
+        10e6,
+        [],
+    )  # 1st element is which iso and lc is this graph, 2nd is the cost, 3rd is the edge list
     best_fid = ("", 0, [0])
     worst_cost = ("", 0, [])
     worst_fid = ("", 1, [0])
@@ -395,27 +478,46 @@ def graph_analyzer(edge_seq, dir_path: str, graph_class: str, method=None, conf=
     worst_depth = ("", 0, [])
     num_iso_list = []
     for i, adj in enumerate(lc_adjs):
-        out_dict = find_best(adj, file_name=f"case{i}", dir_path=new_path, conf=conf, n_reordering=n_reordering,
-                             circ_met_list=circ_met_list, seed=seed)
-        num_iso_list.append(len(out_dict['cost']))
-        for j, edge_list in enumerate(out_dict['edges']):
-            if out_dict['cost'][j] < best_cost[1]:
-                best_cost = (f"LC: {i} iso: {j}", out_dict['cost'][j], edge_list)
-            if out_dict['cost'][j] > worst_cost[1]:
-                worst_cost = (f"LC: {i} iso: {j}", out_dict['cost'][j], edge_list)
-            if out_dict['n_cnots'][j] < best_ncnot[1]:
-                best_ncnot = (f"LC: {i} iso: {j}", out_dict['n_cnots'][j], edge_list)
-            if out_dict['n_cnots'][j] > worst_ncnot[1]:
-                worst_ncnot = (f"LC: {i} iso: {j}", out_dict['n_cnots'][j], edge_list)
-            if out_dict['max_emit_reset_depth'][j] < best_depth[1]:
-                best_depth = (f"LC: {i} iso: {j}", out_dict['max_emit_reset_depth'][j], edge_list)
-            if out_dict['max_emit_reset_depth'][j] > worst_depth[1]:
-                worst_depth = (f"LC: {i} iso: {j}", out_dict['max_emit_reset_depth'][j], edge_list)
+        out_dict = find_best(
+            adj,
+            file_name=f"case{i}",
+            dir_path=new_path,
+            conf=conf,
+            n_reordering=n_reordering,
+            circ_met_list=circ_met_list,
+            seed=seed,
+        )
+        num_iso_list.append(len(out_dict["cost"]))
+        for j, edge_list in enumerate(out_dict["edges"]):
+            if out_dict["cost"][j] < best_cost[1]:
+                best_cost = (f"LC: {i} iso: {j}", out_dict["cost"][j], edge_list)
+            if out_dict["cost"][j] > worst_cost[1]:
+                worst_cost = (f"LC: {i} iso: {j}", out_dict["cost"][j], edge_list)
+            if out_dict["n_cnots"][j] < best_ncnot[1]:
+                best_ncnot = (f"LC: {i} iso: {j}", out_dict["n_cnots"][j], edge_list)
+            if out_dict["n_cnots"][j] > worst_ncnot[1]:
+                worst_ncnot = (f"LC: {i} iso: {j}", out_dict["n_cnots"][j], edge_list)
+            if out_dict["max_emit_reset_depth"][j] < best_depth[1]:
+                best_depth = (
+                    f"LC: {i} iso: {j}",
+                    out_dict["max_emit_reset_depth"][j],
+                    edge_list,
+                )
+            if out_dict["max_emit_reset_depth"][j] > worst_depth[1]:
+                worst_depth = (
+                    f"LC: {i} iso: {j}",
+                    out_dict["max_emit_reset_depth"][j],
+                    edge_list,
+                )
             if fidelity:
-                if out_dict['fidelity'][j] > best_fid[1]:
-                    best_fid = (f"LC: {i} iso: {j}", out_dict['fidelity'][j], edge_list)
-                if out_dict['fidelity'][j] < best_fid[1]:
-                    worst_fid = (f"LC: {i} iso: {j}", out_dict['fidelity'][j], edge_list)
+                if out_dict["fidelity"][j] > best_fid[1]:
+                    best_fid = (f"LC: {i} iso: {j}", out_dict["fidelity"][j], edge_list)
+                if out_dict["fidelity"][j] < best_fid[1]:
+                    worst_fid = (
+                        f"LC: {i} iso: {j}",
+                        out_dict["fidelity"][j],
+                        edge_list,
+                    )
     print("number of LC graphs = ", len(lc_adjs))
     print(
         "number of iso found = ",
@@ -423,16 +525,20 @@ def graph_analyzer(edge_seq, dir_path: str, graph_class: str, method=None, conf=
         f"\ntotal number of cases = {sum(num_iso_list)}",
     )
 
-    text = f"number of LC graphs = {len(lc_adjs)}\nnumber of iso found = {num_iso_list}" \
-           f"\nbest n cnot {best_ncnot[1]}: {best_ncnot[0]}\nworst n cnot {worst_ncnot[1]}: {worst_ncnot[0]}" \
-           f"\nbest depth {best_depth[1]}: {best_depth[0]}\nworst depth {worst_depth[1]}: {worst_depth[0]}" \
-           f"\ntotal number of cases = {sum(num_iso_list)}" \
-           f"\nLC method {method}, none exhaustive? LC {n_lc_graphs}, n_order {n_reordering}"
+    text = (
+        f"number of LC graphs = {len(lc_adjs)}\nnumber of iso found = {num_iso_list}"
+        f"\nbest n cnot {best_ncnot[1]}: {best_ncnot[0]}\nworst n cnot {worst_ncnot[1]}: {worst_ncnot[0]}"
+        f"\nbest depth {best_depth[1]}: {best_depth[0]}\nworst depth {worst_depth[1]}: {worst_depth[0]}"
+        f"\ntotal number of cases = {sum(num_iso_list)}"
+        f"\nLC method {method}, none exhaustive? LC {n_lc_graphs}, n_order {n_reordering}"
+    )
     if fidelity:
-        fid_tex = f"\nbest graph w.r.t cost {best_cost[0]}\nbest graph w.r.t fidelity {best_fid[0]}" \
-                  f"\nworst graph w.r.t cost {worst_cost[0]}\nworst graph w.r.t fidelity {worst_fid[0]}"
+        fid_tex = (
+            f"\nbest graph w.r.t cost {best_cost[0]}\nbest graph w.r.t fidelity {best_fid[0]}"
+            f"\nworst graph w.r.t cost {worst_cost[0]}\nworst graph w.r.t fidelity {worst_fid[0]}"
+        )
         text += fid_tex
-    filename = new_path + f'/bests.txt'
+    filename = new_path + f"/bests.txt"
     with open(filename, "w") as file:
         file.write(text)
     g = nx.from_numpy_array(_edge2adj(edge_seq))
@@ -447,18 +553,27 @@ def graph_analyzer(edge_seq, dir_path: str, graph_class: str, method=None, conf=
     plt.savefig(new_path + f"/best_cost.png")
     plt.close(fig)
 
-    return best_fid, best_cost, best_ncnot, best_depth, worst_fid, worst_cost, worst_ncnot, worst_depth
+    return (
+        best_fid,
+        best_cost,
+        best_ncnot,
+        best_depth,
+        worst_fid,
+        worst_cost,
+        worst_ncnot,
+        worst_depth,
+    )
 
 
 # %%
 def LC_scaling_test(
-        g,
-        dir_path: str,
-        graph_class: str,
-        method="random_with_iso",
-        conf=0,
-        n_lc_list=None,
-        n_reordering=1,
+    g,
+    dir_path: str,
+    graph_class: str,
+    method="random_with_iso",
+    conf=0,
+    n_lc_list=None,
+    n_reordering=1,
 ):
     if n_lc_list is None:
         n_lc_list = [*(range(1, 10))]
@@ -509,13 +624,13 @@ def LC_scaling_test(
 
 
 def iso_scaling_test(
-        g,
-        dir_path: str,
-        graph_class: str,
-        method=None,
-        conf=0,
-        n_lc_graphs=1,
-        n_iso_list=None,
+    g,
+    dir_path: str,
+    graph_class: str,
+    method=None,
+    conf=0,
+    n_lc_graphs=1,
+    n_iso_list=None,
 ):
     if n_iso_list is None:
         n_iso_list = [*(range(1, 10))]

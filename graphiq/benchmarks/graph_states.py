@@ -4,6 +4,7 @@ This module helps with the creation of various graph states (which we can use as
 It offers various helper functions to create graphs of various sizes. Nodes are not encoded with any redundancy at
 this point (not necessary for our current algorithms)
 """
+
 import networkx as nx
 import copy
 import numpy as np
@@ -245,10 +246,11 @@ def crazy(n_list: list, pos=False, alternate_order=False):
     g.add_edges_from(edges)
     if alternate_order:
         from src.utils.relabel_module import relabel
+
         nodes = []
         for k in range(0, len(n_list), 2):
             if k + 1 < len(n_list):
-                n_nodes_before = sum(n_list[:k + 1])
+                n_nodes_before = sum(n_list[: k + 1])
                 nodes.extend([n_nodes_before + i for i in range(n_list[k + 1])])
             n_nodes_before = sum(n_list[:k])
             nodes.extend([n_nodes_before + i for i in range(n_list[k])])
@@ -289,9 +291,19 @@ def two_d_cluster(row_col: tuple, pos=False):
             next_col_nodes = np.arange(n_list[i + 1]) + nodes_before + n
         else:
             next_col_nodes = []
-        edges.extend([(current_nodes[i], current_nodes[i + 1]) for i in range(len(current_nodes) - 1)])
+        edges.extend(
+            [
+                (current_nodes[i], current_nodes[i + 1])
+                for i in range(len(current_nodes) - 1)
+            ]
+        )
         if len(next_col_nodes):
-            edges.extend([(current_nodes[i], next_col_nodes[i]) for i in range(len(current_nodes))])
+            edges.extend(
+                [
+                    (current_nodes[i], next_col_nodes[i])
+                    for i in range(len(current_nodes))
+                ]
+            )
     g.add_edges_from(edges)
     if pos:
         return g, pos_dict
@@ -367,7 +379,9 @@ def branching_tree(b_vector):
     :param b_vector: branching vector
     :return: tree graph
     """
-    assert all([b > 0 for b in b_vector]), "all entries of b_vector should be positive numbers"
+    assert all(
+        [b > 0 for b in b_vector]
+    ), "all entries of b_vector should be positive numbers"
     g = nx.Graph()
     g.add_node(0)
     last_level = [0]
@@ -379,6 +393,8 @@ def branching_tree(b_vector):
         g.add_nodes_from(new_nodes)
         node_list = node_list + new_nodes
         for b, root_node in enumerate(last_level):
-            g.add_edges_from([(root_node, new_nodes[b * n_branches + i]) for i in range(n_branches)])
+            g.add_edges_from(
+                [(root_node, new_nodes[b * n_branches + i]) for i in range(n_branches)]
+            )
         last_level = new_nodes
     return g

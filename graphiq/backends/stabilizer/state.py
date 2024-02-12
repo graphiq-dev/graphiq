@@ -1,6 +1,7 @@
 """
 State representation using the stabilizer formalism
 """
+
 import numpy as np
 
 import graphiq.backends.stabilizer.functions.clifford as sfc

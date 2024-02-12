@@ -7,6 +7,7 @@ Currently planned subclasses are:
 2. Graph
 3. Stabilizer
 """
+
 from abc import ABC
 
 

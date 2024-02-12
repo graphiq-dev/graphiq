@@ -1,6 +1,7 @@
 """
 Graph representation visualization helper
 """
+
 import matplotlib.pyplot as plt
 import networkx as nx
 

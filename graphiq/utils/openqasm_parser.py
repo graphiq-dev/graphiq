@@ -238,9 +238,9 @@ class OpenQASMParser:
             # get params
             if node.type == "expression_list":
                 for i, exp_node in enumerate(node.children):
-                    custom_unitary_info["params"][
-                        params_mapping[i]
-                    ] = self._parse_expression(exp_node)
+                    custom_unitary_info["params"][params_mapping[i]] = (
+                        self._parse_expression(exp_node)
+                    )
             if node.type == "primary_list":
                 for p_node in node.children:
                     qarg = (p_node.name, p_node.index)

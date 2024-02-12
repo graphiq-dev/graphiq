@@ -256,7 +256,7 @@ class Metrics(MetricBase):
     }
 
     def __init__(
-            self, metrics_list: list, metric_weight=None, log_steps=1, *args, **kwargs
+        self, metrics_list: list, metric_weight=None, log_steps=1, *args, **kwargs
     ):
         """
         Create a Metrics object which acts as a wrapper around Metric functions
@@ -290,9 +290,9 @@ class Metrics(MetricBase):
         self._metrics = _metrics
 
         if (
-                metric_weight is None
-                or isinstance(metric_weight, list)
-                or isinstance(metric_weight, np.ndarray)
+            metric_weight is None
+            or isinstance(metric_weight, list)
+            or isinstance(metric_weight, np.ndarray)
         ):
             if metric_weight is None:
                 metric_weight = np.ones(len(metrics_list)).flatten()
@@ -492,7 +492,15 @@ class CircuitUnitaryCount(MetricBase):
         circuit.unwrap_nodes()
         circuit.remove_identity()
         n_u = 0
-        for label in ["SigmaX", "SigmaX", "SigmaX", "Phase", "PhaseDagger", "Hadamard", "CNOT"]:
+        for label in [
+            "SigmaX",
+            "SigmaX",
+            "SigmaX",
+            "Phase",
+            "PhaseDagger",
+            "Hadamard",
+            "CNOT",
+        ]:
             if label in circuit.node_dict:
                 n_u += len(circuit.get_node_by_labels([label]))
         val = self.n_unitary_penalty(n_u)
@@ -600,9 +608,15 @@ class CircuitMaxEmitResetDepth(MetricBase):
             m_list = []  # list of indices of measurement nodes in emitters gate history
             for i, oper in enumerate(c.reg_gate_history(reg=e_i)[0]):
                 # first find a list of nodes in DAG corresponding to measurements
-                if type(oper).__name__ in ['Input', 'MeasurementCNOTandReset', 'Output']:
+                if type(oper).__name__ in [
+                    "Input",
+                    "MeasurementCNOTandReset",
+                    "Output",
+                ]:
                     m_list.append(i)
-            reset_intervals = [m_list[j + 1] - m_list[j] for j in range(len(m_list) - 1)]
+            reset_intervals = [
+                m_list[j + 1] - m_list[j] for j in range(len(m_list) - 1)
+            ]
             reset_depths[e_i] = max(reset_intervals)
         depth = max(reset_depths.values())
         val = self.depth_penalty(depth)
@@ -658,10 +672,17 @@ class CircuitMaxEmitEffDepth(MetricBase):
             node_list = []
             for i, oper in enumerate(c.reg_gate_history(reg=e_i)[0]):
                 # first find a list of nodes in DAG corresponding to measurements
-                if type(oper).__name__ in ['Input', 'MeasurementCNOTandReset', 'Output']:
+                if type(oper).__name__ in [
+                    "Input",
+                    "MeasurementCNOTandReset",
+                    "Output",
+                ]:
                     node_list.append(c.reg_gate_history(reg=e_i)[1][i])
             node_depth_list = [c._max_depth(n) for n in node_list]
-            depth_diff = [node_depth_list[j + 1] - node_depth_list[j] for j in range(len(node_list) - 1)]
+            depth_diff = [
+                node_depth_list[j + 1] - node_depth_list[j]
+                for j in range(len(node_list) - 1)
+            ]
             eff_depth[e_i] = max(depth_diff)
         depth = max(eff_depth.values())
         val = self.depth_penalty(depth)

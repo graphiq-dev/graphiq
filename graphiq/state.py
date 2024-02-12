@@ -131,13 +131,23 @@ class QuantumState:
         :param show: if True, the state representation is plotted. Otherwise, it is drawn but not plotted
         :type show: bool
         :param ax: axis/axes on which to plot the state representation
-        :type ax: matplotlib.axis
+        :type ax: matplotlib.Axis
         :return: fig, ax (the figure and axes on which data was plotted)
-        :rtype: matplotlib.figure, matplotlib.axis
+        :rtype: matplotlib.Figure, matplotlib.Axis
         """
-        # TODO: implement this or delete this
         # Use visualizers module
-        raise NotImplementedError()
+        if self._rep_type == "dm":
+            fig, ax = self._rep_data.draw(show=show, style="heat")
+        elif self._rep_type == "g":
+            fig, ax = self._rep_data.draw(show=show, ax=ax, with_labels=True)
+        elif self._rep_type == "s":
+            raise NotImplementedError(
+                "No visualization tool is implemented for stabilizer backend."
+            )
+        else:
+            raise ValueError("Invalid representation type.")
+
+        return fig, ax
 
     def _initialize_dm(self, data):
         """
@@ -146,7 +156,6 @@ class QuantumState:
         :param data: either a graph or ndarray matrix
         :type data: Graph OR nx.Graph OR numpy.ndarray
         :raises AssertionError: if the density matrix being initialized does not have self.n_qubits
-
         """
         if isinstance(data, Graph) or isinstance(data, nx.Graph):
             dm = DensityMatrix.from_graph(data)
@@ -161,9 +170,8 @@ class QuantumState:
         Initializes a graph state based on the data
 
         :param data: data to construct the Graph representation
-        :type data: nx.Graph OR int OR frozenset
+        :type data: nx.Graph
         :raises AssertionError: if the graph being initialized does not have self.n_qubits
-
         """
         graph = Graph(data)
 
@@ -200,10 +208,10 @@ class QuantumState:
         """
         Helper function to initialize any given representation
 
-        :param rep_type: rep_type to initialize
+        :param rep_type: representation type to initialize
         :type rep_type: str
         :param data: data with which the rep_type should be initialized
-        :type data: int OR frozenset OR Graph OR nx.Graph OR numpy.ndarray
+        :type data: int OR Graph OR nx.Graph OR numpy.ndarray
         :raises ValueError: if rep_type is invalid
         """
         if rep_type in ("dm", "density matrix"):
@@ -246,31 +254,31 @@ class QuantumState:
         """
         Helper function. Convert a stabilizer representation to density matrix
 
-        :param rep:
+        :param rep: initial representation
         :type rep: Stabilizer or MixedStabilizer
-        :return:
-        :rtype:
+        :return: a density matrix
+        :rtype: DensityMatrix
         """
-        data = rep.data
         if self.mixed:
             data_list = []
-            for p_i, t_i in data.mixture:
+            assert isinstance(rep, MixedStabilizer)
+            for p_i, t_i in rep.mixture:
                 data_list.append((p_i, t_i.to_stabilizer()))
             rho = rc.stabilizer_to_density(data_list)
         else:
-            rho = rc.stabilizer_to_density(data.to_stabilizer())
+            rho = rc.stabilizer_to_density(rep.data.to_stabilizer())
         return DensityMatrix(rho)
 
     def _stabilizer_to_graph(self, rep):
-        data = rep.data
         if self.mixed:
+            assert isinstance(rep, MixedStabilizer)
             data_list = []
-            for p_i, t_i in data.mixture:
-                data_list.append((p_i, t_i.data))
+            for p_i, t_i in rep.mixture:
+                data_list.append((p_i, t_i.to_stabilizer()))
             graph_list = rc.stabilizer_to_graph(data_list)
             return MixedGraph(graph_list)
         else:
-            graph_list = rc.stabilizer_to_graph(data)
+            graph_list = rc.stabilizer_to_graph(rep.data)
             return Graph(graph_list[0][1])
 
     def _graph_to_density(self, rep):
@@ -352,7 +360,7 @@ class QuantumState:
         Validate data type for input data
 
         :param data: input data
-        :type data: int or np.ndarray or CliffordTableau or nx.Graph or frozenset
+        :type data: int or np.ndarray or CliffordTableau or nx.Graph
         :return: True and the number of qubits if the data type is valid
         :rtype: bool, int
         """
@@ -368,8 +376,6 @@ class QuantumState:
             n_qubits = data.n_qubits
         elif isinstance(data, nx.Graph):
             n_qubits = data.number_of_nodes()
-        elif isinstance(data, frozenset):
-            n_qubits = len(data)
         elif isinstance(data, list):
             if isinstance(data[0][1], CliffordTableau) or isinstance(
                 data[0][1], nx.Graph

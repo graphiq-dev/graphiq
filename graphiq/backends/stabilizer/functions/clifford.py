@@ -525,9 +525,9 @@ def partial_trace(tableau, keep, dims, measurement_determinism="probabilistic"):
     :param tableau: the state represented by CliffordTableau
     :type tableau: CliffordTableau
     :param keep: the qubit positions to be kept
-    :type keep: list[int]
+    :type keep: list[int] or numpy.ndarray
     :param dims: currently not used for this function
-    :type dims: list[int]
+    :type dims: list[int] or numpy.ndarray
     :param measurement_determinism: if the outcome is probabilistic from the simulation, we have the option to
         select a specific outcome
     :type measurement_determinism: str or int

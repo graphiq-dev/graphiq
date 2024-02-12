@@ -10,9 +10,9 @@ from graphiq.backends.stabilizer.tableau import TableauBase, StabilizerTableau
 class CliffordTableau(TableauBase):
     def __init__(self, data, phase=None, *args, **kwargs):
         """
-        TODO: support more ways to initialize the tableau
+        Constructor for CliffordTableau
 
-        :param data:
+        :param data: input data used to initialize the tableau
         :type data: numpy.ndarray or int or CliffordTableau
         :param phase: a phase vector
         :type phase: numpy.ndarray

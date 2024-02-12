@@ -6,7 +6,7 @@ from graphiq.backends.compiler_base import CompilerBase
 from graphiq.circuit.circuit_dag import CircuitDAG
 from graphiq.io import IO
 from graphiq.metrics import MetricBase
-from graphiq.solvers.deterministic_solver import DeterministicSolver
+from graphiq.solvers.time_reversed_solver import TimeReversedSolver
 from graphiq.solvers.evolutionary_solver import (
     EvolutionarySolver,
     EvolutionarySolverSetting,
@@ -18,7 +18,7 @@ from graphiq.utils.relabel_module import *
 class HybridEvolutionarySolver(EvolutionarySolver):
     """
     Implements a hybrid solver based on deterministic solver and rule-based evolutionary search solver.
-    It takes the solution from DeterministicSolver (without noise simulation)
+    It takes the solution from TimeReversedSolver (without noise simulation)
     as the starting point for the EvolutionarySolver.
     """
 
@@ -36,7 +36,7 @@ class HybridEvolutionarySolver(EvolutionarySolver):
         **kwargs,
     ):
         """
-        Initialize a hybrid solver based on DeterministicSolver and EvolutionarySolver
+        Initialize a hybrid solver based on TimeReversedSolver and EvolutionarySolver
 
         :param target: target quantum state
         :type target: QuantumState
@@ -64,7 +64,7 @@ class HybridEvolutionarySolver(EvolutionarySolver):
         else:
             tableau = target.rep_data.data
         n_photon = tableau.n_qubits
-        n_emitter = DeterministicSolver.determine_n_emitters(tableau.to_stabilizer())
+        n_emitter = TimeReversedSolver.determine_n_emitters(tableau.to_stabilizer())
         super().__init__(
             target=target,
             metric=metric,
@@ -137,7 +137,7 @@ class HybridEvolutionarySolver(EvolutionarySolver):
         :return: an initial population
         :rtype: list
         """
-        deterministic_solver = DeterministicSolver(
+        deterministic_solver = TimeReversedSolver(
             target=self.target,
             metric=self.metric,
             compiler=self.compiler,

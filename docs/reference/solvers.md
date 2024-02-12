@@ -1,5 +1,5 @@
 
 
 # Solver
-::: graphiq.solvers.deterministic_solver.DeterministicSolver
-::: graphiq.solvers.alternate_graph_solver.AlternateGraphSolver
+::: graphiq.solvers.time_reversed_solver.TimeReversedSolver
+::: graphiq.solvers.alternate_target_solver.AlternateTargetSolver

@@ -1,6 +1,6 @@
 import pytest
 
-from graphiq.solvers.alternate_graph_solver import *
+from graphiq.solvers.alternate_target_solver import *
 from graphiq.state import QuantumState
 from graphiq.utils.circuit_comparison import *
 from graphiq.benchmarks.circuits import (
@@ -20,7 +20,7 @@ def get_pipeline(target_graph):
     metric = Infidelity(target=target_state)
     solver_setting = AlternateGraphSolverSetting(n_iso_graphs=5, n_lc_graphs=5)
 
-    solver = AlternateGraphSolver(
+    solver = AlternateTargetSolver(
         target=target_state,
         metric=metric,
         compiler=compiler,

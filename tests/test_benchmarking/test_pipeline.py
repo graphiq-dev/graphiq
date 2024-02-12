@@ -5,9 +5,9 @@ from graphiq.backends.stabilizer.functions.rep_conversion import (
 )
 from graphiq.io import IO
 from graphiq.metrics import Infidelity
-from graphiq.solvers.alternate_graph_solver import (
+from graphiq.solvers.alternate_target_solver import (
     AlternateGraphSolverSetting,
-    AlternateGraphSolver,
+    AlternateTargetSolver,
 )
 from graphiq.state import QuantumState
 from graphiq.benchmarks.graph_states import linear_cluster_state
@@ -46,7 +46,7 @@ def test_benchmark_run_graph_search_solver():
         "n_single": 10,
     }
     solver_setting.monte_carlo = True
-    solver = AlternateGraphSolver(
+    solver = AlternateTargetSolver(
         target=target_state,
         metric=metric,
         compiler=compiler,

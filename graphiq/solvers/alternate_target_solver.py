@@ -1,5 +1,5 @@
 """
-AlternateGraphSolver uses alternative target graph states as the starting point for the DeterministicSolver.
+AlternateTargetSolver uses alternative target graph states as the starting point for the TimeReversedSolver.
 Alternative target graph states can be found by relabeling (photon emission ordering) and local complementation (local Clifford equivalency).
 """
 
@@ -23,7 +23,7 @@ from graphiq.backends.state_rep_conversion import (
 from graphiq.io import IO
 from graphiq.metrics import MetricBase, Infidelity
 from graphiq.noise import monte_carlo_noise as mcn, noise_models as nm
-from graphiq.solvers.deterministic_solver import DeterministicSolver
+from graphiq.solvers.time_reversed_solver import TimeReversedSolver
 from graphiq.solvers.solver_result import SolverResult
 from graphiq.state import QuantumState
 from graphiq.utils import preprocessing as pre
@@ -38,7 +38,7 @@ from graphiq.utils.relabel_module import (
 )
 
 
-class AlternateGraphSolver:
+class AlternateTargetSolver:
     def __init__(
         self,
         target: nx.Graph or QuantumState = None,
@@ -108,7 +108,7 @@ class AlternateGraphSolver:
         elif isinstance(target, QuantumState):
             if target.mixed:
                 raise ValueError(
-                    "AlternateGraphSolver does not support mixed states as its target."
+                    "AlternateTargetSolver does not support mixed states as its target."
                 )
             self.target = target
             if target.rep_type == "s":
@@ -468,7 +468,7 @@ def graph_to_circ(graph, noise_model_mapping=None, show=False):
     ideal_state = QuantumState(c_tableau, rep_type="s")
 
     target = ideal_state
-    solver = DeterministicSolver(
+    solver = TimeReversedSolver(
         target=target,
         metric=Infidelity(target),
         compiler=StabilizerCompiler(),
@@ -487,7 +487,7 @@ def graph_to_circ(graph, noise_model_mapping=None, show=False):
 
 class AlternateGraphSolverSetting:
     """
-    A class to store the solver setting of an AlternateGraphSolver
+    A class to store the solver setting of an AlternateTargetSolver
 
     """
 

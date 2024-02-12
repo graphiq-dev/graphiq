@@ -16,13 +16,12 @@ it applies between all qubits a[j], b[j] for 0 < j < n with a, b having length n
 If an operation is given q_registers=((a, b), (c, d)), the circuit takes it to apply between qubit b of register a,
 and qubit d of register c.
 
-We can also use a mixture of registers an qubits: q_registers=(a, (b, c)) means that the operation will be applied
+We can also use a mixture of registers and qubits: q_registers=(a, (b, c)) means that the operation will be applied
 between EACH QUBIT of register a, and qubit c of register b
 
 """
 import itertools
 
-# TODO: consider refactoring register notation to not use tuples (which can be confusing).
 from abc import ABC
 
 import numpy as np
@@ -1150,11 +1149,13 @@ def name_to_class_map(name):
     """
     mapping = {
         "CX": CNOT,
+        "cx": CNOT,
         "x": SigmaX,
         "y": SigmaY,
         "z": SigmaZ,
         "h": Hadamard,
         "s": Phase,
+        "p": Phase,
         "cz": CZ,
         "classical x": ClassicalCNOT,
         "classical z": ClassicalCZ,

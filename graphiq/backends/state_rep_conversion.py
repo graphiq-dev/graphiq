@@ -20,8 +20,8 @@ from graphiq.backends.stabilizer.functions.transformation import run_circuit
 from graphiq.backends.stabilizer.tableau import StabilizerTableau
 
 
-# TODO: Currently the rc functions assume no redundant encoding. Next step is to include redundant encoding.
-# TODO: We currently assume exact state rep conversion, that is, no need to check local-Clifford equivalency. Need to be
+# TODO: We currently assume exact state representation conversion,
+#  that is, no need to check local-Clifford equivalency. Need to be
 #       able to convert local-Clifford equivalent states.
 # Assumption: each stabilizer state has a phase vector consisting of all zeros.
 
@@ -118,8 +118,8 @@ def graph_to_density(input_graph):
 
     else:
         raise TypeError(
-            "Input graph must be NetworkX graph or adjacency matrix using numpy.array or mixed state representation "
-            "for graph. "
+            "Input graph must be NetworkX graph or adjacency matrix "
+            "using numpy.ndarray or mixed state representation for graph. "
         )
 
 
@@ -139,7 +139,7 @@ def _graph_to_density_pure(graph_data):
         pass
     else:
         raise TypeError(
-            "Input graph must be NetworkX graph or adjacency matrix using numpy.array."
+            "Input graph must be NetworkX graph or adjacency matrix using numpy.ndarray."
         )
 
     n_qubits = graph_data.number_of_nodes()

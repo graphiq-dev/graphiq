@@ -407,7 +407,6 @@ class CircuitDAG(CircuitBase):
         :return: circuit depth
         :rtype: int
         """
-        # TODO: check efficiency of this method
         # assert len(list(nx.topological_generations(self.dag)))-2 == nx.dag_longest_path_length(self.dag)-1
         return nx.dag_longest_path_length(self.dag) - 1
 

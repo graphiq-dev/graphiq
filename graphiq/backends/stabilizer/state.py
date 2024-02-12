@@ -118,11 +118,7 @@ class Stabilizer(StateRepresentationBase):
         :return: the measurement outcome
         :rtype: int
         """
-        (
-            self._tableau,
-            outcome,
-            _,
-        ) = sfc.z_measurement_gate(
+        (self._tableau, outcome, _,) = sfc.z_measurement_gate(
             self._tableau, qubit_position, measurement_determinism
         )
         return outcome
@@ -142,11 +138,7 @@ class Stabilizer(StateRepresentationBase):
         :return: the measurement outcome
         :rtype: int
         """
-        (
-            self._tableau,
-            outcome,
-            _,
-        ) = sfc.x_measurement_gate(
+        (self._tableau, outcome, _,) = sfc.x_measurement_gate(
             self._tableau, qubit_position, measurement_determinism
         )
         return outcome
@@ -659,8 +651,8 @@ class MixedStabilizer(StateRepresentationBase):
         ]
 
     def reset_qubit(self, qubit_position, measurement_determinism="probabilistic"):
-        """
-        Reset a given qubit to :math:`|0\\rangle` state after disentangling it from the rest
+        r"""
+        Reset a given qubit to $|0\rangle$ state after disentangling it from the rest
 
         :param qubit_position: the qubit position to be reset
         :type qubit_position: int
@@ -726,10 +718,10 @@ class MixedStabilizer(StateRepresentationBase):
         """
         Trace out qubits after disentangling them from the rest
 
-        :param keep:
+        :param keep: the qubit positions to be kept
         :type keep: list[int] or numpy.ndarray
-        :param dims:
-        :type dims:
+        :param dims: dimension of each subsystem
+        :type dims: list[int] or numpy.ndarray
         :return: nothing
         :rtype: None
         """
@@ -745,6 +737,15 @@ class MixedStabilizer(StateRepresentationBase):
             for (p_i, t_i) in self._mixture
         ]
 
+    def sort(self):
+        """
+        Sort the mixture according to descending order of probabilities
+
+        :return: nothing
+        :rtype: None
+        """
+        self.mixture = sorted(self._mixture, key=lambda item: item[0], reverse=True)
+
     def __str__(self):
         """
         Return a string representation of this state representation
@@ -757,11 +758,25 @@ class MixedStabilizer(StateRepresentationBase):
 
     def __eq__(self, other):
         """
-        Compare two Stabilizer objects
+        Compare two MixedStabilizer objects
 
-        :param other: the other Stabilizer to be compared
-        :type other: Stabilizer
-        :return: True if the stabilizer tableaux of two Stabilizer objects are the same
+        :param other: the other MixedStabilizer to be compared
+        :type other: MixedStabilizer
+        :return: True if the stabilizer tableaux of two MixedStabilizer objects are the same
         :rtype: bool
         """
-        raise NotImplementedError
+        # Treat two objects the same if and only if they have the same probability distribution
+        # and same set of tableaux with the same probability
+        if len(self._mixture) != len(other.mixture):
+            return False
+        # sort first
+        self.sort()
+        other.sort()
+        for i in range(len(self._mixture)):
+            if not np.isclose(self._mixture[i][0], other.mixture[i][0]):
+                return False
+            else:
+                if self._mixture[i][1] != other.mixture[i][1]:
+                    return False
+
+        return True

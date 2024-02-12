@@ -4,13 +4,13 @@ from graphiq.backends.stabilizer.compiler import StabilizerCompiler
 from graphiq.state import QuantumState
 from graphiq.circuit.circuit_dag import CircuitDAG
 
-from graphiq.solvers.deterministic_solver import DeterministicSolver
+from graphiq.solvers.time_reversed_solver import TimeReversedSolver
 from graphiq.metrics import Infidelity
 
 __all__ = [
     "StabilizerCompiler",
     "QuantumState",
     "CircuitDAG",
-    "DeterministicSolver",
+    "TimeReversedSolver",
     "Infidelity",
 ]

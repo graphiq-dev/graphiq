@@ -9,7 +9,7 @@ from graphiq.metrics import Infidelity
 
 
 # from graphiq.solvers.hybrid_solvers import AlternateGraphSolverSetting
-# from graphiq.solvers.hybrid_solvers import AlternateGraphSolver
+# from graphiq.solvers.hybrid_solvers import AlternateTargetSolver
 
 
 class McNoiseMap:

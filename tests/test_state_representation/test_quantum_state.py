@@ -21,12 +21,6 @@ def test_initializing_dm_2():
         QuantumState(data, rep_type="dm")
 
 
-def test_initializing_graph_1():
-    data = 5
-    state = QuantumState(data, rep_type="g")
-    assert len(state.rep_data.data.nodes) == data
-
-
 def test_initializing_graph_2():
     n = 3
     data = nx.Graph([(1, 2), (2, 3)])

@@ -1,7 +1,7 @@
 import pytest as pytest
 
 from graphiq.benchmarks.graph_states import linear_cluster_state
-from graphiq.solvers.alternate_graph_solver import *
+from graphiq.solvers.alternate_target_solver import *
 
 linear_cluster = nx.from_numpy_array(nx.to_numpy_array(linear_cluster_state(4).data))
 
@@ -32,7 +32,7 @@ def my_setting():
 # without noise
 @pytest.mark.parametrize("target_graph", [linear_cluster, repeater_graph_states(3)])
 def test_solver_no_noise(target_graph, setting=my_setting()):
-    solver = AlternateGraphSolver(
+    solver = AlternateTargetSolver(
         target=target_graph, solver_setting=setting, noise_model_mapping="depolarizing"
     )
     # solver options
@@ -58,7 +58,7 @@ def test_solver_monte_carlo(target_graph, setting=my_setting()):
         "n_single": 10,
     }
     setting.monte_carlo = True
-    solver = AlternateGraphSolver(
+    solver = AlternateTargetSolver(
         target=target_graph, solver_setting=setting, noise_model_mapping="depolarizing"
     )
     # solver options
@@ -75,7 +75,7 @@ def test_solver_monte_carlo(target_graph, setting=my_setting()):
 # with noise: density matrix noise
 def test_solver_density_noise(setting=my_setting(), target_graph=linear_cluster):
     setting.monte_carlo = False
-    solver = AlternateGraphSolver(
+    solver = AlternateTargetSolver(
         target=target_graph, solver_setting=setting, noise_model_mapping="depolarizing"
     )
     # solver options

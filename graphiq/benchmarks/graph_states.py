@@ -133,7 +133,7 @@ def random_lc_equivalent(start_graph, n_graphs, max_seq_length, np_rng=None):
 
     for seq_length in seq_lengths:
         new_graph = copy.deepcopy(start_graph)
-        nodes = np_rng.choice(new_graph.get_nodes_id_form(), size=seq_length)
+        nodes = np_rng.choice(new_graph.data, size=seq_length)
         for node in nodes:
             new_graph.local_complementation(node)
         lc_graphs.append(new_graph)

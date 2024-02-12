@@ -8,7 +8,7 @@ from graphiq.circuit.circuit_dag import CircuitDAG
 from graphiq.metrics import Infidelity
 
 
-# from graphiq.solvers.hybrid_solvers import AlternateGraphSolverSetting
+# from graphiq.solvers.hybrid_solvers import AlternateTargetSolverSetting
 # from graphiq.solvers.hybrid_solvers import AlternateTargetSolver
 
 

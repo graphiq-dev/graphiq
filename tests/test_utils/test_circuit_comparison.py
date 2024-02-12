@@ -18,7 +18,7 @@ def get_pipeline(target_graph):
     compiler = StabilizerCompiler()
 
     metric = Infidelity(target=target_state)
-    solver_setting = AlternateGraphSolverSetting(n_iso_graphs=5, n_lc_graphs=5)
+    solver_setting = AlternateTargetSolverSetting(n_iso_graphs=5, n_lc_graphs=5)
 
     solver = AlternateTargetSolver(
         target=target_state,

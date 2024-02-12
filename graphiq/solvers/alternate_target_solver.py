@@ -1,6 +1,7 @@
 """
 AlternateTargetSolver uses alternative target graph states as the starting point for the TimeReversedSolver.
-Alternative target graph states can be found by relabeling (photon emission ordering) and local complementation (local Clifford equivalency).
+Alternative target graph states can be found by relabeling (photon emission ordering)
+and local complementation (local Clifford equivalency).
 """
 
 import matplotlib.pyplot as plt
@@ -51,27 +52,27 @@ class AlternateTargetSolver:
         seed=None,
     ):
         """
+        Constructor for AlternateGraphSolver
 
-
-        :param target:
-        :type target:
-        :param metric:
-        :type metric:
-        :param compiler:
-        :type compiler:
-        :param noise_compiler:
-        :type noise_compiler:
-        :param io:
-        :type io:
+        :param target: target graph state
+        :type target: QuantumState or nx.Graph
+        :param metric: a metric
+        :type metric: MetricBase
+        :param compiler: a compiler
+        :type compiler: CompilerBase
+        :param noise_compiler: compiler for noise simulation
+        :type noise_compiler: CompilerBase
+        :param io: input/output
+        :type io: IO
         :param noise_model_mapping:
-        :type noise_model_mapping:
+        :type noise_model_mapping: dict
         :param solver_setting:
         :type solver_setting:
-        :param seed:
-        :type seed:
+        :param seed: a random seed
+        :type seed: int
         """
         if solver_setting is None:
-            solver_setting = AlternateGraphSolverSetting(
+            solver_setting = AlternateTargetSolverSetting(
                 n_iso_graphs=1, n_lc_graphs=1, graph_metric=pre.graph_metric_lists[0]
             )
         if noise_model_mapping is None:
@@ -453,6 +454,8 @@ def graph_to_circ(graph, noise_model_mapping=None, show=False):
 
     :param graph: The graph to generate
     :type graph: networkx.Graph
+    :param noise_model_mapping:
+    :type noise_model_mapping: dict
     :param show: If true draws the corresponding circuit
     :type show: bool
     :return: A circuit corresponding to the input graph
@@ -485,7 +488,7 @@ def graph_to_circ(graph, noise_model_mapping=None, show=False):
     return circ
 
 
-class AlternateGraphSolverSetting:
+class AlternateTargetSolverSetting:
     """
     A class to store the solver setting of an AlternateTargetSolver
 

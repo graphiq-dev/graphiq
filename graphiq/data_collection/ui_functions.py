@@ -12,7 +12,7 @@ from graphiq.data_collection.correlation_module import _rep_counter
 from graphiq.metrics import Infidelity
 from graphiq.solvers.alternate_target_solver import (
     AlternateTargetSolver,
-    AlternateGraphSolverSetting,
+    AlternateTargetSolverSetting,
 )
 from graphiq.benchmarks.graph_states import (
     repeater_graph_states,
@@ -115,7 +115,7 @@ class InputParams:
         self.graph_size = graph_size
         self.target_graph = t_graph(self.graph_type, self.graph_size, self.seed)
         # setting
-        self.setting = AlternateGraphSolverSetting()
+        self.setting = AlternateTargetSolverSetting()
         # setting options
         self.setting.allow_relabel = bool(n_ordering)
         self.setting.n_iso_graphs = n_ordering

@@ -6,7 +6,7 @@ from graphiq.backends.stabilizer.functions.rep_conversion import (
 from graphiq.io import IO
 from graphiq.metrics import Infidelity
 from graphiq.solvers.alternate_target_solver import (
-    AlternateGraphSolverSetting,
+    AlternateTargetSolverSetting,
     AlternateTargetSolver,
 )
 from graphiq.state import QuantumState
@@ -22,8 +22,8 @@ def test_benchmark_run_graph_search_solver():
 
     compiler = StabilizerCompiler()
     metric = Infidelity(target=target_state)
-    solver_setting = AlternateGraphSolverSetting(n_iso_graphs=5, n_lc_graphs=5)
-    solver_setting = AlternateGraphSolverSetting()
+    solver_setting = AlternateTargetSolverSetting(n_iso_graphs=5, n_lc_graphs=5)
+    solver_setting = AlternateTargetSolverSetting()
     # solver_setting options
     solver_setting.allow_relabel = True
     solver_setting.n_iso_graphs = 1

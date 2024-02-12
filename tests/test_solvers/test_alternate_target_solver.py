@@ -10,7 +10,7 @@ linear_cluster = nx.from_numpy_array(nx.to_numpy_array(linear_cluster_state(4).d
 
 
 def my_setting():
-    solver_setting = AlternateGraphSolverSetting()
+    solver_setting = AlternateTargetSolverSetting()
     # solver_setting options
     solver_setting.allow_relabel = True
     solver_setting.n_iso_graphs = 1

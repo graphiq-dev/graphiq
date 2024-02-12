@@ -6,6 +6,7 @@ A script to run a couple of results:
 2. Search for alternative circuits for various graph states
 
 """
+
 import matplotlib.pyplot as plt
 import numpy as np
 import networkx as nx

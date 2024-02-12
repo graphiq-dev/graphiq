@@ -1,6 +1,7 @@
 """
 Gradient descent algorithms on parameterized circuits.
 """
+
 import jax
 import optax
 import tqdm

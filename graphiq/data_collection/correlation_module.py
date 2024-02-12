@@ -304,12 +304,16 @@ class GraphCorr:
             fig, (ax1, ax2) = plt.subplots(2, figsize=(15, 15))
             ax1.scatter(circ_met_list, graph_met_list)
             ax2.plot(circ_met_uniq, avg_graph_met)
-            ax2.set_xlabel(f"{self.circ_metric}") if not swap_axes else ax2.set_xlabel(
-                f"{self.graph_metric}"
+            (
+                ax2.set_xlabel(f"{self.circ_metric}")
+                if not swap_axes
+                else ax2.set_xlabel(f"{self.graph_metric}")
             )
-            ax2.set_ylabel(
-                f"average {self.graph_metric}"
-            ) if not swap_axes else ax2.set_ylabel(f"average {self.circ_metric}")
+            (
+                ax2.set_ylabel(f"average {self.graph_metric}")
+                if not swap_axes
+                else ax2.set_ylabel(f"average {self.circ_metric}")
+            )
             ax2.errorbar(
                 circ_met_uniq,
                 avg_graph_met,

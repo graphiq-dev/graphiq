@@ -1,6 +1,7 @@
 """
 Utilities for benchmarking solver performance
 """
+
 import itertools
 import pandas as pd
 import numpy as np
@@ -136,14 +137,14 @@ def benchmark_data(
             solver.solve()
             total_time = time.time() - start_time
             df.loc["runtime (s)", (target["name"], i)] = total_time
-            df.loc[
-                f"{metric_class.__name__} score", (target["name"], i)
-            ] = copy.deepcopy(solver.hof[0][0])
+            df.loc[f"{metric_class.__name__} score", (target["name"], i)] = (
+                copy.deepcopy(solver.hof[0][0])
+            )
             df.loc[f"Circuit", (target["name"], i)] = copy.deepcopy(solver.hof[0][1])
-            df.loc[
-                f"Measurement independent (T/F)", (target["name"], i)
-            ] = copy.deepcopy(
-                circuit_measurement_independent(solver.hof[0][1], compiler)[0]
+            df.loc[f"Measurement independent (T/F)", (target["name"], i)] = (
+                copy.deepcopy(
+                    circuit_measurement_independent(solver.hof[0][1], compiler)[0]
+                )
             )
             df.loc[f"Circuit depth", (target["name"], i)] = solver.hof[0][1].depth
 

@@ -1,6 +1,7 @@
 """
 Graph representation of quantum state
 """
+
 import itertools
 import copy
 import warnings

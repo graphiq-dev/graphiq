@@ -1,6 +1,7 @@
 """
 Some rc functions between different tableau types or between tableau and graph
 """
+
 import networkx as nx
 import numpy as np
 

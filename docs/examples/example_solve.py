@@ -1,6 +1,7 @@
 """
 Example of using a solver to discover circuits to generate a target state
 """
+
 import matplotlib.pyplot as plt
 import time
 

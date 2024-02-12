@@ -2,6 +2,7 @@
 Density matrix representation for states.
 Supports unitary operations, quantum channels, and state measurements.
 """
+
 import matplotlib.pyplot as plt
 import numpy
 

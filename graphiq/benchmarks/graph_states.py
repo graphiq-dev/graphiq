@@ -4,6 +4,7 @@ This module helps with the creation of various graph states (which we can use as
 It offers various helper functions to create graphs of various sizes. Nodes are not encoded with any redundancy at
 this point (not necessary for our current algorithms)
 """
+
 import networkx as nx
 import copy
 import numpy as np

@@ -20,6 +20,7 @@ We can also use a mixture of registers and qubits: q_registers=(a, (b, c)) means
 between EACH QUBIT of register a, and qubit c of register b
 
 """
+
 import itertools
 
 from abc import ABC

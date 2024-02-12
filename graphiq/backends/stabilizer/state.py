@@ -1,6 +1,7 @@
 """
 State representation using the stabilizer formalism
 """
+
 import numpy as np
 
 import graphiq.backends.stabilizer.functions.clifford as sfc
@@ -118,7 +119,11 @@ class Stabilizer(StateRepresentationBase):
         :return: the measurement outcome
         :rtype: int
         """
-        (self._tableau, outcome, _,) = sfc.z_measurement_gate(
+        (
+            self._tableau,
+            outcome,
+            _,
+        ) = sfc.z_measurement_gate(
             self._tableau, qubit_position, measurement_determinism
         )
         return outcome
@@ -138,7 +143,11 @@ class Stabilizer(StateRepresentationBase):
         :return: the measurement outcome
         :rtype: int
         """
-        (self._tableau, outcome, _,) = sfc.x_measurement_gate(
+        (
+            self._tableau,
+            outcome,
+            _,
+        ) = sfc.x_measurement_gate(
             self._tableau, qubit_position, measurement_determinism
         )
         return outcome

@@ -1,6 +1,7 @@
-
 ## Installation
+
 Graphiq can be installed from the PyPI with,
+
 ```
 pip install graphiq 
 ```

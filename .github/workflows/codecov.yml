@@ -6,7 +6,13 @@ on:
 
 jobs:
   run:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ ubuntu-latest ]
+    env:
+      OS: ${{ matrix.os }}
+      PYTHON: '3.10'
     steps:
       - uses: actions/checkout@master
       - name: Setup Python

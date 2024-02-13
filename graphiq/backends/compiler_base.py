@@ -4,6 +4,7 @@ underlying quantum state.
 
 The Base class defines an API which all compiler implementations should follow
 """
+
 import logging
 from abc import ABC, abstractmethod
 

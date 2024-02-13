@@ -4,6 +4,7 @@ Helper functions for the density matrix representation backend
 Includes functions to generate commonly used matrices, apply certain gates, etc.
 
 """
+
 import string
 from functools import reduce
 

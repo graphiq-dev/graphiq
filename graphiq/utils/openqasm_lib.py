@@ -5,7 +5,6 @@ in openQASM 2.0 due to the ways in which things were implemented. We should fix 
 openQASM for anything other than visualization purposes
 """
 
-
 # TODO: consider qudit registers
 # TODO: gate definitions drawn from openQASM 3, so there's actually a global phase shift in the implementations
 # TODO: refactor to use: https://github.com/Qiskit/qiskit-terra/blob/main/qiskit/qasm/libs/qelib1.inc
@@ -206,7 +205,7 @@ def phase_info():
     return OpenQASMInfo("s", imports, definition, usage, False, gate_symbol="P")
 
 
-def phase_dagger_info():  #################################
+def phase_dagger_info():  # this is equal to applying P gate 3 times
     imports = []
     definition = "gate sdg a { U(0, -pi/2, 0) a; }"
 

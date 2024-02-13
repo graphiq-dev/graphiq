@@ -13,6 +13,7 @@ The CircuitDAG class can be:
 Further reading on DAG circuit representation:
 https://qiskit.org/documentation/stubs/qiskit.converters.circuit_to_dag.html
 """
+
 import functools
 import re
 import string

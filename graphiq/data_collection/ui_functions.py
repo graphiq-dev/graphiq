@@ -398,70 +398,6 @@ def graph_gui():
     return g
 
 
-def graph_met_value(graph_metric, g):
-    """
-    Evaluates the graph metric for the given graph.
-    :param g: graph at study
-    :type g: nx.Graph
-    :return: the graph metric value
-    :rtype: int or float
-    """
-    if graph_metric == "max_between":
-        dict_centrality = nx.betweenness_centrality(g)
-        graph_value = max(dict_centrality.values())
-    elif graph_metric == "max_close":
-        dict_centrality = nx.closeness_centrality(g)
-        graph_value = max(dict_centrality.values())
-    elif graph_metric == "min_close":
-        dict_centrality = nx.closeness_centrality(g)
-        graph_value = min(dict_centrality.values())
-    elif graph_metric == "mean_nei_deg":
-        # the mean of the "average neighbors degree" over all nodes in graph
-        dict_met = nx.average_neighbor_degree(g)
-        graph_value = np.mean(list(dict_met.values()))
-    elif graph_metric == "max_deg":
-        dict_met = dict(g.degree())
-        graph_value = max(list(dict_met.values()))
-    elif graph_metric == "node_connect":
-        graph_value = nx.node_connectivity(g)
-    elif graph_metric == "edge_connect":
-        graph_value = nx.edge_connectivity(g)
-    elif graph_metric == "assort":
-        graph_value = nx.degree_assortativity_coefficient(g)
-    elif graph_metric == "radius":
-        graph_value = nx.radius(g)
-    elif graph_metric == "diameter":
-        graph_value = nx.diameter(g)
-    elif graph_metric == "periphery":
-        # num of nodes with distance equal to diameter
-        graph_value = len(nx.periphery(g))
-    elif graph_metric == "center":
-        # num of nodes with distance equal to radius
-        graph_value = len(nx.center(g))
-    elif graph_metric == "cluster":
-        graph_value = nx.average_clustering(g)
-    elif graph_metric == "local_efficiency":
-        graph_value = nx.local_efficiency(g)
-    elif graph_metric == "global_efficiency":
-        graph_value = nx.global_efficiency(g)
-    elif graph_metric == "node":
-        graph_value = g.number_of_nodes()
-    elif graph_metric == "avg_shortest_path":
-        graph_value = nx.average_shortest_path_length(g)
-    elif graph_metric == "n_edges":
-        graph_value = nx.number_of_edges(g)
-    elif graph_metric == "pop":
-        nodes = g.number_of_nodes()
-        edges = g.size()
-        graph_value = edges / ((nodes * (nodes - 1)) / 2)
-    else:
-        raise ValueError(
-            f"Graph metric {graph_metric} not found. It may not be implemented"
-        )
-
-    return graph_value
-
-
 def met_hist(result, met, show_plot=True, store=True, index_list=None, dir_name="new"):
     values = _met2val(result, met, index_list=index_list)
     fig = plt.figure(figsize=(8, 6), dpi=300)
@@ -478,10 +414,12 @@ def met_hist(result, met, show_plot=True, store=True, index_list=None, dir_name=
     # y axis upper limit
     plt.ylim(ymax=np.ceil(maxfreq / 10) * 10 if maxfreq % 10 else maxfreq + 10)
     if store:
-        new_path = f"/Users/sobhan/Desktop/demo storage/{dir_name}"
+
+        new_path = os.path.join(os.path.join(os.getcwd(), "data"), dir_name)
+
         if not os.path.exists(new_path):
             os.makedirs(new_path)
-        plt.savefig(new_path + f"/{met}_distribution.png")
+        plt.savefig(os.path.join(new_path, f"{met}_distribution.png"))
     if show_plot:
         plt.show()
     else:
@@ -501,10 +439,10 @@ def met_met(
     plt.xlabel(f"{met1}")
     plt.ylabel(f"{met2}")
     if store:
-        new_path = f"/Users/sobhan/Desktop/demo storage/{dir_name}"
+        new_path = os.path.join(os.path.join(os.getcwd(), "data"), dir_name)
         if not os.path.exists(new_path):
             os.makedirs(new_path)
-        plt.savefig(new_path + f"/{met1}_{met2}.png")
+        plt.savefig(os.path.join(new_path, f"{met1}_{met2}.png"))
     if show_plot:
         plt.show()
     else:

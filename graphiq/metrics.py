@@ -5,6 +5,7 @@ Classes to compute metrics on a circuit and/or system states
 from abc import ABC, abstractmethod
 
 import numpy as np
+import networkx as nx
 
 import graphiq.backends.density_matrix.functions as dmf
 import graphiq.backends.stabilizer.functions.metric as sfm
@@ -346,3 +347,527 @@ class Metrics(MetricBase):
             m[metric.__class__.__name__] = metric.log
 
         return m
+
+
+# circuit metrics
+
+
+class CircuitEmitterCount(MetricBase):
+    """
+    A metric which calculates the circuit's number of emitters'
+    """
+
+    def __init__(self, log_steps=1, n_emitter_penalty=None, *args, **kwargs):
+        """
+
+        :param log_steps: the metric values are computed at every log_steps optimization step
+        :type log_steps: int
+        :param n_emitter_penalty: a function which calculates a "cost"/penalty as a function of circuit's number of
+        emitters
+        :type n_emitter_penalty: function
+        :return: the function returns nothing
+        :rtype: None
+        """
+        super().__init__(log_steps=log_steps, *args, **kwargs)
+        self.differentiable = False
+        if n_emitter_penalty is None:
+            self.n_emitter_penalty = (
+                lambda x: x
+            )  # by default, the number emitters itself
+        else:
+            self.n_emitter_penalty = n_emitter_penalty
+
+    def evaluate(self, state, circuit):
+        """
+        Calculates a scalar function of the number of emitters
+
+        :param state: state which was created by the circuit. This is not actually used by this metric object,
+                      but is nonetheless provided to guarantee a uniform API between Metric-type objects
+        :type state: QuantumState
+        :param circuit: the circuit to evaluate
+        :type circuit: CircuitBase (or a subclass of it)
+        :return: the scalar penalty resulting from number of emitters. By default, this is the emitter count itself
+        :rtype: float or int
+        """
+
+        n = circuit.n_emitters
+        val = self.n_emitter_penalty(n)
+        self.increment()
+
+        if self._inc % self.log_steps == 0:
+            self.log.append(val)
+
+        return val
+
+
+class CircuitCnotCount(MetricBase):
+    """
+    A metric which calculates the circuit's CNOT count
+    """
+
+    def __init__(self, log_steps=1, n_cnot_penalty=None, *args, **kwargs):
+        """
+
+        :param log_steps: the metric values are computed at every log_steps optimization step
+        :type log_steps: int
+        :param n_cnot_penalty: a function which calculates a "cost"/penalty as a function of circuit's number of
+        CNOTs
+        :type n_cnot_penalty: function
+        :return: the function returns nothing
+        :rtype: None
+        """
+        super().__init__(log_steps=log_steps, *args, **kwargs)
+        self.differentiable = False
+        if n_cnot_penalty is None:
+            self.n_emitter_penalty = (
+                lambda x: x
+            )  # by default, the number emitters itself
+        else:
+            self.n_cnot_penalty = n_cnot_penalty
+
+    def evaluate(self, state, circuit):
+        """
+        Calculates a scalar function of the number of emitter-emitter CNOT gates
+
+        :param state: state which was created by the circuit. This is not actually used by this metric object,
+                      but is nonetheless provided to guarantee a uniform API between Metric-type objects
+        :type state: QuantumState
+        :param circuit: the circuit to evaluate
+        :type circuit: CircuitBase (or a subclass of it)
+        :return: the scalar penalty resulting from number of CNOTs. By default, this is the CNOT count itself
+        :rtype: float or int
+        """
+
+        if "Emitter-Emitter" in circuit.node_dict:
+            n = len(circuit.get_node_by_labels(["Emitter-Emitter", "CNOT"]))
+        else:
+            n = 0
+        val = self.n_cnot_penalty(n)
+        self.increment()
+
+        if self._inc % self.log_steps == 0:
+            self.log.append(val)
+
+        return val
+
+
+class CircuitUnitaryCount(MetricBase):
+    """
+    A metric which calculates the circuit depth
+    """
+
+    def __init__(self, log_steps=1, n_unitary_penalty=None, *args, **kwargs):
+        """
+
+        :param log_steps: the metric values are computed at every log_steps optimization step
+        :type log_steps: int
+        :param n_unitary_penalty: a function which calculates a "cost"/penalty as a function of circuit's number of
+        unitary gates
+        :type n_unitary_penalty: function
+        :return: the function returns nothing
+        :rtype: None
+        """
+        super().__init__(log_steps=log_steps, *args, **kwargs)
+        self.differentiable = False
+        if n_unitary_penalty is None:
+            self.n_unitary_penalty = (
+                lambda x: x
+            )  # by default, the number emitters itself
+        else:
+            self.n_unitary_penalty = n_unitary_penalty
+
+    def evaluate(self, state, circuit):
+        """
+        Calculates a scalar function of the number of unitary gates
+
+        :param state: state which was created by the circuit. This is not actually used by this metric object,
+                      but is nonetheless provided to guarantee a uniform API between Metric-type objects
+        :type state: QuantumState
+        :param circuit: the circuit to evaluate
+        :type circuit: CircuitBase (or a subclass of it)
+        :return: the scalar penalty resulting from number of unitaries. By default, this is the unitary count itself
+        :rtype: float or int
+        """
+        circuit = circuit.copy()
+        circuit.unwrap_nodes()
+        circuit.remove_identity()
+        n_u = 0
+        for label in [
+            "SigmaX",
+            "SigmaX",
+            "SigmaX",
+            "Phase",
+            "PhaseDagger",
+            "Hadamard",
+            "CNOT",
+        ]:
+            if label in circuit.node_dict:
+                n_u += len(circuit.get_node_by_labels([label]))
+        val = self.n_unitary_penalty(n_u)
+        self.increment()
+
+        if self._inc % self.log_steps == 0:
+            self.log.append(val)
+
+        return val
+
+
+class CircuitMaxEmitDepth(MetricBase):
+    """
+    A metric which calculates the circuit's maximum emitter depth
+    """
+
+    def __init__(self, log_steps=1, depth_penalty=None, *args, **kwargs):
+        """
+
+        :param log_steps: the metric values are computed at every log_steps optimization step
+        :type log_steps: int
+        :param depth_penalty: a function which calculates a "cost"/penalty as a function of circuit depth
+        :type depth_penalty: function
+        :return: the function returns nothing
+        :rtype: None
+        """
+        super().__init__(log_steps=log_steps, *args, **kwargs)
+        self.differentiable = False
+        if depth_penalty is None:
+            self.depth_penalty = (
+                lambda x: x
+            )  # by default, the penalty for depth is the depth itself
+        else:
+            self.depth_penalty = depth_penalty
+
+    def evaluate(self, state, circuit):
+        """
+        Calculates a scalar function of the circuit depth
+
+        :param state: state which was created by the circuit. This is not actually used by this metric object,
+                      but is nonetheless provided to guarantee a uniform API between Metric-type objects
+        :type state: QuantumState
+        :param circuit: the circuit to evaluate
+        :type circuit: CircuitBase (or a subclass of it)
+        :return: the scalar penalty resulting from circuit depth. By default, this is the circuit depth itself
+        :rtype: float or int
+        """
+        c = circuit.copy()
+        c.unwrap_nodes()
+        c.remove_identity()
+        e_depth = {}
+        for e_i in range(c.n_emitters):
+            e_depth[e_i] = len(c.reg_gate_history(reg=e_i)[1]) - 2
+        depth = max(e_depth.values())
+        val = self.depth_penalty(depth)
+        self.increment()
+
+        if self._inc % self.log_steps == 0:
+            self.log.append(val)
+
+        return val
+
+
+class CircuitMaxEmitResetDepth(MetricBase):
+    """
+    A metric which calculates the circuit's maximum emitter reset depth
+    """
+
+    def __init__(self, log_steps=1, depth_penalty=None, *args, **kwargs):
+        """
+
+        :param log_steps: the metric values are computed at every log_steps optimization step
+        :type log_steps: int
+        :param depth_penalty: a function which calculates a "cost"/penalty as a function of circuit depth
+        :type depth_penalty: function
+        :return: the function returns nothing
+        :rtype: None
+        """
+        super().__init__(log_steps=log_steps, *args, **kwargs)
+        self.differentiable = False
+        if depth_penalty is None:
+            self.depth_penalty = (
+                lambda x: x
+            )  # by default, the penalty for depth is the depth itself
+        else:
+            self.depth_penalty = depth_penalty
+
+    def evaluate(self, state, circuit):
+        """
+        Calculates a scalar function of the circuit depth
+
+        :param state: state which was created by the circuit. This is not actually used by this metric object,
+                      but is nonetheless provided to guarantee a uniform API between Metric-type objects
+        :type state: QuantumState
+        :param circuit: the circuit to evaluate
+        :type circuit: CircuitBase (or a subclass of it)
+        :return: the scalar penalty resulting from circuit depth. By default, this is the circuit depth itself
+        :rtype: float or int
+        """
+        c = circuit.copy()
+        c.unwrap_nodes()
+        c.remove_identity()
+        reset_depths = {}
+        for e_i in range(c.n_emitters):
+            m_list = []  # list of indices of measurement nodes in emitters gate history
+            for i, oper in enumerate(c.reg_gate_history(reg=e_i)[0]):
+                # first find a list of nodes in DAG corresponding to measurements
+                if type(oper).__name__ in [
+                    "Input",
+                    "MeasurementCNOTandReset",
+                    "Output",
+                ]:
+                    m_list.append(i)
+            reset_intervals = [
+                m_list[j + 1] - m_list[j] for j in range(len(m_list) - 1)
+            ]
+            reset_depths[e_i] = max(reset_intervals)
+        depth = max(reset_depths.values())
+        val = self.depth_penalty(depth)
+        self.increment()
+
+        if self._inc % self.log_steps == 0:
+            self.log.append(val)
+
+        return val
+
+
+class CircuitMaxEmitEffDepth(MetricBase):
+    """
+    A metric which calculates the circuit's maximum emitter effective depth
+    """
+
+    def __init__(self, log_steps=1, depth_penalty=None, *args, **kwargs):
+        """
+
+        :param log_steps: the metric values are computed at every log_steps optimization step
+        :type log_steps: int
+        :param depth_penalty: a function which calculates a "cost"/penalty as a function of circuit depth
+        :type depth_penalty: function
+        :return: the function returns nothing
+        :rtype: None
+        """
+        super().__init__(log_steps=log_steps, *args, **kwargs)
+        self.differentiable = False
+        if depth_penalty is None:
+            self.depth_penalty = (
+                lambda x: x
+            )  # by default, the penalty for depth is the depth itself
+        else:
+            self.depth_penalty = depth_penalty
+
+    def evaluate(self, state, circuit):
+        """
+        Calculates a scalar function of the circuit depth
+
+        :param state: state which was created by the circuit. This is not actually used by this metric object,
+                      but is nonetheless provided to guarantee a uniform API between Metric-type objects
+        :type state: QuantumState
+        :param circuit: the circuit to evaluate
+        :type circuit: CircuitBase (or a subclass of it)
+        :return: the scalar penalty resulting from circuit depth. By default, this is the circuit depth itself
+        :rtype: float or int
+        """
+        c = circuit.copy()
+        c.unwrap_nodes()
+        c.remove_identity()
+        eff_depth = {}
+        for e_i in range(c.n_emitters):
+            node_list = []
+            for i, oper in enumerate(c.reg_gate_history(reg=e_i)[0]):
+                # first find a list of nodes in DAG corresponding to measurements
+                if type(oper).__name__ in [
+                    "Input",
+                    "MeasurementCNOTandReset",
+                    "Output",
+                ]:
+                    node_list.append(c.reg_gate_history(reg=e_i)[1][i])
+            node_depth_list = [c._max_depth(n) for n in node_list]
+            depth_diff = [
+                node_depth_list[j + 1] - node_depth_list[j]
+                for j in range(len(node_list) - 1)
+            ]
+            eff_depth[e_i] = max(depth_diff)
+        depth = max(eff_depth.values())
+        val = self.depth_penalty(depth)
+        self.increment()
+
+        if self._inc % self.log_steps == 0:
+            self.log.append(val)
+
+        return val
+
+
+class CircuitMeasureCount(MetricBase):
+    """
+    A metric which calculates the circuit's number of measurements
+    """
+
+    def __init__(self, log_steps=1, m_penalty=None, *args, **kwargs):
+        """
+
+        :param log_steps: the metric values are computed at every log_steps optimization step
+        :type log_steps: int
+        :param m_penalty: a function which calculates a "cost"/penalty as a function of number of measurement
+        :type m_penalty: function
+        :return: the function returns nothing
+        :rtype: None
+        """
+        super().__init__(log_steps=log_steps, *args, **kwargs)
+        self.differentiable = False
+        if m_penalty is None:
+            self.m_penalty = (
+                lambda x: x
+            )  # by default, the penalty for depth is the depth itself
+        else:
+            self.m_penalty = m_penalty
+
+    def evaluate(self, state, circuit):
+        """
+        Calculates a scalar function of the number of measurements
+
+        :param state: state which was created by the circuit. This is not actually used by this metric object,
+                      but is nonetheless provided to guarantee a uniform API between Metric-type objects
+        :type state: QuantumState
+        :param circuit: the circuit to evaluate
+        :type circuit: CircuitBase (or a subclass of it)
+        :return: the scalar penalty resulting from number of measurements. By default, this is the measurement count
+        itself
+        :rtype: float or int
+        """
+        c = circuit.copy()
+        n = len(c.get_node_by_labels(["MeasurementCNOTandReset"]))
+        val = self.m_penalty(n)
+        self.increment()
+
+        if self._inc % self.log_steps == 0:
+            self.log.append(val)
+
+        return val
+
+
+class GraphMetric(MetricBase):
+    """
+    A class to calculate a given graph metric
+    """
+
+    def __init__(self, graph: nx.Graph, log_steps=1, penalty=None, *args, **kwargs):
+        """
+
+        :param log_steps: the metric values are computed at every log_steps optimization step
+        :type log_steps: int
+        :param m_penalty: a function which calculates a "cost"/penalty as a function of number of measurement
+        :type m_penalty: function
+        :return: the function returns nothing
+        :rtype: None
+        """
+        super().__init__(log_steps=log_steps, *args, **kwargs)
+        self.differentiable = False
+        assert isinstance(graph, nx.Graph), "input graph must be an nx.Graph object"
+        self.graph = graph
+        if penalty is None:
+            self.penalty = (
+                lambda x: x
+            )  # by default, the penalty for depth is the depth itself
+        else:
+            self.penalty = penalty
+
+    def evaluate(self, graph_metric: str):
+        """
+        Calculates a metric for a given graph state.
+
+        :param graph_metric: The list of valid metrics are
+        "max_between",
+        "max_close",
+        "min_close",
+        "mean_nei_deg",
+        "max_deg",
+        "node_connect",
+        "edge_connect",
+        "assort",
+        "radius",
+        "diameter",
+        "periphery",
+        "center",
+        "cluster",
+        "local_efficiency",
+        "global_efficiency",
+        "node",
+        "avg_shortest_path",
+        "n_edges",
+        "pop"
+        :type graph_metric: str
+        :return: the resulting value for the metric
+        :rtype: float or int
+        """
+        g = self.graph.copy()
+        met = graph_met_value(graph_metric, g)
+        val = self.penalty(met)
+        self.increment()
+
+        if self._inc % self.log_steps == 0:
+            self.log.append(val)
+
+        return val
+
+
+def graph_met_value(graph_metric, g):
+    """
+    Evaluates the graph metric for the given graph.
+    :param graph_metric: the abbreviation for the graph metric to be evaluated
+    :type graph_metric: str
+    :param g: graph at study
+    :type g: nx.Graph
+    :return: the graph metric value
+    :rtype: int or float
+    """
+    if graph_metric == "max_between":
+        dict_centrality = nx.betweenness_centrality(g)
+        graph_value = max(dict_centrality.values())
+    elif graph_metric == "max_close":
+        dict_centrality = nx.closeness_centrality(g)
+        graph_value = max(dict_centrality.values())
+    elif graph_metric == "min_close":
+        dict_centrality = nx.closeness_centrality(g)
+        graph_value = min(dict_centrality.values())
+    elif graph_metric == "mean_nei_deg":
+        # the mean of the "average neighbors degree" over all nodes in graph
+        dict_met = nx.average_neighbor_degree(g)
+        graph_value = np.mean(list(dict_met.values()))
+    elif graph_metric == "max_deg":
+        dict_met = dict(g.degree())
+        graph_value = max(list(dict_met.values()))
+    elif graph_metric == "node_connect":
+        graph_value = nx.node_connectivity(g)
+    elif graph_metric == "edge_connect":
+        graph_value = nx.edge_connectivity(g)
+    elif graph_metric == "assort":
+        graph_value = nx.degree_assortativity_coefficient(g)
+    elif graph_metric == "radius":
+        graph_value = nx.radius(g)
+    elif graph_metric == "diameter":
+        graph_value = nx.diameter(g)
+    elif graph_metric == "periphery":
+        # num of nodes with distance equal to diameter
+        graph_value = len(nx.periphery(g))
+    elif graph_metric == "center":
+        # num of nodes with distance equal to radius
+        graph_value = len(nx.center(g))
+    elif graph_metric == "cluster":
+        graph_value = nx.average_clustering(g)
+    elif graph_metric == "local_efficiency":
+        graph_value = nx.local_efficiency(g)
+    elif graph_metric == "global_efficiency":
+        graph_value = nx.global_efficiency(g)
+    elif graph_metric == "node":
+        graph_value = g.number_of_nodes()
+    elif graph_metric == "avg_shortest_path":
+        graph_value = nx.average_shortest_path_length(g)
+    elif graph_metric == "n_edges":
+        graph_value = nx.number_of_edges(g)
+    elif graph_metric == "pop":
+        nodes = g.number_of_nodes()
+        edges = g.size()
+        graph_value = edges / ((nodes * (nodes - 1)) / 2)
+    else:
+        raise ValueError(
+            f"Graph metric {graph_metric} not found. It may not be implemented"
+        )
+
+    return graph_value

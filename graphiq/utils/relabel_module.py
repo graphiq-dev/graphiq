@@ -337,7 +337,7 @@ def lc_orbit_finder(
     :type orbit_size_thresh: int
     :param with_iso: if true, isomorph graphs will be kept in the orbit
     :type with_iso: bool
-    :param rand: if true the orbit finder does not check for iso or auto morphism; useful for large graphs.
+    :param rep_allowed: if true the orbit finder does not check for iso or auto morphism; useful for large graphs.
     :type rand: bool
     :return: list of distinct graphs in the orbit of original graph
     :rtype: list[nx.Graph]
@@ -371,6 +371,8 @@ def lc_orbit_finder(
                     if not rep_allowed:
                         if not check_isomorphism(g_lc, orbit_list, _only_auto=with_iso):
                             orbit_list.append(g_lc)
+                    else:
+                        orbit_list.append(g_lc)
                 if (
                     orbit_size_thresh is not None
                     and len(orbit_list) >= orbit_size_thresh

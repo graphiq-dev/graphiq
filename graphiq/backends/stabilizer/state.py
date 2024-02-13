@@ -356,7 +356,6 @@ class MixedStabilizer(StateRepresentationBase):
                 isinstance(p_i, float) and isinstance(t_i, CliffordTableau)
                 for (p_i, t_i) in data
             )
-            assert all
             self._mixture = data
         else:
             raise TypeError(
@@ -448,11 +447,12 @@ class MixedStabilizer(StateRepresentationBase):
 
     @property
     def probability(self):
-        """
+        r"""
         Computes the total probability as the summed probability of all pure states in the mixture
-        :math:`\\sum_i p_i \\ \\forall (p_i, \\mathcal{T}_i`.
+        $\sum_i p_i \\ \forall (p_i, \mathcal{T}_i)$.
 
-        :return:
+        :return: sum of probabilities
+        :rtype: float
         """
         return sum(p_i for p_i, t_i in self.mixture)
 

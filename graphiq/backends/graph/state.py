@@ -2,12 +2,10 @@
 Graph representation of quantum state
 """
 
-import itertools
 import copy
-import warnings
+import itertools
 
 import networkx as nx
-import numpy as np
 
 import graphiq.circuit.ops as ops
 from graphiq.backends.lc_equivalence_check import is_lc_equivalent
@@ -309,7 +307,6 @@ class MixedGraph(StateRepresentationBase):
             assert all(
                 isinstance(p_i, float) and isinstance(t_i, Graph) for (p_i, t_i) in data
             )
-            assert all
             self._mixture = data
         else:
             raise TypeError(
@@ -324,3 +321,82 @@ class MixedGraph(StateRepresentationBase):
                 isinstance(p_i, float) and isinstance(t_i, Graph) for (p_i, t_i) in data
             )
         return valid
+
+    @property
+    def n_qubits(self):
+        """
+        Returns the number of qubits in the graph state
+
+        :return: the number of qubits in the state
+        :rtype: int
+        """
+        return self._mixture[0][1].n_qubits
+
+    @property
+    def mixture(self):
+        """
+        The mixture of pure states, represented as a list of Graphs and associated probabilities.
+
+        :return: the mixture as a list of (probability_i, Graph_i)
+        :rtype: list
+        """
+        return self._mixture
+
+    @mixture.setter
+    def mixture(self, value):
+        """
+        Sets the mixture of pure states, represented as a list of Graphs and associated probabilities.
+
+        :param value: a new mixture list, pure Graph
+        :type value: list[Graph]
+        :return: the mixture as a list of (probability_i, Graph_i)
+        :rtype: list
+        """
+        if isinstance(value, list):
+            assert all(
+                isinstance(p_i, float) and isinstance(t_i, Graph)
+                for (p_i, t_i) in value
+            )
+            assert (
+                len(set([t_i.n_qubits for p_i, t_i in value])) == 1
+            )  # all tableaux are same number of qubits
+            self._mixture = value
+
+        elif isinstance(value, Graph):
+            self._mixture = [(1.0, value)]
+
+        else:
+            raise TypeError("Must use a list of Graphs for the mixed graph")
+
+    @property
+    def data(self):
+        """
+        The data that represents the state given by the MixedGraph representation
+
+        :return: the mixture that represents this state
+        :rtype: list
+        """
+        return self.mixture
+
+    @data.setter
+    def data(self, value):
+        """
+        Set the data that represents the state given by the MixedGraph representation
+
+        :param value: a new Graph or a list of graphs with associated probabilities
+        :type value: Graph or list[(float, Graph)]
+        :return: nothing
+        :rtype: None
+        """
+        self.mixture = value
+
+    @property
+    def probability(self):
+        r"""
+        Computes the total probability as the summed probability of all pure states in the mixture
+        $\sum_i p_i \\ \forall (p_i, \mathcal{G}_i)$.
+
+        :return: sum of probabilities
+        :rtype: float
+        """
+        return sum(p_i for p_i, t_i in self.mixture)

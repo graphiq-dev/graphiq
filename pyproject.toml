@@ -15,7 +15,6 @@ dependencies = [
     "seaborn",
     "scipy",
     "flask",
-    "qiskit",
     "pandas",
     "psutil",
 ]

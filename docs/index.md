@@ -7,9 +7,12 @@
 ![versions](https://img.shields.io/badge/python-3.8%20%7C%203.9%20%7C%203.10-blue)
 
 !!! note
-Welcome to GraphiQ.
-This documentation is still under development, please feel to contribute!
-© Ki3 Photonics Technologies, Quantum Bridge Technologies
+
+    Welcome to GraphiQ.
+    This documentation is still under development, please feel to contribute!
+
+    © Quantum Bridge Technologies, Inc
+    © Ki3 Photonics Technologies
 
 [//]: # (![QBT Logo]&#40;img/qbt-logo.jpg&#41;)
 
@@ -20,8 +23,12 @@ This documentation is still under development, please feel to contribute!
 ![GraphiQ framework](img/fig1.png)
 
 ## About the project
+**GraphiQ** is an open-source framework for designing photonic graph state generation schemes. Photonic graph states are an important resource for many quantum information processing tasks including quantum computing and
+quantum communication.
 
-**GraphiQ** is a Python library for the design of quantum photonic circuits.
+Version 0.1.0 was jointly developed by [Quantum Bridge Technologies, Inc. ("Quantum Bridge") ](https://qubridge.io/)
+and [Ki3 Photonics Technologies](https://www.ki3photonics.com/)
+under the US Air Force Office of Scientific Research (AFOSR) Grant FA9550-22-1-0062.
 
 ## Basic usage
 
@@ -50,7 +57,7 @@ circuit.draw_circuit()
 ## Installation
 
 ``` bash
-pip install graphiq 
+pip install graphiq
 ```
 
 This package is built on top of the standard Python scientific computing ecosystem, including

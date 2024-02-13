@@ -205,7 +205,7 @@ def phase_info():
     return OpenQASMInfo("s", imports, definition, usage, False, gate_symbol="P")
 
 
-def phase_dagger_info():  #################################
+def phase_dagger_info():  # this is equal to applying P gate 3 times
     imports = []
     definition = "gate sdg a { U(0, -pi/2, 0) a; }"
 

@@ -1,14 +1,3 @@
-[//]: # (<h1 align="center">)
-
-[//]: # ( GraphiQ)
-
-[//]: # (</h1>)
-
-[//]: # (<div align="center">)
-
-[//]: # (  <img src=docs/img/logo.png width="400px">)
-
-[//]: # (</div>)
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset=docs/img/logo-dark.png>
@@ -20,7 +9,8 @@
 <div align="center">
 
 [![GitHub Workflow Status](https://img.shields.io/badge/build-passing-brightgreen)](https://github.com/ki3-qbt/graph-compiler/actions)
-[![docs.rs](https://img.shields.io/badge/docs-passing-brightgreen)](https://github.com/ki3-qbt/graph-compiler/tree/gh-pages)
+[![arXiv Paper](https://img.shields.io/badge/arXiv-2401.00635-red)](https://arxiv.org/abs/2401.00635)
+[![Documentation Status](https://readthedocs.org/projects/graphiq/badge/?version=latest)](https://graphiq.readthedocs.io/en/latest/?badge=latest)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/ambv/black)
 ![versions](https://img.shields.io/badge/python-3.8%20%7C%203.9%20%7C%203.10-blue)
 
@@ -35,7 +25,7 @@ quantum communication.
 
 ## Features
 
-<img src="https://user-images.githubusercontent.com/87783633/198037273-06ec89cf-233d-4c08-9f7a-96313bfcb435.gif" width="225px" align="right">
+<img src="https://user-images.githubusercontent.com/87783633/198037273-06ec89cf-233d-4c08-9f7a-96313bfcb435.gif" width="225px" align="center">
 
 * Diverse [backends](https://github.com/ki3-qbt/graph-compiler/tree/main/graphiq/backends) for the simulation of noisy
   quantum circuits comprised of hundreds of qubits.

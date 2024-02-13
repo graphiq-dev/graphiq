@@ -13,10 +13,6 @@
     © Quantum Bridge Technologies, Inc
     © Ki3 Photonics Technologies
 
-[//]: # (![QBT Logo]&#40;img/qbt-logo.jpg&#41;)
-
-[//]: # (![Ki3 Logo]&#40;img/ki3-logo.png&#41;)
-
 ## What can it do?
 
 ![GraphiQ framework](img/fig1.png)

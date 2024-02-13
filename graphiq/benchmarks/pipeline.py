@@ -153,7 +153,7 @@ def benchmark(runs: dict, io: IO, remote=True):
 
 def benchmark_run_graph_search_solver(run, name, io, circuit_format="qasm"):
     """
-    Function to run benchmark for AlternateGraphSolver
+    Function to run benchmark for AlternateTargetSolver
 
     :param run: dictionary containing the main class instances (solver, etc.)
     :type run: dict

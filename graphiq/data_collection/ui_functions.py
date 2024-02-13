@@ -10,9 +10,9 @@ from graphiq.backends.density_matrix.compiler import DensityMatrixCompiler
 from graphiq.backends.stabilizer.compiler import StabilizerCompiler
 from graphiq.data_collection.correlation_module import _rep_counter
 from graphiq.metrics import Infidelity
-from graphiq.solvers.alternate_graph_solver import (
-    AlternateGraphSolver,
-    AlternateGraphSolverSetting,
+from graphiq.solvers.alternate_target_solver import (
+    AlternateTargetSolver,
+    AlternateTargetSolverSetting,
 )
 from graphiq.benchmarks.graph_states import (
     repeater_graph_states,
@@ -115,7 +115,7 @@ class InputParams:
         self.graph_size = graph_size
         self.target_graph = t_graph(self.graph_type, self.graph_size, self.seed)
         # setting
-        self.setting = AlternateGraphSolverSetting()
+        self.setting = AlternateTargetSolverSetting()
         # setting options
         self.setting.allow_relabel = bool(n_ordering)
         self.setting.n_iso_graphs = n_ordering
@@ -130,7 +130,7 @@ class InputParams:
         self.setting.save_openqasm = save_openqasm
         # solver
         self.auto_noise_params()  # auto assign noise parameters to setting
-        self.solver = AlternateGraphSolver(
+        self.solver = AlternateTargetSolver(
             target=self.target_graph,
             solver_setting=self.setting,
             noise_model_mapping=noise_model_mapping,

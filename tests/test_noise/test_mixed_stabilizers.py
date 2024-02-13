@@ -21,9 +21,11 @@ def create_circuits(n_emitters, n_photons, d_emitter, lam):
                     ops.Hadamard(
                         register=i,
                         reg_type="e",
-                        noise=nm.NoNoise()
-                        if s == "ideal"
-                        else nm.DepolarizingNoise(depolarizing_prob=lam),
+                        noise=(
+                            nm.NoNoise()
+                            if s == "ideal"
+                            else nm.DepolarizingNoise(depolarizing_prob=lam)
+                        ),
                     )
                 )
 

@@ -1,6 +1,5 @@
-
-
 # States
+
 ::: graphiq.state.QuantumState
 ::: graphiq.backends.density_matrix.state.DensityMatrix
 ::: graphiq.backends.stabilizer.state.Stabilizer

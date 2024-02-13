@@ -1,6 +1,7 @@
 """
-AlternateGraphSolver uses alternative target graph states as the starting point for the DeterministicSolver.
-Alternative target graph states can be found by relabeling (photon emission ordering) and local complementation (local Clifford equivalency).
+AlternateTargetSolver uses alternative target graph states as the starting point for the TimeReversedSolver.
+Alternative target graph states can be found by relabeling (photon emission ordering)
+and local complementation (local Clifford equivalency).
 """
 
 import matplotlib.pyplot as plt
@@ -23,7 +24,7 @@ from graphiq.backends.state_rep_conversion import (
 from graphiq.io import IO
 from graphiq.metrics import MetricBase, Infidelity
 from graphiq.noise import monte_carlo_noise as mcn, noise_models as nm
-from graphiq.solvers.deterministic_solver import DeterministicSolver
+from graphiq.solvers.time_reversed_solver import TimeReversedSolver
 from graphiq.solvers.solver_result import SolverResult
 from graphiq.state import QuantumState
 from graphiq.utils import preprocessing as pre
@@ -38,7 +39,7 @@ from graphiq.utils.relabel_module import (
 )
 
 
-class AlternateGraphSolver:
+class AlternateTargetSolver:
     def __init__(
         self,
         target: nx.Graph or QuantumState = None,
@@ -51,27 +52,27 @@ class AlternateGraphSolver:
         seed=None,
     ):
         """
+        Constructor for AlternateGraphSolver
 
-
-        :param target:
-        :type target:
-        :param metric:
-        :type metric:
-        :param compiler:
-        :type compiler:
-        :param noise_compiler:
-        :type noise_compiler:
-        :param io:
-        :type io:
+        :param target: target graph state
+        :type target: QuantumState or nx.Graph
+        :param metric: a metric
+        :type metric: MetricBase
+        :param compiler: a compiler
+        :type compiler: CompilerBase
+        :param noise_compiler: compiler for noise simulation
+        :type noise_compiler: CompilerBase
+        :param io: input/output
+        :type io: IO
         :param noise_model_mapping:
-        :type noise_model_mapping:
+        :type noise_model_mapping: dict
         :param solver_setting:
         :type solver_setting:
-        :param seed:
-        :type seed:
+        :param seed: a random seed
+        :type seed: int
         """
         if solver_setting is None:
-            solver_setting = AlternateGraphSolverSetting(
+            solver_setting = AlternateTargetSolverSetting(
                 n_iso_graphs=1, n_lc_graphs=1, graph_metric=pre.graph_metric_lists[0]
             )
         if noise_model_mapping is None:
@@ -108,7 +109,7 @@ class AlternateGraphSolver:
         elif isinstance(target, QuantumState):
             if target.mixed:
                 raise ValueError(
-                    "AlternateGraphSolver does not support mixed states as its target."
+                    "AlternateTargetSolver does not support mixed states as its target."
                 )
             self.target = target
             if target.rep_type == "s":
@@ -446,6 +447,8 @@ def graph_to_circ(graph, noise_model_mapping=None, show=False):
 
     :param graph: The graph to generate
     :type graph: networkx.Graph
+    :param noise_model_mapping:
+    :type noise_model_mapping: dict
     :param show: If true draws the corresponding circuit
     :type show: bool
     :return: A circuit corresponding to the input graph
@@ -461,7 +464,7 @@ def graph_to_circ(graph, noise_model_mapping=None, show=False):
     ideal_state = QuantumState(c_tableau, rep_type="s")
 
     target = ideal_state
-    solver = DeterministicSolver(
+    solver = TimeReversedSolver(
         target=target,
         metric=Infidelity(target),
         compiler=StabilizerCompiler(),
@@ -478,9 +481,9 @@ def graph_to_circ(graph, noise_model_mapping=None, show=False):
     return circ
 
 
-class AlternateGraphSolverSetting:
+class AlternateTargetSolverSetting:
     """
-    A class to store the solver setting of an AlternateGraphSolver
+    A class to store the solver setting of an AlternateTargetSolver
 
     """
 

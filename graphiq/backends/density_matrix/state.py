@@ -235,7 +235,7 @@ class DensityMatrix(StateRepresentationBase):
         :param show: if True, show the density matrix plot. Otherwise, draw the density matrix plot but do not show
         :type show: bool
         :return: fig, axes on which the state is drawn
-        :rtype: matplotlib.figure, matplotlib.axes
+        :rtype: matplotlib.Figure, matplotlib.Axes
 
         """
         # TODO: add a "ax" parameter to match the other viewing utils

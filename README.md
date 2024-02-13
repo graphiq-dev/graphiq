@@ -37,6 +37,7 @@ quantum communication.
 ## Features
 
 <img src="https://user-images.githubusercontent.com/87783633/198037273-06ec89cf-233d-4c08-9f7a-96313bfcb435.gif" width="225px" align="right">
+
 * Diverse [backends](https://github.com/ki3-qbt/graph-compiler/tree/main/graphiq/backends) for the simulation of noisy
   quantum circuits comprised of hundreds of qubits.
 
@@ -49,6 +50,7 @@ quantum communication.
   optical loss.
 
 ## What's here
+
 * [`backends`](https://github.com/ki3-qbt/graph-compiler/tree/main/graphiq/backends) - simulate a quantum circuit using
   different state representations, including, the density matrix, stabilizer, and graph formalisms.
 * [`noise`](https://github.com/ki3-qbt/graph-compiler/tree/main/graphiq/noise) - models for the study of noise and

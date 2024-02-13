@@ -11,7 +11,7 @@ from graphiq.backends.stabilizer.functions.rep_conversion import (
 )
 from graphiq.backends.state_rep_conversion import graph_to_density
 from graphiq.metrics import Infidelity
-from graphiq.solvers.deterministic_solver import DeterministicSolver
+from graphiq.solvers.time_reversed_solver import TimeReversedSolver
 from graphiq.state import QuantumState
 from graphiq.benchmarks.circuits import linear_cluster_4qubit_circuit
 
@@ -20,7 +20,7 @@ def test_linear4():
     compiler = StabilizerCompiler()
     target_circuit, target = linear_cluster_4qubit_circuit()
     metric = Infidelity(target)
-    solver = DeterministicSolver(
+    solver = TimeReversedSolver(
         target=target,
         metric=metric,
         compiler=compiler,
@@ -39,7 +39,7 @@ def test_square4():
     compiler = StabilizerCompiler()
     compiler.measurement_determinism = 1
     metric = Infidelity(target)
-    solver = DeterministicSolver(
+    solver = TimeReversedSolver(
         target=target,
         metric=metric,
         compiler=compiler,
@@ -58,7 +58,7 @@ def test_square4_alternate():
     target = QuantumState(target_tableau, rep_type="stab")
     compiler = StabilizerCompiler()
     metric = Infidelity(target)
-    solver = DeterministicSolver(
+    solver = TimeReversedSolver(
         target=target,
         metric=metric,
         compiler=compiler,
@@ -77,7 +77,7 @@ def test_repeater_graph_state_4():
     compiler = StabilizerCompiler()
     compiler.measurement_determinism = 1
     metric = Infidelity(target)
-    solver = DeterministicSolver(
+    solver = TimeReversedSolver(
         target=target,
         metric=metric,
         compiler=compiler,
@@ -97,7 +97,7 @@ def test_repeater_graph_states(n_inner_photons):
     target = QuantumState(target_tableau, rep_type="stab")
     compiler = StabilizerCompiler()
     metric = Infidelity(target)
-    solver = DeterministicSolver(
+    solver = TimeReversedSolver(
         target=target,
         metric=metric,
         compiler=compiler,
@@ -120,7 +120,7 @@ def test_random_graph_states(n_nodes):
     target = QuantumState(target_tableau, rep_type="stab")
     compiler = StabilizerCompiler()
     metric = Infidelity(target)
-    solver = DeterministicSolver(
+    solver = TimeReversedSolver(
         target=target,
         metric=metric,
         compiler=compiler,

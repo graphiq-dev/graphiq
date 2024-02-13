@@ -7,7 +7,7 @@ from graphiq.backends.stabilizer.functions.rep_conversion import (
     get_clifford_tableau_from_graph,
 )
 from graphiq.metrics import Infidelity
-from graphiq.solvers.deterministic_solver import DeterministicSolver
+from graphiq.solvers.time_reversed_solver import TimeReversedSolver
 from graphiq.state import QuantumState
 
 
@@ -26,7 +26,7 @@ def graph_circuit_depth(graph):
     compiler.noise_simulation = False
     compiler.measurement_determinism = 1
     metric = Infidelity(target_state)
-    solver = DeterministicSolver(target=target_state, metric=metric, compiler=compiler)
+    solver = TimeReversedSolver(target=target_state, metric=metric, compiler=compiler)
     solver.solve()
     benchmark_score, benchmark_circuit = solver.result
     depth_list = benchmark_circuit.calculate_reg_depth("e")

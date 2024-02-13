@@ -1,6 +1,7 @@
 """
 Examples of defining and simulating quantum circuits for a variety of small quantum states
 """
+
 import matplotlib.pyplot as plt
 
 from graphiq.backends.density_matrix.compiler import DensityMatrixCompiler

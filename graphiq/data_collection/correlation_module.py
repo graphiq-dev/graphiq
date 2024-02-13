@@ -9,7 +9,7 @@ from graphiq.backends.stabilizer.compiler import StabilizerCompiler
 from graphiq.backends.stabilizer.clifford_tableau import CliffordTableau
 from graphiq.circuit.circuit_dag import CircuitDAG
 from graphiq.metrics import Infidelity
-from graphiq.solvers.deterministic_solver import DeterministicSolver
+from graphiq.solvers.time_reversed_solver import TimeReversedSolver
 from graphiq.state import QuantumState
 from graphiq.utils.relabel_module import *
 
@@ -1034,7 +1034,7 @@ def graph_to_circ(graph, show=False):
     compiler = StabilizerCompiler()
     target = ideal_state
     metric = Infidelity(target)
-    solver = DeterministicSolver(
+    solver = TimeReversedSolver(
         target=target,
         metric=metric,
         compiler=compiler,

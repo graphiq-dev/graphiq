@@ -18,16 +18,18 @@ def draw_graph(state_graph, show=False, ax=None, with_labels=True):
     :type ax: matplotlib.Axis
     :param with_labels: True if drawing the labels; False otherwise
     :type with_labels: bool
-    :return: function returns nothing
-    :rtype: None
+    :return: fig, axes on which the state is drawn
+    :rtype: matplotlib.Figure, matplotlib.Axes
     """
-    # TODO: return fig, ax
 
     nx.draw(
-        state_graph.get_graph_id_form(),
+        state_graph.data,
         with_labels=with_labels,
         font_weight="bold",
         ax=ax,
     )
     if show:
         plt.show()
+    fig = plt.gcf()
+    ax = plt.gca()
+    return fig, ax

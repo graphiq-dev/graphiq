@@ -1,5 +1,5 @@
 r"""
-Deterministic solver which follows the paper by Li et al [1]_.
+Time-reversed solver which follows the paper by Li et al [1]_.
 
 .. [1] Bikun Li, Sophia E. Economou and Edwin Barnes, npj. Quantum Information 8, 11 (2022)
 
@@ -19,12 +19,12 @@ from graphiq.metrics import MetricBase
 from graphiq.solvers import SolverBase
 
 
-class DeterministicSolver(SolverBase):
+class TimeReversedSolver(SolverBase):
     """
-    This deterministic solver finds a quantum circuit that produces the target state in a time-reversed fashion.
+    This solver finds a quantum circuit that produces the target state in a time-reversed fashion.
     """
 
-    name = "deterministic"
+    name = "time-reversed"
 
     one_qubit_ops = list(ops.one_qubit_cliffords())
 
@@ -40,7 +40,7 @@ class DeterministicSolver(SolverBase):
         **kwargs,
     ):
         """
-        Initialize a DeterministicSolver object
+        Initialize a TimeReversedSolver object
 
         :param target: target quantum state
         :type target: QuantumState

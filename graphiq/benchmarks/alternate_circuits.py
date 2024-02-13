@@ -3,7 +3,7 @@ A script to find alternative circuits with hybrid solver
 """
 
 from graphiq.solvers.hybrid_solvers import HybridEvolutionarySolver
-from graphiq.solvers.deterministic_solver import DeterministicSolver
+from graphiq.solvers.time_reversed_solver import TimeReversedSolver
 from graphiq.backends.stabilizer.functions.rep_conversion import (
     get_clifford_tableau_from_graph,
 )
@@ -45,7 +45,7 @@ def search_for_alternative_circuits(
     compiler.noise_simulation = True
     compiler.measurement_determinism = 1
     metric = metric_class(target)
-    det_solver = DeterministicSolver(
+    det_solver = TimeReversedSolver(
         target=target,
         metric=metric,
         compiler=compiler,

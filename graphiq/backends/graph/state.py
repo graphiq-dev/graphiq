@@ -1,186 +1,180 @@
 """
 Graph representation of quantum state
-
 """
 
+import copy
 import itertools
-import warnings
-from collections.abc import Iterable
 
-# TODO: Refactor and revise when building the compiler for graph representation
 import networkx as nx
-import numpy as np
 
-import graphiq.backends.graph.functions as gf
-from graphiq.backends.graph.node import QuNode
+import graphiq.circuit.ops as ops
 from graphiq.backends.lc_equivalence_check import is_lc_equivalent
 from graphiq.backends.state_base import StateRepresentationBase
 from graphiq.visualizers.graph import draw_graph
+
+
+def _compile_lc_gates(lc_gate):
+    """
+    Compile local Clifford gates from a list of strings
+
+    :param lc_gate: a list of local Clifford gates
+    :type lc_gate: list[str]
+    :return: a one-qubit gate
+    :rtype: ops.OneQubitOperationBase
+    """
+    op_list = []
+    for op in lc_gate:
+        op_list.append(ops.name_to_class_map(op))
+    return ops.simplify_local_clifford(op_list)
 
 
 class Graph(StateRepresentationBase):
     """
     Graph representation of a graph state.
     As the intermediate states of the process may not be graph states (but assuming still stabilizer states),
-    we may need to keep track of local Clifford gates that convert the state to the graph state represented by the graph
-
+    we may need to keep track of local Clifford gates that
+    convert the state to the graph state represented by the graph.
     """
 
-    def __init__(self, data, *args, **kwargs):
+    def __init__(self, data, clifford_dict=None, *args, **kwargs):
         """
         Create a Graph representation object
 
         :param data: data used to construct the representation
-        :type data: frozenset OR int OR networkx.Graph OR iterable of data pairs
-        :return: function returns nothing
+        :type data: networkX.Graph
+        :param clifford_dict: a dictionary that stores local Clifford for each node
+        :type clifford_dict: dict
+        :return: nothing
         :rtype: None
         """
 
         super().__init__(data, *args, **kwargs)
-        self.node_dict, self.data = gf.convert_data_to_graph(data)
+        if isinstance(data, nx.Graph):
+            self._data = data
+            if clifford_dict is None:
+                for node in self._data.nodes:
+                    self._data.nodes[node]["LC"] = [ops.Identity]
+            else:
+                for node in self._data.nodes:
+                    if node in clifford_dict.keys():
 
-    def add_node(self, node_to_add):
+                        self._data.nodes[node]["LC"] = _compile_lc_gates(
+                            clifford_dict[node]
+                        )
+                    else:
+                        self._data.nodes[node]["LC"] = [ops.Identity]
+        else:
+            raise TypeError(
+                f"Cannot initialize the graph representation with datatype: {type(data)}"
+            )
+
+    @classmethod
+    def valid_datatype(cls, data):
+        """
+        Validate the data type of the input data
+
+        :param data: input data
+        :type data: any
+        :return: whether the data type is allowed for this class
+        :rtype: bool
+        """
+        return isinstance(data, nx.Graph)
+
+    @property
+    def n_qubits(self):
+        return self.n_nodes
+
+    def find_lc(self, node_id):
+        """
+        Find the local Clifford gates corresponding to a node
+
+        :param node_id: the node index
+        :type node_id: int
+        :return: local Clifford gates
+        :rtype: ops.OneQubitOperationBase
+        """
+        if self._data.has_node(node_id):
+            return self._data.nodes[node_id]["LC"]
+        else:
+            raise ValueError(f"Node with node ID {node_id} does not exist.")
+
+    def update_lc(self, node_id, lc_gate):
+        """
+        Find the local Clifford gates corresponding to a node
+
+        :param node_id: the node index
+        :type node_id: int
+        :param lc_gate: a list of local Clifford gates
+        :type lc_gate: list(str)
+        :return: local Clifford gates
+        :rtype: ops.OneQubitOperationBase
+        """
+        if not self._data.has_node(node_id):
+            raise ValueError(f"Node with node ID {node_id} does not exist.")
+        if lc_gate is None or len(lc_gate) == 0:
+            self._data.nodes[node_id]["LC"] = [ops.Identity]
+        else:
+            self._data.nodes[node_id]["LC"] = _compile_lc_gates(lc_gate)
+
+    def add_node(self, node_to_add, lc_gate=None):
         """
         Add a node to the graph.
-        It allows node_to_add to be one of following types:
-
-            * QuNode
-            * int
-            * frozenset
 
         :param node_to_add: node id to add to the Graph representation
-        :type node_to_add: QuNode OR int OR frozenset
+        :type node_to_add: int
+        :param lc_gate: a list of local Clifford gates
+        :type lc_gate: list(str)
         :raises ValueError: if node_to_add is of an invalid datatype
-        :return: function returns nothing
+        :return: nothing
         :rtype: None
         """
-        if isinstance(node_to_add, QuNode):
-            node_id = node_to_add.get_id()
-            if node_id not in self.node_dict.keys():
-                self.node_dict[node_id] = node_to_add
-                self.data.add_node(node_to_add)
-            else:
-                warnings.warn("Node already in the graph. Check node identifier.")
-        elif isinstance(node_to_add, int) or isinstance(node_to_add, frozenset):
-            if isinstance(node_to_add, int):
-                node_to_add = frozenset([node_to_add])
-            # node_to_add is just a node id; create the node first if it does not exist
-            if node_to_add not in self.node_dict.keys():
-                tmp_node = QuNode(node_to_add)
-                self.node_dict[node_to_add] = tmp_node
-                self.data.add_node(tmp_node)
-            else:
-                warnings.warn("Node already in the graph. Check node identifier.")
+        if self._data.has_node(node_to_add):
+            return
+        if lc_gate is None:
+            gate_to_add = [ops.Identity]
         else:
-            raise ValueError("Invalid data for the node to be added.")
+            gate_to_add = _compile_lc_gates(lc_gate)
+        self._data.add_node(node_to_add, LC=gate_to_add)
 
     def add_edge(self, first_node, second_node):
         """
         Add an edge between two nodes. If any of these two nodes does not exist, no edge is added.
 
         :param first_node: the first node on which to add an edge
-        :type first_node: QuNode OR int OR frozenset
+        :type first_node: int
         :param second_node: the second node on which to add an edge
-        :type second_node: QuNode OR int OR frozenset
+        :type second_node: int
         :return: nothing
         :rtype: None
         """
-        if isinstance(first_node, QuNode):
-            node_id1 = first_node.get_id()
-        elif isinstance(first_node, int) or isinstance(first_node, frozenset):
-            if isinstance(first_node, int):
-                first_node = frozenset([first_node])
-            node_id1 = first_node
-        else:
-            raise ValueError("Not supporting input data type")
-
-        if isinstance(second_node, QuNode):
-            node_id2 = second_node.get_id()
-        elif isinstance(second_node, int) or isinstance(second_node, frozenset):
-            if isinstance(second_node, int):
-                second_node = frozenset([second_node])
-            node_id2 = second_node
-        else:
-            raise ValueError("Not supporting input data type")
-
-        if node_id1 in self.node_dict.keys() and node_id2 in self.node_dict.keys():
-            self.data.add_edge(self.node_dict[node_id1], self.node_dict[node_id2])
-        else:
-            warnings.warn("At least one of nodes do not exist. Not adding an edge.")
+        if not self._data.has_node(first_node):
+            self.add_node(first_node)
+        if not self._data.has_node(second_node):
+            self.add_node(second_node)
+        self._data.add_edge(first_node, second_node)
 
     def get_edges(self):
         """
-        Get all graph edges (entangled pairs) in the Graph state representation
+        Get all graph edges (entangled pairs) in the Graph representation
 
         :return: graph edges
         :rtype: list
         """
-        return [e for e in self.data.edges]
+        return list(self.data.edges)
 
     def get_nodes(self):
         """
-        Get all graph nodes (qubits) in the Graph state representation
+        Get all graph nodes (qubits) in the Graph representation
 
-        :return: all QuNodes in the Graph
+        :return: all nodes in the Graph
         :rtype: list
         """
-        return list(self.node_dict.values())
-
-    def get_node_by_id(self, node_id):
-        """
-        Retrieve a QuNode object by ID
-
-        :param node_id: the ID of the node to retrieve
-        :type node_id: frozenset OR int
-        :return: the Graph node OR None (if no such ID exists)
-        :rtype: QuNode OR None
-        """
-        if isinstance(node_id, int):
-            node_id = frozenset([node_id])
-
-        if node_id in self.node_dict:
-            return self.node_dict[node_id]
-        else:
-            # TODO: determine whether this should raise an error instead
-            warnings.warn(f"ID {node_id} does not exist in this Graph representation")
-            return None
-
-    def get_edges_id_form(self):
-        """
-        Returns the list of edges in the Graph as described by tuples of node IDs
-
-        :return: list of tuples of node IDs, corresponding to the graph edges
-        :rtype: list[tuples]
-        """
-        return [(e[0].get_id(), e[1].get_id()) for e in self.data.edges]
-
-    def get_nodes_id_form(self):
-        """
-        Retrieve a list of all node IDs
-
-        :return: node IDs in the graph
-        :rtype: list
-        """
-        return [node.get_id() for node in self.data.nodes]
-
-    def edge_exists(self, node1, node2):
-        """
-        Checks whether an edge (parameterized by 2 nodes) exists
-
-        :param node1: First node of potential edge
-        :type node1: int, frozenset, or QuNode
-        :param node2: Second node of potential edge
-        :type node2: int, frozenset, or QuNode
-        :return: True if the edge exists, False otherwise
-        :rtype: bool
-        """
-        node1, node2 = self._node_as_qunode(node1), self._node_as_qunode(node2)
-        return self.data.has_edge(node1, node2)
+        return list(self.data.nodes)
 
     def lc_equivalent(self, other_graph, mode="deterministic"):
-        """
+        r"""
         Determines whether two graph states are local-Clifford equivalent or not, given the adjacency matrices of the two.
-        It takes two adjacency matrices as input and returns a numpy.array containing :math:`n` (:math:`2 \\times 2` array)s
+        It takes two adjacency matrices as input and returns a numpy.ndarray containing $n (2 \times 2 array)s$
         = clifford operations on each qubit.
 
         :param other_graph: the other graph against which to check LC equivalence
@@ -188,9 +182,9 @@ class Graph(StateRepresentationBase):
         :param mode: the chosen mode for finding solutions. It can be either 'deterministic' (default) or 'random'.
         :type mode: str
         :raises AssertionError: if the number of rows in the row reduced matrix is less than the rank of coefficient
-            matrix or if the number of linearly dependent columns is not equal to :math:`4n - rank`
-            (for :math:`n` being the number of nodes in the graph)
-        :return: If a solution is found, returns True and an array of single-qubit Clifford :math:`2 \\times 2` matrices
+            matrix or if the number of linearly dependent columns is not equal to $4n - rank$
+            (for $n$ being the number of nodes in the graph)
+        :return: If a solution is found, returns True and an array of single-qubit Clifford $2 \times 2$ matrices
             in the symplectic formalism. If not, graphs are not LC equivalent and returns False, None.
         :rtype: bool, numpy.ndarray or None
         """
@@ -199,204 +193,28 @@ class Graph(StateRepresentationBase):
         return is_lc_equivalent(g1, g2, mode=mode)
 
     @property
-    def n_node(self):
+    def n_nodes(self):
         """
         Returns the number of nodes in the Graph
 
         :return: the number of nodes in the Graph
         :rtype: int
         """
-        return len(self.node_dict.keys())
-
-    @property
-    def n_qubits(self):
-        """
-        Returns the number of qubits in the graph (counting the redundant encoding as separate qubits)
-
-        :return: the number of qubits
-        :rtype: int
-        """
-        n_qubits = 0
-        for node_id in self.node_dict.keys():
-            n_qubits += len(node_id)
-
-        return n_qubits
-
-    @property
-    def n_redundant_encoding_node(self):
-        """
-        Number of nodes in the graph which have redundant encoding
-
-        :return: the number of nodes with redundant encoding
-        :rtype: int
-        """
-        number_redundant_node = 0
-        for photon_id in self.node_dict.keys():
-            if len(photon_id) > 1:
-                number_redundant_node += 1
-        return number_redundant_node
-
-    def get_graph_id_form(self):
-        """
-        Get the state Graph where, instead of each node being a QuNode, each node
-        is its own QuNode ID
-
-        :return: the state graph, which each QuNode replaced by its ID
-        :rtype: nx.Graph
-        """
-        tmp_graph = nx.Graph(self.get_edges_id_form())
-        nodelist = self.get_nodes_id_form()
-        if set(nodelist) != set(tmp_graph.nodes()):
-            for node in nodelist:
-                tmp_graph.add_node(node)
-
-        return tmp_graph
+        return self._data.number_of_nodes()
 
     def get_neighbors(self, node_id):
         """
         Return the list of all neighbors (i.e. nodes connected by an edge) of the node with node_id
 
         :param node_id: the ID of the node which we want to find the neighbours of
-        :type node_id: frozenset OR int
+        :type node_id: int
         :return: a list of neighbours for the node with node_id
         :rtype: list
         """
-        if isinstance(node_id, int):
-            node_id = frozenset([node_id])
-        return list(self.data.neighbors(self.node_dict[node_id]))
-
-    def remove_node(self, node_id):
-        """
-        Remove a node from the Graph representation and remove all edges of the node
-        Also update node_dict accordingly
-
-        :param node_id: the ID of the node to remove
-        :type node_id: int OR frozenset
-        :return: True if the node is successfully removed, False otherwise
-        :rtype: bool
-        """
-        if isinstance(node_id, int):
-            node_id = frozenset([node_id])
-        if node_id in self.node_dict.keys():
-            self.data.remove_node(self.node_dict[node_id])
-            self.node_dict.pop(node_id, None)
-            return True
+        if self._data.has_node(node_id):
+            return list(self._data.neighbors(node_id))
         else:
-            warnings.warn("No node is removed since node id does not exist.")
-            return False
-
-    def remove_edge(self, id1, id2):
-        """
-        Removes an edge from the graph if it exists
-
-        :param id1: ID of the first node of the edge
-        :type id1:  int or frozenset
-        :param id2: ID of the second node of the edge
-        :type id2: int or frozenset
-        :return: True if edge successfully removed, False otherwise
-        """
-        node1, node2 = self._node_as_qunode(id1), self._node_as_qunode(id2)
-        try:
-            self.data.remove_edge(node1, node2)
-            return True
-        except nx.NetworkxError:
-            warnings.warn("No edge is removed since edge does not exist.")
-            return False
-
-    def node_is_redundant(self, node_id):
-        """
-        Checks whether or not a given node is redundant (i.e. whether it contains more than 1 photon)
-        Will return True if it is redundant and False otherwise (which includes the case that the node_id
-        is not found in the Graph)
-
-        :param node_id: ID of the node for which we are checking redundancy
-        :type node_id: frozenset OR int
-        :return: True if the node exists and is redundant (i.e. has more than 1 photon). False otherwise.
-        :rtype: bool
-        """
-        if isinstance(node_id, int):
-            node_id = frozenset([node_id])
-
-        if node_id in self.node_dict.keys():
-            return self.node_dict[node_id].count_redundancy() > 1
-        else:
-            warnings.warn("Node does not exist")
-            return False
-
-    def remove_id_from_redundancy(self, node_id, removal_id=None):
-        """
-        Remove a photon from the redundantly encoded node.
-        If no photon id is specified, then the first photon in the node is removed.
-
-        :param node_id: the id of the node from which we want to remove a photon
-        :type node_id: int OR frozenset
-        :param removal_id: id of the photon to remove inside the node (optional)
-        :param removal_id: None OR int
-        :return: nothing
-        :rtype: None
-        """
-        if isinstance(node_id, int):
-            node_id = frozenset([node_id])
-
-        if node_id in self.node_dict.keys():
-            node = self.get_node_by_id(node_id)
-            if len(node_id) > 1:
-                if removal_id is None:
-                    node.remove_first_id()
-                else:
-                    node.remove_id(removal_id)
-                new_node_id = node.get_id()
-                self.node_dict[new_node_id] = self.node_dict.pop(node_id)
-            else:
-                assert node.count_redundancy() == 1  # just to make sure
-                self.data.remove_node(self.node_dict[node_id])
-                self.node_dict.pop(node_id)
-        else:
-            warnings.warn("No node is removed since node id does not exist.")
-
-    def measure_x(self, node_id):
-        """
-        Measure a given node in the X basis.
-        If the node contains a single photon, this measurement removes the node and disconnects all edges of this node.
-        If the node is redundantly encoded, this measurement removes one photon from the node.
-
-        :param node_id: the ID of the node to measure
-        :type node_id: int OR frozenset
-        :return: nothing
-        :rtype: None
-        """
-        if isinstance(node_id, int):
-            node_id = frozenset([node_id])
-
-        if node_id in self.node_dict.keys():
-            cnode = self.node_dict[node_id]
-            if cnode.count_redundancy() == 1:
-                self.data.remove_node(cnode)
-                self.node_dict.pop(node_id, None)
-            else:
-                new_node_id = set(node_id)
-                cnode.remove_id(new_node_id.pop())
-                self.node_dict[frozenset(new_node_id)] = self.node_dict.pop(node_id)
-        else:
-            warnings.warn("No action is applied since node id does not exist.")
-
-    def measure_y(self, node_id):
-        """
-        Apply a y measurement to the graph at the qubit corresponding
-        to node_id
-
-        :param node_id: the node id of the qubit which we are measuring
-        :type node_id: int or frozenset
-        :return: nothing
-        :rtype: None
-        """
-        self.local_complementation(node_id)
-        self.remove_node(
-            node_id
-        )  # TODO: double check, does redundant encoding matter here?
-
-    def measure_z(self, node_id):
-        self.remove_node(node_id)
+            raise ValueError(f"Node with node ID {node_id} does not exist.")
 
     def draw(self, show=True, ax=None, with_labels=True):
         """
@@ -405,7 +223,7 @@ class Graph(StateRepresentationBase):
         :param show: if True, the Graph is shown. If False, the Graph is drawn but not displayed
         :type show: bool
         :param ax: axis on which to draw the plot (optional)
-        :type ax: matplotlib.axis
+        :type ax: matplotlib.Axis
         :param with_labels:
         :type with_labels:
         :return: nothing
@@ -413,110 +231,75 @@ class Graph(StateRepresentationBase):
         """
         draw_graph(self, show=show, ax=ax, with_labels=with_labels)
 
-    @classmethod
-    def valid_datatype(cls, data):
-        return isinstance(
-            data, (int, frozenset, nx.Graph, Iterable)
-        ) and not isinstance(data, np.ndarray)
-
-    def _node_as_qunode(self, node):
+    def local_complementation(self, node_id, copy=False):
         """
-        Converts a node_id (either int or frozenset) to its equivalent QuNode object in the graph OR
-        returns the QuNode object unchanged
-
-        :param node: either the node we want, or the node_id of the node
-        :type node: int, frozenset, QuNode
-        :return: the corresponding node in the graph
-        :rtype: QuNode
-        """
-        if isinstance(node, int):
-            node = frozenset([node])
-
-        if isinstance(node, frozenset):
-            node = self.node_dict[node]
-
-        return node
-
-    def local_complementation(self, node_id):
-        """
-        Takes the local complementation of the graph around node.
+        Takes the local complementation of the graph on the node indexed by node_id.
 
         Local complementation: let n(node) be the set of neighbours of node. If a, b in n(node) and (a, b) is in
         the set of edges E of graph, then remove (a, b) from E. If a, b in n(node) and (a, b) is NOT in E, then
         add (a, b) into E.
 
-        :param node_id: the ID of the node around which local complementation should take place
-        :type node_id: int or frozenset
-        :return: nothing
-        :rtype: None
-        """
-        # TODO: refactor to use local_comp_graph if determined to be more efficient
-        # currently, we're not doing so because local_comp_graph handles ints rather than QuNode objects
-        # Implementation 1
-        # self.data = local_comp_graph(self.data, node_id)
+        The current implementation does not consider local Clifford gates. It assumes graph states.
+        TODO: deal with general stabilizer states
 
-        # Implementation 2
+        :param node_id: the ID of the node around which local complementation should take place
+        :type node_id: int
+        :return: the graph after the local complementation
+        :rtype: Graph
+        """
+
+        if not Graph.is_graph_state(self):
+            raise NotImplementedError(
+                "Local complementation is not "
+                "implemented for non-graph stabilizer states."
+            )
+        if copy:
+            output_graph = self.copy()
+        else:
+            output_graph = self
         neighbors = self.get_neighbors(node_id)
         neighbor_pairs = itertools.combinations(neighbors, 2)
         for a, b in neighbor_pairs:
-            if self.edge_exists(a, b):
-                self.remove_edge(a, b)
+            if output_graph.data.has_edge(a, b):
+                output_graph.data.remove_edge(a, b)
             else:
-                self.add_edge(a, b)
+                output_graph.data.add_edge(a, b)
+        return output_graph
 
-    def merge(self, id1, id2):
+    def copy(self):
         """
-        Merges two nodes in the graph by:
+        Create a copy of this object
 
-        1. Creating a new node, new_node, where the node_id is union(node1_id, node2_id) --> union of the frozen sets
-        2. For any edges of the form (a, node1) or (a, node2) with a in V (the set of nodes of the graph),
-           add the edge (a, new_node) to the graph
-        3. Remove node1, node2 and all their associated edges
-
-        Note that this is NOT the fusion gate function, as it doesn't take into account possibility of
-        failure. We also DO NOT check whether there is an existing edge between node1, node2 prior to merging.
-        It is merely a function that deterministically merges nodes.
-
-        :param id1: the ID of the first node in the graph to merge
-        :type id1: int or frozenset
-        :param id2: the ID of the second node in the graph to merge
-        :type id2: int or frozenset
-        :return: nothing
-        :rtype: None
+        :return: a copy of this Graph object
+        :rtype: Graph
         """
-        if isinstance(id1, int):
-            id1 = frozenset([id1])
-        if isinstance(id2, int):
-            id2 = frozenset([id2])
+        return copy.deepcopy(self)
 
-        new_id = frozenset(set(id1).union(set(id2)))
+    @classmethod
+    def is_graph_state(cls, graph):
+        """
 
-        node1 = self.node_dict[id1]
-        node2 = self.node_dict[id2]
-
-        self.add_node(new_id)
-        for edge in list(self.data.edges(node1)) + list(self.data.edges(node2)):
-            other_node = edge[0] if edge[1] is node1 else edge[1]
-            self.add_edge(other_node, new_id)
-
-        self.remove_node(id1)
-        self.remove_node(id2)
+        :param graph: an instance of Graph
+        :type graph: Graph
+        :return: True if graph is a graph state; False if graph is a non-graph stabilizer state
+        :rtype: bool
+        """
+        assert isinstance(graph, Graph)
+        # Check if all local Clifford gates are Identity
+        for node in graph.data.nodes:
+            if graph.data.nodes[node]["LC"] != [ops.Identity]:
+                return False
+        return True
 
 
 class MixedGraph(StateRepresentationBase):
     """
-    Mixed Graph representation
-
-    TODO: finish the implementation
-
+    A mixed state representation using the graph representation, where the mixture is represented as a list of
+    pure states (graphs) and an associated mixture probability.
     """
 
     def __init__(self, data, *args, **kwargs):
-        if isinstance(data, int):
-            self._mixture = [
-                (1.0, Graph(data)),
-            ]
-        elif isinstance(data, Graph):
+        if isinstance(data, Graph):
             self._mixture = [
                 (1.0, data),
             ]
@@ -524,16 +307,15 @@ class MixedGraph(StateRepresentationBase):
             assert all(
                 isinstance(p_i, float) and isinstance(t_i, Graph) for (p_i, t_i) in data
             )
-            assert all
             self._mixture = data
         else:
             raise TypeError(
-                f"Cannot initialize the stabilizer representation with datatype: {type(data)}"
+                f"Cannot initialize the graph representation with datatype: {type(data)}"
             )
 
     @classmethod
     def valid_datatype(cls, data):
-        valid = isinstance(data, (int, Graph, list))
+        valid = isinstance(data, (Graph, list))
         if isinstance(data, list):
             valid = valid and all(
                 isinstance(p_i, float) and isinstance(t_i, Graph) for (p_i, t_i) in data
@@ -543,9 +325,78 @@ class MixedGraph(StateRepresentationBase):
     @property
     def n_qubits(self):
         """
-        Returns the number of qubits in the stabilizer state
+        Returns the number of qubits in the graph state
 
         :return: the number of qubits in the state
         :rtype: int
         """
         return self._mixture[0][1].n_qubits
+
+    @property
+    def mixture(self):
+        """
+        The mixture of pure states, represented as a list of Graphs and associated probabilities.
+
+        :return: the mixture as a list of (probability_i, Graph_i)
+        :rtype: list
+        """
+        return self._mixture
+
+    @mixture.setter
+    def mixture(self, value):
+        """
+        Sets the mixture of pure states, represented as a list of Graphs and associated probabilities.
+
+        :param value: a new mixture list, pure Graph
+        :type value: list[Graph]
+        :return: the mixture as a list of (probability_i, Graph_i)
+        :rtype: list
+        """
+        if isinstance(value, list):
+            assert all(
+                isinstance(p_i, float) and isinstance(t_i, Graph)
+                for (p_i, t_i) in value
+            )
+            assert (
+                len(set([t_i.n_qubits for p_i, t_i in value])) == 1
+            )  # all tableaux are same number of qubits
+            self._mixture = value
+
+        elif isinstance(value, Graph):
+            self._mixture = [(1.0, value)]
+
+        else:
+            raise TypeError("Must use a list of Graphs for the mixed graph")
+
+    @property
+    def data(self):
+        """
+        The data that represents the state given by the MixedGraph representation
+
+        :return: the mixture that represents this state
+        :rtype: list
+        """
+        return self.mixture
+
+    @data.setter
+    def data(self, value):
+        """
+        Set the data that represents the state given by the MixedGraph representation
+
+        :param value: a new Graph or a list of graphs with associated probabilities
+        :type value: Graph or list[(float, Graph)]
+        :return: nothing
+        :rtype: None
+        """
+        self.mixture = value
+
+    @property
+    def probability(self):
+        r"""
+        Computes the total probability as the summed probability of all pure states in the mixture
+        $\sum_i p_i \\ \forall (p_i, \mathcal{G}_i)$.
+
+        :return: sum of probabilities
+        :rtype: float
+        """
+        return sum(p_i for p_i, t_i in self.mixture)

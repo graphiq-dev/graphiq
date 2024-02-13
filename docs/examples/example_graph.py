@@ -1,6 +1,7 @@
 """
 Example of constructing a graph representation and visualizing using matplotlib
 """
+
 from graphiq.backends.graph.state import Graph
 from graphiq.visualizers.graph import *
 

@@ -16,7 +16,7 @@ dependencies = [
     "scipy",
     "flask",
     "pandas",
-    "psutil",
+#    "psutil",
 ]
 readme = "README.md"
 keywords = ["quantum", "photonic", "circuit", "design"]

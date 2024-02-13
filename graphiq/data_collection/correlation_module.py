@@ -31,7 +31,6 @@ class GraphCorr:
         num_isomorph=1,
     ):
         """
-
         Initialize a correlation object for a graph and a circuit metric, a pre-determined or random sample of
         graphs, and the given size of the sample (number of graphs in the sample). If we have an initial graph,
         correlations are found based on the relabeling of that graph. Otherwise, if a graph_list is given, metrics are
@@ -40,13 +39,16 @@ class GraphCorr:
         provided then all parameters of the graphs in the sample will be random.
 
         :param graph_metric: the main graph metric to be used; options are: Maximum betweenness: "max_between",
-         , Maximum and minimum closeness: "max_close", "min_close", Mean of the average neighbours’ degree
-         over the whole graph:"mean_nei_deg" Max degree of all nodes: "max_deg", Node and edge
-         connectivity:
-         "node_connect", "edge_connect" Assortativity coefficient: "assort" Radius, diameter, size of the centre, and
-         periphery of the graph: "radius", "diameter", "center", "periphery" Average clustering coefficient: "cluster"
-         Local and global efficiency of the graph: "local_efficiency", "global_efficiency" Size or number of nodes:
-         "node" and average probability of having an edge between two nodes "pop"
+            Maximum and minimum closeness: "max_close", "min_close", Mean of the average neighbours’ degree
+            over the whole graph:"mean_nei_deg" Max degree of all nodes: "max_deg", Node and edge
+            connectivity:
+             "node_connect", "edge_connect", Assortativity coefficient: "assort",
+              Radius, diameter, size of the centre, and
+            periphery of the graph: "radius", "diameter", "center", "periphery",
+             Average clustering coefficient: "cluster"
+            Local and global efficiency of the graph: "local_efficiency", "global_efficiency",
+             Size or number of nodes:
+            "node" and average probability of having an edge between two nodes "pop"
         :type graph_metric: str
         :param circ_metric: the circuit metric to study; options are number of emitter "num_emit", number of CNOT gates
         between emitters "cnot", number of CNOTs per number of photons and per number of emitters in the circuit
@@ -190,6 +192,7 @@ class GraphCorr:
     def _graph_list_maker(g, count):
         """
         makes a list of relabeled graphs out of the initial one. List size = count.
+
         :param g: initial input graph
         :type g: nx.Graph
         :param count: size of the list, if enough new graphs are found
@@ -332,6 +335,7 @@ class GraphCorr:
         """
         Looks into the behavior of the correlation between the two metrics while changing the p (edge probability). For
         each p, a correlation plot is drawn on the same figure.
+
         :param n: if given, the number of nodes of all the graphs in the sample of random graphs
         :type n: int
         :param p_step: the step with which the p is changed
@@ -353,6 +357,7 @@ class GraphCorr:
         """
         Looks into the behavior of the correlation between the two metrics while changing the n (number of nodes). For
         each n, a correlation plot is drawn on the same figure.
+
         :param p: if given, the edge probability of all the graphs in the sample of random graphs
         :type p: float
         :param n_step: the step with which the n is changed, at least 10 steps will be considered.
@@ -690,6 +695,7 @@ class NodeCorr:
     ):
         """
         Initialize a node correlation object for a specific graph (state), number of relabeling, and metrics to be used.
+
         :param graph: the graph at study to find correlations for
         :type graph: networkx.Graph
         :param relabel_trials: number of different node label permutations (ordering) to be tested to find correlations.
@@ -780,6 +786,7 @@ class NodeCorr:
         Determines and plots the relation of average pearson correlation function ,between nodes' emission order and the
          metric-value order, and the circuit metric value. The average of the graph metric is taken for all graphs that
          have the same circuit metric value.
+
         :return: three lists, the list of unique metric values, the list of average correlation, the list of standard
         deviations
         :rtype: list, list, list
@@ -830,11 +837,12 @@ class NodeCorr:
     def met_order_error(self):
         """
         Determines and plots the sum squared error between the metric and emission ordering for all nodes for a
-        sample of isomorph graphs. For instance, if the ranking of nodes based on metric is the same as the emission
+        sample of isomorphic graphs. For instance, if the ranking of nodes based on metric is the same as the emission
         ordering the error would be zero. The sum squared error is plotted vs the circuit metric for each graph. The
         correlation would be visible if small-error data points are concentrated at some specific circuit metric values.
         The larger the data point is plotted, the more the number of graphs in the sample that had the same
         metric and error values.
+
         :return: three lists, the list of unique metric values, the list of sum squared errors, the list of repetition
         count for each of the data points over the whole sample.
         :rtype: list, list, list
@@ -861,7 +869,7 @@ class NodeCorr:
     def next_node_corr(self):
         """
         Determines and plots the sum squared error between the metric and emission ordering for all nodes for a
-        sample of isomorph graphs. However, here the metric rank of each node is evaluated in a step by step basis when
+        sample of isomorphic graphs. However, here the metric rank of each node is evaluated in a step by step basis when
         all other nodes that are emitted are removed from the graph. For instance, we start from the first node based on
          its emission label, we determine its metric rank (the number of nodes in the whole graph that have a lower
          metric value than the node at study). If the metric rank and order were totally correlated we would find that
@@ -873,6 +881,7 @@ class NodeCorr:
         value node in the remaining part of the graph.
         The larger the data point is plotted, the more the number of graphs in the sample that had the same
         metric and error values.
+
         :return: three lists, the list of unique metric values, the list of sum squared errors, the list of repetition
         count for each of the data points over the whole sample.
         :rtype: list, list, list
@@ -897,6 +906,7 @@ class NodeCorr:
     def _metric_sorted_nodes(self, g):
         """
         helper function to sort nodes of the graph g based on a graph metric
+
         :param g: input graph
         :type g: nx.Graph
         :return: a sorted list of nodes based on metric values
@@ -913,6 +923,7 @@ class NodeCorr:
         helper function to determine the error value of the graph g based on the node removing method and choosing the
         next node to be emitted to be equal to the min/max value node among the remaining subgraph that is not emitted
         yet.
+
         :param g: input graph
         :type g: nx.Graph
         :return: the sum of squared error values of all nodes in the graph g
@@ -930,6 +941,7 @@ class NodeCorr:
         """
         Calculates the dictionary of nodes and their corresponding node-based graph metric values, e.g. degree of each
         node.
+
         :return: dictionary of nodes and metric values of each node
         :rtype: dict
         """
@@ -959,6 +971,7 @@ class NodeCorr:
         """
         this helper function updates the sorted list of graphs and their corresponding metric values whenever the number
          of graphs in sample, the metric, or the initial input graph itself is altered by the user.
+
         :return: nothing
         :rtype: None
         """
@@ -970,6 +983,7 @@ class NodeCorr:
 def rnd_graph(n, p=None, m=None, seed=None, model="erdos"):
     """
     A simple random connected graph generator. Two models are supported: Erdos-Renyi and Barabasi-Albert.
+
     :param n: Number of nodes in graph
     :type n: int
     :param p: The probability of edge existing between any two node. Used in Erdos-Renyi model.
@@ -1000,6 +1014,7 @@ def graph_to_circ(graph, show=False):
     """
     Find a circuit that generates the input graph. This function calls the deterministic solver. The outcome is not
     unique.
+
     :param graph: The graph to generate
     :type graph: networkx.Graph
     :param show: If true draws the corresponding circuit
@@ -1015,7 +1030,7 @@ def graph_to_circ(graph, show=False):
     n = graph.number_of_nodes()
     c_tableau = CliffordTableau(n)
     c_tableau.stabilizer_from_labels(converter.graph_to_stabilizer(graph))
-    ideal_state = QuantumState(n, c_tableau, representation="stabilizer")
+    ideal_state = QuantumState(c_tableau, rep_type="stabilizer")
 
     compiler = StabilizerCompiler()
     target = ideal_state

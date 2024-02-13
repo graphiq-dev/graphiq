@@ -414,10 +414,12 @@ def met_hist(result, met, show_plot=True, store=True, index_list=None, dir_name=
     # y axis upper limit
     plt.ylim(ymax=np.ceil(maxfreq / 10) * 10 if maxfreq % 10 else maxfreq + 10)
     if store:
-        new_path = f"/Users/sobhan/Desktop/demo storage/{dir_name}"
+
+        new_path = os.path.join(os.path.join(os.getcwd(), "data"), dir_name)
+
         if not os.path.exists(new_path):
             os.makedirs(new_path)
-        plt.savefig(new_path + f"/{met}_distribution.png")
+        plt.savefig(os.path.join(new_path, f"{met}_distribution.png"))
     if show_plot:
         plt.show()
     else:
@@ -437,10 +439,10 @@ def met_met(
     plt.xlabel(f"{met1}")
     plt.ylabel(f"{met2}")
     if store:
-        new_path = f"/Users/sobhan/Desktop/demo storage/{dir_name}"
+        new_path = os.path.join(os.path.join(os.getcwd(), "data"), dir_name)
         if not os.path.exists(new_path):
             os.makedirs(new_path)
-        plt.savefig(new_path + f"/{met1}_{met2}.png")
+        plt.savefig(os.path.join(new_path, f"{met1}_{met2}.png"))
     if show_plot:
         plt.show()
     else:

@@ -1,6 +1,7 @@
 ###
 # data collection script #
 ###
+import os
 from math import factorial
 import pandas as pd
 from scipy.stats import spearmanr
@@ -21,6 +22,7 @@ def orbit_analyzer(
 ):
     """
     The function take a graph and returns the solver result object containing LC graph and circuit metrics
+
     :param graph_met_list: list of graph metrics to consider for correlations. If none given, a default list is used.
     :param circ_met_list: list of circuit metrics to consider for correlations. If none given, a default list is used.
     :param n_lc: number of LC graphs to search for. If none, the whole orbit is targeted.
@@ -242,6 +244,7 @@ def plot_figs(result, indices=None, dir_name="new", graph_mets=None, circ_mets=N
 # %% correlations
 def correlation_checker(result, list_mets1, list_mets2):
     """
+
     :param result: result object
     :param list_mets1: list of circuit metrics
     :param list_mets2: list of grpah metrics
@@ -269,6 +272,7 @@ def corr_with_mean(list1, list2, print_result=True):
     """
     given two lists of data corresponding to each other element by element, it finds the correlation between list1 with
     mean values of list 2. For instance, the average number of cnots corresponding to each case of edge count in graph.
+
     :param list1: to be used as reference
     :param list2: to be averaged over for each case
     :return: pearson correlation coefficient
@@ -451,6 +455,7 @@ def graph_analyzer(
     """
     exhaustive graph analyzer given the flattened edge list
     no correlation analysis involved but cost analysis based on circuit metrics is included
+
     :param edge_seq:
     :param graph_class:
     :param method:
@@ -616,9 +621,9 @@ def LC_scaling_test(
     df_cnot = pd.DataFrame((avgs_cnots, stds_cnots))
     df_depth = pd.DataFrame((avgs_depths, stds_depths))
 
-    output_path1 = f"{dir_path}/{graph_class}/bwCNOT.csv"
+    output_path1 = os.path.join(os.path.join(dir_path, graph_class), "bwCNOT.csv")
     df_cnot.to_csv(output_path1, index=False, header=False)
-    output_path2 = f"{dir_path}/{graph_class}/bwDepth.csv"
+    output_path2 = os.path.join(os.path.join(dir_path, graph_class), "bwDepth.csv")
     df_depth.to_csv(output_path2, index=False, header=False)
     return avgs_cnots, stds_cnots, avgs_depths, stds_depths, bw
 
@@ -679,10 +684,9 @@ def iso_scaling_test(
 
     df_cnot = pd.DataFrame((avgs_cnots, stds_cnots))
     df_depth = pd.DataFrame((avgs_depths, stds_depths))
-
-    output_path1 = f"{dir_path}/{graph_class}/bwCNOT.csv"
+    output_path1 = os.path.join(os.path.join(dir_path, graph_class), "bwCNOT.csv")
     df_cnot.to_csv(output_path1, index=False, header=False)
-    output_path2 = f"{dir_path}/{graph_class}/bwDepth.csv"
+    output_path2 = os.path.join(os.path.join(dir_path, graph_class), "bwDepth.csv")
     df_depth.to_csv(output_path2, index=False, header=False)
     return avgs_cnots, stds_cnots, avgs_depths, stds_depths, bw
 
@@ -711,9 +715,9 @@ def LC_scaling_known(result, dir_path: str, graph_class: str, n_lc_list=None):
     df_cnot = pd.DataFrame((c_means, c_stds))
     df_depth = pd.DataFrame((d_means, d_stds))
 
-    output_path1 = f"{dir_path}/{graph_class}/bwCNOT.csv"
+    output_path1 = os.path.join(os.path.join(dir_path, graph_class), "bwCNOT.csv")
     df_cnot.to_csv(output_path1, index=False, header=False)
-    output_path2 = f"{dir_path}/{graph_class}/bwDepth.csv"
+    output_path2 = os.path.join(os.path.join(dir_path, graph_class), "bwDepth.csv")
     df_depth.to_csv(output_path2, index=False, header=False)
     return c_means, c_stds, d_means, d_stds
 
@@ -752,7 +756,8 @@ def rgs_analysis(res_rgsn, dir_path: str, filename: str):
     for met in graph_met_list:
         for i, g in enumerate(res_rgsn["g"]):
             res_rgsn["graph_metric"][i][met] = graph_met_value(met, g)
-    res_rgsn.save2json(f"{dir_path}/RGS/{filename}", f"{filename}")
+    full_filename = os.path.join(os.path.join(dir_path, "RGS"), filename)
+    res_rgsn.save2json(full_filename, f"{filename}")
     correlation_checker(res_rgsn, ["n_cnots"], graph_met_list)
     plot_figs(
         res_rgsn,

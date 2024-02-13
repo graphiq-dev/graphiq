@@ -13,7 +13,7 @@
 [![GitHub Workflow Status](https://img.shields.io/badge/build-passing-brightgreen)](https://github.com/ki3-qbt/graph-compiler/actions)
 [![Documentation Status](https://readthedocs.org/projects/graphiq/badge/?version=latest)](https://graphiq.readthedocs.io/en/latest/?badge=latest)
 [![arXiv Paper](https://img.shields.io/badge/arXiv-2401.00635-red)](https://arxiv.org/abs/2401.00635)
-[![codecov](https://codecov.io/gh/graphiq-dev/graphiq/graph/badge.svg?token=RAQFDUM0U0)](https://codecov.io/gh/graphiq-dev/graphiq)
+[![codecov](https://codecov.io/gh/graphiq-dev/graphiq/branch/main/graph/badge.svg)](https://codecov.io/gh/graphiq-dev/graphiq)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/ambv/black)
 ![versions](https://img.shields.io/badge/python-3.8%20%7C%203.9%20%7C%203.10-blue)
 

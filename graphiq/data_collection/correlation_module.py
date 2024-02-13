@@ -1027,9 +1027,8 @@ def graph_to_circ(graph, show=False):
         assert isinstance(
             graph, nx.Graph
         ), "input must be a networkx graph object or a numpy adjacency matrix"
-    n = graph.number_of_nodes()
-    c_tableau = CliffordTableau(n)
-    c_tableau.stabilizer_from_labels(converter.graph_to_stabilizer(graph))
+    tabs = converter.graph_to_stabilizer(graph)
+    c_tableau = CliffordTableau(tabs[0][1])
     ideal_state = QuantumState(c_tableau, rep_type="stabilizer")
 
     compiler = StabilizerCompiler()

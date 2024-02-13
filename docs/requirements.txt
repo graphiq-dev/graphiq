@@ -1,0 +1,4 @@
+pymdown-extensions
+mkdocstrings
+mkdocs-material
+mkdocstrings-python

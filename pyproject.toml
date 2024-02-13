@@ -34,4 +34,5 @@ classifiers = [
 
 
 [project.optional-dependencies]
-all = ["jax", "optax", "ray"]
+docs = ["pymdown-extensions", "mkdocstrings", "mkdocs-material", "mkdocstrings-python"]
+all = ["pymdown-extensions", "mkdocstrings", "mkdocs-material", "mkdocstrings-python", "jax", "optax", "ray"]

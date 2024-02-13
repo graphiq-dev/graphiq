@@ -1,10 +1,8 @@
 
 site_name: GraphiQ
 site_description: GraphiQ - A design framework for quantum photonic circuits
-#site_url: http://0.0.0.0:8000
-repo_url: https://github.com/ki3-qbt/graph-compiler
-docs_dir: docs
-use_directory_urls: false  # good for opening HTML files directly, but should be 'true' for deployment
+repo_url: https://github.com/graphiq-dev/graphiq
+#use_directory_urls: false  # good for opening HTML files directly, but should be 'true' for deployment
 
 nav:
   - Introduction:
@@ -41,7 +39,7 @@ nav:
 theme:
   name: material
 
-#  logo: img/oqd-logo.png
+  logo: img/logo-square.png
 
   palette:
     - media: '(prefers-color-scheme: light)'

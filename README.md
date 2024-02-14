@@ -1,17 +1,8 @@
-# 
+#
 
-<p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://github.com/graphiq-dev/graphiq/blob/main/docs/img/logos/logo-dark.png">
-    <source media="(prefers-color-scheme: light)" srcset="https://github.com/graphiq-dev/graphiq/blob/main/docs/img/logos/logo-light.png">
-    <img alt="GraphiQ" src=https://github.com/graphiq-dev/graphiq/blob/main/docs/img/logos/logo.png>
-  </picture>
-</p>
 <div align="center">
 
-![GraphiQ](https://github.com/graphiq-dev/graphiq/blob/main/docs/img/logos/logo-dark.png#gh-dark-mode-only)
-![GraphiQ](https://github.com/graphiq-dev/graphiq/blob/main/docs/img/logos/logo-light.png#gh-light-mode-only)
-
+![GraphiQ](https://github.com/graphiq-dev/graphiq/blob/main/docs/img/logos/logo.png)
 
 [![PyPI Version](https://img.shields.io/pypi/v/graphiq)](https://pypi.org/project/graphiq)
 [![Python Versions](https://img.shields.io/pypi/pyversions/graphiq)](https://pypi.org/project/graphiq)

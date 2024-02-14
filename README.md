@@ -1,7 +1,7 @@
-
-[docs/img/logo-light.png]
+# ![QuCumber](https://raw.githubusercontent.com/graphiq-dev/graphiq/main/docs/img/logo-light.png)
 
 <div align="center">
+
 [![PyPI Version](https://img.shields.io/pypi/v/graphiq)](https://pypi.org/project/graphiq)
 [![Python Versions](https://img.shields.io/pypi/pyversions/graphiq)](https://pypi.org/project/graphiq)
 [![GitHub Workflow Status](https://img.shields.io/badge/build-passing-brightgreen)](https://github.com/ki3-qbt/graph-compiler/actions)
@@ -9,6 +9,7 @@
 [![arXiv Paper](https://img.shields.io/badge/arXiv-2401.00635-red)](https://arxiv.org/abs/2401.00635)
 [![codecov](https://codecov.io/gh/graphiq-dev/graphiq/branch/main/graph/badge.svg)](https://codecov.io/gh/graphiq-dev/graphiq)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/ambv/black)
+
 </div>
 
 <p align="center" style="font-size:20px">
@@ -96,8 +97,7 @@ and [Ki3 Photonics Technologies](https://www.ki3photonics.com/)
 under the US Air Force Office of Scientific Research (AFOSR) Grant FA9550-22-1-0062.
 
 ## Contributing
-Quantum Bridge continues to maintain and develop new versions of GraphiQ.  
-Collaborations from the community are encouraged and welcomed.
+Quantum Bridge continues to maintain and develop new versions of GraphiQ. Collaborations from the community are encouraged and welcomed.
 
 ## License
 GraphiQ is licensed under an Apache License Version 2.0.

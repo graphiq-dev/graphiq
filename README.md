@@ -9,6 +9,10 @@
 </p>
 <div align="center">
 
+![GraphiQ](https://github.com/graphiq-dev/graphiq/blob/main/docs/img/logos/logo-dark.png#gh-dark-mode-only)
+![GraphiQ](https://github.com/graphiq-dev/graphiq/blob/main/docs/img/logos/logo-light.png#gh-light-mode-only)
+
+
 [![PyPI Version](https://img.shields.io/pypi/v/graphiq)](https://pypi.org/project/graphiq)
 [![Python Versions](https://img.shields.io/pypi/pyversions/graphiq)](https://pypi.org/project/graphiq)
 [![GitHub Workflow Status](https://img.shields.io/badge/build-passing-brightgreen)](https://github.com/ki3-qbt/graph-compiler/actions)

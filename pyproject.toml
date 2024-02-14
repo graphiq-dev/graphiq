@@ -6,7 +6,8 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "graphiq"
 version = "0.0.9"
-requires-python = "3.8, 3.9, 3.10"
+
+requires-python = ">3.8, <4"
 dependencies = [
     "numpy",
     "networkx",
@@ -18,6 +19,7 @@ dependencies = [
     "pandas",
 #    "psutil",
 ]
+description = "  GraphiQ is a Python library for the simulation, design, and optimization of quantum photonic circuits."
 readme = "README.md"
 keywords = ["quantum", "photonic", "circuit", "design"]
 license = {text = "Apache 2.0"}
@@ -35,12 +37,13 @@ classifiers = [
 
   # Indicate who your project is intended for
   "Intended Audience :: Science/Research ",
-  "Scientific/Engineering :: Quantum Information :: Simulation Tools",
-  "Scientific/Engineering :: Quantum Information :: Optimization Tools",
-  "Scientific/Engineering :: Quantum Technologies :: Photonics",
+  "Topic :: Scientific/Engineering :: Physics",
+  "Topic :: Security :: Cryptography",
+  "Topic :: Scientific/Engineering :: Information Analysis",
+  "Topic :: Scientific/Engineering :: Information Analysis",
 
   # Pick your license as you wish (see also "license" above)
-  "License :: OSI Approved :: Apache 2.0",
+  "License :: OSI Approved :: Apache Software License",
 
   # Specify the Python versions you support here.
   "Programming Language :: Python :: 3",
@@ -59,3 +62,5 @@ Documentation = "https://graphiq.readthedocs.io/en/latest/"
 Repository = "https://github.com/graphiq-dev/graphiq.git"
 Issues = "https://github.com/graphiq-dev/graphiq/issues"
 
+[tool.setuptools]
+py-modules = []

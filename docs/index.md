@@ -41,7 +41,7 @@ print(state)
 #%%
 target = gq.QuantumState(data=nx.Graph([(1, 2), (2, 3)]), rep_type="g")
 metric = gq.Infidelity(target=target)
-solver = gq.DeterministicSolver(compiler=backend, metric=metric, target=target)
+solver = gq.TimeReversedSolver(compiler=backend, metric=metric, target=target)
 
 #%%
 solver.solve()
@@ -50,7 +50,6 @@ circuit.draw_circuit()
 ```
 
 ## Installation
-
 ``` bash
 pip install graphiq
 ```

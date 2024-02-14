@@ -2,8 +2,8 @@
 
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset=https://github.com/graphiq-dev/graphiq/blob/main/docs/img/logos/logo-dark.png>
-    <source media="(prefers-color-scheme: light)" srcset=https://github.com/graphiq-dev/graphiq/blob/main/docs/img/logos/logo-light.png>
+    <source media="(prefers-color-scheme: dark)" src=https://github.com/graphiq-dev/graphiq/blob/main/docs/img/logos/logo-dark.png>
+    <source media="(prefers-color-scheme: light)" src=https://github.com/graphiq-dev/graphiq/blob/main/docs/img/logos/logo-light.png>
     <img alt="GraphiQ" src=https://github.com/graphiq-dev/graphiq/blob/main/docs/img/logos/logo.png>
   </picture>
 </p>

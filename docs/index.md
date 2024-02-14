@@ -1,5 +1,8 @@
 # 
-# ![GraphiQ](https://raw.githubusercontent.com/graphiq-dev/graphiq/main/docs/img/logos/logo-light.png)
+<p align="center">
+  <img src="https://raw.githubusercontent.com/graphiq-dev/graphiq/main/docs/img/logos/logo.png" alt="GraphiQ" width="500" />
+</p>
+
 
 ## GraphiQ: Quantum circuit design for photonic graph states
 

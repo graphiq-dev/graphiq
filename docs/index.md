@@ -29,7 +29,7 @@ under the US Air Force Office of Scientific Research (AFOSR) Grant FA9550-22-1-0
 
 ## What can it do?
 
-![GraphiQ framework](img/fig1.png)
+<img src="https://raw.githubusercontent.com/graphiq-dev/graphiq/main/docs/img/fig1.png" width="750px" align="center">
 
 ## Basic usage
 

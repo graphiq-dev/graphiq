@@ -1,8 +1,6 @@
-#
-
 <div align="center">
 
-![GraphiQ](https://github.com/graphiq-dev/graphiq/blob/main/docs/img/logos/logo.png)
+# ![GraphiQ](https://raw.githubusercontent.com/graphiq-dev/graphiq/main/docs/img/logos/logo.png)
 
 [![PyPI Version](https://img.shields.io/pypi/v/graphiq)](https://pypi.org/project/graphiq)
 [![Python Versions](https://img.shields.io/pypi/pyversions/graphiq)](https://pypi.org/project/graphiq)

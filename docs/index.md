@@ -1,21 +1,20 @@
-# GraphiQ: Quantum circuit design for photonic graph states
+# 
+# ![GraphiQ](https://raw.githubusercontent.com/graphiq-dev/graphiq/main/docs/img/logos/logo-light.png)
 
+## GraphiQ: Quantum circuit design for photonic graph states
+
+[![PyPI Version](https://img.shields.io/pypi/v/graphiq)](https://pypi.org/project/graphiq)
+[![Python Versions](https://img.shields.io/pypi/pyversions/graphiq)](https://pypi.org/project/graphiq)
 [![GitHub Workflow Status](https://img.shields.io/badge/build-passing-brightgreen)](https://github.com/ki3-qbt/graph-compiler/actions)
-[![docs.rs](https://img.shields.io/badge/docs-passing-brightgreen)](https://github.com/ki3-qbt/graph-compiler/tree/gh-pages)
-[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/ambv/black)
-![versions](https://img.shields.io/badge/python-3.8%20%7C%203.9%20%7C%203.10-blue)
+[![arXiv Paper](https://img.shields.io/badge/arXiv-2401.00635-red)](https://arxiv.org/abs/2401.00635)
+[![codecov](https://codecov.io/gh/graphiq-dev/graphiq/branch/main/graph/badge.svg)](https://codecov.io/gh/graphiq-dev/graphiq)
 
-!!! note
+!!! Welcome
 
-    Welcome to GraphiQ.
-    This documentation is still under development, please feel to contribute!
+    Welcome to the GraphiQ documentation!
 
-    © Quantum Bridge Technologies, Inc
-    © Ki3 Photonics Technologies
+    © Quantum Bridge Technologies, Ki3 Photonics Technologies
 
-## What can it do?
-
-![GraphiQ framework](img/fig1.png)
 
 ## About the project
 **GraphiQ** is an open-source framework for designing photonic graph state generation schemes. Photonic graph states are an important resource for many quantum information processing tasks including quantum computing and
@@ -24,6 +23,10 @@ quantum communication.
 Version 0.1.0 was jointly developed by [Quantum Bridge Technologies, Inc. ("Quantum Bridge") ](https://qubridge.io/)
 and [Ki3 Photonics Technologies](https://www.ki3photonics.com/)
 under the US Air Force Office of Scientific Research (AFOSR) Grant FA9550-22-1-0062.
+
+## What can it do?
+
+![GraphiQ framework](img/fig1.png)
 
 ## Basic usage
 

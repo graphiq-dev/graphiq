@@ -1,8 +1,12 @@
 
 site_name: GraphiQ
 site_description: GraphiQ - A design framework for quantum photonic circuits
+site_url: https://graphiq.readthedocs.io/en/latest/
 repo_url: https://github.com/graphiq-dev/graphiq
-#use_directory_urls: false  # good for opening HTML files directly, but should be 'true' for deployment
+repo_name: graphiq-dev/graphiq
+site_author: QBT, Ki3
+
+copyright: Copyright &copy; 2022 - 2024 QBT, Ki3
 
 nav:
   - Introduction:
@@ -39,29 +43,34 @@ nav:
 theme:
   name: material
 
-  logo: img/logo-square.png
+  logo: img/logos/logo-mini.png
+  favicon: img/logos/logo-mini.png
+  icon:
+    logo: logo-square.png
 
   palette:
-    - media: '(prefers-color-scheme: light)'
-      scheme: default
-      primary: blue grey
-      accent: amber
+    - media: "(prefers-color-scheme)"
       toggle:
-        icon: material/lightbulb
-        name: Switch to dark mode
-    - media: '(prefers-color-scheme: dark)'
-      scheme: slate
-      primary: teal
-      accent: amber
-      toggle:
-        icon: material/lightbulb-outline
+        icon: material/link
         name: Switch to light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/toggle-switch
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: black
+      accent: indigo
+      toggle:
+        icon: material/toggle-switch-off
+        name: Switch to system preference
   font:
     text: Roboto
     code: Roboto Mono
-  favicon: assets/favicon.png
-  icon:
-    logo: logo
+
 
   features:
     - announce.dismiss
@@ -91,23 +100,22 @@ theme:
     - toc.follow
 
 plugins:
-  - search
-#  - markdownextradata:
-#      folder: examples
+  - search:
+      separator: '[\s\u200b\-_,:!=\[\]()"`/]+|\.(?!\d)|&[lg]t;|(?!\b)(?=[A-Z][a-z])'
+  - minify:
+      minify_html: true
   - mkdocstrings:
       handlers:
         python:
           options:
             docstring_style: sphinx
             show_root_heading: yes
-  - mkdocs-jupyter:
-      ignore_h1_titles: True
-      include_source: True
-#  - mknotebooks:
-#      execute: false
-#      timeout: 100
-#      preamble: "/examples"
-#      allow_errors: True
+  - mknotebooks:
+      execute: false
+      timeout: 100
+      allow_errors: True
+      enable_default_jupyter_cell_styling: false
+      enable_default_pandas_dataframe_styling: false
 
 markdown_extensions:
   - toc:

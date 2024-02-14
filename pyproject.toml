@@ -54,8 +54,15 @@ classifiers = [
 ]
 
 [project.optional-dependencies]
-docs = ["pymdown-extensions", "mkdocstrings", "mkdocs-material", "mkdocstrings-python", "mkdocs-jupyter"]
-all = ["pymdown-extensions", "mkdocstrings", "mkdocs-material", "mkdocstrings-python", "mkdocs-jupyter", "jax", "optax", "ray"]
+docs = [
+    "pymdown-extensions",
+    "mkdocstrings",
+    "mkdocs-material",
+    "mkdocstrings-python",
+    "mknotebooks",
+    "mkdocs-minify-plugin",
+]
+all = ["pymdown-extensions", "mkdocstrings", "mkdocs-material", "mkdocstrings-python", "mknotebooks", "jax", "optax", "ray"]
 
 [project.urls]
 Homepage = "https://github.com/graphiq-dev/graphiq"

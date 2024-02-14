@@ -1,4 +1,4 @@
-# ![QuCumber](https://raw.githubusercontent.com/graphiq-dev/graphiq/main/docs/img/logo-light.png)
+# ![GraphiQ](https://raw.githubusercontent.com/graphiq-dev/graphiq/main/docs/img/logos/logo-light.png)
 
 <div align="center">
 
@@ -36,7 +36,7 @@ and quantum communication.
   optical loss.
 
 ## Installation
-Graphiq can be installed from PyPI,
+GraphiQ can be installed from PyPI,
 ```
 pip install graphiq 
 ```

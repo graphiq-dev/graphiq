@@ -2,12 +2,11 @@
 
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset=docs/img/logos/logo-dark.png>
-    <source media="(prefers-color-scheme: light)" srcset=docs/img/logos/logo-light.png>
-    <img alt="Shows a black logo in light color mode and a white one in dark color mode." src=docs/img/logos/logo.png>
+    <source media="(prefers-color-scheme: dark)" srcset=https://github.com/graphiq-dev/graphiq/blob/main/docs/img/logos/logo-dark.png>
+    <source media="(prefers-color-scheme: light)" srcset=https://github.com/graphiq-dev/graphiq/blob/main/docs/img/logos/logo-light.png>
+    <img alt="GraphiQ" src=https://github.com/graphiq-dev/graphiq/blob/main/docs/img/logos/logo.png>
   </picture>
 </p>
-
 <div align="center">
 
 [![PyPI Version](https://img.shields.io/pypi/v/graphiq)](https://pypi.org/project/graphiq)

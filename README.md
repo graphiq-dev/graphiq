@@ -1,4 +1,12 @@
-# ![GraphiQ](https://raw.githubusercontent.com/graphiq-dev/graphiq/main/docs/img/logos/logo-light.png)
+# 
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset=docs/img/logos/logo-dark.png>
+    <source media="(prefers-color-scheme: light)" srcset=docs/img/logos/logo-light.png>
+    <img alt="Shows a black logo in light color mode and a white one in dark color mode." src=docs/img/logos/logo.png>
+  </picture>
+</p>
 
 <div align="center">
 

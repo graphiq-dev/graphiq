@@ -21,6 +21,7 @@ dependencies = [
 readme = "README.md"
 keywords = ["quantum", "photonic", "circuit", "design"]
 license = {text = "Apache 2.0"}
+
 authors = [
     {name = "Benjamin MacLellan", email = "benjamin@ki3photonics.com"},
     {name = "Jie Lin", email = "jie.lin@quantumbridgetech.com"},
@@ -29,10 +30,32 @@ authors = [
     {name = "Piotr Roztocki", email = "piotr@ki3photonics.com"},
 ]
 classifiers = [
-    "Programming Language :: Python :: 3",
-]
+  # How mature is this project? Common values are
+  "Development Status :: 4 - Beta",
 
+  # Indicate who your project is intended for
+  "Intended Audience :: Science/Research ",
+  "Scientific/Engineering :: Quantum Information :: Simulation Tools",
+  "Scientific/Engineering :: Quantum Information :: Optimization Tools",
+  "Scientific/Engineering :: Quantum Technologies :: Photonics",
+
+  # Pick your license as you wish (see also "license" above)
+  "License :: OSI Approved :: Apache 2.0",
+
+  # Specify the Python versions you support here.
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+]
 
 [project.optional-dependencies]
 docs = ["pymdown-extensions", "mkdocstrings", "mkdocs-material", "mkdocstrings-python", "mkdocs-jupyter"]
 all = ["pymdown-extensions", "mkdocstrings", "mkdocs-material", "mkdocstrings-python", "mkdocs-jupyter", "jax", "optax", "ray"]
+
+[project.urls]
+Homepage = "https://github.com/graphiq-dev/graphiq"
+Documentation = "https://graphiq.readthedocs.io/en/latest/"
+Repository = "https://github.com/graphiq-dev/graphiq.git"
+Issues = "https://github.com/graphiq-dev/graphiq/issues"
+

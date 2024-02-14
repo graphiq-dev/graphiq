@@ -1,6 +1,7 @@
 name: mkdocs-check
 on:
   pull_request
+
 jobs:
   deploy:
     runs-on: ubuntu-latest

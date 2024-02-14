@@ -41,7 +41,14 @@ quantum communication.
 * Library of models for the study of [noise](https://github.com/ki3-qbt/graph-compiler/tree/main/graphiq/noise) and
   optical loss.
 
-## What's here
+## Installation
+
+
+## Getting started
+
+
+
+## Overview
 
 * [`backends`](https://github.com/ki3-qbt/graph-compiler/tree/main/graphiq/backends) - simulate a quantum circuit using
   different state representations, including, the density matrix, stabilizer, and graph formalisms.
@@ -55,17 +62,27 @@ quantum communication.
   backends and quantum circuits.
 * [`tests`](https://github.com/ki3-qbt/graph-compiler/tree/main/tests) - automated code testing framework
 
+
+## Documentation
+Documentation can be found [here](https://graphiq.readthedocs.io/en/latest/?badge=latest).
+See also "GraphiQ: Quantum circuit design for photonic graph states" (arXiv link),
+and 
+"Optimization of deterministic photonic graph state generation via local operations" (https://arxiv.org/abs/2401.00635)
+
 ## Acknowledgement
 Version 0.1.0 was jointly developed by [Quantum Bridge Technologies, Inc. ("Quantum Bridge") ](https://qubridge.io/)
 and [Ki3 Photonics Technologies](https://www.ki3photonics.com/) 
 under the US Air Force Office of Scientific Research (AFOSR) Grant FA9550-22-1-0062.
 
-## Get Involved
-Quantum Bridge continues to maintain and develop new versions of GraphiQ.  Collaborations from the community are encouraged and welcomed.
+## Contributing
+Quantum Bridge continues to maintain and develop new versions of GraphiQ.  
+Collaborations from the community are encouraged and welcomed.
 
+## License
+GraphiQ is licensed under an Apache License Version 2.0.
 
-## Citing
-
+## Citation
+@Article{bib}
 
 
 

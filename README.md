@@ -6,6 +6,7 @@
 [![Python Versions](https://img.shields.io/pypi/pyversions/graphiq)](https://pypi.org/project/graphiq)
 [![GitHub Workflow Status](https://img.shields.io/badge/build-passing-brightgreen)](https://github.com/ki3-qbt/graph-compiler/actions)
 [![Documentation Status](https://readthedocs.org/projects/graphiq/badge/?version=latest)](https://graphiq.readthedocs.io/en/latest/?badge=latest)
+[![arXiv Paper](https://img.shields.io/badge/arXiv-2402.09285-red)](https://arxiv.org/abs/2402.09285)
 [![arXiv Paper](https://img.shields.io/badge/arXiv-2401.00635-red)](https://arxiv.org/abs/2401.00635)
 [![codecov](https://codecov.io/gh/graphiq-dev/graphiq/branch/main/graph/badge.svg)](https://codecov.io/gh/graphiq-dev/graphiq)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/ambv/black)
@@ -87,7 +88,7 @@ circuit.draw_circuit()
 
 ## Documentation
 Documentation can be found [here](https://graphiq.readthedocs.io/en/latest/?badge=latest).
-See also "GraphiQ: Quantum circuit design for photonic graph states" (arXiv link),
+See also "GraphiQ: Quantum circuit design for photonic graph states" (https://arxiv.org/abs/2402.09285),
 and 
 "Optimization of deterministic photonic graph state generation via local operations" (https://arxiv.org/abs/2401.00635)
 
@@ -103,7 +104,14 @@ Quantum Bridge continues to maintain and develop new versions of GraphiQ. Collab
 GraphiQ is licensed under an Apache License Version 2.0.
 
 ## Citation
-@Article{bib}
-
-
+```
+@article{
+  title={GraphiQ: Quantum circuit design for photonic graph states}, 
+  author={Jie Lin and Benjamin MacLellan and Sobhan Ghanbari and Julie Belleville and Khuong Tran and Luc Robichaud and Roger G. Melko and Hoi-Kwong Lo and Piotr Roztocki},
+  year={2024},
+  eprint={2402.09285},
+  archivePrefix={arXiv},
+  primaryClass={quant-ph}
+}
+```
 

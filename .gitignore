@@ -142,3 +142,5 @@ jobs/
 # benchmark data directory
 graphiq/benchmarks/save_benchmarks/*
 experiments/
+
+docs/examples/

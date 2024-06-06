@@ -22,6 +22,17 @@ from graphiq.solvers.time_reversed_solver import TimeReversedSolver
 from graphiq.metrics import Infidelity
 
 __all__ = [
+    "backends",
+    "benchmarks",
+    "circuit",
+    "noise",
+    "solvers",
+    "utils",
+    "visualizers",
+    "data_collection",
+    "metrics",
+    "io",
+    "state",
     "StabilizerCompiler",
     "QuantumState",
     "CircuitDAG",

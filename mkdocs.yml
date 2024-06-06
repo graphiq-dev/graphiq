@@ -102,6 +102,7 @@ theme:
 plugins:
   - search:
       separator: '[\s\u200b\-_,:!=\[\]()"`/]+|\.(?!\d)|&[lg]t;|(?!\b)(?=[A-Z][a-z])'
+
   - minify:
       minify_html: true
   - mkdocstrings:
@@ -116,6 +117,7 @@ plugins:
       allow_errors: True
       enable_default_jupyter_cell_styling: false
       enable_default_pandas_dataframe_styling: false
+  - with-pdf:
 
 markdown_extensions:
   - toc:

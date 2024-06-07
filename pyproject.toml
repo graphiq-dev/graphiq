@@ -18,7 +18,8 @@ dependencies = [
     "flask",
     "pandas",
     "psutil",
-    "qiskit",
+#    "qiskit",
+    "qiskit ~= 0.38.0"
 ]
 description = "  GraphiQ is a Python library for the simulation, design, and optimization of quantum photonic circuits."
 readme = "README.md"

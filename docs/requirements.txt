@@ -4,3 +4,4 @@ mkdocs-material
 mkdocstrings-python
 mknotebooks
 mkdocs-minify-plugin
+mkdocs-add-number-plugin

@@ -22,5 +22,5 @@ jobs:
           restore-keys: |
             mkdocs-material-
       - run: cp -r examples/ docs/examples/
-      - run: pip install mkdocs-material mkdocstrings mkdocstrings-python pymdown-extensions mknotebooks mkdocs-minify-plugin
+      - run: pip install -r docs/requirements.txt
       - run: mkdocs build

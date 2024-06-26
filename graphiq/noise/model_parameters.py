@@ -58,7 +58,9 @@ noise_parameters = {
     "cut_off_prob": 0.99,
     "criteria": "reg_as_control",
     "noise_type": ["x"],
-    "reg_specific_noise": {},  # {'regtype-reg string':'noise type', etc.} e.g. {'e0': 'x', 'e1': ['y', 'z']}
+    "reg_specific_noise": (
+        {}
+    ),  # {'regtype-reg string':'noise type', etc.} e.g. {'e0': 'x', 'e1': ['y', 'z']}
 }  # having a list as noise type would apply both kinds of noises separately to the register
 
 error_ops = {"x": ops.SigmaX, "y": ops.SigmaY, "z": ops.SigmaZ, "I": ops.Identity}

@@ -20,7 +20,8 @@ nav:
     - Noise models: examples/startup_guide/4_noise_models.ipynb
     - Objective metrics: examples/startup_guide/5_metrics.ipynb
     - Solvers & algorithms: examples/startup_guide/6_solvers.ipynb
-    - Benchmarking solvers: examples/startup_guide/7_benchmarking.ipynb
+#    - Benchmarking solvers: examples/startup_guide/7_benchmarking.ipynb
+    - Benchmarking: examples/benchmark.ipynb
 #    - Variational circuits: examples/startup_guide/8_variational_circuits.ipynb
     - Visualization tools: examples/startup_guide/9_html_visualization_tutorial.ipynb
   - How to guides:
@@ -102,7 +103,6 @@ theme:
 plugins:
   - search:
       separator: '[\s\u200b\-_,:!=\[\]()"`/]+|\.(?!\d)|&[lg]t;|(?!\b)(?=[A-Z][a-z])'
-
   - minify:
       minify_html: true
   - mkdocstrings:
@@ -117,7 +117,11 @@ plugins:
       allow_errors: True
       enable_default_jupyter_cell_styling: false
       enable_default_pandas_dataframe_styling: false
-
+#  - enumerate-headings:  # needs to be the last plugin loaded
+#      toc_depth: 3
+  - add-number:
+      increment_topnav: true
+      increment_pages: true
 markdown_extensions:
   - toc:
       permalink: true

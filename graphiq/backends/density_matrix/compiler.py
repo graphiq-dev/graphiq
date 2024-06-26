@@ -42,11 +42,11 @@ class DensityMatrixCompiler(CompilerBase):
         ops.SigmaX: lambda: dm.sigmax(),
         ops.SigmaY: lambda: dm.sigmay(),
         ops.SigmaZ: lambda: dm.sigmaz(),
-        ops.ParameterizedOneQubitRotation: lambda theta, phi, lam: dm.parameterized_one_qubit_unitary(
-            theta, phi, lam
+        ops.ParameterizedOneQubitRotation: (
+            lambda theta, phi, lam: dm.parameterized_one_qubit_unitary(theta, phi, lam)
         ),
-        ops.ParameterizedControlledRotationQubit: lambda theta, phi, lam: dm.parameterized_one_qubit_unitary(
-            theta, phi, lam
+        ops.ParameterizedControlledRotationQubit: (
+            lambda theta, phi, lam: dm.parameterized_one_qubit_unitary(theta, phi, lam)
         ),
         ops.CNOT: lambda: dm.sigmax(),
         ops.CZ: lambda: dm.sigmaz(),

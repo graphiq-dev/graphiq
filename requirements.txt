@@ -1,6 +1,6 @@
 numpy~=1.24.4
 matplotlib~=3.7.5
-scipy~=1.13.1
+scipy~=1.10.1
 networkx~=3.1
 autograd
 pytest~=7.1.3

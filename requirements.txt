@@ -1,7 +1,7 @@
 numpy~=1.24.4
 matplotlib~=3.9.0
 scipy~=1.14.0
-networkx~=3.2.1
+networkx~=3.1
 autograd
 pytest~=7.1.3
 genbadge

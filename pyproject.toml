@@ -9,16 +9,17 @@ version = "0.1.00"
 
 requires-python = ">3.8, <4"
 dependencies = [
-    "numpy",
-    "networkx",
-    "matplotlib",
-    "scipy",
+    "numpy~=1.24.4",
+    "networkx~=3.1",
+    "matplotlib~=3.7.5",
+    "scipy~=1.10.1",
     "tqdm",
     "seaborn",
     "scipy",
     "flask~=2.2.2",
     "pandas",
     "psutil",
+    "py-cpuinfo",
 #    "qiskit",
     "qiskit ~= 0.38.0",
     "pylatexenc"
@@ -64,11 +65,13 @@ docs = [
     "mkdocstrings-python",
     "mknotebooks",
     "mkdocs-minify-plugin",
+#    "mkdocs-enumerate-headings-plugin",
+    "mkdocs-add-number-plugin",
 ]
 all = [
     "jax",
     "optax",
-    "ray"
+    "ray",
 ]
 
 [project.urls]

@@ -1199,7 +1199,7 @@ def class_to_name_mapping(class_op):
         CZ: "cz",
         ClassicalCNOT: "classical x",
         ClassicalCZ: "classical z",
-        MeasurementCNOTandReset: "measurement-controlled x and reset",
+        MeasurementCNOTandReset: "classical reset x",
     }
     if class_op in mapping:
         return mapping[class_op]

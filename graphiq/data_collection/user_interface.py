@@ -20,7 +20,7 @@ from math import factorial
 import pandas as pd
 from scipy.stats import spearmanr
 
-from correlation_module import *
+from graphiq.data_collection.correlation_module import *
 from graphiq.data_collection.ui_functions import *
 from graphiq.metrics import graph_met_value
 

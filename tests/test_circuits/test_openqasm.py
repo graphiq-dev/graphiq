@@ -226,8 +226,46 @@ def test_load_circuit_3(initialization_circuit):
     """
     str = initialization_circuit.to_openqasm()
     str += "hshk e0[0];"
-    with pytest.raises(AssertionError):
+    with pytest.raises(ValueError):
         circuit = CircuitDAG.from_openqasm(str)
+
+
+def test_load_circuit_multichar_wrapped_gate():
+    """
+    Regression test for round-tripping one-qubit gates whose openqasm name is
+    multi-character (e.g. PhaseDagger -> "sdg"), both wrapped inside a
+    OneQubitGateWrapper and standalone. Guards against the parser assuming every
+    single-qubit gate name is a single character.
+    """
+    circuit1 = CircuitDAG(n_emitter=1, n_photon=1, n_classical=0)
+    circuit1.add(
+        ops.OneQubitGateWrapper(
+            [ops.Hadamard, ops.PhaseDagger, ops.SigmaY], register=0, reg_type="e"
+        )
+    )
+    circuit1.add(ops.PhaseDagger(register=0, reg_type="p"))
+
+    circuit2 = CircuitDAG.from_openqasm(circuit1.to_openqasm())
+
+    def signatures(circuit):
+        sigs = []
+        for op in circuit.sequence():
+            if isinstance(op, (ops.Input, ops.Output)):
+                continue
+            if isinstance(op, ops.OneQubitGateWrapper):
+                sigs.append(
+                    (
+                        "wrapper",
+                        op.reg_type,
+                        op.register,
+                        tuple(o.__name__ for o in op.operations),
+                    )
+                )
+            else:
+                sigs.append((type(op).__name__, op.reg_type, op.register))
+        return sorted(sigs, key=str)
+
+    assert signatures(circuit1) == signatures(circuit2)
 
 
 def test_load_circuit_4(initialization_circuit):

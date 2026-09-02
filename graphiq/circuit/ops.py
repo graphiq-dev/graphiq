@@ -1152,6 +1152,48 @@ def simplify_local_clifford(gate_list):
     return find_local_clifford_by_matrix(matrix)
 
 
+# Openqasm gate names emitted for single-qubit gates by single_qubit_wrapper_info
+# (OneQubitGateWrapper serialization concatenates these with no separator). Kept
+# as an explicit companion so the name_to_class_map dictionary stays untouched.
+# Multi-character tokens (e.g. "sdg") are decoded by greedy longest-match.
+_ONE_QUBIT_WRAPPER_TOKENS = {
+    "h": Hadamard,
+    "x": SigmaX,
+    "y": SigmaY,
+    "z": SigmaZ,
+    "s": Phase,
+    "sdg": PhaseDagger,
+}
+
+
+def _decode_wrapped_gate_name(name):
+    """
+    Decode a concatenated one-qubit-gate wrapper name (e.g. "hsdgy") into its
+    component operation classes, using greedy longest-match tokenisation over the
+    single-qubit openqasm gate names. This correctly handles multi-character gate
+    names such as "sdg" (PhaseDagger).
+
+    :param name: concatenated openqasm gate name
+    :type name: str
+    :raises ValueError: if the name cannot be fully tokenised into valid gates
+    :return: list of operation classes
+    :rtype: list
+    """
+    max_token_len = max(len(token) for token in _ONE_QUBIT_WRAPPER_TOKENS)
+    op_list = []
+    i = 0
+    while i < len(name):
+        for size in range(min(max_token_len, len(name) - i), 0, -1):
+            token = name[i : i + size]
+            if token in _ONE_QUBIT_WRAPPER_TOKENS:
+                op_list.append(_ONE_QUBIT_WRAPPER_TOKENS[token])
+                i += size
+                break
+        else:
+            raise ValueError(f"{name} not existing in the mapping dictionary")
+    return op_list
+
+
 def name_to_class_map(name):
     """
     Maps our openqasm naming scheme to operation classes. Does not handle multi-gate wrappers
@@ -1178,7 +1220,12 @@ def name_to_class_map(name):
     }
     if name in mapping:
         return mapping[name]
-    return None
+    # Not a single known gate name: interpret it as a composite of one-qubit
+    # gates (e.g. "hsy" or "hsdgy"), as produced by OneQubitGateWrapper
+    # serialization which concatenates the gates' openqasm names with no
+    # separator. Decode via greedy longest-match so multi-character names
+    # (e.g. "sdg") are handled. Raises ValueError if not a valid composite.
+    return _decode_wrapped_gate_name(name)
 
 
 def class_to_name_mapping(class_op):

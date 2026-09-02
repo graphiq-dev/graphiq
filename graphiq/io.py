@@ -272,7 +272,7 @@ class IO:
         """
         full_path = self.path.joinpath(filename)
         file = np.loadtxt(
-            str(full_path), dtype=np.complex if complex_vals else np.float
+            str(full_path), dtype=np.complex128 if complex_vals else np.float64
         )
         if self.verbose:
             print(f"{current_time()} | Loaded from {full_path} successfully.")

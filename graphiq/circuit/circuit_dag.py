@@ -333,7 +333,9 @@ class CircuitDAG(CircuitBase):
         """
         remaining_nodes = set(self.dag.nodes)
         for label in labels:
-            remaining_nodes = remaining_nodes.intersection(set(self.node_dict[label]))
+            remaining_nodes = remaining_nodes.intersection(
+                set(self.node_dict.get(label, []))
+            )
         return list(remaining_nodes)
 
     def get_node_exclude_labels(self, labels):
@@ -348,7 +350,7 @@ class CircuitDAG(CircuitBase):
         all_nodes = set(self.dag.nodes)
         exclusion_nodes = set()
         for label in labels:
-            exclusion_nodes = exclusion_nodes.union(set(self.node_dict[label]))
+            exclusion_nodes = exclusion_nodes.union(set(self.node_dict.get(label, [])))
         return list(all_nodes - exclusion_nodes)
 
     def remove_op(self, node):

@@ -240,7 +240,12 @@ class RandomSearchSolver(SolverBase):
         for score, circuit in population:
             for i in range(self.setting.n_hof):
                 if np.isclose(score, self.hof[i][0]):
-                    if len(circuit.dag.nodes) < len(self.hof[i][1].dag.nodes):
+                    # self.hof[i][1] is None for a still-unfilled placeholder
+                    # slot (initialized to (np.inf, None)); any real circuit
+                    # is preferred over an empty slot.
+                    if self.hof[i][1] is None or len(circuit.dag.nodes) < len(
+                        self.hof[i][1].dag.nodes
+                    ):
                         self.hof.insert(i, (score, circuit.copy()))
                         self.hof.pop()
                         break

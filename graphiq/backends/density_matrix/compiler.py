@@ -226,7 +226,7 @@ class DensityMatrixCompiler(CompilerBase):
                         self.ops[op.__class__],
                     )
 
-                outcome = state.dm.apply_measurement_controlled_gate(
+                outcome = state.rep_data.apply_measurement_controlled_gate(
                     projectors,
                     unitary,
                     measurement_determinism=self.measurement_determinism,
@@ -249,7 +249,7 @@ class DensityMatrixCompiler(CompilerBase):
                         n_quantum, q_index(op.target, op.target_type), dm.sigmax()
                     )
 
-                outcome = state.dm.apply_measurement_controlled_gate(
+                outcome = state.rep_data.apply_measurement_controlled_gate(
                     projectors,
                     unitary,
                     measurement_determinism=self.measurement_determinism,
@@ -261,7 +261,7 @@ class DensityMatrixCompiler(CompilerBase):
                 )
 
                 classical_registers[op.c_register] = outcome
-                state.dm.apply_channel(reset_kraus_ops)
+                state.rep_data.apply_channel(reset_kraus_ops)
 
             elif type(op) is ops.MeasurementZ:
                 # TODO: implement measurement-related error model
@@ -269,7 +269,7 @@ class DensityMatrixCompiler(CompilerBase):
                 projectors = dm.projectors_zbasis(
                     n_quantum, q_index(op.register, op.reg_type)
                 )
-                outcome = state.dm.apply_measurement(
+                outcome = state.rep_data.apply_measurement(
                     projectors, measurement_determinism=self.measurement_determinism
                 )
                 classical_registers[op.c_register] = outcome

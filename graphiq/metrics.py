@@ -433,9 +433,9 @@ class CircuitCnotCount(MetricBase):
         super().__init__(log_steps=log_steps, *args, **kwargs)
         self.differentiable = False
         if n_cnot_penalty is None:
-            self.n_emitter_penalty = (
+            self.n_cnot_penalty = (
                 lambda x: x
-            )  # by default, the number emitters itself
+            )  # by default, the number of CNOTs itself
         else:
             self.n_cnot_penalty = n_cnot_penalty
 
@@ -508,8 +508,8 @@ class CircuitUnitaryCount(MetricBase):
         n_u = 0
         for label in [
             "SigmaX",
-            "SigmaX",
-            "SigmaX",
+            "SigmaY",
+            "SigmaZ",
             "Phase",
             "PhaseDagger",
             "Hadamard",

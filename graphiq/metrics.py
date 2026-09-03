@@ -258,111 +258,6 @@ class CircuitDepth(MetricBase):
         return val
 
 
-class Metrics(MetricBase):
-    """
-    Wraps around one or more metric functions, evaluating each and logging the values
-    """
-
-    _all = {  # metrics that can be used, which can be specified by the dictionary keys or as a class instance
-        "Infidelity": Infidelity,
-        "TraceDistance": TraceDistance,
-        "CircuitDepth": CircuitDepth,
-    }
-
-    def __init__(
-        self, metrics_list: list, metric_weight=None, log_steps=1, *args, **kwargs
-    ):
-        """
-        Create a Metrics object which acts as a wrapper around Metric functions
-
-        :param metrics_list: metrics to evaluate
-        :type metrics_list: list of strings (strings should be metric names) OR MetricBase objects
-                            MetricBase objects may be preferable, since we cannot set initial parameters via the list of strings.
-        :param metric_weight: some representation of how to weigh the different metric results against one another
-                              if None, all metrics provided are weighted equally (by 1)
-                              if a list or ndarray, the metrics are a linear combination weighted by the list/ndarray values
-                              Otherwise, metric_weight is a function, that can make any mathematical function of the individual
-                              metric values.
-        :type metric_weight: None, numpy.ndarray, list, or Function
-        :param log_steps: the metric values are computed at every log_steps optimization step
-        :type log_steps: int
-        :return: function returns nothing
-        :rtype: None
-        """
-        super().__init__(log_steps=log_steps, *args, **kwargs)
-        # pass in either list of either strings or of specific Metric instance (must be an accepted Metric)
-        _metrics = []
-        for metric in metrics_list:
-            if metric.__class__ in self._all.values():
-                _metrics.append(metric)
-            elif metric in self._all.keys():
-                _metrics.append(self._all[metric]())
-            else:
-                raise UserWarning(
-                    f"{metric} is not a recognized metric - it will not be evaluated."
-                )
-        self._metrics = _metrics
-
-        if (
-            metric_weight is None
-            or isinstance(metric_weight, list)
-            or isinstance(metric_weight, np.ndarray)
-        ):
-            if metric_weight is None:
-                metric_weight = np.ones(len(metrics_list)).flatten()
-
-            elif isinstance(metric_weight, list):
-                metric_weight = np.array([metric_weight]).flatten()
-
-            else:
-                metric_weight = metric_weight.flatten()
-
-            def weighting_func(state, circuit):
-                return np.dot(
-                    metric_weight,
-                    np.array(
-                        [met.evaluate(state, circuit) for met in self._metrics]
-                    ).flatten(),
-                )
-
-            self.weighting_func = weighting_func
-        elif callable(metric_weight):
-            self.weighting_func = metric_weight
-
-    def evaluate(self, state, circuit):
-        """
-        Evaluate each metric function contained by the Metrics object
-
-        :param state: the state on which to evaluate the metrics
-        :type state: QuantumState
-        :param circuit: the circuit on which to evaluate the metrics
-        :type circuit: CircuitBase (or a subclass of it)
-        :return: this function returns nothing
-        :rtype: None
-        """
-        val = self.weighting_func(state, circuit)
-        self.increment()
-
-        if self._inc % self.log_steps == 0:
-            self.log.append(val)
-
-        return val
-
-    @property
-    def per_metric_log(self):
-        """
-        The joint log of all metric functions
-
-        :return: the log itself
-        :rtype: dict (keys are metric class names, values are the logs)
-        """
-        m = {}
-        for i, metric in enumerate(self._metrics):
-            m[metric.__class__.__name__] = metric.log
-
-        return m
-
-
 # circuit metrics
 
 
@@ -819,6 +714,121 @@ class GraphMetric(MetricBase):
             self.log.append(val)
 
         return val
+
+
+class Metrics(MetricBase):
+    """
+    Wraps around one or more metric functions, evaluating each and logging the values
+    """
+
+    _all = {  # metrics that can be used, which can be specified by the dictionary keys or as a class instance
+        "Infidelity": Infidelity,
+        "TraceDistance": TraceDistance,
+        "CircuitDepth": CircuitDepth,
+        "CircuitEmitterCount": CircuitEmitterCount,
+        "CircuitCnotCount": CircuitCnotCount,
+        "CircuitUnitaryCount": CircuitUnitaryCount,
+        "CircuitMaxEmitDepth": CircuitMaxEmitDepth,
+        "CircuitMaxEmitResetDepth": CircuitMaxEmitResetDepth,
+        "CircuitMaxEmitEffDepth": CircuitMaxEmitEffDepth,
+        "CircuitMeasureCount": CircuitMeasureCount,
+        # GraphMetric is deliberately excluded: its evaluate(graph_metric: str)
+        # signature doesn't match the evaluate(state, circuit) contract every
+        # other metric here follows, so Metrics can't actually call it.
+    }
+
+    def __init__(
+        self, metrics_list: list, metric_weight=None, log_steps=1, *args, **kwargs
+    ):
+        """
+        Create a Metrics object which acts as a wrapper around Metric functions
+
+        :param metrics_list: metrics to evaluate
+        :type metrics_list: list of strings (strings should be metric names) OR MetricBase objects
+                            MetricBase objects may be preferable, since we cannot set initial parameters via the list of strings.
+        :param metric_weight: some representation of how to weigh the different metric results against one another
+                              if None, all metrics provided are weighted equally (by 1)
+                              if a list or ndarray, the metrics are a linear combination weighted by the list/ndarray values
+                              Otherwise, metric_weight is a function, that can make any mathematical function of the individual
+                              metric values.
+        :type metric_weight: None, numpy.ndarray, list, or Function
+        :param log_steps: the metric values are computed at every log_steps optimization step
+        :type log_steps: int
+        :return: function returns nothing
+        :rtype: None
+        """
+        super().__init__(log_steps=log_steps, *args, **kwargs)
+        # pass in either list of either strings or of specific Metric instance (must be an accepted Metric)
+        _metrics = []
+        for metric in metrics_list:
+            if metric.__class__ in self._all.values():
+                _metrics.append(metric)
+            elif metric in self._all.keys():
+                _metrics.append(self._all[metric]())
+            else:
+                raise UserWarning(
+                    f"{metric} is not a recognized metric - it will not be evaluated."
+                )
+        self._metrics = _metrics
+
+        if (
+            metric_weight is None
+            or isinstance(metric_weight, list)
+            or isinstance(metric_weight, np.ndarray)
+        ):
+            if metric_weight is None:
+                metric_weight = np.ones(len(metrics_list)).flatten()
+
+            elif isinstance(metric_weight, list):
+                metric_weight = np.array([metric_weight]).flatten()
+
+            else:
+                metric_weight = metric_weight.flatten()
+
+            def weighting_func(state, circuit):
+                return np.dot(
+                    metric_weight,
+                    np.array(
+                        [met.evaluate(state, circuit) for met in self._metrics]
+                    ).flatten(),
+                )
+
+            self.weighting_func = weighting_func
+        elif callable(metric_weight):
+            self.weighting_func = metric_weight
+
+    def evaluate(self, state, circuit):
+        """
+        Evaluate each metric function contained by the Metrics object
+
+        :param state: the state on which to evaluate the metrics
+        :type state: QuantumState
+        :param circuit: the circuit on which to evaluate the metrics
+        :type circuit: CircuitBase (or a subclass of it)
+        :return: this function returns nothing
+        :rtype: None
+        """
+        val = self.weighting_func(state, circuit)
+        self.increment()
+
+        if self._inc % self.log_steps == 0:
+            self.log.append(val)
+
+        return val
+
+    @property
+    def per_metric_log(self):
+        """
+        The joint log of all metric functions
+
+        :return: the log itself
+        :rtype: dict (keys are metric class names, values are the logs)
+        """
+        m = {}
+        for i, metric in enumerate(self._metrics):
+            m[metric.__class__.__name__] = metric.log
+
+        return m
 
 
 def graph_met_value(graph_metric, g):

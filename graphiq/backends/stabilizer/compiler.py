@@ -123,10 +123,15 @@ class StabilizerCompiler(CompilerBase):
                     q_index(op.control, op.control_type),
                     measurement_determinism=self.measurement_determinism,
                 )
-                print(outcome)
                 state.apply_conditioned_gate(
                     q_index(op.target, op.target_type), outcome, gate="x"
                 )
+                # outcome has one entry per mixture branch, and branches can
+                # disagree; classical_registers only has room for one value
+                # per bit, so we report branch 0's outcome. The gate itself
+                # is still applied correctly per-branch above. See the TODO
+                # on MixedStabilizer.apply_measurement.
+                classical_registers[op.c_register] = outcome[0]
 
             else:
                 outcome = state.apply_measurement(
@@ -135,8 +140,7 @@ class StabilizerCompiler(CompilerBase):
                 )
                 if outcome == 1:
                     state.apply_sigmax(q_index(op.target, op.target_type))
-
-            classical_registers[op.c_register] = outcome
+                classical_registers[op.c_register] = outcome
 
         elif type(op) is ops.ClassicalCZ:
             # apply an Z gate on the target qubit conditioned on the measurement outcome = 1
@@ -148,6 +152,7 @@ class StabilizerCompiler(CompilerBase):
                 state.apply_conditioned_gate(
                     q_index(op.target, op.target_type), outcome, gate="z"
                 )
+                # see the matching comment in the ClassicalCNOT branch above
                 classical_registers[op.c_register] = outcome[0]
 
             else:
@@ -157,8 +162,7 @@ class StabilizerCompiler(CompilerBase):
                 )
                 if outcome == 1:
                     state.apply_sigmaz(q_index(op.target, op.target_type))
-
-            classical_registers[op.c_register] = outcome
+                classical_registers[op.c_register] = outcome
 
         elif type(op) is ops.MeasurementCNOTandReset:
             if isinstance(state, MixedStabilizer):
@@ -191,6 +195,8 @@ class StabilizerCompiler(CompilerBase):
                     q_index(op.register, op.reg_type),
                     measurement_determinism=self.measurement_determinism,
                 )
+                # see the ClassicalCNOT branch above for why only outcomes[0]
+                # is recorded here
                 classical_registers[op.c_register] = outcomes[0]
 
             else:

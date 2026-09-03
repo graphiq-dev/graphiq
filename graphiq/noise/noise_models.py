@@ -209,14 +209,12 @@ class OneQubitGateReplacement(ReplacementNoiseBase):
             )
             state_rep.apply_unitary(noisy_gate)
         elif isinstance(state_rep, Stabilizer):
-            gate_list = []
-            if isinstance(state_rep, MixedStabilizer):
-                mixture = state_rep.mixture
-                for p_i, tableau_i in mixture:
-                    tableau_i.apply_circuit(gate_list)
-            else:
-                state_rep.apply_circuit(gate_list)
-
+            # TODO: Implement this for the Stabilizer backend. A general
+            # one-qubit unitary is not generally Clifford, so it can't always
+            # be represented exactly in the stabilizer formalism.
+            raise NotImplementedError(
+                "OneQubitGateReplacement has not been implemented for stabilizer backend"
+            )
         elif isinstance(state_rep, Graph):
             # TODO: Implement this for Graph backend
             raise TypeError(

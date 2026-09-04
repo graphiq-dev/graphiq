@@ -474,7 +474,9 @@ class EvolutionarySolver(RandomSearchSolver):
         scores_hof = list(zip(*self.hof))[0]
 
         depth_pop = [circuit.depth for (_, circuit) in population]
-        depth_hof = [circuit.depth for (_, circuit) in self.hof]
+        # self.hof can still contain unfilled (np.inf, None) placeholder
+        # entries (e.g. whenever n_pop < n_hof), which have no circuit/depth
+        depth_hof = [circuit.depth for (_, circuit) in self.hof if circuit is not None]
 
         self.logs["population"].append(
             dict(

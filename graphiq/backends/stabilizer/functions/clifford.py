@@ -79,12 +79,19 @@ def z_measurement_gate(
         tableau.iphase = iphase_vector
         table = tableau.table
 
-        # set x_p - n row equal to x_p row
+        # set x_p - n row equal to x_p row, phase and i phase included: the
+        # displaced generator becomes the new destabilizer partner for this
+        # qubit, so its whole row -- not just its symplectic bits -- moves.
         table[x_p - n_qubits] = table[x_p]
+        tableau.phase[x_p - n_qubits] = tableau.phase[x_p]
+        tableau.iphase[x_p - n_qubits] = tableau.iphase[x_p]
 
         # set x_p row equal to 0 except for z element of measured qubit which is 1.
         table[x_p] = np.zeros(2 * n_qubits)
         table[x_p, qubit_position + n_qubits] = 1
+        # this row is now a fresh +/-Z_a generator, which carries a bare sign
+        # and no factor of i.
+        tableau.iphase[x_p] = 0
 
         # set that row of the phase vector to random measurement outcome 0 or 1 with an equal probability.
         # We have the option to remove randomness and pick a specific outcome

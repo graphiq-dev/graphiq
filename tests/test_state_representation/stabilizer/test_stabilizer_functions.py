@@ -280,3 +280,22 @@ def test_stabilizer_tableau_accepts_a_square_pair():
     tableau = StabilizerTableau([np.eye(3, dtype=int), np.zeros((3, 3), dtype=int)])
     assert tableau.n_qubits == 3
     assert tableau.table.shape == (3, 6)
+
+
+def test_is_symplectic_on_a_clifford_tableau():
+    # a 2n x 2n Clifford table: P must be sized from the columns, not the rows
+    n = 3
+    assert sfu.is_symplectic(np.eye(2 * n, dtype=int))
+    table = np.eye(2 * n, dtype=int)
+    table[0, 1] = 1  # X_0 -> X_0 X_1, which anticommutes with Z_1: not symplectic
+    assert not sfu.is_symplectic(table)
+
+
+def test_binary_symplectic_product_of_different_row_counts():
+    stabilizer = np.hstack([np.zeros((2, 2), dtype=int), np.eye(2, dtype=int)])  # ZI, IZ
+    clifford = np.eye(4, dtype=int)  # XI, IX, ZI, IZ
+    product = sfu.binary_symplectic_product(stabilizer, clifford)
+    assert product.shape == (2, 4)
+    # Z_i anticommutes with X_i only
+    assert np.array_equal(product, np.array([[1, 0, 0, 0], [0, 1, 0, 0]]))
+    assert sfu.is_symplectic_self_orthogonal(stabilizer)

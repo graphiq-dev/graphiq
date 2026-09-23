@@ -125,10 +125,9 @@ def is_symplectic_self_orthogonal(input_matrix):
     :return: True if the input matrix is self-orthogonal; False otherwise
     :rtype: bool
     """
-    dim = int(input_matrix.shape[1] / 2)
-
     return np.array_equal(
-        binary_symplectic_product(input_matrix, input_matrix), np.zeros((dim, dim))
+        binary_symplectic_product(input_matrix, input_matrix),
+        np.zeros((input_matrix.shape[0],) * 2),
     )
 
 
@@ -137,17 +136,20 @@ def binary_symplectic_product(matrix1, matrix2):
     Compute the binary symplectic product of two matrices matrix1 (:math:`M_1`) and matrix2 (:math:`M_2`)
 
     The symplectic inner product between :math:`M_1` and :math:`M_2` is :math:`M_1 P M_2^T`,
-    where :math:`P = \\begin{bmatrix} 0 & I \\\\ I & 0 \\end{bmatrix}`.
+    where :math:`P = \\begin{bmatrix} 0 & I \\\\ I & 0 \\end{bmatrix}` is sized from the shared
+    number of columns (2n), not the row count -- the two matrices need not have the same number of
+    rows (e.g. a stabilizer's n rows against a Clifford tableau's 2n).
 
     :param matrix1: a binary symplectic matrix
     :type matrix1: numpy.ndarray
     :param matrix2: a binary symplectic matrix
     :type matrix2: numpy.ndarray
-    :return: the symplectic product of these two matrices
-    :rtype: int
+    :return: a (number of rows in matrix1, number of rows in matrix2) binary matrix, one
+        entry per row pair
+    :rtype: numpy.ndarray
     """
-    assert matrix1.shape[0] == matrix2.shape[0]
-    dim = matrix1.shape[0]
+    assert matrix1.shape[1] == matrix2.shape[1]
+    dim = matrix1.shape[1] // 2
     symplectic_p = np.block(
         [[np.zeros((dim, dim)), np.eye(dim)], [np.eye(dim), np.zeros((dim, dim))]]
     ).astype(int)

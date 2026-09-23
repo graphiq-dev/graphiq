@@ -33,8 +33,8 @@ def _compile_lc_gates(lc_gate):
 
     :param lc_gate: a list of local Clifford gates
     :type lc_gate: list[str]
-    :return: a one-qubit gate
-    :rtype: ops.OneQubitOperationBase
+    :return: a list of one-qubit gate classes representing the same local Clifford
+    :rtype: list
     """
     op_list = []
     for op in lc_gate:
@@ -57,7 +57,7 @@ class Graph(StateRepresentationBase):
         :param data: data used to construct the representation
         :type data: networkX.Graph
         :param clifford_dict: a dictionary that stores local Clifford for each node
-        :type clifford_dict: dict
+        :type clifford_dict: dict or None
         :return: nothing
         :rtype: None
         """
@@ -104,8 +104,9 @@ class Graph(StateRepresentationBase):
 
         :param node_id: the node index
         :type node_id: int
-        :return: local Clifford gates
-        :rtype: ops.OneQubitOperationBase
+        :raises ValueError: if no node with node_id exists
+        :return: local Clifford gates, as a list of one-qubit gate classes
+        :rtype: list
         """
         if self._data.has_node(node_id):
             return self._data.nodes[node_id]["LC"]
@@ -114,14 +115,15 @@ class Graph(StateRepresentationBase):
 
     def update_lc(self, node_id, lc_gate):
         """
-        Find the local Clifford gates corresponding to a node
+        Replace the local Clifford gates recorded on a node
 
         :param node_id: the node index
         :type node_id: int
-        :param lc_gate: a list of local Clifford gates
-        :type lc_gate: list(str)
-        :return: local Clifford gates
-        :rtype: ops.OneQubitOperationBase
+        :param lc_gate: a list of local Clifford gates; None or an empty list records the identity
+        :type lc_gate: list(str) or None
+        :raises ValueError: if no node with node_id exists
+        :return: nothing
+        :rtype: None
         """
         if not self._data.has_node(node_id):
             raise ValueError(f"Node with node ID {node_id} does not exist.")
@@ -238,8 +240,8 @@ class Graph(StateRepresentationBase):
         :type show: bool
         :param ax: axis on which to draw the plot (optional)
         :type ax: matplotlib.Axis
-        :param with_labels:
-        :type with_labels:
+        :param with_labels: if True, node labels are drawn
+        :type with_labels: bool
         :return: nothing
         :rtype: None
         """
@@ -258,6 +260,11 @@ class Graph(StateRepresentationBase):
 
         :param node_id: the ID of the node around which local complementation should take place
         :type node_id: int
+        :param copy: if True, the local complementation is applied to a copy and this Graph is left unchanged;
+            if False, this Graph is modified in place
+        :type copy: bool
+        :raises NotImplementedError: if this Graph is not a graph state (i.e. carries non-identity local
+            Clifford gates)
         :return: the graph after the local complementation
         :rtype: Graph
         """
@@ -361,10 +368,13 @@ class MixedGraph(StateRepresentationBase):
         """
         Sets the mixture of pure states, represented as a list of Graphs and associated probabilities.
 
-        :param value: a new mixture list, pure Graph
-        :type value: list[Graph]
-        :return: the mixture as a list of (probability_i, Graph_i)
-        :rtype: list
+        :param value: a new mixture list of (probability_i, Graph_i), or a pure Graph
+        :type value: list or Graph
+        :raises AssertionError: if a list entry is not a (float, Graph) pair, or if the graphs do not all have
+            the same number of qubits
+        :raises TypeError: if value is neither a list nor a Graph
+        :return: nothing
+        :rtype: None
         """
         if isinstance(value, list):
             assert all(

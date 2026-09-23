@@ -238,8 +238,8 @@ class DensityMatrix(StateRepresentationBase):
                     if the space is :math:`A \\times B \\times C \\times D`,
                     dims = [dim_A, dim_B, dim_C, dim_D]
         :type dims: list OR numpy.ndarray
-        :return:
-        :rtype:
+        :return: nothing
+        :rtype: None
         """
         self.data = dmf.partial_trace(self.data, keep, dims)
 

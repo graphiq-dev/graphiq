@@ -381,7 +381,7 @@ class CircuitUnitaryCount(MetricBase):
         if n_unitary_penalty is None:
             self.n_unitary_penalty = (
                 lambda x: x
-            )  # by default, the number emitters itself
+            )  # by default, the number of unitaries itself
         else:
             self.n_unitary_penalty = n_unitary_penalty
 
@@ -623,7 +623,7 @@ class CircuitMeasureCount(MetricBase):
         if m_penalty is None:
             self.m_penalty = (
                 lambda x: x
-            )  # by default, the penalty for depth is the depth itself
+            )  # by default, the penalty for measurement count is the count itself
         else:
             self.m_penalty = m_penalty
 
@@ -673,7 +673,7 @@ class GraphMetric(MetricBase):
         if penalty is None:
             self.penalty = (
                 lambda x: x
-            )  # by default, the penalty for depth is the depth itself
+            )  # by default, the penalty for the graph metric is the metric value itself
         else:
             self.penalty = penalty
 
@@ -805,8 +805,8 @@ class Metrics(MetricBase):
         :type state: QuantumState
         :param circuit: the circuit on which to evaluate the metrics
         :type circuit: CircuitBase (or a subclass of it)
-        :return: this function returns nothing
-        :rtype: None
+        :return: the weighted combination of the individual metric values
+        :rtype: float
         """
         val = self.weighting_func(state, circuit)
         self.increment()

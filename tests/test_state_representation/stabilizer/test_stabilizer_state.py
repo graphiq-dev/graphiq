@@ -66,3 +66,27 @@ def test_mixed_stabilizer_tableau_raises():
     state = MixedStabilizer([(1.0, Stabilizer(2).tableau)])
     with pytest.raises(TypeError):
         state.tableau
+
+
+def test_mixed_stabilizer_eq_does_not_reorder_its_operands():
+    t_low = Stabilizer(2).tableau
+    t_high = _plus_on_qubit_1(2).tableau
+    a = MixedStabilizer([(0.25, t_low), (0.75, t_high)])
+    b = MixedStabilizer([(0.25, t_low.copy()), (0.75, t_high.copy())])
+
+    assert a == b
+    assert [p_i for p_i, _ in a.mixture] == [0.25, 0.75]
+    assert [p_i for p_i, _ in b.mixture] == [0.25, 0.75]
+
+
+@pytest.mark.parametrize("other", [3, "state", None])
+def test_stabilizer_eq_against_a_non_stabilizer(other):
+    assert (Stabilizer(2) == other) is False
+    assert (MixedStabilizer([(1.0, Stabilizer(2).tableau)]) == other) is False
+
+
+def test_pure_and_mixed_stabilizers_compare_unequal_without_raising():
+    pure = Stabilizer(2)
+    mixed = MixedStabilizer([(1.0, Stabilizer(2).tableau)])
+    assert (pure == mixed) is False
+    assert (mixed == pure) is False

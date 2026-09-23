@@ -344,9 +344,12 @@ class Stabilizer(StateRepresentationBase):
 
         :param other: the other Stabilizer to be compared
         :type other: Stabilizer
-        :return: True if the stabilizer tableaux of two Stabilizer objects are the same
-        :rtype: bool
+        :return: True if the stabilizer tableaux of two Stabilizer objects are
+            the same; NotImplemented if other is not a Stabilizer
+        :rtype: bool or NotImplementedType
         """
+        if not isinstance(other, Stabilizer):
+            return NotImplemented
         tableau1 = canonical_form(self.data.to_stabilizer())
         tableau2 = canonical_form(other.data.to_stabilizer())
         return tableau1 == tableau2
@@ -798,21 +801,25 @@ class MixedStabilizer(StateRepresentationBase):
 
         :param other: the other MixedStabilizer to be compared
         :type other: MixedStabilizer
-        :return: True if the stabilizer tableaux of two MixedStabilizer objects are the same
-        :rtype: bool
+        :return: True if the stabilizer tableaux of two MixedStabilizer objects
+            are the same; NotImplemented if other is not a MixedStabilizer
+        :rtype: bool or NotImplementedType
         """
+        if not isinstance(other, MixedStabilizer):
+            return NotImplemented
         # Treat two objects the same if and only if they have the same probability distribution
         # and same set of tableaux with the same probability
         if len(self._mixture) != len(other.mixture):
             return False
-        # sort first
-        self.sort()
-        other.sort()
-        for i in range(len(self._mixture)):
-            if not np.isclose(self._mixture[i][0], other.mixture[i][0]):
+        # Compare sorted copies so the comparison does not reorder either
+        # object's mixture as a side effect.
+        mixture1 = sorted(self._mixture, key=lambda item: item[0], reverse=True)
+        mixture2 = sorted(other.mixture, key=lambda item: item[0], reverse=True)
+        for i in range(len(mixture1)):
+            if not np.isclose(mixture1[i][0], mixture2[i][0]):
                 return False
             else:
-                if self._mixture[i][1] != other.mixture[i][1]:
+                if mixture1[i][1] != mixture2[i][1]:
                     return False
 
         return True

@@ -94,3 +94,35 @@ def test_parameters(error_rates, criteria):
     # the number of branches in each circuit tree should increase as cut off increases
     len_list = [len(x) for x in circ_tree_list]
     assert all(len_list[i] <= len_list[i + 1] for i in range(len(len_list) - 1))
+
+
+def test_noise_type_list_reg_specific_str_value():
+    # a two-character string tells apart wrapping the whole string as one
+    # element ([noise_type]) from splitting it into characters (list(noise_type))
+    noisy_ensemble = tdn.NoisyEnsemble(
+        None,
+        noisy_regs=[(0, "e")],
+        noise_parameters={"reg_specific_noise": {"e0": "xy"}},
+    )
+    assert noisy_ensemble.noise_type_list((0, "e")) == ["xy"]
+
+
+def test_noise_type_list_reg_specific_list_value():
+    noisy_ensemble = tdn.NoisyEnsemble(
+        None,
+        noisy_regs=[(0, "e")],
+        noise_parameters={"reg_specific_noise": {"e0": ["y", "z"]}},
+    )
+    assert noisy_ensemble.noise_type_list((0, "e")) == ["y", "z"]
+
+
+def test_noise_type_list_falls_back_to_default_noise_type_str_value():
+    # register "e1" has no entry in reg_specific_noise, so this reaches the
+    # fallback branch that reads noise_parameters["noise_type"] instead
+    noisy_ensemble = tdn.NoisyEnsemble(
+        None,
+        noisy_regs=[(1, "e")],
+        # two characters, so a wrapped string and a split string differ
+        noise_parameters={"noise_type": "xz"},
+    )
+    assert noisy_ensemble.noise_type_list((1, "e")) == ["xz"]

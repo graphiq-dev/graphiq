@@ -303,3 +303,22 @@ def test_pauli_error_on_a_mixed_stabilizer(pauli):
     assert [p_i for p_i, _ in mixed.rep_data.mixture] == [0.25, 0.75]
     for _, tableau in mixed.rep_data.mixture:
         assert tableau == pure.rep_data.tableau
+
+
+def test_hadamard_perturbed_error_at_zero_perturbation_is_a_hadamard():
+    noise = nm.HadamardPerturbedError(0, 0, 0)
+
+    unitary = noise.noise_parameters["One-qubit unitary"]
+
+    assert np.allclose(unitary, dmf.hadamard())
+    assert noise.noise_parameters["Perturbation"] == (0, 0, 0)
+    assert noise.noise_parameters["Original parameters"] == (np.pi / 2, 0, np.pi)
+
+
+def test_hadamard_perturbed_error_with_a_nonzero_perturbation_is_still_unitary():
+    noise = nm.HadamardPerturbedError(0.1, 0.2, 0.3)
+
+    unitary = noise.noise_parameters["One-qubit unitary"]
+
+    assert np.allclose(unitary @ unitary.conj().T, np.eye(2))
+    assert noise.noise_parameters["Perturbation"] == (0.1, 0.2, 0.3)

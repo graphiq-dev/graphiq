@@ -652,3 +652,30 @@ def test_circuit_comparison_8():
     match = circuit1.compare(circuit2)
     assert ged
     assert match
+
+
+def test_initialize_parameters_same_seed_gives_identical_parameter_values():
+    # Keys are id(op)-derived, so a fresh circuit's map compares unequal to another fresh
+    # circuit's map even with the same seed; comparing the parameter *values* is what actually
+    # checks reproducibility.
+    from graphiq.benchmarks.circuits import variational_entangling_layer_2qubit
+
+    circuit_a, _ = variational_entangling_layer_2qubit()
+    circuit_b, _ = variational_entangling_layer_2qubit()
+
+    parameters_a = circuit_a.initialize_parameters(seed=42)
+    parameters_b = circuit_b.initialize_parameters(seed=42)
+
+    assert list(parameters_a.values()) == list(parameters_b.values())
+
+
+def test_initialize_parameters_different_seed_gives_different_parameter_values():
+    from graphiq.benchmarks.circuits import variational_entangling_layer_2qubit
+
+    circuit_a, _ = variational_entangling_layer_2qubit()
+    circuit_b, _ = variational_entangling_layer_2qubit()
+
+    parameters_a = circuit_a.initialize_parameters(seed=42)
+    parameters_b = circuit_b.initialize_parameters(seed=43)
+
+    assert list(parameters_a.values()) != list(parameters_b.values())

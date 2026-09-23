@@ -90,6 +90,8 @@ def benchmark_data(
     :type target_type: str
     :param per_target_retries: the number of times we should reseed and run the same solver problem
     :type per_target_retries: int
+    :param seed_offset: added to each retry's index to form the seed passed to the solver
+    :type seed_offset: int
     :param save_directory: if None, return data without saving. Else, save data to specified directory
     :type save_directory: str
     :return: dataframe summarizing benchmark information + other info

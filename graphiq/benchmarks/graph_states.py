@@ -101,7 +101,9 @@ def _gnp_random_connected_graph(n, p, np_rng):
     :type n: int
     :param p: the probability of an edge being added
     :type p: float
-    :return:
+    :param np_rng: the random number generator used to choose the edges
+    :type np_rng: numpy.random.Generator
+    :return: a random graph on n nodes; p <= 0 gives the graph with no edges and p >= 1 the complete graph
     :rtype: networkx.Graph
     """
     edges = itertools.combinations(range(n), 2)

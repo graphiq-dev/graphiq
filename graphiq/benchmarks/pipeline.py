@@ -50,7 +50,9 @@ def run_combinations(solvers, targets, compilers, metrics):
     :type compilers: list
     :param metrics: list of metrics to use
     :type metrics: list
-    :return: a list of dictionaries, each defining a single benchmarking run
+    :return: a dictionary mapping each run name ("run0", "run1", ...) to a dictionary defining a single
+        benchmarking run
+    :rtype: dict
     """
 
     runs = {}
@@ -123,8 +125,9 @@ def benchmark(runs: dict, io: IO, remote=True):
     """
     Runs a sequence of benchmark runs, either using parallel or serial processing.
 
-    :param runs: a list of runs, each being a dictionary containing the important class instances (solvers, etc.)
-    :type: list
+    :param runs: a dictionary mapping each run name to a run, each being a dictionary containing the important
+        class instances (solvers, etc.)
+    :type runs: dict
     :param io: a top-level IO object for saving benchmark data
     :type io: IO instance
     :param remote: True/False flag. If True, will run solvers in parallel using `ray`
@@ -178,7 +181,7 @@ def benchmark_run_graph_search_solver(run, name, io, circuit_format="qasm"):
     :param circuit_format: a variable define what format the circuit will be saved to
     :type circuit_format: str
     :return: dictionary storing all the results/metadata for the current run (can be added to a DataFrame)
-    :rtype: pandas.DataFrame
+    :rtype: dict
     """
     solver = run["solver"]
     t0 = time.time()
@@ -222,10 +225,13 @@ def benchmark_graph_search_solver(runs, io, circuit_format="qasm"):
     """
     Runs a sequence of benchmark runs, either using parallel or serial processing.
 
-    :param runs: a list of runs, each being a dictionary containing the important class instances (solvers, etc.)
-    :type: list
+    :param runs: a dictionary mapping each run name to a run, each being a dictionary containing the important
+        class instances (solvers, etc.)
+    :type runs: dict
     :param io: a top-level IO object for saving benchmark data
     :type io: IO instance
+    :param circuit_format: the format each run's circuits are saved in, either "qasm" or "json"
+    :type circuit_format: str
     :return: DataFrame summarizing the results of all benchmarking runs
     """
     futures = []

@@ -90,3 +90,37 @@ def test_str_of_a_mixed_graph():
     # MixedGraph never sets _data, so the base class __str__ must go through data
     mixed_graph = MixedGraph([(1.0, Graph(nx.path_graph(2)))])
     assert str(mixed_graph).startswith("MixedGraph")
+
+
+def test_graph_to_density_mixed_arm_reached_through_the_private_helper():
+    # QuantumState.validate_data has no MixedGraph arm, so a MixedGraph cannot enter a
+    # QuantumState through the constructor at all -- the mixed-graph conversion path can only be
+    # reached by calling the private helper directly on an instance whose "mixed" flag is set.
+    qs = QuantumState(nx.path_graph(3), rep_type="g", mixed=True)
+    graph_a = nx.path_graph(3)
+    graph_b = nx.cycle_graph(3)
+    mixed_graph = MixedGraph([(0.7, Graph(graph_a)), (0.3, Graph(graph_b))])
+
+    density = qs._graph_to_density(mixed_graph)
+
+    expected = 0.7 * rc.graph_to_density(graph_a) + 0.3 * rc.graph_to_density(graph_b)
+    assert np.allclose(density.data, expected)
+
+
+def test_convert_representation_graph_to_density_matrix_pure_arm():
+    graph = nx.path_graph(3)
+    state = QuantumState(graph, rep_type="g")
+
+    state.convert_representation("dm")
+
+    assert np.allclose(state.rep_data.data, rc.graph_to_density(graph))
+
+
+def test_convert_representation_graph_to_stabilizer_pure_arm():
+    graph = nx.path_graph(3)
+    state = QuantumState(graph, rep_type="g")
+
+    state.convert_representation("s")
+
+    expected = rc.graph_to_stabilizer(graph)[0][1]
+    assert state.rep_data.data.to_stabilizer() == expected

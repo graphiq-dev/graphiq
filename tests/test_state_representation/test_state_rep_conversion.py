@@ -16,6 +16,7 @@ from functools import reduce
 
 import networkx as nx
 import numpy as np
+import pytest
 
 import graphiq.backends.density_matrix.functions as dmf
 import graphiq.backends.state_rep_conversion as rc
@@ -235,3 +236,10 @@ def test_density_to_graph_mixed_state_decomposes_into_eigenstates():
     assert np.allclose(weights, [0.3, 0.7])
     for _, adj in graph_list:
         assert np.array_equal(adj, np.zeros((1, 1)))
+
+
+def test_state_to_graph_rejects_an_unrepresentable_input():
+    # Neither an adjacency matrix, a graph, nor a stabilizer/Clifford tableau: falls through
+    # every isinstance check to the final else arm.
+    with pytest.raises(ValueError, match="input data should either be"):
+        rc.state_to_graph("x")

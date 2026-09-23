@@ -105,3 +105,39 @@ def test_fidelity_multiqubit(n_qubits):
     )
     # works only for even number of qubits
     assert np.allclose(fidelity(rho, sigma), 0.5**n_qubits)
+
+
+def test_swap_two_qubits_exchanges_a_computational_basis_state():
+    rho = ket2dm(tensor([state_ketz0(), state_ketz1()]))
+
+    swapped = swap_two_qubits(rho, 0, 1)
+
+    assert np.allclose(swapped, ket2dm(tensor([state_ketz1(), state_ketz0()])))
+
+
+def test_swap_two_qubits_refuses_equal_control_and_target():
+    # Delegates to get_two_qubit_controlled_gate, which refuses to build a controlled gate
+    # whose control and target are the same qubit.
+    rho = ket2dm(tensor([state_ketz0(), state_ketz1()]))
+
+    with pytest.raises(ValueError):
+        swap_two_qubits(rho, 0, 0)
+
+
+def test_trace_out_qubit_of_a_bell_pair_leaves_the_maximally_mixed_state():
+    bell = (
+        tensor([state_ketz0(), state_ketz0()]) + tensor([state_ketz1(), state_ketz1()])
+    ) / np.sqrt(2)
+    rho = ket2dm(bell)
+
+    traced = trace_out_qubit(rho, 1)
+
+    assert np.allclose(traced, np.eye(2) / 2)
+
+
+def test_trace_out_qubit_of_a_product_state_leaves_the_untraced_factor():
+    rho = ket2dm(tensor([state_ketz0(), state_ketz1()]))
+
+    traced = trace_out_qubit(rho, 1)
+
+    assert np.allclose(traced, ket2dm(state_ketz0()))

@@ -217,19 +217,17 @@ def reset_z(
     n_qubits = tableau.n_qubits  # number of qubits
     assert qubit_position < n_qubits
     assert intended_state == 0 or intended_state == 1
-    tableau, outcome, probabilistic = z_measurement_gate(
+    tableau, outcome, _ = z_measurement_gate(
         tableau, qubit_position, measurement_determinism
     )
-    if probabilistic:
-        tableau.phase[probabilistic] = intended_state
-        tableau.iphase[probabilistic] = 0
+    # The measurement above has projected the qubit onto its outcome, so the
+    # only unitary left that moves it to the intended state is X, applied
+    # exactly when the two disagree. This holds on both branches: the sign of
+    # the measured row cannot be overwritten instead, because the surviving
+    # qubits' generators still reference it.
+    if outcome == intended_state:
         return tableau
-
-    else:
-        if outcome == intended_state:
-            return tableau
-        else:
-            return x_gate(tableau, qubit_position)
+    return x_gate(tableau, qubit_position)
 
 
 def reset_x(

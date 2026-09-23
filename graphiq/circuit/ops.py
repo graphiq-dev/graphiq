@@ -220,6 +220,8 @@ class OperationBase(ABC):
         """
         Sets the labels to be new_labels
 
+        :param new_labels: the labels to replace the existing ones with
+        :type new_labels: list[str]
         :return: nothing
         :rtype: None
         """
@@ -229,6 +231,8 @@ class OperationBase(ABC):
         """
         Adds new labels to existing labels
 
+        :param new_labels: the label or labels to add to the existing ones
+        :type new_labels: list[str] or str
         :return: nothing
         :rtype: None
         """
@@ -463,6 +467,10 @@ class ControlledPairOperationBase(OperationBase):
         :type target: int OR tuple (of ints, length 2)
         :param target_type: 'p' if photonic qubit, 'e' if emitter qubit
         :type target_type: str
+        :param noise: Noise model, or a list of two noise models (one for the control, one for the target);
+            a single noise model is applied to both
+        :type noise: graphiq.noise.noise_models.NoiseBase or list
+        :raises AssertionError: if noise is a list whose length is not 2
         :return: function returns nothing
         :rtype: None
         """
@@ -1236,7 +1244,9 @@ def class_to_name_mapping(class_op):
 
     :param class_op: operation class
     :type class_op: operation
-    :return:
+    :return: the string name used for this operation class in json, or None if class_op has no entry
+        in the mapping
+    :rtype: str or None
     """
     mapping = {
         CNOT: "CX",

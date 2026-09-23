@@ -71,6 +71,10 @@ class CircuitDAG(CircuitBase):
         :type n_photon: int
         :param n_classical: the number of classical bits in the system
         :type n_classical: int
+        :param openqasm_imports: None or an (ordered) dictionary, where the keys are import strings for openqasm
+        :type openqasm_imports: a dictionary (with str keys) or None
+        :param openqasm_defs: None or an (ordered) dictionary, where the keys are definitions strings for openqasm gates
+        :type openqasm_defs: a dictionary (with str keys) or None
         :return: nothing
         :rtype: None
         """
@@ -716,6 +720,9 @@ class CircuitDAG(CircuitBase):
         :param reg_type: 'e' to add an emitter qubit register, 'p' to add a photonic qubit register,
                          'c' to add a classical register
         :type reg_type: str
+        :param size: the size of the register to add; this circuit class only supports registers of size 1
+        :type size: int
+        :raises ValueError: if size is not 1
         :return: the index of the added register
         :rtype: int
         """
@@ -1156,8 +1163,11 @@ class CircuitDAG(CircuitBase):
         """
         Create a copy of the circuit where each gate is appended its noise model
 
-        :param noise_model_map:
-        :type noise_model_map:
+        :param noise_model_map: a nested dictionary whose outer keys are register-type sections ("e", "p", "ee",
+            "ep", ...) and whose inner dictionaries map an operation's class name to its noise model; for a
+            two-qubit operation, the section is its control type followed by its target type, and the noise
+            model may be a list of two (one per leg). Operations without an entry get NoNoise
+        :type noise_model_map: dict[str, dict]
         :return: a new circuit
         :rtype: CircuitDAG
         """

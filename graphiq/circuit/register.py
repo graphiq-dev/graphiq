@@ -50,6 +50,15 @@ class Register:
 
     @property
     def register(self):
+        """
+        The register dictionary, keyed by register type
+
+        This is a shallow copy: adding or removing a register type on the result does not affect the Register,
+        but the per-type lists are shared, so mutating one of those does.
+
+        :return: a copy of the register dictionary
+        :rtype: dict
+        """
         return self._registers.copy()
 
     def __getitem__(self, key):
@@ -83,7 +92,8 @@ class Register:
         :type reg_type: str
         :param size: the new register size
         :type size: int
-        :raises ValueError: if new_size is not greater than the current register size
+        :raises ValueError: if reg_type is not a valid register type, if size is less than 1, or if size is
+            greater than 1 and multi-qubit registers are not supported
         :return: the index number of the added register
         :rtype: int
         """
@@ -107,11 +117,12 @@ class Register:
         :param register: the register index of the register to expand
         :type register: int
         :param new_size: the new register size
-        :type register: int
+        :type new_size: int
         :param reg_type: 'p' for a photonic quantum register, 'e' for an emitter quantum register,
                          'c' for a classical register
         :type reg_type: str
-        :raises ValueError: if new_size is not greater than the current register size
+        :raises ValueError: if reg_type is not a valid register type, if new_size is greater than 1 and multi-qubit
+            registers are not supported, or if new_size is not greater than the current register size
         :return: this function returns nothing
         :rtype: None
         """

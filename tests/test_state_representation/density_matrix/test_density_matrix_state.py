@@ -58,3 +58,16 @@ def test_density_matrix_eq_different_sizes():
     # a (1, 1) matrix must not broadcast into equality with a (2, 2) one
     assert (DensityMatrix(np.ones((1, 1))) == DensityMatrix(np.ones((2, 2)))) is False
     assert (DensityMatrix(np.eye(2) / 2) == DensityMatrix(np.eye(4) / 4)) is False
+
+
+def test_forced_outcome_0_with_zero_probability_does_not_divide_by_zero():
+    # p(1) is 1 up to rounding and p(0) is exactly 0, so outcome 0 is impossible
+    state = DensityMatrix(
+        np.diag([0.0, 1.0 - 1e-16]).astype(complex), normalized=False
+    )
+    projectors = [np.diag([1.0, 0.0]), np.diag([0.0, 1.0])]
+
+    outcome = state.apply_measurement(projectors, measurement_determinism=0)
+
+    assert outcome == 1
+    assert not np.any(np.isnan(state.data))

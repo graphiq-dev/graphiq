@@ -179,7 +179,10 @@ class DensityMatrix(StateRepresentationBase):
                     outcome = 0
 
             elif measurement_determinism == 0:
-                if probs[1] < 1:
+                # probs[0] is what outcome 0 divides by below; testing only
+                # probs[1] < 1 let a rounding-error probs[1] = 1 - 1e-16 with
+                # probs[0] = 0 through, producing a NaN matrix
+                if probs[1] < 1 and probs[0] > 0:
                     outcome = 0
                 else:
                     outcome = 1

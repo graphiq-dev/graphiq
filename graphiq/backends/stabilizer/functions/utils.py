@@ -131,6 +131,40 @@ def is_symplectic_self_orthogonal(input_matrix):
     )
 
 
+def is_stabilizer(table):
+    """
+    Check if a given n x 2n binary symplectic table is a valid set of stabilizer generators,
+    i.e. its rows pairwise commute and are linearly independent over GF(2).
+
+    :param table: an n x 2n binary symplectic table
+    :type table: numpy.ndarray
+    :return: True if the rows pairwise commute and are linearly independent over GF(2); False
+        otherwise
+    :rtype: bool
+    """
+    n_rows, n_columns = table.shape
+    assert n_columns == 2 * n_rows
+    if not is_symplectic_self_orthogonal(table):
+        return False
+    # GF(2) rank by Gaussian elimination; a real-valued rank would not do, e.g.
+    # ZZI, IZZ, ZIZ has GF(2) rank 2 but real rank 3
+    reduced = np.array(table, dtype=int) % 2
+    rank = 0
+    for column in range(n_columns):
+        pivots = np.nonzero(reduced[rank:, column])[0]
+        if len(pivots) == 0:
+            continue
+        pivot = rank + pivots[0]
+        reduced[[rank, pivot]] = reduced[[pivot, rank]]
+        for row in range(n_rows):
+            if row != rank and reduced[row, column]:
+                reduced[row] = (reduced[row] + reduced[rank]) % 2
+        rank += 1
+        if rank == n_rows:
+            break
+    return rank == n_rows
+
+
 def binary_symplectic_product(matrix1, matrix2):
     """
     Compute the binary symplectic product of two matrices matrix1 (:math:`M_1`) and matrix2 (:math:`M_2`)

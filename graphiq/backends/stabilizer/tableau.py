@@ -231,9 +231,10 @@ class StabilizerTableau(TableauBase):
 
     def validate(self):
         """
-        Validate that the tableau is a valid tableau
+        Validate that the tableau is a valid set of stabilizer generators, i.e. its rows
+        pairwise commute and are linearly independent over GF(2)
 
-        :return: True if the tableau is symplectic; False if it is not
+        :return: True if the tableau is valid; False if it is not
         :rtype: bool
         """
         return sfu.is_stabilizer(self._table)

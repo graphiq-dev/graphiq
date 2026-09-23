@@ -17,6 +17,7 @@ import pytest
 
 from graphiq.benchmarks import graph_states as gs
 from graphiq.backends.lc_equivalence_check import *
+from graphiq.backends.lc_equivalence_check import _is_valid_clifford
 from graphiq.backends.stabilizer.functions.local_cliff_equi_check import (
     lc_check,
     state_converter_circuit,
@@ -187,3 +188,68 @@ def test_state_to_graph_matrix_input_matches_graph_input():
     graph, tableau, gate_list = state_to_graph(nx.to_numpy_array(star4))
     assert isinstance(tableau, StabilizerTableau)
     assert gate_list == []
+
+
+@pytest.mark.parametrize("mode", ["deterministic", "random"])
+def test_is_lc_equivalent_star4_and_k4(mode):
+    # a 4-node star and the complete graph on 4 nodes are LC equivalent
+    star4 = nx.to_numpy_array(nx.star_graph(3)).astype(int)
+    k4 = nx.to_numpy_array(nx.complete_graph(4)).astype(int)
+
+    equivalent, solution = is_lc_equivalent(star4, k4, mode=mode, seed=0)
+
+    assert equivalent
+    n_nodes = star4.shape[0]
+    assert _is_valid_clifford(solution.reshape(4 * n_nodes, 1))
+
+
+def test_is_lc_equivalent_p4_and_its_complement_are_not_equivalent():
+    # P4 and its complement are ruled out by the rank check in is_lc_equivalent
+    # (the coefficient matrix has rank 4*n_nodes) before either search mode is
+    # read, so this pair does not exercise the "deterministic"/"random" dispatch.
+    p4 = nx.to_numpy_array(nx.path_graph(4)).astype(int)
+    p4_complement = nx.to_numpy_array(nx.complement(nx.path_graph(4))).astype(int)
+
+    equivalent, solution = is_lc_equivalent(
+        p4, p4_complement, mode="deterministic", seed=0
+    )
+
+    assert not equivalent
+    assert solution is None
+
+
+@pytest.mark.parametrize("mode", ["deterministic", "random"])
+def test_is_lc_equivalent_star5_and_star5_plus_edge_are_not_equivalent(mode):
+    # star5 and star5 with one extra edge among its leaves pass the rank check
+    # (rank 15 < 4*n_nodes = 20) with a solution-basis dimension of 5, so the
+    # "deterministic"/"random" dispatch in is_lc_equivalent is actually reached,
+    # and both searches correctly reject.
+    star5 = nx.to_numpy_array(nx.star_graph(4)).astype(int)
+    star5_plus_edge_graph = nx.star_graph(4)
+    star5_plus_edge_graph.add_edge(1, 2)
+    star5_plus_edge = nx.to_numpy_array(star5_plus_edge_graph).astype(int)
+
+    equivalent, solution = is_lc_equivalent(star5, star5_plus_edge, mode=mode, seed=0)
+
+    assert not equivalent
+    assert solution is None
+
+
+def test_find_lc_operations_recovers_first_graph_from_second():
+    # These two 5-node graphs are LC equivalent via a multi-step local
+    # complementation sequence (not a single node, unlike star4/k4), which is
+    # needed to tell apart which of the two adjacency matrices the sequence
+    # is built from.
+    g1 = nx.Graph([(0, 1), (0, 2), (0, 3), (0, 4), (1, 2), (1, 3), (2, 4)])
+    g2 = nx.Graph([(0, 1), (0, 2), (1, 3), (2, 4), (3, 4)])
+    adj_matrix1 = nx.to_numpy_array(g1).astype(int)
+    adj_matrix2 = nx.to_numpy_array(g2).astype(int)
+
+    op_list = find_lc_operations(adj_matrix1, adj_matrix2, mode="deterministic", seed=0)
+
+    # applying the returned local complementations to the second graph should
+    # turn it into the first graph
+    g = nx.from_numpy_array(adj_matrix2)
+    for node in op_list:
+        g = local_comp_graph(g, node)
+    assert np.array_equal(nx.to_numpy_array(g).astype(int), adj_matrix1)

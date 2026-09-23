@@ -45,6 +45,7 @@ def z_measurement_gate(
     :param measurement_determinism: if the outcome is probabilistic from the simulation, we have the option to
         select a specific outcome
     :type measurement_determinism: str or int
+    :raises ValueError: if the outcome is random and measurement_determinism is not "probabilistic", 0 or 1
     :return: the resulting state after gate action, the measurement outcome, whether the measurement outcome is
         probabilistic (zero means deterministic)
     :rtype: CliffordTableau, int, int
@@ -92,8 +93,12 @@ def z_measurement_gate(
             outcome = np.random.randint(0, 2)
         elif measurement_determinism == 1:
             outcome = 1
-        else:
+        elif measurement_determinism == 0:
             outcome = 0
+        else:
+            raise ValueError(
+                f'measurement_determinism parameter must be "probabilistic", 0, or 1'
+            )
 
         tableau.phase[x_p] = outcome
         tableau.table = table

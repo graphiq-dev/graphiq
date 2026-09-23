@@ -90,3 +90,12 @@ def test_pure_and_mixed_stabilizers_compare_unequal_without_raising():
     mixed = MixedStabilizer([(1.0, Stabilizer(2).tableau)])
     assert (pure == mixed) is False
     assert (mixed == pure) is False
+
+
+@pytest.mark.parametrize("measurement_determinism", ["probabilstic", 2, None])
+def test_measurement_rejects_an_unrecognised_determinism(measurement_determinism):
+    # |+> has a random Z outcome, so the determinism setting is consulted
+    state = Stabilizer(1)
+    state.apply_hadamard(0)
+    with pytest.raises(ValueError, match="measurement_determinism"):
+        state.apply_measurement(0, measurement_determinism=measurement_determinism)

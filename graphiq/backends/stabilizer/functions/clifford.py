@@ -370,6 +370,14 @@ def remove_qubit(tableau, qubit_position, measurement_determinism="probabilistic
     tableau, outcome, probabilistic = z_measurement_gate(
         tableau, qubit_position, measurement_determinism
     )
+    if outcome == 1:
+        # After z_measurement_gate every stabilizer row has x_q = 0, so +Z_q
+        # is already in the group but may carry the wrong sign. x_gate flips
+        # phase exactly where z_q = 1, which fixes that sign without touching
+        # the x/z bits -- so it is safe to apply before non_zero is computed
+        # below, and it is what makes deleting column q transfer the outcome's
+        # sign to the remaining generators in both branches.
+        tableau = x_gate(tableau, qubit_position)
     new_table = np.delete(
         tableau.table, [qubit_position, qubit_position + n_qubits], axis=1
     )

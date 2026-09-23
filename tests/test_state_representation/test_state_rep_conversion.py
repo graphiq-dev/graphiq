@@ -19,8 +19,46 @@ import numpy as np
 import pytest
 
 import graphiq.backends.density_matrix.functions as dmf
+import graphiq.backends.stabilizer.functions.linalg as sla
 import graphiq.backends.state_rep_conversion as rc
 from graphiq.backends.stabilizer.tableau import StabilizerTableau
+
+
+def test_position_finder_single_z_stabilized_qubit_needs_hadamard():
+    # a Z-stabilized qubit (e.g. |0>) has an all-zero X column; _position_finder must
+    # report it as needing a Hadamard, or downstream _graph_finder can't invert X at all.
+    assert rc._position_finder(np.array([[0]])) == [0]
+
+
+def test_position_finder_two_z_stabilized_qubits_both_need_hadamard():
+    # both qubits of |00> are Z-stabilized; _position_finder must not silently drop the
+    # first pivot it starts on.
+    x, _z, _rank = sla.row_reduction(
+        np.array([[0, 0], [0, 0]]), np.array([[1, 0], [0, 1]])
+    )
+    assert rc._position_finder(x) == [0, 1]
+
+
+def test_position_finder_only_the_pivotless_qubit_needs_hadamard():
+    # qubit 0 is Z-stabilized (needs Hadamard); qubits 1, 2 are already X-stabilized.
+    x, _z, _rank = sla.row_reduction(
+        np.array([[0, 0, 0], [0, 1, 0], [0, 0, 1]]),
+        np.array([[1, 0, 0], [0, 0, 0], [0, 0, 0]]),
+    )
+    assert rc._position_finder(x) == [0]
+
+
+def test_state_to_graph_two_qubit_z_stabilized_tableau_no_longer_crashes():
+    # |00>: both qubits Z-stabilized, x_matrix all-zero. Used to raise
+    # "AssertionError: Stabilizer generators are not independent." in _graph_finder.
+    x_matrix = np.zeros((2, 2))
+    z_matrix = np.eye(2)
+    tableau = StabilizerTableau([x_matrix, z_matrix])
+
+    graph, tab, gate_list = rc.state_to_graph(tableau)
+
+    assert graph.number_of_nodes() == 2
+    assert gate_list == [("H", 0), ("H", 1)]
 
 
 def test_negativity():

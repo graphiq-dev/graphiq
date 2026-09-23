@@ -466,22 +466,13 @@ def _position_finder(x_matrix):
     :return: list of qubit positions to apply the Hadamard on
     :rtype: list
     """
-    pivot = [0, 0]
-    n = x_matrix.shape[0]
-    pos_list = []
-    while pivot[0] < n and pivot[1] < n:
-        try:
-            if x_matrix[pivot[0] + 1, pivot[1]] == 1:
-                pivot = [pivot[0] + 1, pivot[1]]
-            if x_matrix[pivot[0] + 1, pivot[1] + 1] == 1:
-                pivot = [pivot[0] + 1, pivot[1] + 1]
-            else:
-                pivot = [pivot[0], pivot[1] + 1]
-                pos_list.append(pivot[1])
-        except:
-            break
-
-    return pos_list
+    n_row, n_column = x_matrix.shape
+    pivot_columns = set()
+    for row in range(n_row):
+        nonzero_cols = np.nonzero(x_matrix[row])[0]
+        if len(nonzero_cols):
+            pivot_columns.add(int(nonzero_cols[0]))
+    return [col for col in range(n_column) if col not in pivot_columns]
 
 
 def _graph_finder(x_matrix, z_matrix, get_ops_data=False):

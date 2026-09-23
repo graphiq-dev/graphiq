@@ -128,3 +128,47 @@ def test_default_setting_names_a_dispatchable_lc_method():
     )
     solver.solve()
     assert solver.result is not None
+
+
+def test_allow_relabel_false_searches_only_the_given_labelling():
+    setting = AlternateTargetSolverSetting(n_iso_graphs=3, n_lc_graphs=2)
+    setting.allow_relabel = False
+    setting.lc_method = None
+    solver = AlternateTargetSolver(
+        target=nx.path_graph(4), solver_setting=setting, seed=1
+    )
+    results = solver.solve()
+    n = solver.target_graph.number_of_nodes()
+    for _, properties in results:
+        # get_relabel_map also carries a -1 "self" key, so identity is over range(n)
+        assert {i: properties["map"][i] for i in range(n)} == {i: i for i in range(n)}
+
+
+def test_allow_lc_false_keeps_the_isomorphic_graph_unchanged():
+    setting = AlternateTargetSolverSetting(n_iso_graphs=1, n_lc_graphs=4)
+    setting.allow_relabel = False
+    setting.allow_lc = False
+    solver = AlternateTargetSolver(
+        target=nx.path_graph(4), solver_setting=setting, seed=1
+    )
+    results = solver.solve()
+    assert len(results) == 1
+    # the candidate is rebuilt from an adjacency matrix, so it carries weight
+    # attributes the target does not; compare structure, not edge data
+    candidate = results[0][1]["g"]
+    assert sorted(candidate.nodes()) == sorted(solver.target_graph.nodes())
+    assert sorted(map(sorted, candidate.edges())) == sorted(
+        map(sorted, solver.target_graph.edges())
+    )
+
+
+def test_allow_lc_false_bypasses_lc_method_validation():
+    setting = AlternateTargetSolverSetting(n_iso_graphs=1, n_lc_graphs=1)
+    setting.allow_relabel = False
+    setting.allow_lc = False
+    setting.lc_method = "no such search"
+    solver = AlternateTargetSolver(
+        target=nx.path_graph(4), solver_setting=setting, seed=1
+    )
+    solver.solve()
+    assert solver.result is not None

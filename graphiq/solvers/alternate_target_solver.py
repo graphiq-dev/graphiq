@@ -164,16 +164,20 @@ class AlternateTargetSolver:
         n_lc = setting.n_lc_graphs
         adj_matrix = nx.to_numpy_array(self.target_graph)
 
-        iso_adjs = iso_finder(
-            adj_matrix,
-            n_iso,
-            rel_inc_thresh=setting.rel_inc_thresh,
-            allow_exhaustive=setting.allow_exhaustive,
-            sort_emit=setting.sort_emitter,
-            label_map=setting.label_map,
-            thresh=setting.iso_thresh,
-            seed=self.seed,
-        )
+        if setting.allow_relabel:
+            iso_adjs = iso_finder(
+                adj_matrix,
+                n_iso,
+                rel_inc_thresh=setting.rel_inc_thresh,
+                allow_exhaustive=setting.allow_exhaustive,
+                sort_emit=setting.sort_emitter,
+                label_map=setting.label_map,
+                thresh=setting.iso_thresh,
+                seed=self.seed,
+            )
+        else:
+            # only the labelling given
+            iso_adjs = [adj_matrix]
         results_list = []
         mc_list = []
         # repeater graph state check
@@ -184,7 +188,10 @@ class AlternateTargetSolver:
         # list of tuples [(circuit, dict={'g': graph used to find circuit, 'map': relabel map with target})]
         iso_graphs = [nx.from_numpy_array(adj) for adj in iso_adjs]
         for iso_graph in iso_graphs:
-            if setting.lc_method == "rgs":
+            if not setting.allow_lc:
+                # each isomorphic graph is its own only candidate
+                lc_graphs = [iso_graph]
+            elif setting.lc_method == "rgs":
                 lc_graphs = rgs_orbit_finder(iso_graph)[:n_lc]
             elif setting.lc_method == "linear":
                 lc_graphs = linear_partial_orbit(iso_graph)[:n_lc]

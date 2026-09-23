@@ -21,9 +21,12 @@ describes.
 
 import networkx as nx
 import numpy as np
+import pytest
 
 import graphiq.backends.state_rep_conversion as rc
+from graphiq.backends.stabilizer.clifford_tableau import CliffordTableau
 from graphiq.backends.stabilizer.tableau import StabilizerTableau
+from graphiq.state import QuantumState
 
 
 def test_stabilizer_to_density_converts_ket_one_correctly():
@@ -63,3 +66,37 @@ def test_stabilizer_to_density_leaves_a_graph_state_unchanged():
     rho = rc.stabilizer_to_density(tableau)
 
     assert np.allclose(rho, rc.graph_to_density(graph))
+
+
+def test_conversion_rejects_a_nonzero_i_phase():
+    # StabilizerTableau has no iphase -- CliffordTableau.to_stabilizer() drops
+    # it -- so the check has to happen on the CliffordTableau. A generator
+    # carrying a factor of i cannot be read as a bare +1/-1 sign.
+    tableau = CliffordTableau(1)
+    tableau.iphase[tableau.n_qubits] = 1
+
+    state = QuantumState(tableau, rep_type="s")
+
+    with pytest.raises(ValueError, match="i phase"):
+        state.convert_representation("dm")
+
+
+def test_conversion_rejects_a_nonzero_destabilizer_i_phase():
+    tableau = CliffordTableau(1)
+    tableau.iphase[0] = 1
+
+    state = QuantumState(tableau, rep_type="s")
+
+    with pytest.raises(ValueError, match="i phase"):
+        state.convert_representation("dm")
+
+
+def test_conversion_rejects_a_nonzero_i_phase_in_a_mixture():
+    good = CliffordTableau(1)
+    bad = CliffordTableau(1)
+    bad.iphase[bad.n_qubits] = 1
+
+    state = QuantumState([(0.5, good), (0.5, bad)], rep_type="s", mixed=True)
+
+    with pytest.raises(ValueError, match="i phase"):
+        state.convert_representation("dm")

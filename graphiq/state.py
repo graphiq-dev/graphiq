@@ -40,6 +40,29 @@ DENSITY_MATRIX_QUBIT_THRESH = 10
 STABILIZER_MIXED_REPRESENTATION = "branch"
 
 
+def _reject_unrepresentable_i_phase(tableau):
+    """
+    Raise if a Clifford tableau carries a factor of i, which a density matrix cannot be built from.
+
+    The stabilizer-to-density-matrix conversion reads each generator as a Pauli string with a +1/-1
+    sign, so a tableau carrying an i phase would silently convert to a plausible but wrong density
+    matrix. No correct gate or measurement produces one: a stabilizer group consists of commuting
+    Hermitian Paulis with +1/-1 signs, and the Z-basis measurement copies a stabilizer row's own
+    (zero) i phase into the destabilizer half.
+
+    :param tableau: the tableau about to be converted
+    :type tableau: CliffordTableau
+    :raises ValueError: if any entry of the tableau's i-phase vector is non-zero
+    :return: nothing
+    :rtype: None
+    """
+    if np.any(tableau.iphase):
+        raise ValueError(
+            f"Cannot convert to a density matrix: the tableau carries a non-zero i phase: "
+            f"{tableau.iphase}"
+        )
+
+
 class QuantumState:
     """
     The QuantumState class is the unified API for accessing state representation backends.
@@ -313,6 +336,7 @@ class QuantumState:
 
         :param rep: initial representation
         :type rep: Stabilizer or MixedStabilizer
+        :raises ValueError: if a tableau carries a non-zero i phase
         :return: a density matrix
         :rtype: DensityMatrix
         """
@@ -320,9 +344,12 @@ class QuantumState:
             data_list = []
             assert isinstance(rep, MixedStabilizer)
             for p_i, t_i in rep.mixture:
+                # checked here: to_stabilizer() drops the i-phase vector
+                _reject_unrepresentable_i_phase(t_i)
                 data_list.append((p_i, t_i.to_stabilizer()))
             rho = rc.stabilizer_to_density(data_list)
         else:
+            _reject_unrepresentable_i_phase(rep.data)
             rho = rc.stabilizer_to_density(rep.data.to_stabilizer())
         return DensityMatrix(rho)
 

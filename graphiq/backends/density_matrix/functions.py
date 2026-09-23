@@ -659,7 +659,7 @@ def fidelity(rho, sigma):
 
 
 def trace_distance(rho, sigma):
-    """
+    r"""
     Return the trace distance between two hermitian matrices, $\rho$ and $\sigma$
     The trace distance is computed as:
     $$

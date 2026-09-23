@@ -220,3 +220,18 @@ def test_stabilizer_to_density_mixture():
     rho_plus_i = np.array([[1, -1j], [1j, 1]]) / 2
     assert rho is not None
     assert np.allclose(rho, 0.25 * rho_0 + 0.75 * rho_plus_i)
+
+
+def test_density_to_graph_mixed_state_decomposes_into_eigenstates():
+    # 0.7 |+><+| + 0.3 |-><-|: each branch must be built from one eigenvector
+    # (a column of eigh's output) and carry its own eigenvalue as the weight.
+    plus = np.array([1, 1]) / np.sqrt(2)
+    minus = np.array([1, -1]) / np.sqrt(2)
+    rho = 0.7 * np.outer(plus, plus) + 0.3 * np.outer(minus, minus)
+
+    graph_list = rc.density_to_graph(rho, validate=False)
+
+    weights = sorted(float(p_i) for p_i, _ in graph_list)
+    assert np.allclose(weights, [0.3, 0.7])
+    for _, adj in graph_list:
+        assert np.array_equal(adj, np.zeros((1, 1)))

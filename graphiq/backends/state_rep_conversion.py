@@ -62,9 +62,11 @@ def density_to_graph(input_matrix, threshold=0.1, validate=True):
         # eigen-decomposition
         eigenvalues, eigenvectors = linalg.eigh(input_matrix)
         graph_adj = []
-        for i in range(len(eigenvectors)):
-            rho_i = eigenvectors[i] @ np.conjugate(eigenvectors[i].T)
-            graph_adj.append((eigenvalues, _density_to_graph_pure(rho_i, threshold)))
+        for i in range(len(eigenvalues)):
+            # eigh returns the eigenvectors as columns
+            v = eigenvectors[:, i]
+            rho_i = np.outer(v, np.conjugate(v))
+            graph_adj.append((eigenvalues[i], _density_to_graph_pure(rho_i, threshold)))
 
     if validate:
         assert np.allclose(
@@ -327,8 +329,9 @@ def density_to_stabilizer(input_matrix):
         # eigen-decomposition
         eigenvalues, eigenvectors = linalg.eigh(input_matrix)
         stabilizer = []
-        for i in range(len(eigenvectors)):
-            rho_i = eigenvectors[i] @ np.conjugate(eigenvectors[i].T)
+        for i in range(len(eigenvalues)):
+            v = eigenvectors[:, i]
+            rho_i = np.outer(v, np.conjugate(v))
             graph = density_to_graph(rho_i)
             tmp_stabilizer = graph_to_stabilizer(graph)
             stabilizer.append((eigenvalues[i], tmp_stabilizer[0][1]))

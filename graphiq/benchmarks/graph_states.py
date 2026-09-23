@@ -259,7 +259,7 @@ def crazy(n_list: list, pos=False, alternate_order=False):
         edges.extend([(x, y) for x in current_nodes for y in next_col_nodes])
     g.add_edges_from(edges)
     if alternate_order:
-        from src.utils.relabel_module import relabel
+        from graphiq.utils.relabel_module import relabel
 
         nodes = []
         for k in range(0, len(n_list), 2):

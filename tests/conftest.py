@@ -19,5 +19,25 @@
 # why it lives in the top-level conftest.py: pytest loads it before collecting
 # any test module (and before their own conftest.py files import graphiq).
 import matplotlib
+import pytest
 
 matplotlib.use("Agg")
+
+
+@pytest.fixture(autouse=True)
+def _mixture_fold_flag_is_restored():
+    """
+    Fail the test that leaves ``REDUCE_STABILIZER_MIXTURE`` flipped.
+
+    The flag is a module global read on every depolarizing noise application; a test that
+    sets it False without restoring it turns folding off for every later test in the
+    process, and noisy solver runs then grow their mixtures without bound. Autouse so this
+    is set up before ``monkeypatch`` and torn down after it.
+    """
+    yield
+    import graphiq.noise.noise_models as nm
+
+    assert nm.REDUCE_STABILIZER_MIXTURE is True, (
+        "this test left graphiq.noise.noise_models.REDUCE_STABILIZER_MIXTURE = "
+        f"{nm.REDUCE_STABILIZER_MIXTURE!r}; restore it with monkeypatch.setattr"
+    )

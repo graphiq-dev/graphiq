@@ -88,7 +88,7 @@ def test_mixed_state_compare_with_dm(n_emitters):
 
 
 @pytest.mark.parametrize("lam", [0.0, 0.1, 0.5])
-def test_mixed_state_tableaux_reduction(lam):
+def test_mixed_state_tableaux_reduction(lam, monkeypatch):
     compiler = StabilizerCompiler()
     compiler.measurement_determinism = 1
     n_emitters = 2
@@ -97,12 +97,14 @@ def test_mixed_state_tableaux_reduction(lam):
 
     compiler.noise_simulation = True
 
-    nm.REDUCE_STABILIZER_MIXTURE = False
+    # monkeypatch restores the module-global flag however the test ends; a
+    # leaked False would stop every later test's mixtures from being folded
+    monkeypatch.setattr(nm, "REDUCE_STABILIZER_MIXTURE", False)
     state = compiler.compile(circ)
     assert isinstance(state.rep_data, MixedStabilizer)
     no_len_reduction = len(state.rep_data.mixture)
 
-    nm.REDUCE_STABILIZER_MIXTURE = True
+    monkeypatch.setattr(nm, "REDUCE_STABILIZER_MIXTURE", True)
     state = compiler.compile(circ)
     assert isinstance(state.rep_data, MixedStabilizer)
     len_reduction = len(state.rep_data.mixture)
@@ -112,7 +114,7 @@ def test_mixed_state_tableaux_reduction(lam):
         assert no_len_reduction > len_reduction
 
 
-def test_mixed_state_measurement():
+def test_mixed_state_measurement(monkeypatch):
     compiler = StabilizerCompiler()
     compiler.measurement_determinism = "probabilistic"
     compiler.noise_simulation = True
@@ -121,5 +123,5 @@ def test_mixed_state_measurement():
     circ, circ_ideal = create_circuits(n_emitters, n_photons, d_emitter, lam)
     circ.add(ops.MeasurementZ(register=0, reg_type="e"))
 
-    nm.REDUCE_STABILIZER_MIXTURE = False
+    monkeypatch.setattr(nm, "REDUCE_STABILIZER_MIXTURE", False)
     state = compiler.compile(circ)

@@ -160,7 +160,8 @@ class TraceDistance(MetricBase):
         Creates a TraceDistance Metric object, which computes the trace distance between the current state and the
         target state.
 
-        :param target: the ideal state against which we compute fidelity
+        :param target: the ideal state against which we compute the trace distance; it must be in the
+            density matrix representation
         :type target: QuantumState
         :param log_steps: the metric values are computed at every log_steps optimization step
         :type log_steps: int
@@ -178,13 +179,15 @@ class TraceDistance(MetricBase):
         The trace distance is computed between two density matrices $\rho$ and $\sigma$ as:
         $$
         T(\rho, \sigma) = \frac{1}{2} \text{Tr}\left( \sqrt{ (\rho - \sigma)^2 } \right)
-         = \\frac{1}{2} \sum_i | \lambda_i |
+         = \frac{1}{2} \sum_i | \lambda_i |
          $$
+
         :param state: the state to evaluate
         :type state: QuantumState
         :param circuit: circuit which generated state
                         Not used for the trace distance evaluation, but argument is provided for API consistency
         :type circuit: CircuitBase (or subclass of it)
+        :raises ValueError: if the target state is not in the density matrix representation
         :return: the trace distance
         :rtype: float
         """
@@ -658,11 +661,16 @@ class GraphMetric(MetricBase):
 
     def __init__(self, graph: nx.Graph, log_steps=1, penalty=None, *args, **kwargs):
         """
+        Create a GraphMetric object
 
+        :param graph: the graph on which the metric is calculated
+        :type graph: nx.Graph
         :param log_steps: the metric values are computed at every log_steps optimization step
         :type log_steps: int
-        :param m_penalty: a function which calculates a "cost"/penalty as a function of number of measurement
-        :type m_penalty: function
+        :param penalty: a function which calculates a "cost"/penalty as a function of the graph metric value;
+            if None, the penalty is the metric value itself
+        :type penalty: function or None
+        :raises AssertionError: if graph is not an nx.Graph
         :return: the function returns nothing
         :rtype: None
         """

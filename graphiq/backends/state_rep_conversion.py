@@ -178,7 +178,7 @@ def graph_to_stabilizer(input_graph):
     :type input_graph: networkX.Graph or numpy.ndarray
     :raise TypeError: if input_graph is not of the type of networkx.Graph or
             an adjacency matrix given by a numpy array or a list
-    :return: two binary matrices representing the stabilizer generators
+    :return: the stabilizer representation, as (probability, StabilizerTableau) pairs
     :rtype: list[(float, StabilizerTableau)]
     """
     if isinstance(input_graph, list):
@@ -199,8 +199,8 @@ def _graph_to_stabilizer_pure(input_graph):
     :param input_graph: the input graph to be converted to the stabilizer
     :type input_graph: networkX.Graph or numpy.ndarray
     :raise TypeError: if input_graph is not of the type of networkx.Graph or an adjacency matrix given by a numpy array
-    :return: two binary matrices representing the stabilizer generators
-    :rtype: numpy.ndarray, numpy.ndarray
+    :return: the stabilizer tableau
+    :rtype: StabilizerTableau
     """
     if isinstance(input_graph, nx.Graph):
         adj_matrix = nx.to_numpy_array(input_graph)

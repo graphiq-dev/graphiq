@@ -954,7 +954,8 @@ class GeneralKrausError(AdditionNoiseBase):
 
     This error may only work for the DensityMatrix backend.
 
-    # TODO: Implement this noise model by figuring out how to pass parameters
+    The stored operators are single-qubit; each is applied independently on
+    every register in ``reg_list``.
     """
 
     def __init__(self, kraus_ops):
@@ -983,7 +984,19 @@ class GeneralKrausError(AdditionNoiseBase):
         """
         state_rep = state.rep_data
         if isinstance(state_rep, DensityMatrix):
-            kraus_ops = self.get_backend_dependent_noise(state_rep, n_quantum, reg_list)
+            single_qubit_kraus = self.noise_parameters["Kraus"]
+            for kraus_op in single_qubit_kraus:
+                if np.array(kraus_op).shape != (2, 2):
+                    raise ValueError(
+                        "GeneralKrausError only supports single-qubit Kraus "
+                        "operators (shape (2, 2)), applied independently on "
+                        "every register in reg_list."
+                    )
+            kraus_ops_iter = itertools.product(single_qubit_kraus, repeat=len(reg_list))
+            kraus_ops = [
+                dmf.get_multi_qubit_gate(n_quantum, reg_list, kraus_op)
+                for kraus_op in kraus_ops_iter
+            ]
             state_rep.apply_channel(kraus_ops)
         elif isinstance(state_rep, (Stabilizer, MixedStabilizer)):
             raise NotImplementedError(

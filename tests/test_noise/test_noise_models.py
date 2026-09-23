@@ -243,3 +243,40 @@ def test_depolarizing_noise_on_a_pure_stabilizer(depolarizing_prob):
         assert t_got == t_expected
     if depolarizing_prob > 0:
         assert len(got) > 1
+
+
+def test_general_kraus_error_single_qubit():
+    # A bit flip with probability p on a one-qubit |0> state.
+    n_quantum = 1
+    p = 0.3
+    kraus_ops = [np.sqrt(1 - p) * np.eye(2), np.sqrt(p) * dmf.sigmax()]
+    state = _state_initialization_dm(n_quantum)
+    noise = nm.GeneralKrausError(kraus_ops)
+
+    noise.apply(state, n_quantum, [0])
+
+    assert np.allclose(state.rep_data.data, np.diag([1 - p, p]))
+
+
+def test_general_kraus_error_applies_independently_to_every_register():
+    # The same single-qubit channel on both qubits of |00> factorizes.
+    n_quantum = 2
+    p = 0.3
+    kraus_ops = [np.sqrt(1 - p) * np.eye(2), np.sqrt(p) * dmf.sigmax()]
+    state = _state_initialization_dm(n_quantum)
+    noise = nm.GeneralKrausError(kraus_ops)
+
+    noise.apply(state, n_quantum, [0, 1])
+
+    single_qubit_result = np.diag([1 - p, p])
+    expected = np.kron(single_qubit_result, single_qubit_result)
+    assert np.allclose(state.rep_data.data, expected)
+
+
+def test_general_kraus_error_refuses_operators_wider_than_one_qubit():
+    n_quantum = 1
+    state = _state_initialization_dm(n_quantum)
+    noise = nm.GeneralKrausError([np.eye(4)])
+
+    with pytest.raises(ValueError, match="single-qubit"):
+        noise.apply(state, n_quantum, [0])

@@ -778,10 +778,11 @@ class EvolutionarySolver(RandomSearchSolver):
         ]
 
         for edge in edges:
-            possible_edges = set(edges) - circuit.find_incompatible_edges(edge)
+            incompatible = circuit.find_incompatible_edges(edge)
 
-            for another_edge in possible_edges:
-                edge_pair.append((edge, another_edge))
+            for another_edge in edges:
+                if another_edge not in incompatible:
+                    edge_pair.append((edge, another_edge))
 
         return edge_pair
 
@@ -815,10 +816,11 @@ class EvolutionarySolver(RandomSearchSolver):
         ]
 
         for edge in e_edges:
-            possible_edges = set(p_edges) - circuit.find_incompatible_edges(edge)
+            incompatible = circuit.find_incompatible_edges(edge)
 
-            for another_edge in possible_edges:
-                edge_pair.append((edge, another_edge))
+            for another_edge in p_edges:
+                if another_edge not in incompatible:
+                    edge_pair.append((edge, another_edge))
 
         return edge_pair
 

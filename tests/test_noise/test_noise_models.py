@@ -280,3 +280,10 @@ def test_general_kraus_error_refuses_operators_wider_than_one_qubit():
 
     with pytest.raises(ValueError, match="single-qubit"):
         noise.apply(state, n_quantum, [0])
+
+
+def test_reset_error_default_noise_parameters_are_not_shared_between_instances():
+    a = nm.ResetError()
+    b = nm.ResetError()
+
+    assert a.noise_parameters is not b.noise_parameters

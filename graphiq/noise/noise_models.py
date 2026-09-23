@@ -1017,7 +1017,7 @@ class ResetError(NoiseBase):
     # TODO: implement this error model
     """
 
-    def __init__(self, noise_parameters={}):
+    def __init__(self, noise_parameters=None):
         super().__init__(noise_parameters)
 
     def apply(self, state: QuantumState, n_quantum, reg_list):

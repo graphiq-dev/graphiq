@@ -196,3 +196,14 @@ def test_height_dict_needs_graph_or_matrices():
     # an empty (falsy) graph argument falls through to the "neither" branch
     with pytest.raises(ValueError, match="Either a graph or both"):
         height_dict(graph=[])
+
+
+def test_height_dict_from_graph_orders_nodes_by_label():
+    # Nodes are added in the order 0, 2, 1, 3; height_dict(graph=...) must key its result by
+    # node label, not by the order the edges were inserted in.
+    graph = nx.Graph()
+    graph.add_edges_from([(0, 2), (1, 3)])
+
+    h_dict = height_dict(graph=graph)
+
+    assert [h_dict[0], h_dict[1], h_dict[2], h_dict[3]] == [1, 2, 1, 0]

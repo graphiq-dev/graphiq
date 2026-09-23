@@ -18,7 +18,7 @@ import pytest
 import graphiq.backends.density_matrix.functions as dmf
 import graphiq.backends.stabilizer.functions.clifford as sfc
 import graphiq.noise.noise_models as nm
-from graphiq.backends.stabilizer.state import MixedStabilizer
+from graphiq.backends.stabilizer.state import MixedStabilizer, Stabilizer
 from graphiq.state import QuantumState
 
 
@@ -212,3 +212,34 @@ def test_one_register_noise_refuses_the_stabilizer_backend(noise, state_factory)
 
     with pytest.raises(NotImplementedError):
         noise.apply(state, n_quantum, [0])
+
+
+@pytest.mark.parametrize("depolarizing_prob", [0.0, 0.2, 0.75])
+def test_depolarizing_noise_on_a_pure_stabilizer(depolarizing_prob):
+    # A pure Stabilizer (what Monte Carlo noise simulation compiles to) must be
+    # converted to a mixture before it can branch. The result should match the
+    # equivalent one-branch mixture, which reaches the same code with the
+    # conversion already done.
+    n_quantum = 2
+    reg_list = [0]
+    pure = _state_initialization_stabilizer(n_quantum)
+    assert isinstance(pure.rep_data, Stabilizer)
+    one_branch = QuantumState(
+        [(1.0, sfc.create_n_ket0_state(n_quantum))], rep_type="s", mixed=True
+    )
+
+    noise = nm.DepolarizingNoise(depolarizing_prob)
+    noise.apply(pure, n_quantum, reg_list)
+    noise.apply(one_branch, n_quantum, reg_list)
+
+    assert pure.mixed
+    assert isinstance(pure.rep_data, MixedStabilizer)
+    assert np.isclose(pure.rep_data.probability, 1.0)
+    got = pure.rep_data.mixture
+    expected = one_branch.rep_data.mixture
+    assert len(got) == len(expected)
+    for (p_got, t_got), (p_expected, t_expected) in zip(got, expected):
+        assert np.isclose(p_got, p_expected)
+        assert t_got == t_expected
+    if depolarizing_prob > 0:
+        assert len(got) > 1

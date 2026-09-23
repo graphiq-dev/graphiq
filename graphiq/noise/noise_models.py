@@ -590,8 +590,13 @@ class DepolarizingNoise(AdditionNoiseBase):
             state_rep, MixedStabilizer
         ):
             if not isinstance(state_rep, MixedStabilizer):
-                rep_data = MixedStabilizer([(1.0, state_rep.data)])
-                state.rep_data = rep_data
+                # Rebind the local as well as the state, since everything below
+                # branches over the mixture. The mixed flag has to be set
+                # before the assignment, which the state otherwise rejects as
+                # the wrong datatype.
+                state_rep = MixedStabilizer([(1.0, state_rep.data)])
+                state.mixed = True
+                state.rep_data = state_rep
 
             original_prob = state_rep.probability
             mixture = []

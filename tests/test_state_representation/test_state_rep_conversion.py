@@ -207,3 +207,16 @@ def test_graph_to_density_3_linear_cluster():
     assert np.size(rho) == 8**2
     # Test Hermiticity
     assert (np.conjugate(rho.transpose()) == rho).all()
+
+
+def test_stabilizer_to_density_mixture():
+    # A mixture of |0> (real density matrix) followed by |+i> (stabilized by Y,
+    # so complex) must return the weighted sum.
+    ket0 = StabilizerTableau([np.array([[0]]), np.array([[1]])])
+    ket_plus_i = StabilizerTableau([np.array([[1]]), np.array([[1]])])
+    rho = rc.stabilizer_to_density([(0.25, ket0), (0.75, ket_plus_i)])
+
+    rho_0 = np.array([[1, 0], [0, 0]])
+    rho_plus_i = np.array([[1, -1j], [1j, 1]]) / 2
+    assert rho is not None
+    assert np.allclose(rho, 0.25 * rho_0 + 0.75 * rho_plus_i)

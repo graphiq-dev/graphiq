@@ -146,6 +146,10 @@ def measure_x(tableau, qubit_position, measurement_determinism="probabilistic"):
     _, outcome, _ = z_measurement_gate(
         stabilizer_state_new, qubit_position, measurement_determinism
     )
+    # Rotate back out of the Z frame the measurement was taken in. The gates
+    # mutate the caller's tableau in place, so this leaves the caller holding
+    # the X-basis state the qubit was measured into. H is its own inverse.
+    hadamard_gate(tableau, qubit_position)
     return outcome
 
 
@@ -173,6 +177,11 @@ def measure_y(tableau, qubit_position, measurement_determinism="probabilistic"):
     _, outcome, _ = z_measurement_gate(
         new_tableau, qubit_position, measurement_determinism
     )
+    # Rotate back out of the Z frame, leaving the caller holding the Y-basis
+    # state the qubit was measured into. The pre-rotation is P dagger then H,
+    # so its inverse is H then P: H first, then the phase gate.
+    hadamard_gate(tableau, qubit_position)
+    phase_gate(tableau, qubit_position)
     return outcome
 
 

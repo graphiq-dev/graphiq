@@ -474,7 +474,13 @@ class MixedStabilizer(StateRepresentationBase):
 
     @property
     def tableau(self):
-        return TypeError(
+        """
+        A mixture has one tableau per branch, not one overall; read
+        :attr:`mixture` instead.
+
+        :raises TypeError: always
+        """
+        raise TypeError(
             "Simulating using a mixed state representation, no tableau defined."
         )
 

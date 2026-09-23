@@ -12,6 +12,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import pytest
+
 from graphiq.backends.stabilizer.state import *
 
 
@@ -58,3 +60,9 @@ def test_mixed_trace_out_qubits_discards_the_given_qubits():
     assert state.n_qubits == 2
     for _, tableau in state.mixture:
         assert Stabilizer(tableau) == expected
+
+
+def test_mixed_stabilizer_tableau_raises():
+    state = MixedStabilizer([(1.0, Stabilizer(2).tableau)])
+    with pytest.raises(TypeError):
+        state.tableau

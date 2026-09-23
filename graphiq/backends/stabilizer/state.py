@@ -320,10 +320,10 @@ class Stabilizer(StateRepresentationBase):
         """
         Trace out qubits after disentangling them from the rest
 
-        :param keep:
+        :param keep: the qubit positions to be kept
         :type keep: list[int] or numpy.ndarray
-        :param dims:
-        :type dims:
+        :param dims: dimension of each subsystem
+        :type dims: list[int] or numpy.ndarray
         :return: nothing
         :rtype: None
         """
@@ -418,8 +418,11 @@ class MixedStabilizer(StateRepresentationBase):
 
         :param value: a new mixture list, pure tableau, or a parameter to initialize a new tableau
         :type value: list or int or CliffordTableau
-        :return: the mixture as a list of (probability_i, tableau_i)
-        :rtype: list
+        :raises AssertionError: if a list entry is not a (float, CliffordTableau) pair, or if the tableaux
+            do not all have the same number of qubits
+        :raises TypeError: if value is not a list, a CliffordTableau or an int
+        :return: nothing
+        :rtype: None
         """
         if isinstance(value, list):
             assert all(
@@ -457,8 +460,8 @@ class MixedStabilizer(StateRepresentationBase):
         """
         Set the data that represents the state given by the MixedStabilizer representation
 
-        :param value: a new tableau or a parameter to initialize a new tableau
-        :type value: CliffordTableau or int
+        :param value: a new mixture list, pure tableau, or a parameter to initialize a new tableau
+        :type value: list or CliffordTableau or int
         :return: nothing
         :rtype: None
         """
@@ -518,10 +521,17 @@ class MixedStabilizer(StateRepresentationBase):
         """
         Apply a single-qubit gate, conditioned on a classical measurement outcome.
 
-        :param qubit_position: int
-        :param outcomes: list of measurement outcomes for each tableau in the mixture
-        :param gate: str, one of 'x', 'y', 'z', or 'h'
-        :return:
+        :param qubit_position: the qubit position where the gate is applied
+        :type qubit_position: int
+        :param outcomes: list of measurement outcomes for each tableau in the mixture; the gate is applied to
+            the tableaux whose outcome is 1
+        :type outcomes: list[int]
+        :param gate: one of 'x', 'y', 'z', or 'h'
+        :type gate: str
+        :raises AssertionError: if outcomes is not a list with one entry per tableau in the mixture
+        :raises NotImplementedError: if gate is not one of 'x', 'y', 'z', or 'h'
+        :return: nothing
+        :rtype: None
         """
         assert isinstance(outcomes, list)
         assert len(outcomes) == len(self._mixture)

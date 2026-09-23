@@ -155,7 +155,9 @@ class StabilizerTableau(TableauBase):
 
         :param value: the X matrix part of the stabilizer tableau
         :type value: numpy.ndarray
-        :return:
+        :raises AssertionError: if value is not of shape (n_qubits, n_qubits)
+        :return: nothing
+        :rtype: None
         """
         assert value.shape == (self.n_qubits, self.n_qubits)
         self._table[:, 0 : self.n_qubits] = value.astype(int)
@@ -177,6 +179,7 @@ class StabilizerTableau(TableauBase):
 
         :param value: the Z matrix part of the stabilizer tableau
         :type value: numpy.ndarray
+        :raises AssertionError: if value is not of shape (n_qubits, n_qubits)
         :return: nothing
         :rtype: None
         """

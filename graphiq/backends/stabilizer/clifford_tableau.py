@@ -295,8 +295,11 @@ class CliffordTableau(TableauBase):
         """
         Convert the stabilizers to generator strings
 
-        :return:
-        :rtype:
+        Each string carries only the letters I, X, Y and Z: the phase vector is not consulted,
+        so the sign of each generator is not included.
+
+        :return: one string per stabilizer generator
+        :rtype: list[str]
         """
         return sfu.symplectic_to_string(self.stabilizer_x, self.stabilizer_z)
 
@@ -304,8 +307,10 @@ class CliffordTableau(TableauBase):
         """
         Convert the destabilizers to the generator strings
 
-        :return:
-        :rtype:
+        As with stabilizer_to_labels, the sign of each generator is not included.
+
+        :return: one string per destabilizer generator
+        :rtype: list[str]
         """
         return sfu.symplectic_to_string(self.destabilizer_x, self.destabilizer_z)
 

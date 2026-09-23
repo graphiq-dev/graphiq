@@ -28,3 +28,33 @@ def test_state1():
     state.apply_hadamard(1)
     state.tableau.destabilizer_from_labels(["XYXI", "ZYZI", "YIII", "ZZZZ"])
     print(state.tableau.destabilizer)
+
+
+def _plus_on_qubit_1(n_qubits):
+    state = Stabilizer(n_qubits)
+    state.apply_hadamard(1)
+    return state
+
+
+def test_trace_out_qubits_discards_the_given_qubits():
+    # |0>|+>|0>: tracing out qubit 0 must leave |+>|0>, not keep qubit 0 alone
+    state = _plus_on_qubit_1(3)
+    state.trace_out_qubits([0], measurement_determinism=0)
+
+    expected = Stabilizer(2)
+    expected.apply_hadamard(0)
+    assert state.n_qubits == 2
+    assert state == expected
+
+
+def test_mixed_trace_out_qubits_discards_the_given_qubits():
+    state = MixedStabilizer(
+        [(0.5, _plus_on_qubit_1(3).tableau), (0.5, _plus_on_qubit_1(3).tableau)]
+    )
+    state.trace_out_qubits([0], measurement_determinism=0)
+
+    expected = Stabilizer(2)
+    expected.apply_hadamard(0)
+    assert state.n_qubits == 2
+    for _, tableau in state.mixture:
+        assert Stabilizer(tableau) == expected

@@ -307,9 +307,11 @@ class Stabilizer(StateRepresentationBase):
         :return: nothing
         :rtype: None
         """
+        # partial_trace takes the qubits to keep, not the ones to trace out
+        keep = [q for q in range(self.n_qubits) if q not in set(qubit_positions)]
         self._tableau = sfc.partial_trace(
             self._tableau,
-            keep=qubit_positions,
+            keep=keep,
             dims=self.n_qubits * [2],
             measurement_determinism=measurement_determinism,
         )
@@ -724,13 +726,18 @@ class MixedStabilizer(StateRepresentationBase):
         :return: nothing
         :rtype: None
         """
+        # partial_trace takes the qubits to keep, not the ones to trace out.
+        # Both are computed before the mixture is rebuilt, since n_qubits is
+        # read from it.
+        n_qubits = self.n_qubits
+        keep = [q for q in range(n_qubits) if q not in set(qubit_positions)]
         self._mixture = [
             (
                 p_i,
                 sfc.partial_trace(
                     t_i,
-                    keep=qubit_positions,
-                    dims=self.n_qubits * [2],
+                    keep=keep,
+                    dims=n_qubits * [2],
                     measurement_determinism=measurement_determinism,
                 ),
             )

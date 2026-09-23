@@ -74,7 +74,7 @@ class Columns:
         :param index: index of the column that need to update the width
         :type index: int
         :param new_width: new width of the column
-        :type: new_width: int
+        :type new_width: int
         :return: nothing
         :rtype: None
         """

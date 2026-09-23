@@ -29,7 +29,7 @@ class OpenQASMParser:
         between strings and parse functions.
 
         :param openqasm_str: OpenQASM 2.0 script string
-        :type: str
+        :type openqasm_str: str
         """
         self.openqasm = openqasm_str
 

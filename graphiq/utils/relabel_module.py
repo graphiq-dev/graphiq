@@ -45,7 +45,7 @@ def iso_finder(
     The maximum number of possible distinct cases may be less than n_iso. The graph G with the nodes relabeled using
     consecutive integers.
 
-    :param adj_matrix: initial adjacency matrix or graph
+    :param adj_matrix: initial adjacency matrix
     :type adj_matrix: numpy.ndarray
     :param n_iso: number of the isomorphic graphs to look for (including the original graph)
     :type n_iso: int
@@ -352,8 +352,11 @@ def lc_orbit_finder(
     :type orbit_size_thresh: int
     :param with_iso: if true, isomorph graphs will be kept in the orbit
     :type with_iso: bool
-    :param rep_allowed: if true the orbit finder does not check for iso or auto morphism; useful for large graphs.
+    :param rand: if true, the search starts from a graph obtained by applying random local complementations to
+        the original graph, instead of from the original graph itself, and the nodes are tried in a random order
     :type rand: bool
+    :param rep_allowed: if true the orbit finder does not check for iso or auto morphism; useful for large graphs.
+    :type rep_allowed: bool
     :return: list of distinct graphs in the orbit of original graph
     :rtype: list[nx.Graph]
     """
@@ -532,6 +535,8 @@ def _equal_graphs(g1, g2):
     """
     :param g1: a graph
     :type g1: nx.Graph
+    :param g2: a graph
+    :type g2: nx.Graph
     :return: given two graphs this function return true if they have the same adjacency matrix.
     :rtype: bool
     """

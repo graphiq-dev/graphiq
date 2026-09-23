@@ -35,7 +35,9 @@ def clifford_from_stabilizer(stabilizer_tableau):
     :rtype: CliffordTableau
     """
     n_qubits = stabilizer_tableau.n_qubits
-    _, circuit = inverse_circuit(stabilizer_tableau)
+    # The reduction runs in place, so it works on a copy: the caller's tableau is an
+    # input here and still holds its state afterwards.
+    _, circuit = inverse_circuit(stabilizer_tableau.copy())
     clifford_tableau = sfc.create_n_ket0_state(n_qubits)
     return transform.run_circuit(clifford_tableau, circuit, reverse=True)
 

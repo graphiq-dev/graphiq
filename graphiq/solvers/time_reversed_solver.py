@@ -547,6 +547,10 @@ class TimeReversedSolver(SolverBase):
 
         :param circuit: a quantum circuit
         :type circuit: CircuitDAG
+        :param emitter_index: the index of the emitter qubit
+        :type emitter_index: int
+        :param photon_index: the index of the photonic qubit
+        :type photon_index: int
         :return: nothing
         :rtype: None
         """
@@ -626,6 +630,10 @@ class TimeReversedSolver(SolverBase):
 
         :param circuit: a quantum circuit
         :type circuit: CircuitDAG
+        :param emitter_index: the index of the emitter qubit
+        :type emitter_index: int
+        :param photon_index: the index of the photonic qubit
+        :type photon_index: int
         :return: nothing
         :rtype: None
         """

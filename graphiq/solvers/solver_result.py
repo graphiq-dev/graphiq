@@ -98,11 +98,13 @@ class SolverResult:
 
     def add_properties(self, new_property):
         """
+        Add an empty property column (filled with None), if it is not already present
 
-        :param new_property:
-        :type new_property:
-        :return:
-        :rtype:
+        :param new_property: the name of the property to add
+        :type new_property: str
+        :raises AssertionError: if new_property is not a str
+        :return: nothing
+        :rtype: None
         """
         assert isinstance(new_property, str)
         if new_property not in self._properties:

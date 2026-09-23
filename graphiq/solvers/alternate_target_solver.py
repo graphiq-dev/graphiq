@@ -78,10 +78,12 @@ class AlternateTargetSolver:
         :type noise_compiler: CompilerBase
         :param io: input/output
         :type io: IO
-        :param noise_model_mapping:
-        :type noise_model_mapping: dict
-        :param solver_setting:
-        :type solver_setting:
+        :param noise_model_mapping: a noise model mapping keyed by register-type section ("e", "p", "ee", "ep");
+            the string "depolarizing" uses depolarizing noise at the solver setting's depolarizing_rate, and None
+            turns noise simulation off
+        :type noise_model_mapping: dict or str or None
+        :param solver_setting: the solver setting; if None, a default setting is created
+        :type solver_setting: AlternateTargetSolverSetting or None
         :param seed: a random seed
         :type seed: int
         """
@@ -154,10 +156,11 @@ class AlternateTargetSolver:
         alternative isomorphic and LC-equivalent graphs. Notice that the returned circuits generate the target state
         up to relabeling if this feature is enabled in the setting. Otherwise, user's exact target graph is produced.
 
-        :return: a dictionary where keys are the circuits and values are themselves dictionaries containing the LC graph
-         used as the intermediate states and relabeling map between the actual target and the graph the circuit
-         generates. {circuit: {'g':graph, 'map': relabel_map}}
-        :rtype: dict
+        :return: a list of (circuit, properties) tuples, where properties is a dictionary containing the LC graph
+         used as the intermediate state, the circuit's score, and the relabeling map between the actual target and
+         the graph the circuit generates: [(circuit, {'g': graph, 'score': score, 'map': relabel_map}), ...].
+         The same data is also stored in self.result as a SolverResult
+        :rtype: list[tuple]
         """
         setting = self.solver_setting
         n_iso = setting.n_iso_graphs
@@ -352,14 +355,16 @@ class AlternateTargetSolver:
 
     def noise_score(self, circuit, relabel_map):
         """
+        Score a circuit on the noise compiler against the target graph relabeled by relabel_map.
+        Emitter qubits are traced out before scoring, and a score that is close to, but not exactly, 0 is
+        replaced by 1e-05.
 
-
-        :param circuit:
-        :type circuit:
-        :param relabel_map:
-        :type relabel_map:
-        :return:
-        :rtype:
+        :param circuit: the circuit to score
+        :type circuit: CircuitDAG
+        :param relabel_map: the relabeling map from the target graph's node labels to the new labels
+        :type relabel_map: dict
+        :return: the infidelity of the compiled state with respect to the relabeled target
+        :rtype: float
         """
         graph = self.target_graph
         old_adj = nx.to_numpy_array(graph)
@@ -391,10 +396,12 @@ class AlternateTargetSolver:
 
     def depol_noise_map(self):
         """
+        Returns a noise model mapping with depolarizing noise at the rate depolarizing_rate on the one-qubit
+        emitter gates and on the emitter-emitter and emitter-photon CNOT gates. One-qubit photonic gates are
+        noiseless.
 
-
-        :return:
-        :rtype:
+        :return: the noise model mapping, keyed by register-type section
+        :rtype: dict
         """
 
         rate = self.depolarizing_rate
@@ -468,8 +475,8 @@ def graph_to_circ(graph, noise_model_mapping=None, show=False):
 
     :param graph: The graph to generate
     :type graph: networkx.Graph
-    :param noise_model_mapping:
-    :type noise_model_mapping: dict
+    :param noise_model_mapping: a noise model mapping passed to TimeReversedSolver, or None for no noise
+    :type noise_model_mapping: dict or None
     :param show: If true draws the corresponding circuit
     :type show: bool
     :return: A circuit corresponding to the input graph

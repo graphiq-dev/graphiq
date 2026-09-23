@@ -46,3 +46,15 @@ def test_density_matrix_get_single_qubit_gate():
     # TODO: replace these prints by assert np.allclose( <>, expected)
     print(dmf.get_one_qubit_gate(3, 0, dmf.sigmaz()))
     print(dmf.get_two_qubit_controlled_gate(3, 0, 1, dmf.sigmax()))
+
+
+def test_density_matrix_eq_against_a_non_density_matrix():
+    dm = DensityMatrix(np.array([[1.0, 0.0], [0.0, 0.0]]))
+    assert (dm == 3) is False
+    assert (dm == None) is False
+
+
+def test_density_matrix_eq_different_sizes():
+    # a (1, 1) matrix must not broadcast into equality with a (2, 2) one
+    assert (DensityMatrix(np.ones((1, 1))) == DensityMatrix(np.ones((2, 2)))) is False
+    assert (DensityMatrix(np.eye(2) / 2) == DensityMatrix(np.eye(4) / 4)) is False

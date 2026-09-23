@@ -270,7 +270,13 @@ class DensityMatrix(StateRepresentationBase):
 
         :param other: another DensityMatrix object
         :type other: DensityMatrix
-        :return: True if they are equal; False otherwise
-        :rtype: bool
+        :return: True if they are equal; False otherwise (including when their
+            sizes differ); NotImplemented if other is not a DensityMatrix
+        :rtype: bool or NotImplementedType
         """
+        if not isinstance(other, DensityMatrix):
+            return NotImplemented
+        # np.allclose would broadcast e.g. a (1, 1) matrix against a (2, 2) one
+        if self._data.shape != other.data.shape:
+            return False
         return np.allclose(self._data, other.data)

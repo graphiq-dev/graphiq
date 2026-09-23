@@ -136,7 +136,9 @@ def test_random_state_converter(seed):
     convert one to the other.
     """
 
-    g = nx.random_tree(12, seed)
+    # nx.random_tree was removed in networkx 3.4 in favour of random_labeled_tree
+    random_tree = getattr(nx, "random_tree", None) or nx.random_labeled_tree
+    g = random_tree(12, seed=seed)
     # also use the parameter seed to determine which node to apply local complementation on
     gg = local_comp_graph(g, seed)
     tab1 = get_stabilizer_tableau_from_graph(g)

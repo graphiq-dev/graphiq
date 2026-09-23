@@ -79,3 +79,35 @@ def test_benchmark_run_graph_search_solver():
 
     data = benchmark_run_graph_search_solver(example_run, "test_pipeline", io)
     assert type(data) == dict
+
+
+def test_benchmark_run_records_metric_name(monkeypatch, tmp_path):
+    import graphiq.benchmarks.pipeline as pipeline
+
+    class _Circuit:
+        depth = 1
+
+    class _Solver:
+        logs = {}
+        hof = [(0.0, _Circuit())]
+
+        def solve(self):
+            pass
+
+    class _IO:
+        path = tmp_path
+
+        def save_figure(self, fig, filename):
+            pass
+
+    monkeypatch.setattr(pipeline, "plot_solver_logs", lambda logs: (None, None))
+    run = dict(
+        solver=_Solver(),
+        compiler=StabilizerCompiler(),
+        metric=Infidelity(target=QuantumState(1, rep_type="s")),
+    )
+
+    d = pipeline.benchmark_run(run, "run0", _IO())
+
+    assert d["compiler"] == "StabilizerCompiler"
+    assert d["metric"] == "Infidelity"

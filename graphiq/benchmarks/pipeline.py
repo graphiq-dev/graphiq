@@ -112,7 +112,7 @@ def benchmark_run(run: dict, name: str, io: IO):
         path=io.path.name,
         solver=run["solver"].__class__.__name__,
         compiler=run["compiler"].__class__.__name__,
-        metric=run["compiler"].__class__.__name__,
+        metric=run["metric"].__class__.__name__,
         # target=run["target"],  # TODO: ideally the target is a QuantumState object, and we can use the __name__ here
         time=(t1 - t0),
         circuit_cost=solver.hof[0][0],

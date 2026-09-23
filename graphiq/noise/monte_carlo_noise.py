@@ -282,7 +282,9 @@ class MonteCarloNoise:
     def _noisy_gates(self):
         noise_model_map = self.mc_noise_model.mapping
         circ = self.circuit
-        seq = circ._slim_seq()
+        # copy first: the noise is set on the ops in place, and these must not
+        # be the source circuit's own ops
+        seq = circ.copy()._slim_seq()
         noisy_ops = []
         for op in seq:
             is_controlled = False

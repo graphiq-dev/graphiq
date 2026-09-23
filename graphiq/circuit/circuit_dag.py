@@ -1172,7 +1172,9 @@ class CircuitDAG(CircuitBase):
         return empty_circ
 
     def _noisy_gates(self, noise_model_map):
-        seq = self._slim_seq()
+        # copy first: the noise is set on the ops in place, and these must not
+        # be this circuit's own ops
+        seq = self.copy()._slim_seq()
         noisy_ops = []
         for op in seq:
             is_controlled = False

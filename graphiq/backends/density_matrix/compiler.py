@@ -269,15 +269,13 @@ class DensityMatrixCompiler(CompilerBase):
                 state.rep_data.apply_channel(reset_kraus_ops)
 
             elif type(op) is ops.MeasurementZ:
-                # TODO: implement measurement-related error model
-
-                projectors = dm.projectors_zbasis(
-                    n_quantum, q_index(op.register, op.reg_type)
+                # this arm is only reached when op.noise is a replacement noise
+                # model, and no measurement-related error model is implemented,
+                # so refuse rather than measure while silently ignoring the noise
+                raise NotImplementedError(
+                    f"{type(op).__name__} carrying {type(op.noise).__name__} is not "
+                    f"implemented for {self.__class__.__name__}."
                 )
-                outcome = state.rep_data.apply_measurement(
-                    projectors, measurement_determinism=self.measurement_determinism
-                )
-                classical_registers[op.c_register] = outcome
 
             else:
                 raise ValueError(

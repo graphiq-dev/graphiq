@@ -33,6 +33,7 @@ import pytest
 import graphiq.circuit.ops as ops
 import graphiq.noise.noise_models as nm
 from graphiq.backends.density_matrix.compiler import DensityMatrixCompiler
+from graphiq.backends.stabilizer.compiler import StabilizerCompiler
 from graphiq.circuit.circuit_dag import CircuitDAG
 
 
@@ -222,3 +223,23 @@ def test_non_addition_noise_on_a_leg_is_rejected():
     circuit, _ = _noisy_cnot_circuit(replacement, nm.PauliError("X"))
     with pytest.raises(ValueError, match="AdditionNoiseBase"):
         _compile_dm(circuit)
+
+
+@pytest.mark.parametrize("compiler_class", [DensityMatrixCompiler, StabilizerCompiler])
+def test_replacement_noise_on_measurement_z_is_refused(compiler_class):
+    """No measurement error model is implemented for replacement noise, so the
+    compiler must refuse it rather than drop the noise (or the measurement)."""
+    circuit = CircuitDAG(n_emitter=1, n_photon=0, n_classical=1)
+    circuit.add(ops.Hadamard(register=0, reg_type="e", noise=nm.NoNoise()))
+    circuit.add(
+        ops.MeasurementZ(
+            register=0,
+            reg_type="e",
+            c_register=0,
+            noise=nm.OneQubitGateReplacement(np.eye(2)),
+        )
+    )
+    compiler = compiler_class()
+    compiler.noise_simulation = True
+    with pytest.raises(NotImplementedError, match="MeasurementZ"):
+        compiler.compile(circuit)

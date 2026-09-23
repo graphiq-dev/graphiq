@@ -264,7 +264,12 @@ class StabilizerCompiler(CompilerBase):
                 pass
 
             elif type(op) is ops.MeasurementZ:
-                pass
+                # refuse rather than silently dropping the measurement, the
+                # classical-register write and the noise
+                raise NotImplementedError(
+                    f"{type(op).__name__} carrying {type(op.noise).__name__} is not "
+                    f"implemented for {self.__class__.__name__}."
+                )
 
             else:
                 raise ValueError(

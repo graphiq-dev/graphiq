@@ -37,24 +37,30 @@ def one_pauli_type_finder(x_matrix, z_matrix, pivot, pauli_type):
     :type z_matrix: np.ndarray
     :param pivot: the location of the pivot element [i,j] on the i-th row and j-th column of the stabilizer tableau
     :type pivot: list
-    :param pauli_type: A string to specify the type of Pauli to be found
+    :param pauli_type: which Pauli to look for: "x", "y" or "z", case-insensitively
     :type pauli_type: str
+    :raises ValueError: if pauli_type is not one of "x", "y" or "z"
     :return:  a list containing the positions (row indices) of the Pauli operators of type pauli_type in and below
         the row specified by pivot[0] in the column given by pivot[1]
     :rtype: list
     """
-    if pauli_type.lower() == "x":
+    pauli = pauli_type.lower()
+    if pauli == "x":
         match = (1, 0)
-    elif pauli_type.lower() == "y":
+    elif pauli == "y":
         match = (1, 1)
-    elif pauli_type.lower() == "z":
+    elif pauli == "z":
         match = (0, 1)
     else:
-        match = (0, 0)
-    n_qubits = np.shape(x_matrix)[1]
+        # silently matching the identity rows here would, e.g., let
+        # canonical_form return a tableau that is not in canonical form
+        raise ValueError(
+            f"pauli_type must be one of 'x', 'y' or 'z' (case-insensitive), got {pauli_type!r}"
+        )
+    n_row = np.shape(x_matrix)[0]
 
     pauli_list = []
-    for row_i in range(pivot[0], n_qubits):
+    for row_i in range(pivot[0], n_row):
         if (x_matrix[row_i, pivot[1]], z_matrix[row_i, pivot[1]]) == match:
             pauli_list.append(row_i)
 
@@ -77,7 +83,7 @@ def pauli_type_finder(x_matrix, z_matrix, pivot):
         it means there are Pauli X operators in rows 3 and 4 in the pivot column.
     :rtype: list, list, list
     """
-    n_qubits = np.shape(x_matrix)[1]
+    n_row = np.shape(x_matrix)[0]
     # list of the rows (generators) with a pauli X operator in the pivot column
     pauli_x_list = []
     # list of the rows (generators) with a pauli Y operator in the pivot column
@@ -85,7 +91,7 @@ def pauli_type_finder(x_matrix, z_matrix, pivot):
     # list of the rows (generators) with a pauli Z operator in the pivot column
     pauli_z_list = []
 
-    for row_i in range(pivot[0], n_qubits):
+    for row_i in range(pivot[0], n_row):
         if x_matrix[row_i, pivot[1]] == 1 and z_matrix[row_i, pivot[1]] == 0:
             pauli_x_list.append(row_i)
         elif x_matrix[row_i, pivot[1]] == 1 and z_matrix[row_i, pivot[1]] == 1:

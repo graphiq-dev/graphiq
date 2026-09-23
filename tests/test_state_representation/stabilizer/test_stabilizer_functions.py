@@ -19,6 +19,7 @@ import networkx as nx
 import numpy as np
 import graphiq.backends.stabilizer.functions.clifford as sfc
 import graphiq.backends.stabilizer.functions.metric as sfm
+import graphiq.backends.stabilizer.functions.stabilizer as sfs
 import graphiq.backends.stabilizer.functions.rep_conversion as conversion
 import graphiq.backends.stabilizer.functions.utils as sfu
 from graphiq.circuit import ops
@@ -216,3 +217,45 @@ def test_clifford_from_stabilizer():
     assert tableau1 == tableau2
     print(tableau1)
     print(tableau2)
+
+
+def _mixed_pauli_column():
+    # first column holds X, Y, Z and I, one per row
+    x_matrix = np.array([[1, 0, 0, 0], [1, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]])
+    z_matrix = np.array([[0, 0, 0, 0], [1, 0, 0, 0], [1, 0, 0, 0], [0, 0, 0, 0]])
+    return x_matrix, z_matrix
+
+
+@pytest.mark.parametrize(
+    "pauli_type, expected",
+    [("x", [0]), ("y", [1]), ("z", [2]), ("X", [0]), ("Y", [1]), ("Z", [2])],
+)
+def test_one_pauli_type_finder_selects_the_rows_of_that_type(pauli_type, expected):
+    x_matrix, z_matrix = _mixed_pauli_column()
+
+    assert sfs.one_pauli_type_finder(x_matrix, z_matrix, [0, 0], pauli_type) == expected
+
+
+@pytest.mark.parametrize("pauli_type", ["zz", "q", "i", "I", ""])
+def test_one_pauli_type_finder_rejects_a_non_pauli_type(pauli_type):
+    x_matrix, z_matrix = _mixed_pauli_column()
+
+    with pytest.raises(ValueError, match=repr(pauli_type)):
+        sfs.one_pauli_type_finder(x_matrix, z_matrix, [0, 0], pauli_type)
+
+
+def test_the_row_scanners_are_bounded_by_the_row_count():
+    # Four rows, two columns: a column-count bound stops after two rows and
+    # never sees the Z in row 2.
+    tall_x = np.array([[1, 0], [1, 0], [0, 0], [0, 0]])
+    tall_z = np.array([[0, 0], [1, 0], [1, 0], [0, 0]])
+
+    assert sfs.one_pauli_type_finder(tall_x, tall_z, [0, 0], "z") == [2]
+    assert sfs.pauli_type_finder(tall_x, tall_z, [0, 0]) == ([0], [1], [2])
+
+    # Two rows, four columns: a column-count bound indexes past the end.
+    wide_x = np.array([[1, 0, 0, 0], [0, 0, 0, 0]])
+    wide_z = np.array([[0, 0, 0, 0], [1, 0, 0, 0]])
+
+    assert sfs.one_pauli_type_finder(wide_x, wide_z, [0, 0], "x") == [0]
+    assert sfs.pauli_type_finder(wide_x, wide_z, [0, 0]) == ([0], [], [1])

@@ -47,6 +47,10 @@ class SolverBase(ABC):
         ops.CNOT,
     ]
 
+    # the last seed passed to seed(); a class attribute because seed() sets the
+    # process-global numpy/random seeds and records it on SolverBase itself
+    last_seed = None
+
     def __init__(
         self,
         target,
@@ -63,7 +67,6 @@ class SolverBase(ABC):
 
         self.circuit = circuit
         self.solver_setting = solver_setting
-        self.last_seed = None
         self.logs = {}
         self.result = None
 

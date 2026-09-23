@@ -142,12 +142,13 @@ def benchmark_data(
                 n_emitter=target["n_emitters"],
                 n_photon=target["n_photons"],
             )
+            # seed before reading solver_info, whose "seed" field reports it
+            solver.seed(i + seed_offset)
             solver_data = solver.solver_info
             if save_directory and i == 0 and j == 0:
                 io.save_json(solver_data, "solver_info.json")
 
             start_time = time.time()
-            solver.seed(i + seed_offset)
             solver.solve()
             total_time = time.time() - start_time
             df.loc["runtime (s)", (target["name"], i)] = total_time
@@ -164,7 +165,7 @@ def benchmark_data(
 
             circuit_data = {
                 "name": target["name"],
-                "seed": i,
+                "seed": i + seed_offset,
                 "runtime (s)": total_time,
                 "Measurement independent (T/F)": df.loc[
                     f"Measurement independent (T/F)", (target["name"], i)

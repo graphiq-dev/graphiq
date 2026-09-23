@@ -17,10 +17,11 @@ import graphiq.circuit.ops as ops
 
 def equal_time_dict(ops_list, duration):
     """
-    A helper function. Creates a dictionary of operation types and assigns them all an equal time duration.
-    :param ops_list: list of operations
-    :type ops_list: list
-    :param duration: a time duration
+    Build a gate-duration dict, assigning duration to every operation type in ops_list.
+
+    :param ops_list: operation instances whose types become the dict's keys
+    :type ops_list: list[ops.OperationBase]
+    :param duration: the time duration assigned to each operation type
     :type duration: int or float
     :return: the gate duration dictionary for the given operations
     :rtype: dict

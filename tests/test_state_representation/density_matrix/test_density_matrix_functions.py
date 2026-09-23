@@ -141,3 +141,42 @@ def test_trace_out_qubit_of_a_product_state_leaves_the_untraced_factor():
     traced = trace_out_qubit(rho, 1)
 
     assert np.allclose(traced, ket2dm(state_ketz0()))
+
+
+def test_partial_trace_of_a_bell_pair_is_maximally_mixed():
+    # Tracing one half of |00> + |11> must remove the coherence between |0> and
+    # |1>. Summing the traced qubit's row and column indices separately instead of
+    # along its diagonal leaves |+><+| here, off-diagonals of 0.5 instead of 0.
+    bell = np.array([1, 0, 0, 1]) / np.sqrt(2)
+    rho = np.outer(bell, bell.conj())
+
+    for keep in ([0], [1]):
+        assert np.allclose(partial_trace(rho, keep, [2, 2]), np.eye(2) / 2)
+
+
+@pytest.mark.parametrize("keep", [[0], [1], [2], [0, 1], [0, 2], [1, 2]])
+def test_partial_trace_matches_an_explicit_sum_over_traced_basis_states(keep):
+    # Reference: sum over the traced qubits' basis states of <k| rho |k>, built
+    # with explicit projectors, on a random entangled three-qubit state.
+    rng = np.random.default_rng(7)
+    psi = rng.normal(size=8) + 1j * rng.normal(size=8)
+    psi /= np.linalg.norm(psi)
+    rho = np.outer(psi, psi.conj())
+
+    traced = [q for q in range(3) if q not in keep]
+    expected = np.zeros((2 ** len(keep), 2 ** len(keep)), dtype=complex)
+    for bits in np.ndindex(*(2,) * len(traced)):
+        # a (8 x 2**len(keep)) isometry picking out the traced qubits' values
+        iso = np.zeros((8, 2 ** len(keep)))
+        for kept_bits in np.ndindex(*(2,) * len(keep)):
+            full = [0, 0, 0]
+            for q, b in zip(traced, bits):
+                full[q] = b
+            for q, b in zip(keep, kept_bits):
+                full[q] = b
+            row = full[0] * 4 + full[1] * 2 + full[2]
+            col = int("".join(map(str, kept_bits)), 2) if keep else 0
+            iso[row, col] = 1
+        expected += iso.T @ rho @ iso
+
+    assert np.allclose(partial_trace(rho, keep, [2, 2, 2]), expected)

@@ -521,9 +521,15 @@ def partial_trace(rho, keep, dims, optimize=False):
     ndim = dims.size
     nkeep = np.prod(dims[keep])
 
-    # string for initial array dimensions of form "abc...ABC...", where upper/lowercase = local Hilbert space
+    # string for initial array dimensions: lowercase letters index the rows, and the
+    # columns reuse the row letter for a traced qubit and take its uppercase letter
+    # for a kept one. A shared letter makes einsum sum the diagonal of that qubit,
+    # which is the trace; distinct letters would sum rows and columns independently.
     ssleft = "".join([string.ascii_lowercase[i] for i in range(ndim)]) + "".join(
-        [string.ascii_uppercase[i] for i in range(ndim)]
+        [
+            string.ascii_uppercase[i] if i in keep else string.ascii_lowercase[i]
+            for i in range(ndim)
+        ]
     )
 
     # string for final array dimensions is the same as initial, with upper/lowercase of dimensions to trace over omitted
@@ -531,7 +537,7 @@ def partial_trace(rho, keep, dims, optimize=False):
         [string.ascii_lowercase[i] for i in range(ndim) if i in keep]
     ) + "".join([string.ascii_uppercase[i] for i in range(ndim) if i in keep])
 
-    # e.g., "abcABC -> abAB" is partial trace over third qubit in three-qubit state
+    # e.g., "abcABc -> abAB" is partial trace over third qubit in three-qubit state
     superscript = ssleft + "->" + ssright
 
     rho_a = rho.reshape(np.tile(dims, 2))

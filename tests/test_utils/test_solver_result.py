@@ -122,3 +122,39 @@ def test_load_json_round_trips_saved_columns(tmp_path):
         loaded_missing.load_json(tmp_path, "res")
 
     assert len(rec) == 2
+
+
+def test_sort_by():
+    circuit_1, _ = ghz3_state_circuit()
+    circuit_2, _ = linear_cluster_3qubit_circuit()
+    circuit_3, _ = ghz4_state_circuit()
+    circuit_list = [circuit_1, circuit_2, circuit_3]
+
+    result = SolverResult(circuit_list)
+    result["score"] = [3, 1, 2]
+    result.sort_by("score")
+
+    assert result["score"] == [1, 2, 3]
+    assert result["circuit"] == [circuit_2, circuit_3, circuit_1]
+
+
+def test_add_properties_rejects_non_string():
+    circuit_1, _ = ghz3_state_circuit()
+    result = SolverResult([circuit_1])
+
+    with pytest.raises(AssertionError):
+        result.add_properties(123)
+
+
+def test_str_contains_circuit_id_and_property_value_but_no_column_names():
+    circuit_1, _ = ghz3_state_circuit()
+    result = SolverResult([circuit_1])
+    result.add_properties("my_test_property")
+    result["my_test_property"] = ["some_value_xyz"]
+
+    printed = str(result)
+
+    assert "c0" in printed
+    assert "some_value_xyz" in printed
+    assert "my_test_property" not in printed
+    assert "circuit_id" not in printed

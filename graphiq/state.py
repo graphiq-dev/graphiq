@@ -18,9 +18,7 @@ The QuantumState class mediates the interactions between different state represe
 State representations that we support are:
     1. Density matrix
     2. Stabilizer
-
-State representations that we intend to support in the near future are:
-    1. Graph representation (only state representation, but no compiler at the moment)
+    3. Graph (state representation only; no compiler at the moment)
 
 """
 
@@ -54,7 +52,7 @@ class QuantumState:
 
         :param data: valid data input for "rep_type".
             Density matrices representations support np.ndarray or int inputs
-            Stabilizer representations take int or StabilizerTableau
+            Stabilizer representations take int or CliffordTableau
             Graph representations take networkx.Graph
         :type data: list OR numpy.ndarray OR Graph OR nx.Graph or CliffordTableau
         :param rep_type: selected representation to initialize;
@@ -107,7 +105,7 @@ class QuantumState:
         Representation data
 
         :return: representation data
-        :rtype: DensityMatrix or Stabilizer or Graph
+        :rtype: DensityMatrix or Stabilizer or MixedStabilizer or Graph or MixedGraph
         """
         return self._rep_data
 
@@ -183,6 +181,8 @@ class QuantumState:
         :param data: either a graph or ndarray matrix
         :type data: Graph OR nx.Graph OR numpy.ndarray
         :raises AssertionError: if the density matrix being initialized does not have self.n_qubits
+        :return: the density matrix representation
+        :rtype: DensityMatrix
         """
         if isinstance(data, Graph) or isinstance(data, nx.Graph):
             dm = DensityMatrix.from_graph(data)
@@ -199,6 +199,8 @@ class QuantumState:
         :param data: data to construct the Graph representation
         :type data: networkX.Graph
         :raises AssertionError: if the graph being initialized does not have self.n_qubits
+        :return: the graph representation
+        :rtype: Graph
         """
         graph = Graph(data)
 
@@ -213,6 +215,9 @@ class QuantumState:
 
         :param data: data to construct the stabilizer state representation
         :type data: Stabilizer or int or CliffordTableau or MixedStabilizer or list[(float, CliffordTableau)]
+        :raises AssertionError: if the stabilizer being initialized does not have self.n_qubits
+        :return: a MixedStabilizer if self.mixed is True, a Stabilizer otherwise
+        :rtype: Stabilizer or MixedStabilizer
         """
         if not self.mixed:
             if isinstance(data, Stabilizer):
@@ -238,8 +243,10 @@ class QuantumState:
         :param rep_type: representation type to initialize
         :type rep_type: str
         :param data: data with which the rep_type should be initialized
-        :type data: int OR Graph OR nx.Graph OR numpy.ndarray
+        :type data: int OR Graph OR nx.Graph OR numpy.ndarray OR CliffordTableau OR Stabilizer OR MixedStabilizer
         :raises ValueError: if rep_type is invalid
+        :return: the initialized representation
+        :rtype: DensityMatrix or Graph or Stabilizer or MixedStabilizer
         """
         if rep_type in ("dm", "density matrix"):
             if self.n_qubits > DENSITY_MATRIX_QUBIT_THRESH:

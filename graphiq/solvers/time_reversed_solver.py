@@ -329,11 +329,18 @@ class TimeReversedSolver(SolverBase):
         :type row: int
         :param column: the qubit index in the tableau
         :type column: int
-        :param result: the Pauli type to be transformed to
+        :param result: which Pauli to transform to: "x", "y" or "z", case-insensitively
         :type result: str
+        :raises ValueError: if result is not one of "x", "y" or "z"
         :return: a list of one-qubit gates to be added to the circuit
         :rtype: list[ops.OperationBase]
         """
+        if result.lower() not in ("x", "y", "z"):
+            raise ValueError(
+                f"result must be one of 'x', 'y' or 'z' (case-insensitive), got {result!r}"
+            )
+        # An identity entry (x=0, z=0) falls through every block below and
+        # returns no gates; callers rely on that for registers holding identity.
 
         gate_list = []
         if tableau.x_matrix[row, column] == 1 and tableau.z_matrix[row, column] == 0:

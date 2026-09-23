@@ -227,7 +227,10 @@ def g_function(x1, z1, x2, z2):
     """
     A helper function to use in rowsum function. Takes 4 bits (2 Pauli matrices in the binary representation) as input
     and returns the phase factor needed when the two Pauli matrices are multiplied: Pauli_1 * Pauli_2
-    As a convention for the phase, each Y operator introduces -i phase factor.
+    The bit pair (x, z) = (1, 1) denotes the Hermitian Y, not XZ = -iY, matching the
+    encoding of arXiv:quant-ph/0406196v5 Sec. III ("11 means Y") in which a row carries
+    only a +1/-1 sign. The returned exponent k is fixed by that reading: for example
+    X * Z = -iY gives k = -1, whereas under an XZ reading the same product would give 0.
 
     Refer to section III of arXiv:quant-ph/0406196v5
 
@@ -271,8 +274,8 @@ def row_sum(x_matrix, z_matrix, r_vector, iphase_vector, row_to_add, target_row)
     :type row_to_add: int
     :param target_row: the stabilizer to be multiplied by the "to_add" stabilizer
     :type target_row: int
-    :return: updated stabilizer tableau
-    :rtype: numpy.ndarray, numpy.ndarray, numpy.ndarray
+    :return: the updated x_matrix, z_matrix, r_vector, and iphase_vector
+    :rtype: numpy.ndarray, numpy.ndarray, numpy.ndarray, numpy.ndarray
     """
     n_qubits = np.shape(x_matrix)[1]
     # determining the phase factor

@@ -312,7 +312,11 @@ def density_to_stabilizer(input_matrix):
     """
     # first check if the state is pure
     if dmf.is_pure(input_matrix):
-        graph = _density_to_graph_pure(input_matrix)
+        # density_to_graph (rather than the unvalidated _density_to_graph_pure)
+        # so a state that isn't actually a graph state raises instead of
+        # silently producing the wrong stabilizer - see this function's
+        # docstring on the graph-state-only restriction
+        graph = density_to_graph(input_matrix)
         stabilizer = _graph_to_stabilizer_pure(graph)
         return [(1.0, stabilizer)]
     else:

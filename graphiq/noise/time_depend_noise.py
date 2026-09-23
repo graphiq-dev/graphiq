@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import copy
+import math
 from itertools import combinations_with_replacement
 
 import numpy as np
@@ -569,7 +570,7 @@ def poisson_prob(count, time, rate):
     :return: the probability of the specified number of events happening
     :rtype: float
     """
-    return np.exp(-rate * time) * ((rate * time) ** count) / np.math.factorial(count)
+    return np.exp(-rate * time) * ((rate * time) ** count) / math.factorial(count)
 
 
 def cut_off_counter(cut_off_prob, time, rate):

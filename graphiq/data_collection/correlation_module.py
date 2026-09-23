@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import random
-from math import ceil
+from math import ceil, factorial
 
 import graphiq.backends.state_rep_conversion as converter
 import networkx as nx
@@ -216,7 +216,7 @@ class GraphCorr:
         """
         adj = nx.to_numpy_array(g)
         nod = g.number_of_nodes()
-        iso_count = min(np.math.factorial(nod), count)
+        iso_count = min(factorial(nod), count)
         adj_arr = iso_finder(adj, iso_count, allow_exhaustive=True)
         graph_list = [g]
         for adj_i in adj_arr:
@@ -1146,7 +1146,7 @@ def adj_emit_sorted_list(adj, count=1000):
     :rtype: list, list
     """
     n = adj.shape[0]
-    iso_count = min(np.math.factorial(n), count)
+    iso_count = min(factorial(n), count)
     arr = iso_finder(adj, iso_count, allow_exhaustive=True)
     li11 = emitter_sorted(arr)
     emit_list = [x[1] for x in li11]

@@ -16,6 +16,7 @@
 Utility functionality for creating isomorphic graphs to explore alternative circuits.
 """
 
+import math
 import warnings
 from itertools import permutations
 
@@ -70,7 +71,7 @@ def iso_finder(
     :rtype: numpy.ndarray or tuple (numpy.ndarray, list[dict])
     """
     n_node = adj_matrix.shape[0]
-    n_max = np.math.factorial(n_node)
+    n_max = math.factorial(n_node)
     n_label = n_iso
     labels_arr = _label_finder(n_label, n_node, seed=seed, thresh=thresh)
     adj_arr = automorph_check(adj_matrix, labels_arr)
@@ -209,7 +210,7 @@ def _label_finder(
     :rtype: numpy.ndarray
     """
     rng = np.random.default_rng(seed)
-    n_max = np.math.factorial(n_node)
+    n_max = math.factorial(n_node)
     if thresh is None:
         thresh = 5 * n_label
     elif thresh < n_label:
@@ -258,7 +259,7 @@ def _add_labels(labels_arr, add_n, exhaustive=False, seed=None, thresh=None):
     """
     n_node = labels_arr[0].shape[0]
     n_label = len(labels_arr)
-    n_max = np.math.factorial(n_node)
+    n_max = math.factorial(n_node)
     n_total = add_n + n_label if add_n + n_label < n_max else n_max
     label_set = set([tuple(labels) for labels in labels_arr])
     return _label_finder(

@@ -12,6 +12,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import math
+
 import networkx as nx
 import numpy as np
 import pytest
@@ -31,7 +33,7 @@ def random_connected_graph(n, p, seed=None):
 
 @pytest.mark.parametrize("n_node", [5, 6, 7, 8])
 def test_random_graph(n_node):
-    n_iso = np.math.factorial(n_node - 2)
+    n_iso = math.factorial(n_node - 2)
     for p in range(4, 7):
         found = []
         for i in range(3):

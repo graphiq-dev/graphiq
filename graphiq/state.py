@@ -328,9 +328,12 @@ class QuantumState:
             for p_i, t_i in rep.mixture:
                 data_list.append((p_i, t_i.to_stabilizer()))
             graph_list = rc.stabilizer_to_graph(data_list)
-            return MixedGraph(graph_list)
+            # MixedGraph expects graphiq Graph objects, not bare nx.Graphs
+            return MixedGraph([(p_i, Graph(g_i)) for p_i, g_i in graph_list])
         else:
-            graph_list = rc.stabilizer_to_graph(rep.data)
+            # stabilizer_to_graph takes a StabilizerTableau, not the
+            # CliffordTableau the Stabilizer holds
+            graph_list = rc.stabilizer_to_graph(rep.data.to_stabilizer())
             return Graph(graph_list[0][1])
 
     def _graph_to_density(self, rep):

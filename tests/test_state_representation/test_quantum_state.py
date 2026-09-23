@@ -17,6 +17,8 @@ import numpy as np
 import pytest
 
 from graphiq.backends.density_matrix import numpy as dmnp
+import graphiq.backends.state_rep_conversion as rc
+from graphiq.backends.graph.state import MixedGraph
 from graphiq.backends.stabilizer.clifford_tableau import CliffordTableau
 from graphiq.state import QuantumState
 
@@ -54,3 +56,31 @@ def test_initializing_stabilizer_2():
     n = 130
     state = QuantumState(CliffordTableau(n), rep_type="s")
     assert state.rep_data.n_qubits == n
+
+
+def test_convert_representation_graph_stabilizer_graph_round_trip_pure_arm():
+    graph = nx.path_graph(3)
+    state = QuantumState(graph, rep_type="g")
+
+    state.convert_representation("s")
+    state.convert_representation("g")
+
+    assert nx.is_isomorphic(state.rep_data.data, graph)
+
+
+def test_convert_representation_stabilizer_to_graph_mixed_arm():
+    path3 = nx.path_graph(3)
+    star3 = nx.star_graph(2)
+    mixture = [
+        (0.7, CliffordTableau(rc.graph_to_stabilizer(path3)[0][1])),
+        (0.3, CliffordTableau(rc.graph_to_stabilizer(star3)[0][1])),
+    ]
+    state = QuantumState(mixture, rep_type="s", mixed=True)
+
+    state.convert_representation("g")
+
+    mixed_graph = state.rep_data
+    assert isinstance(mixed_graph, MixedGraph)
+    assert [p_i for p_i, _ in mixed_graph.mixture] == [0.7, 0.3]
+    assert nx.is_isomorphic(mixed_graph.mixture[0][1].data, path3)
+    assert nx.is_isomorphic(mixed_graph.mixture[1][1].data, star3)

@@ -21,7 +21,10 @@ from graphiq.backends.density_matrix.compiler import DensityMatrixCompiler
 from graphiq.backends.stabilizer.compiler import StabilizerCompiler
 from graphiq.io import IO
 from graphiq.metrics import Infidelity
-from graphiq.solvers.evolutionary_solver import EvolutionarySolver
+from graphiq.solvers.evolutionary_solver import (
+    EvolutionarySolver,
+    EvolutionarySolverSetting,
+)
 from graphiq.visualizers.density_matrix import density_matrix_bars
 from tests.test_flags import visualization
 from graphiq.benchmarks.circuits import (
@@ -230,9 +233,9 @@ def test_add_remove_measurements(seed):
         compiler=compiler,
         n_emitter=n_emitter,
         n_photon=n_photon,
+        solver_setting=EvolutionarySolverSetting(n_stop=10),
     )
     solver.seed(seed)
-    solver.n_stop = 10
 
     original_trans_prob = solver.trans_probs
     solver.trans_probs = {
@@ -267,9 +270,9 @@ def test_solver_logging(seed):
         n_emitter=n_emitter,
         n_photon=n_photon,
         io=io,
+        solver_setting=EvolutionarySolverSetting(n_stop=5),
     )
     solver.seed(seed)
-    solver.n_stop = 5
 
     solver.solve()
     solver.logs_to_df()

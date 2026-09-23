@@ -15,7 +15,10 @@
 from graphiq.backends.density_matrix.compiler import DensityMatrixCompiler
 from graphiq.io import IO
 from graphiq.metrics import Infidelity
-from graphiq.solvers.evolutionary_solver import EvolutionarySolver
+from graphiq.solvers.evolutionary_solver import (
+    EvolutionarySolver,
+    EvolutionarySolverSetting,
+)
 from graphiq.benchmarks.circuits import ghz3_state_circuit
 
 
@@ -26,10 +29,13 @@ def test_one_benchmarking_run():
     metric = Infidelity(target=target)
 
     solver1 = EvolutionarySolver(
-        target=target, metric=metric, compiler=compiler, n_photon=3, n_emitter=1
+        target=target,
+        metric=metric,
+        compiler=compiler,
+        n_photon=3,
+        n_emitter=1,
+        solver_setting=EvolutionarySolverSetting(n_stop=10, n_pop=5),
     )
-    solver1.n_stop = 10
-    solver1.n_pop = 5
 
     example_run1 = {
         "solver": solver1,

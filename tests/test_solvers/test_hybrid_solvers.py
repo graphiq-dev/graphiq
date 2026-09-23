@@ -140,7 +140,14 @@ def test_alternate_circuits_w_noise2():
     loss_rate = 0.01
     graph = repeater_graph_states(3)
     noise_model = noise_model_loss_and_depolarizing(error_rate, loss_rate)
-    exemplary_test(graph, noise_model, None, 1)
+    # The depolarizing noise on every emitter CNOT leg folds each noisy compile into a
+    # large mixed stabilizer, so the default 50x50 search is very slow. This is a smoke
+    # test that the noisy hybrid search completes, not a search-quality test, so it runs
+    # 50 candidates instead of 2,500.
+    solver_setting = EvolutionarySolverSetting()
+    solver_setting.n_pop = 10
+    solver_setting.n_stop = 5
+    exemplary_test(graph, noise_model, solver_setting, 1)
 
 
 def test_alternate_circuits_w_noise3():

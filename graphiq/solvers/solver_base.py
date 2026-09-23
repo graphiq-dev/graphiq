@@ -122,7 +122,10 @@ class SolverBase(ABC):
         :param op: an operation
         :type op: ops.OperationBase
         :param noise_model_mapping: a dictionary that stores the mapping between an operation
-            and its associated noise model
+            and its associated noise model. A two-legged op is looked up by its per-leg keys,
+            ``<Op>_control`` and ``<Op>_target``, first; the bare ``<Op>`` key is only used as a
+            fallback when neither per-leg key is present, in which case the same model is
+            returned for both legs
         :type noise_model_mapping: dict
         :return: a noise model
         :rtype: nm.NoiseBase
@@ -131,8 +134,10 @@ class SolverBase(ABC):
         if isinstance(op, ops.OperationBase):
             # if op is an instance, turn it into the class itself.
             op = type(op)
-        if isinstance(op, ops.ControlledPairOperationBase) or isinstance(
-            op, ops.ClassicalControlledPairOperationBase
+        # op is a class here, so this must be issubclass, not isinstance
+        if issubclass(
+            op,
+            (ops.ControlledPairOperationBase, ops.ClassicalControlledPairOperationBase),
         ):
             op_name = op.__name__
             op_control = op.__name__ + "_control"

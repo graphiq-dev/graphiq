@@ -332,10 +332,8 @@ def insert_qubit(tableau, new_position):
     tmp_sz = np.insert(tmp_sz, new_position, new_row, axis=0)
 
     # phase vector part
-    new_phase = np.insert(tableau.phase, [new_position, n_qubits + 1 + new_position], 0)
-    new_iphase = np.insert(
-        tableau.iphase, [new_position, n_qubits + 1 + new_position], 0
-    )
+    new_phase = np.insert(tableau.phase, [new_position, n_qubits + new_position], 0)
+    new_iphase = np.insert(tableau.iphase, [new_position, n_qubits + new_position], 0)
     new_table = np.block([[tmp_dex, tmp_dez], [tmp_sx, tmp_sz]])
     tableau.expand(new_table, new_phase, new_iphase)
 

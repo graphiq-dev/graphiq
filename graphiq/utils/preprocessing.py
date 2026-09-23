@@ -12,6 +12,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import heapq
+
 import networkx as nx
 import numpy as np
 
@@ -124,28 +126,28 @@ def graph_closeness_centrality(graph):
 
 def _select_graphs(candidate_graphs, new_graph, limit, metric_value):
     """
-    Helper function to select graphs
+    Helper function to select graphs: add new_graph to the candidates and keep
+    the `limit` entries with the lowest metric value
 
-    :param candidate_graphs:
-    :type candidate_graphs:
-    :param new_graph:
-    :type new_graph:
-    :param limit:
-    :type limit:
-    :param metric_value:
-    :type metric_value:
-    :return:
-    :rtype:
+    :param candidate_graphs: the current candidates, as (metric value, graph) pairs
+    :type candidate_graphs: list[(float, networkx.Graph)]
+    :param new_graph: the graph to consider adding
+    :type new_graph: networkx.Graph
+    :param limit: the maximum number of candidates to keep
+    :type limit: int
+    :param metric_value: the metric value of new_graph
+    :type metric_value: float
+    :return: the updated candidates, sorted by ascending metric value
+    :rtype: list[(float, networkx.Graph)]
     """
-    if len(candidate_graphs) < limit:
-        candidate_graphs.append((metric_value, new_graph))
-    else:
-        for i in range(len(candidate_graphs)):
-            if metric_value < candidate_graphs[i][0]:
-                candidate_graphs.insert(i, (metric_value, new_graph))
-                candidate_graphs.pop()
-                break
-    return candidate_graphs
+    # keep the `limit` lowest-metric entries; the list was previously only
+    # sorted once full, so the best candidate could be evicted. key= avoids
+    # comparing the graphs themselves on ties.
+    return heapq.nsmallest(
+        limit,
+        candidate_graphs + [(metric_value, new_graph)],
+        key=lambda pair: pair[0],
+    )
 
 
 def get_lc_graph_by_max_edge(graph, n_graphs, graph_metric, n_trial=5):

@@ -208,7 +208,7 @@ class OneQubitGateReplacement(ReplacementNoiseBase):
                 n_quantum, reg_list[0], self.noise_parameters["One-qubit unitary"]
             )
             state_rep.apply_unitary(noisy_gate)
-        elif isinstance(state_rep, Stabilizer):
+        elif isinstance(state_rep, (Stabilizer, MixedStabilizer)):
             # TODO: Implement this for the Stabilizer backend. A general
             # one-qubit unitary is not generally Clifford, so it can't always
             # be represented exactly in the stabilizer formalism.
@@ -301,7 +301,7 @@ class TwoQubitControlledGateReplacement(ReplacementNoiseBase):
 
             unitary = post_gate_noise @ cu_gate @ pre_gate_noise
             state_rep.apply_unitary(unitary)
-        elif isinstance(state_rep, Stabilizer):
+        elif isinstance(state_rep, (Stabilizer, MixedStabilizer)):
             # TODO: Implement this for Stabilizer backend
             raise NotImplementedError(
                 "TwoQubitControlledGateReplacement error not implemented for stabilizer representation"
@@ -309,7 +309,7 @@ class TwoQubitControlledGateReplacement(ReplacementNoiseBase):
         elif isinstance(state_rep, Graph):
             # TODO: Implement this for Graph backend
             raise NotImplementedError(
-                "TwoQubitControlledGateReplacement error not implemented for stabilizer representation"
+                "TwoQubitControlledGateReplacement error not implemented for graph representation"
             )
         else:
             raise TypeError("Backend type is not supported.")
@@ -454,7 +454,7 @@ class LocalCliffordError(AdditionNoiseBase):
                 else:
                     raise ValueError("Wrong description of a local Clifford gate.")
             state_rep.apply_unitary(unitary)
-        elif isinstance(state_rep, Stabilizer):
+        elif isinstance(state_rep, (Stabilizer, MixedStabilizer)):
             # TODO: Implement this for the Stabilizer backend
             raise NotImplementedError(
                 "Local Clifford error has not been implemented for stabilizer backend"
@@ -462,7 +462,7 @@ class LocalCliffordError(AdditionNoiseBase):
         elif isinstance(state_rep, Graph):
             # TODO: Implement this for the Graph backend
             raise NotImplementedError(
-                "Local Clifford error has not been implemented for stabilizer backend"
+                "Local Clifford error has not been implemented for graph backend"
             )
         else:
             raise TypeError("Backend type is not supported.")
@@ -512,7 +512,7 @@ class AmplitudeDampingNoise(AdditionNoiseBase):
 
             state_rep.apply_channel(kraus_ops)
 
-        elif isinstance(state_rep, Stabilizer):
+        elif isinstance(state_rep, (Stabilizer, MixedStabilizer)):
             # TODO: Find the correct representation for Stabilizer backend
             raise NotImplementedError(
                 "AmplitudeDamping not implemented for stabilizer representation"
@@ -824,7 +824,7 @@ class MixedUnitaryError(AdditionNoiseBase):
             raise NotImplementedError(
                 "MixedUnitary not implemented for DensityMatrix representation"
             )
-        elif isinstance(state_rep, Stabilizer):
+        elif isinstance(state_rep, (Stabilizer, MixedStabilizer)):
             # TODO: Find the correct representation for Stabilizer backend
             raise NotImplementedError(
                 "MixedUnitary not implemented for Stabilizer representation"
@@ -876,7 +876,7 @@ class CoherentUnitaryError(AdditionNoiseBase):
             raise NotImplementedError(
                 "CoherentUnitaryError not implemented for density matrix representation"
             )
-        elif isinstance(state_rep, Stabilizer):
+        elif isinstance(state_rep, (Stabilizer, MixedStabilizer)):
             # TODO: Find the correct representation for Stabilizer backend
             raise NotImplementedError(
                 "CoherentUnitaryError not implemented for stabilizer representation"
@@ -929,7 +929,7 @@ class MeasurementError(NoiseBase):
             raise NotImplementedError(
                 "MeasurementError not implemented for density matrix representation"
             )
-        elif isinstance(state_rep, Stabilizer):
+        elif isinstance(state_rep, (Stabilizer, MixedStabilizer)):
             # TODO: Find the correct representation for Stabilizer backend
             raise NotImplementedError(
                 "MeasurementError not implemented for stabilizer representation"
@@ -980,7 +980,7 @@ class GeneralKrausError(AdditionNoiseBase):
         if isinstance(state_rep, DensityMatrix):
             kraus_ops = self.get_backend_dependent_noise(state_rep, n_quantum, reg_list)
             state_rep.apply_channel(kraus_ops)
-        elif isinstance(state_rep, Stabilizer):
+        elif isinstance(state_rep, (Stabilizer, MixedStabilizer)):
             raise NotImplementedError(
                 "GeneralKrausError not implemented (and not compatible) for stabilizer representation"
             )
@@ -1021,7 +1021,7 @@ class ResetError(NoiseBase):
             raise NotImplementedError(
                 "ResetError not implemented for density matrix representation"
             )
-        elif isinstance(state_rep, Stabilizer):
+        elif isinstance(state_rep, (Stabilizer, MixedStabilizer)):
             # TODO: Find the correct representation for Stabilizer backend
             raise NotImplementedError(
                 "ResetError not implemented for stabilizer representation"

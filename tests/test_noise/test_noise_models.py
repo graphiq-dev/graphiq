@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import numpy as np
+import pytest
 
 import graphiq.backends.density_matrix.functions as dmf
 import graphiq.backends.stabilizer.functions.clifford as sfc
@@ -32,6 +33,17 @@ def _state_initialization_stabilizer(n_quantum):
     return QuantumState(
         sfc.create_n_ket0_state(n_quantum),
         rep_type="s",
+    )
+
+
+def _two_branch_mixture(n_quantum):
+    return QuantumState(
+        [
+            (0.25, sfc.create_n_ket0_state(n_quantum)),
+            (0.75, sfc.create_n_ket0_state(n_quantum)),
+        ],
+        rep_type="s",
+        mixed=True,
     )
 
 
@@ -145,3 +157,58 @@ def test_photon_loss_dm():
     noise.apply(state, n_quantum, 1)
     assert state.rep_data.trace == 0.9
     assert not state.rep_data.normalized
+
+
+@pytest.mark.parametrize(
+    "state_factory",
+    [_state_initialization_stabilizer, _two_branch_mixture],
+    ids=["pure", "mixture"],
+)
+def test_two_qubit_replacement_refuses_the_stabilizer_backend(state_factory):
+    # MixedStabilizer is a sibling of Stabilizer, not a subclass, so a mixture
+    # must be named explicitly to get the same NotImplementedError as a pure
+    # tableau instead of the generic "Backend type is not supported." TypeError.
+    n_quantum = 2
+    state = state_factory(n_quantum)
+    noise = nm.TwoQubitControlledGateReplacement(np.eye(2))
+
+    with pytest.raises(NotImplementedError):
+        noise.apply(state, n_quantum, 0, 1)
+
+
+@pytest.mark.parametrize(
+    "state_factory",
+    [_state_initialization_stabilizer, _two_branch_mixture],
+    ids=["pure", "mixture"],
+)
+@pytest.mark.parametrize(
+    "noise",
+    [
+        nm.OneQubitGateReplacement(np.eye(2)),
+        nm.LocalCliffordError(["sigmax"]),
+        nm.AmplitudeDampingNoise(0.1),
+        nm.MixedUnitaryError([np.eye(2)], [1.0]),
+        nm.CoherentUnitaryError(np.eye(2)),
+        nm.GeneralKrausError([np.eye(2)]),
+        nm.MeasurementError(np.eye(2)),
+        nm.ResetError(),
+    ],
+    ids=[
+        "one_qubit_replacement",
+        "local_clifford",
+        "amplitude_damping",
+        "mixed_unitary",
+        "coherent_unitary",
+        "general_kraus",
+        "measurement",
+        "reset",
+    ],
+)
+def test_one_register_noise_refuses_the_stabilizer_backend(noise, state_factory):
+    # None of these is representable on the stabilizer backend; each must
+    # refuse a mixture the same way it refuses a pure tableau.
+    n_quantum = 2
+    state = state_factory(n_quantum)
+
+    with pytest.raises(NotImplementedError):
+        noise.apply(state, n_quantum, [0])

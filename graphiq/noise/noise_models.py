@@ -381,6 +381,22 @@ class PauliError(AdditionNoiseBase):
                 raise ValueError("Wrong description of a Pauli matrix.")
             state_rep.apply_circuit(gate_list)
 
+        elif isinstance(state_rep, MixedStabilizer):
+            # MixedStabilizer is a sibling of Stabilizer, not a subclass, and it
+            # is what a noisy (non-Monte-Carlo) stabilizer compile produces. A
+            # Pauli is a unitary, so it is applied to every branch; the
+            # MixedStabilizer gate methods do exactly that.
+            if pauli_error == "X":
+                state_rep.apply_sigmax(reg_list[0])
+            elif pauli_error == "Y":
+                state_rep.apply_sigmay(reg_list[0])
+            elif pauli_error == "Z":
+                state_rep.apply_sigmaz(reg_list[0])
+            elif pauli_error == "I":
+                pass
+            else:
+                raise ValueError("Wrong description of a Pauli matrix.")
+
         elif isinstance(state_rep, Graph):
             # TODO: Implement this for Graph backend
             raise NotImplementedError(

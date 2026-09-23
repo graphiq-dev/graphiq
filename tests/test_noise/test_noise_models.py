@@ -287,3 +287,19 @@ def test_reset_error_default_noise_parameters_are_not_shared_between_instances()
     b = nm.ResetError()
 
     assert a.noise_parameters is not b.noise_parameters
+
+
+@pytest.mark.parametrize("pauli", ["X", "Y", "Z", "I"])
+def test_pauli_error_on_a_mixed_stabilizer(pauli):
+    # A noisy stabilizer compile works on a MixedStabilizer; the Pauli must be
+    # applied to every branch, matching the pure-Stabilizer result per branch.
+    n_quantum = 2
+    mixed = _two_branch_mixture(n_quantum)
+    pure = _state_initialization_stabilizer(n_quantum)
+
+    nm.PauliError(pauli).apply(mixed, n_quantum, [0])
+    nm.PauliError(pauli).apply(pure, n_quantum, [0])
+
+    assert [p_i for p_i, _ in mixed.rep_data.mixture] == [0.25, 0.75]
+    for _, tableau in mixed.rep_data.mixture:
+        assert tableau == pure.rep_data.tableau

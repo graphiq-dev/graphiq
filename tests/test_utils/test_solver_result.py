@@ -12,6 +12,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import networkx as nx
+import pytest
+
 from graphiq.solvers.solver_result import *
 from graphiq.benchmarks.circuits import (
     ghz3_state_circuit,
@@ -85,3 +88,37 @@ def test_get_index_with_column_value():
 
     assert result.get_index_with_column_value("test_property", 1) == [0, 2]
     assert result.get_index_with_column_value("test_property", 2) == [1]
+
+
+def test_set_item_rejects_non_list_non_array_value():
+    circuit_1, _ = ghz3_state_circuit()
+    circuit_2, _ = linear_cluster_3qubit_circuit()
+    result = SolverResult([circuit_1, circuit_2])
+
+    # a string of the right length (2) must still be rejected
+    with pytest.raises(TypeError):
+        result["x"] = "ab"
+
+
+def test_load_json_round_trips_saved_columns(tmp_path):
+    circuit, _ = ghz3_state_circuit()
+
+    saved = SolverResult([circuit], properties=["score"])
+    saved["score"] = [0.5]
+    saved["g"] = [nx.path_graph(2)]
+    saved.save2json(tmp_path, "res")
+
+    loaded = SolverResult([circuit])
+    with pytest.warns(UserWarning, match="openqasm") as rec:
+        loaded.load_json(tmp_path, "res")
+
+    assert len(rec) == 1
+    assert loaded["score"] == [0.5]
+    assert nx.utils.graphs_equal(loaded["g"][0], nx.path_graph(2))
+
+    # a declared property missing from the file also warns
+    loaded_missing = SolverResult([circuit], properties=["missing"])
+    with pytest.warns(UserWarning) as rec:
+        loaded_missing.load_json(tmp_path, "res")
+
+    assert len(rec) == 2

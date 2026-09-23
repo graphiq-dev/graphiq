@@ -86,7 +86,7 @@ class SolverResult:
         :return: nothing
         :rtype: None
         """
-        if isinstance(type, (list, np.ndarray)):
+        if not isinstance(value, (list, np.ndarray)):
             raise TypeError(f"Data should be a list or numpy array")
         else:
             if len(value) != len(self._data["circuit"]):
@@ -206,7 +206,7 @@ class SolverResult:
             "The circuits in the loaded result object are now openqasm strings!"
         )
         diff = (
-            set(self.properties) - set(loaded_dict.keys()) - {"circuit", "circuit_id"}
+            set(self._properties) - set(loaded_dict.keys()) - {"circuit", "circuit_id"}
         )
         if diff:
             warnings.warn("")

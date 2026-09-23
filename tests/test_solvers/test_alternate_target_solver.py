@@ -172,3 +172,63 @@ def test_allow_lc_false_bypasses_lc_method_validation():
     )
     solver.solve()
     assert solver.result is not None
+
+
+def test_mc_depol_builds_the_expected_noise_map():
+    # solver_setting.monte_carlo = True, set before construction, is what makes __init__ set
+    # depolarizing_rate and build the Monte Carlo noise map via mc_depol() (rather than the
+    # density-matrix noise_model_mapping the other tests here use).
+    setting = my_setting()
+    setting.monte_carlo = True
+    solver = AlternateTargetSolver(
+        target=linear_cluster,
+        solver_setting=setting,
+        noise_model_mapping="depolarizing",
+    )
+
+    mapping = solver.mc_params["map"].mapping
+    assert set(mapping.keys()) == {"e", "p", "ee", "ep"}
+    assert mapping["p"] == {}
+    assert set(mapping["e"].keys()) == {
+        "Hadamard",
+        "Phase",
+        "PhaseDagger",
+        "SigmaX",
+        "SigmaY",
+        "SigmaZ",
+    }
+    assert set(mapping["ee"].keys()) == {"CNOT"}
+    assert set(mapping["ep"].keys()) == {"CNOT"}
+
+    rate = solver.depolarizing_rate
+    assert rate == setting.depolarizing_rate
+    per_gate_rate = rate / 3
+    gate_entries = [("e", name) for name in mapping["e"]] + [
+        ("ee", "CNOT"),
+        ("ep", "CNOT"),
+    ]
+    for reg_type, gate_name in gate_entries:
+        entries = mapping[reg_type][gate_name]
+        assert len(entries) == 3
+        assert {noise.noise_parameters["Pauli error"] for noise, _ in entries} == {
+            "X",
+            "Y",
+            "Z",
+        }
+        for _, prob in entries:
+            assert prob == pytest.approx(per_gate_rate)
+
+    tuples = solver.mc_params["map"].get_gate_noise("e", "Hadamard")
+    assert len(tuples) == 4
+    pauli_tuples, (no_noise, no_noise_prob) = tuples[:3], tuples[3]
+    assert {t[0].noise_parameters["Pauli error"] for t in pauli_tuples} == {
+        "X",
+        "Y",
+        "Z",
+    }
+    for _, prob in pauli_tuples:
+        assert prob == pytest.approx(per_gate_rate)
+    assert isinstance(no_noise, nm.NoNoise)
+    # The residual is built as 1 - 3 * (rate / 3), which differs from 1 - rate by one ulp
+    # for some rates, so the comparison is approximate rather than bit-exact.
+    assert no_noise_prob == pytest.approx(1 - rate)

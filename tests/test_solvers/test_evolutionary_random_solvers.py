@@ -319,3 +319,95 @@ def test_stabilizer_linear3():
         print(f"the target stabilizer in the canonical form is {target_s_tableau}")
         assert output_s_tableau == target_s_tableau
         assert state.rep_data == target_state.rep_data
+
+
+# Tests for EvolutionarySolver.adapt_probabilities and get_emission_assignment, which have no
+# oracle beyond the source and are exercised here directly rather than through a full search.
+
+
+def test_adapt_probabilities_moves_weight_from_additive_to_removal_transforms():
+    solver = EvolutionarySolver(None, None, None, n_emitter=1)
+    before = dict(solver.trans_probs)
+
+    solver.adapt_probabilities()
+
+    assert (
+        solver.trans_probs[solver.add_emitter_one_qubit_op]
+        < before[solver.add_emitter_one_qubit_op]
+    )
+    assert (
+        solver.trans_probs[solver.replace_photon_one_qubit_op]
+        < before[solver.replace_photon_one_qubit_op]
+    )
+    assert solver.trans_probs[solver.remove_op] > before[solver.remove_op]
+    assert solver.add_emitter_cnot not in solver.trans_probs
+    assert np.isclose(sum(solver.trans_probs.values()), 1)
+
+
+def test_adapt_probabilities_also_shrinks_the_cnot_key_with_multiple_emitters():
+    solver = EvolutionarySolver(None, None, None, n_emitter=2)
+    before = dict(solver.trans_probs)
+
+    solver.adapt_probabilities()
+
+    assert solver.trans_probs[solver.add_emitter_cnot] < before[solver.add_emitter_cnot]
+
+
+def test_adapt_probabilities_stay_non_strict_monotone_over_many_calls():
+    # The clamp to [0.01, 0.99] happens before normalisation, so it is not observable in the raw
+    # values -- normalised, every decreasing key plateaus at a fixed point (0.0099 for one
+    # emitter, with remove_op at 0.9802) rather than continuing to shrink, so strict
+    # monotonicity would eventually fail. Non-strict (<=, >=) holds throughout.
+    solver = EvolutionarySolver(None, None, None, n_emitter=1)
+    n_stop = solver.setting.n_stop
+    decreasing_keys = [
+        solver.add_emitter_one_qubit_op,
+        solver.replace_photon_one_qubit_op,
+    ]
+
+    previous = dict(solver.trans_probs)
+    for _ in range(3 * n_stop + 1):
+        solver.adapt_probabilities()
+        for key in decreasing_keys:
+            assert solver.trans_probs[key] <= previous[key]
+        assert solver.trans_probs[solver.remove_op] >= previous[solver.remove_op]
+        assert np.isclose(sum(solver.trans_probs.values()), 1)
+        previous = dict(solver.trans_probs)
+
+    assert max(solver.trans_probs, key=solver.trans_probs.get) == solver.remove_op
+
+
+@pytest.mark.parametrize("n_photon, n_emitter", [(4, 2), (6, 3), (3, 3)])
+def test_get_emission_assignment_invariants_hold_over_many_seeded_draws(
+    n_photon, n_emitter
+):
+    # Keep (6, 3): it is the only case where the reuse assertion at the end is load-bearing.
+    # With the random-branch growth removed, (4, 2) still reuses emitter 1 by chance, while
+    # (6, 3) can only ever reach emitter 2 through the forced tail, exactly once.
+    # Do not add a case with n_photon < n_emitter here: every invariant below fails for it
+    # (measured for (2, 3) and (3, 5)), which is a separate question about input validation
+    # that this function does not perform.
+    np.random.seed(2026)
+    top_emitter_reused = False
+    for _ in range(2000):
+        assignment = EvolutionarySolver.get_emission_assignment(n_photon, n_emitter)
+        top_emitter_reused |= assignment.count(n_emitter - 1) > 1
+
+        assert len(assignment) == n_photon
+        assert assignment[0] == 0
+        assert set(assignment) == set(range(n_emitter))
+
+        # Contiguous: a new emitter id, once it first appears, is always exactly one more than
+        # the largest id seen so far. This is also why an index into available_emitter can
+        # double as the emitter id it names: available_emitter is maintained as exactly
+        # list(range(len(available_emitter))) throughout the assignment loop.
+        largest_seen = 0
+        for emitter_id in assignment:
+            assert emitter_id <= largest_seen + 1
+            largest_seen = max(largest_seen, emitter_id)
+
+    # The invariants above are all enforced by the forced tail branch alone. The random branch
+    # is what lets an emitter be reused after it first appears; without it the top emitter
+    # could only ever appear once, in the forced tail. (3, 3) has no slack, so skip it there.
+    if n_photon > n_emitter:
+        assert top_emitter_reused

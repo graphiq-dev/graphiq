@@ -1217,6 +1217,8 @@ def name_to_class_map(name):
         "classical x": ClassicalCNOT,
         "classical z": ClassicalCZ,
         "classical reset x": MeasurementCNOTandReset,
+        # the name class_to_name_mapping gives it, so to_json output loads back
+        "measurement-controlled x and reset": MeasurementCNOTandReset,
     }
     if name in mapping:
         return mapping[name]

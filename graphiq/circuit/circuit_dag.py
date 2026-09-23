@@ -1086,9 +1086,10 @@ class CircuitDAG(CircuitBase):
             else:
                 gate = ops.name_to_class_map(op["type"])
                 gate = gate()
-                gate.q_registers = op["q_registers"]
-                gate.q_registers_type = op["q_registers_type"]
-                gate.c_registers = op["c_registers"]
+                # a real JSON dump/load turns these tuples into lists
+                gate.q_registers = tuple(op["q_registers"])
+                gate.q_registers_type = tuple(op["q_registers_type"])
+                gate.c_registers = tuple(op["c_registers"])
 
             circuit.add(gate)
 

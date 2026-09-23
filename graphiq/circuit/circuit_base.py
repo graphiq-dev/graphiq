@@ -295,7 +295,7 @@ class CircuitBase(ABC):
         :return: the index number of the added register
         :rtype: int
         """
-        self._registers.add_register(reg_type, size)
+        return self._registers.add_register(reg_type, size)
 
     def expand_emitter_register(self, register, new_size):
         """

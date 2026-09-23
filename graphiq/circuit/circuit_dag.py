@@ -716,16 +716,16 @@ class CircuitDAG(CircuitBase):
         :param reg_type: 'e' to add an emitter qubit register, 'p' to add a photonic qubit register,
                          'c' to add a classical register
         :type reg_type: str
-        :return: function returns nothing
-        :rtype: None
+        :return: the index of the added register
+        :rtype: int
         """
         if size != 1:
             raise ValueError(
                 f"_add_register for this circuit class must only add registers of size 1"
             )
-        self._add_reg_if_absent(
-            register=len(self._registers[reg_type]), reg_type=reg_type
-        )
+        register = len(self._registers[reg_type])
+        self._add_reg_if_absent(register=register, reg_type=reg_type)
+        return register
 
     def _add_reg_if_absent(self, register, reg_type):
         """

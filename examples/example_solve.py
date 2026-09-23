@@ -6,7 +6,10 @@ import matplotlib.pyplot as plt
 import time
 
 from graphiq.backends.density_matrix.compiler import DensityMatrixCompiler
-from graphiq.solvers.evolutionary_solver import EvolutionarySolver
+from graphiq.solvers.evolutionary_solver import (
+    EvolutionarySolver,
+    EvolutionarySolverSetting,
+)
 from graphiq.metrics import Infidelity
 
 from graphiq.visualizers.density_matrix import density_matrix_bars
@@ -15,11 +18,8 @@ from graphiq.benchmarks.circuits import linear_cluster_3qubit_circuit
 
 
 if __name__ == "__main__":
-    # %% here we have access
-    EvolutionarySolver.n_stop = 40
-    EvolutionarySolver.n_pop = 150
-    EvolutionarySolver.n_hof = 10
-    EvolutionarySolver.tournament_k = 10
+    # %% solver settings
+    setting = EvolutionarySolverSetting(n_stop=40, n_pop=150, n_hof=10, tournament_k=10)
 
     # %% comment/uncomment for reproducibility
     EvolutionarySolver.seed(3)
@@ -40,6 +40,7 @@ if __name__ == "__main__":
         compiler=compiler,
         n_photon=n_photon,
         n_emitter=n_emitter,
+        solver_setting=setting,
     )
 
     # %% call the solver.solve() function to implement the random search algorithm

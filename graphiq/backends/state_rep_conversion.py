@@ -424,7 +424,7 @@ def state_to_graph(state):
         try:
             graph = nx.from_numpy_array(state)
             tab = get_stabilizer_tableau_from_graph(graph)
-            return graph, [], tab
+            return graph, tab, []
         except:
             raise ValueError(
                 "the input numpy array is not a valid adjacency matrix, try fixing it or using other valid input types"

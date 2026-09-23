@@ -25,6 +25,8 @@ from graphiq.backends.stabilizer.functions.rep_conversion import (
     get_stabilizer_tableau_from_graph,
 )
 from graphiq.backends.stabilizer.functions.transformation import run_circuit
+from graphiq.backends.stabilizer.tableau import StabilizerTableau
+from graphiq.backends.state_rep_conversion import state_to_graph
 
 
 def _tester(n):
@@ -168,3 +170,20 @@ def test_random_state_converter(seed):
     c2 = state_converter_circuit(random_tab1, random_tab2, validate=True)
     # check if output is not None
     assert c1 and c2
+
+
+def test_state_to_graph_matrix_input_matches_graph_input():
+    # lc_check must give the same answer whether the states are passed as
+    # graphs or as their adjacency matrices; both go through state_to_graph.
+    star4 = nx.star_graph(3)
+    k4 = nx.complete_graph(4)
+
+    result_from_graphs = lc_check(star4, k4)
+    result_from_matrices = lc_check(nx.to_numpy_array(star4), nx.to_numpy_array(k4))
+
+    assert result_from_graphs[0] is True
+    assert result_from_matrices == result_from_graphs
+
+    graph, tableau, gate_list = state_to_graph(nx.to_numpy_array(star4))
+    assert isinstance(tableau, StabilizerTableau)
+    assert gate_list == []

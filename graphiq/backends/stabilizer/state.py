@@ -495,22 +495,25 @@ class MixedStabilizer(StateRepresentationBase):
 
     def reduce(self):
         """
-        Reduce the number of tableaux store in the mixture by comparing the Hamming distance between them.
-        Probabilities are summed and one tableau removed if they are the same.
+        Fold tableaux that compare equal into a single entry, summing their probabilities.
 
         :return: nothing
         :rtype: None
         """
         # TODO: explore other ways of reduction and further simplification using a standard form.
-        mixture_temp = self._mixture
+        # Copy: the mixture setter stores the caller's list by reference, and the
+        # pop below would otherwise take an element out from under them.
+        mixture_temp = list(self._mixture)
         mixture_reduce = []
         while len(mixture_temp) != 0:
-            p0, t0 = mixture_temp[0]
-            mixture_temp.pop(0)
-            for i, (p_i, t_i) in enumerate(mixture_temp):
-                if np.count_nonzero(t0 != t_i) == 0:
+            p0, t0 = mixture_temp.pop(0)
+            remaining = []
+            for p_i, t_i in mixture_temp:
+                if t0 == t_i:
                     p0 += p_i
-                    mixture_temp.pop(i)
+                else:
+                    remaining.append((p_i, t_i))
+            mixture_temp = remaining
 
             mixture_reduce.append((p0, t0))
         self._mixture = mixture_reduce

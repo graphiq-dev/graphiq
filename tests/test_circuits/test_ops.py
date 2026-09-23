@@ -164,3 +164,8 @@ def test_op():
     u3 = dmf.hadamard() @ dmf.phase() @ dmf.hadamard() @ dmf.phase()
     u4 = dmf.phase() @ dmf.hadamard() @ dmf.sigmax()
     print(f"is u3 equivalent to u4 = {dmf.check_equivalent_unitaries(u3, u4)}")
+
+
+def test_one_qubit_gate_wrapper_rejects_nested_wrapper():
+    with pytest.raises(AssertionError):
+        ops.OneQubitGateWrapper([ops.OneQubitGateWrapper])

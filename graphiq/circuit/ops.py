@@ -602,7 +602,7 @@ class OneQubitGateWrapper(OneQubitOperationBase):
         for op_class in operations:
             assert issubclass(op_class, OneQubitOperationBase)
             # can only contain base classes
-            assert not isinstance(op_class, OneQubitGateWrapper)
+            assert not issubclass(op_class, OneQubitGateWrapper)
         self.operations = operations
         self._openqasm_info = oq_lib.single_qubit_wrapper_info(operations)
 

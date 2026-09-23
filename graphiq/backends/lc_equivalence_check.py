@@ -97,16 +97,17 @@ $$
 
 Remember that if the system of equations is overdetermined after removing linearly dependent constraints,
 then there exists no solution (other than :math:`Q=0` which is not a valid Clifford operation)
-and graph states are not equivalent for sure. It is proved that a solution for a valid
-$Q$ exists, if and only if the set
+and graph states are not equivalent for sure. For a **connected** graph, Bouchet (4.3) and (4.4)
+[Combinatorica 11(4):315, 1991] show that when the solution space has dimension greater than 4, a valid
+$Q$ exists iff one of the sums of **at most two** basis vectors
 
 $$
-    \left\{b+b^{\prime} \mid b, b^{\prime} \in B\right\}
+    \{b, b + b' \mid b, b' \in B,\ b \neq b'\}
 $$
 
-has a member that satisfies the constraint. Note that this is only true for the cases where $B$ is at least of size 4.
-However, this is rarely the case and has not practical significance. For smaller $B$, one should test all possible
-solutions (at most 16) to see if a valid $Q$ can be found.
+satisfies the constraint (the basis vectors themselves and their pairwise sums); at dimension at most 4, all
+(at most 16) elements of $B$'s span are tested instead; and the check is run per connected component, because
+local complementation preserves components and the linear system decouples over them.
 
 In order to find a basis for set B, one needs to use the $n^2 \times 4n$ coefficient matrix of the system of linear
 equations, find the linearly dependent columns (this is done in the code by a row-reduction process), and choose any
@@ -168,7 +169,7 @@ This is repeated until no more eligible element can be found in the diagonal of 
 
 """
 
-from itertools import combinations, permutations
+from itertools import chain, combinations, permutations
 
 import networkx as nx
 import numpy as np
@@ -182,20 +183,94 @@ def is_lc_equivalent(adj_matrix1, adj_matrix2, mode="deterministic", seed=0):
     It takes two adjacency matrices as input and returns a numpy.ndarray containing $n$ ($2 \times 2$ arrays
     = clifford operations on each qubit.
 
+    The check is run once per connected component of the two graphs: Bouchet (4.3) bounds the codimension of
+    the solution space's affine subspace of valid vectors by 2 only for a connected graph, so on a graph with
+    :math:`c` components the whole-graph candidate set of sums of at most two basis vectors is incomplete (up
+    to :math:`2c` basis vectors may be needed), and the linear system decouples over components. For adjacency
+    matrices of shape ``(0, 0)`` (no nodes), returns ``(True, numpy.ndarray of shape (0, 2, 2))`` without
+    further computation.
+
     :param adj_matrix1: the adjacency matrix of the first graph. This is equal to the binary matrix for representing
         Pauli Z part of the symplectic binary representation of the stabilizer generators
     :type adj_matrix1: numpy.ndarray
     :param adj_matrix2: the adjacency matrix of the second graph
     :type adj_matrix2: numpy.ndarray
     :param mode: the chosen mode for finding solutions. It can be either 'deterministic' (default) or 'random'.
+        'deterministic' is exact: a returned False is conclusive. 'random' is a bounded random search that can
+        return False even for graphs that are in fact LC equivalent.
+    :type mode: str
+    :param seed: an optional input to set the random seed for the random search approach
+    :type seed: int
+    :raises AssertionError: if the two adjacency matrices differ in shape, if the number of rows in the row
+        reduced matrix is less than the rank of coefficient matrix, or if the number of linearly dependent
+        columns is not equal to :math:`4n - rank` (for :math:`n` being the number of nodes in the graph)
+    :raises ValueError: if ``mode`` is neither ``"deterministic"`` nor ``"random"``
+    :return: If a solution is found, returns True and an array of single-qubit Clifford :math:`2 \\times 2`
+        matrices in the symplectic formalism. If not, graphs are not LC equivalent and returns False, None.
+    :rtype: bool, numpy.ndarray or None
+    """
+    if mode not in ("deterministic", "random"):
+        raise ValueError(
+            'The mode should be either "random" or "deterministic" (default)'
+        )
+    assert np.shape(adj_matrix1) == np.shape(adj_matrix2), "graphs must be of same size"
+    n_nodes = np.shape(adj_matrix1)[0]
+    if n_nodes == 0:
+        return True, np.zeros((0, 2, 2), dtype=int)
+
+    # local complementation preserves connected components (Bouchet, Combinatorica 11(4):315, 1991,
+    # Section 6), so the two graphs can only be LC equivalent if they partition into the same
+    # components (as vertex sets).
+    comps1 = [
+        sorted(c) for c in nx.connected_components(nx.from_numpy_array(adj_matrix1))
+    ]
+    comps2 = [
+        sorted(c) for c in nx.connected_components(nx.from_numpy_array(adj_matrix2))
+    ]
+    if {frozenset(c) for c in comps1} != {frozenset(c) for c in comps2}:
+        return False, None
+
+    solution = np.zeros((n_nodes, 2, 2), dtype=int)
+    for idx in comps1:
+        equivalent, sub_solution = _is_lc_equivalent_connected(
+            adj_matrix1[np.ix_(idx, idx)], adj_matrix2[np.ix_(idx, idx)], mode, seed
+        )
+        if not equivalent:
+            return False, None
+        solution[idx] = sub_solution
+    return True, solution
+
+
+def _is_lc_equivalent_connected(adj_matrix1, adj_matrix2, mode, seed):
+    r"""
+    Determines whether two adjacency matrices that are each a single connected graph are local-Clifford
+    equivalent, and if so, finds the Clifford operation needed to convert one to the other.
+
+    Callers must pass connected graphs: :py:func:`is_lc_equivalent` enforces this by calling this function once
+    per connected component. When the solution space has dimension greater than 4, Bouchet (4.3) and (4.4)
+    [Combinatorica 11(4):315, 1991] show that a valid Clifford operation, when one exists, is a sum of at most
+    two vectors of any basis of that space, so only the basis vectors and their pairwise sums are tried; at
+    dimension at most 4, all (at most 16) elements of the solution space are tried instead. Section 6 (p. 324)
+    is why running this per connected component, rather than once on the whole graph, is not a restriction: local
+    complementation preserves connected components. In ``"random"`` mode, ``_random_checker`` reseeds the global
+    NumPy random stream with ``seed``; harmless on its own, but note that :py:func:`is_lc_equivalent` calls this
+    function once per component, so the stream is reseeded to the same value at the start of every component.
+
+    :param adj_matrix1: the adjacency matrix of the first graph's component. This is equal to the binary matrix
+        for representing Pauli Z part of the symplectic binary representation of the stabilizer generators
+    :type adj_matrix1: numpy.ndarray
+    :param adj_matrix2: the adjacency matrix of the second graph's component
+    :type adj_matrix2: numpy.ndarray
+    :param mode: the chosen mode for finding solutions. It can be either 'deterministic' (default) or 'random'.
+        Assumed already validated by :py:func:`is_lc_equivalent`; this function does not check it again.
     :type mode: str
     :param seed: an optional input to set the random seed for the random search approach
     :type seed: int
     :raises AssertionError: if the number of rows in the row reduced matrix is less than the rank of coefficient matrix
         or if the number of linearly dependent columns is not equal to :math:`4n - rank`
         (for :math:`n` being the number of nodes in the graph)
-    :return: If a solution is found, returns an array of single-qubit Clifford :math:`2 \\times 2` matrices
-        in the symplectic formalism. If not, graphs are not LC equivalent and returns None.
+    :return: If a solution is found, returns True and an array of single-qubit Clifford :math:`2 \\times 2`
+        matrices in the symplectic formalism. If not, components are not LC equivalent and returns False, None.
     :rtype: bool, numpy.ndarray or None
     """
 
@@ -257,24 +332,25 @@ def is_lc_equivalent(adj_matrix1, adj_matrix2, mode="deterministic", seed=0):
         else:
             return False, None
 
-    elif mode == "deterministic":
-        basis = _solution_basis_finder(reduced_coeff_matrix, col_list)
-        possible_combinations = combinations(basis, 2)
-        solution_set = []
-        for basis_combination in possible_combinations:
-            possible_solution = basis_combination[0] + basis_combination[1]
-            solution_set.append(possible_solution % 2)
-        for solution in solution_set:
+    else:
+        # mode == "deterministic" (mode is validated by the wrapper, so this is the only
+        # remaining branch). Bouchet (4.4): a valid Q, when one exists, is a sum of at most two
+        # vectors of basis B, so the candidates are the k basis vectors followed by their
+        # k(k-1)/2 pairwise sums. The empty sum (the zero vector) is also "a sum of <= 2 vectors
+        # of B", but it fails the per-vertex constraint (4.2) at every vertex (a_i d_i + b_i c_i
+        # = 0 mod 2, never 1), so it is skipped rather than tried.
+        basis = solution_basis
+        candidates = chain(
+            (b % 2 for b in basis),
+            (((b1 + b2) % 2) for b1, b2 in combinations(basis, 2)),
+        )
+        for solution in candidates:
             if _is_valid_clifford(solution):
                 # convert the solution to an array of n * (2 X 2) matrices
                 return True, solution.reshape(n_nodes, 2, 2)
 
         # states are NOT LC equivalent
         return False, None
-    else:
-        raise ValueError(
-            'The mode should be either "random" or "deterministic" (default)'
-        )
 
 
 def _solution_basis_finder(reduced_coeff_matrix, col_list):

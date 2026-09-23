@@ -196,10 +196,13 @@ class Graph(StateRepresentationBase):
         :param other_graph: the other graph against which to check LC equivalence
         :type other_graph: Graph
         :param mode: the chosen mode for finding solutions. It can be either 'deterministic' (default) or 'random'.
+            'deterministic' is exact: a returned False is conclusive. 'random' is a bounded random search that can
+            return False even for graphs that are in fact LC equivalent.
         :type mode: str
-        :raises AssertionError: if the number of rows in the row reduced matrix is less than the rank of coefficient
-            matrix or if the number of linearly dependent columns is not equal to $4n - rank$
-            (for $n$ being the number of nodes in the graph)
+        :raises AssertionError: if the two adjacency matrices differ in shape, if the number of rows in the row
+            reduced matrix is less than the rank of coefficient matrix, or if the number of linearly dependent
+            columns is not equal to $4n - rank$ (for $n$ being the number of nodes in the graph)
+        :raises ValueError: if ``mode`` is neither ``"deterministic"`` nor ``"random"``
         :return: If a solution is found, returns True and an array of single-qubit Clifford $2 \times 2$ matrices
             in the symplectic formalism. If not, graphs are not LC equivalent and returns False, None.
         :rtype: bool, numpy.ndarray or None

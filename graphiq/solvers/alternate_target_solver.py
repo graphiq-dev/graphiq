@@ -520,7 +520,7 @@ class AlternateTargetSolverSetting:
         lc_method="max edge",
         verbose=False,
         save_openqasm: str = "none",
-        callback_func: dict = {},
+        callback_func: dict = None,
     ):
         self.allow_relabel = allow_relabel
         self.allow_lc = allow_lc
@@ -535,7 +535,8 @@ class AlternateTargetSolverSetting:
         self.sort_emitter = sort_emit
         self.label_map = label_map
         self.iso_thresh = iso_thresh
-        self.callback_func = callback_func
+        # built per instance rather than shared through a mutable default
+        self.callback_func = {} if callback_func is None else callback_func
         self.lc_orbit_depth = lc_orbit_depth
         self.depolarizing_rate = depolarizing_rate
         self.monte_carlo = monte_carlo

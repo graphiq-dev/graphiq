@@ -44,7 +44,7 @@ class HybridEvolutionarySolver(EvolutionarySolver):
         metric: MetricBase,
         compiler: CompilerBase,
         io: IO = None,
-        solver_setting=EvolutionarySolverSetting(),
+        solver_setting=None,
         noise_model_mapping=None,
         *args,
         **kwargs,
@@ -68,9 +68,13 @@ class HybridEvolutionarySolver(EvolutionarySolver):
         :type use_adapt_probability: bool
         :param save_openqasm: save population, hof, or both to openQASM strings (options: None, "hof", "pop", "both")
         :type save_openqasm: str, None
+        :param solver_setting: the solver's settings; a fresh default is built when None
+        :type solver_setting: EvolutionarySolverSetting or None
         :param noise_model_mapping: a dictionary that associates each operation type to a noise model
         :type noise_model_mapping: dict
         """
+        if solver_setting is None:
+            solver_setting = EvolutionarySolverSetting()
         if target.rep_type != "s":
             tmp_target = target.copy()
             tmp_target.convert_representation("s")

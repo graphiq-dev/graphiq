@@ -130,7 +130,7 @@ class EvolutionarySolver(RandomSearchSolver):
         io: IO = None,
         n_emitter=1,
         n_photon=1,
-        solver_setting=EvolutionarySolverSetting(),
+        solver_setting=None,
         noise_model_mapping=None,
         *args,
         **kwargs,
@@ -153,9 +153,15 @@ class EvolutionarySolver(RandomSearchSolver):
         :type n_emitter: int
         :param n_photon: number of photon registers to maintain in the circuit
         :type n_photon: int
+        :param solver_setting: the solver's settings; a fresh default is built when None
+        :type solver_setting: EvolutionarySolverSetting or None
         :param noise_model_mapping: a dictionary that associates each operation type to a noise model
         :type noise_model_mapping: dict
         """
+        # built per instance: a default instance in the signature would be
+        # shared (and mutated) by every solver constructed without one
+        if solver_setting is None:
+            solver_setting = EvolutionarySolverSetting()
         super().__init__(
             target=target,
             metric=metric,

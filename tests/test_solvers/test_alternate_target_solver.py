@@ -101,3 +101,17 @@ def test_solver_density_noise(setting=my_setting(), target_graph=linear_cluster)
     solver.noise_simulation = True
     solver.seed = 1
     solver.solve()
+
+
+def test_setting_callback_func_is_per_instance():
+    a = AlternateTargetSolverSetting()
+    b = AlternateTargetSolverSetting()
+    assert a.callback_func is not b.callback_func
+    assert a.callback_func == {}
+
+    a.callback_func["x"] = 1
+    assert b.callback_func == {}
+
+    d = {}
+    setting = AlternateTargetSolverSetting(callback_func=d)
+    assert setting.callback_func is d

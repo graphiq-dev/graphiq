@@ -216,11 +216,16 @@ class RandomSearchSolver(SolverBase):
         compiler: CompilerBase,
         circuit: CircuitBase = None,
         io: IO = None,
-        solver_setting=RandomSearchSolverSetting(),
+        solver_setting=None,
         *args,
         **kwargs,
     ):
         super().__init__(target, metric, compiler, circuit, io)
+
+        # built per instance: a default instance in the signature would be
+        # shared (and mutated) by every solver constructed without one
+        if solver_setting is None:
+            solver_setting = RandomSearchSolverSetting()
 
         # hof stores the best circuits and their scores in the form of: (scores, circuits)
         self.setting = solver_setting

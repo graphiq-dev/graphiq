@@ -173,6 +173,9 @@ class StabilizerCompiler(CompilerBase):
                 state.apply_conditioned_gate(
                     q_index(op.target, op.target_type), outcomes, gate="x"
                 )
+                # see the ClassicalCNOT branch above for why only outcomes[0]
+                # is recorded here
+                classical_registers[op.c_register] = outcomes[0]
 
             else:
                 outcome = state.apply_measurement(
@@ -182,6 +185,7 @@ class StabilizerCompiler(CompilerBase):
 
                 if outcome == 1:
                     state.apply_sigmax(q_index(op.target, op.target_type))
+                classical_registers[op.c_register] = outcome
 
             # reset the control qubit
             state.reset_qubit(

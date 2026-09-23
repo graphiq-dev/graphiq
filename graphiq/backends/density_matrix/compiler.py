@@ -110,7 +110,12 @@ class DensityMatrixCompiler(CompilerBase):
             )
             state.apply_unitary(unitary)
 
-        elif isinstance(op, ops.ClassicalControlledPairOperationBase):
+        elif isinstance(
+            op, ops.ClassicalControlledPairOperationBase
+        ) and not isinstance(op, ops.MeasurementCNOTandReset):
+            # MeasurementCNOTandReset is itself a ClassicalControlledPairOperationBase,
+            # so it is excluded here to reach its own branch below, which resets the
+            # control qubit
             projectors = dm.projectors_zbasis(
                 n_quantum, q_index(op.control, op.control_type)
             )

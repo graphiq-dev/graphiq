@@ -48,7 +48,7 @@ class StateRepresentationBase(ABC):
         :return: string representation of the state representation base class
         :rtype: str
         """
-        return f"{self.__class__.__name__}\n{self._data}"
+        return f"{self.__class__.__name__}\n{self.data}"
 
     @property
     def data(self):

@@ -18,7 +18,7 @@ import pytest
 
 from graphiq.backends.density_matrix import numpy as dmnp
 import graphiq.backends.state_rep_conversion as rc
-from graphiq.backends.graph.state import MixedGraph
+from graphiq.backends.graph.state import Graph, MixedGraph
 from graphiq.backends.stabilizer.clifford_tableau import CliffordTableau
 from graphiq.state import QuantumState
 
@@ -84,3 +84,9 @@ def test_convert_representation_stabilizer_to_graph_mixed_arm():
     assert [p_i for p_i, _ in mixed_graph.mixture] == [0.7, 0.3]
     assert nx.is_isomorphic(mixed_graph.mixture[0][1].data, path3)
     assert nx.is_isomorphic(mixed_graph.mixture[1][1].data, star3)
+
+
+def test_str_of_a_mixed_graph():
+    # MixedGraph never sets _data, so the base class __str__ must go through data
+    mixed_graph = MixedGraph([(1.0, Graph(nx.path_graph(2)))])
+    assert str(mixed_graph).startswith("MixedGraph")

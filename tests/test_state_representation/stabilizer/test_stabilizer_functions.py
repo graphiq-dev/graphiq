@@ -32,6 +32,7 @@ from graphiq.backends.density_matrix.compiler import DensityMatrixCompiler
 from graphiq.backends.stabilizer.compiler import StabilizerCompiler
 from graphiq.backends.stabilizer.functions.stabilizer import rref
 from graphiq.backends.stabilizer.tableau import StabilizerTableau
+from graphiq.backends.state_rep_conversion import stabilizer_to_density
 from graphiq.metrics import Infidelity
 
 
@@ -259,3 +260,23 @@ def test_the_row_scanners_are_bounded_by_the_row_count():
 
     assert sfs.one_pauli_type_finder(wide_x, wide_z, [0, 0], "x") == [0]
     assert sfs.pauli_type_finder(wide_x, wide_z, [0, 0]) == ([0], [], [1])
+
+
+@pytest.mark.parametrize(
+    "shape", [(4, 2), (2, 4), (2,), (2, 2, 2)], ids=["tall", "wide", "1d", "3d"]
+)
+def test_stabilizer_tableau_rejects_a_non_square_pair(shape):
+    with pytest.raises(ValueError, match="square 2-D"):
+        StabilizerTableau([np.zeros(shape, dtype=int), np.zeros(shape, dtype=int)])
+
+
+def test_stabilizer_to_density_rejects_too_few_generators():
+    # two generators on three qubits used to give an (8, 8) matrix of trace 2
+    with pytest.raises(ValueError, match="square 2-D"):
+        stabilizer_to_density(["XZI", "ZXI"])
+
+
+def test_stabilizer_tableau_accepts_a_square_pair():
+    tableau = StabilizerTableau([np.eye(3, dtype=int), np.zeros((3, 3), dtype=int)])
+    assert tableau.n_qubits == 3
+    assert tableau.table.shape == (3, 6)

@@ -116,8 +116,15 @@ class StabilizerTableau(TableauBase):
             assert len(data) == 2
             assert isinstance(data[0], np.ndarray) and isinstance(data[1], np.ndarray)
             assert data[0].shape == data[1].shape
+            # n generators on n qubits: a non-square pair is not a stabilizer
+            # state and would otherwise produce a wrongly sized tableau
+            if data[0].ndim != 2 or data[0].shape[0] != data[0].shape[1]:
+                raise ValueError(
+                    "x_matrix and z_matrix must be square 2-D arrays, got shape "
+                    f"{data[0].shape}"
+                )
             self._table = np.hstack(data).astype(int)
-            self.n_qubits = data[0].shape[1]
+            self.n_qubits = data[0].shape[0]
         else:
             raise TypeError("Cannot support the input type")
 

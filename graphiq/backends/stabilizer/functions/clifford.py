@@ -520,29 +520,42 @@ def tensor(list_of_tables):
     :return: The resulting tableau
     :rtype: CliffordTableau
     """
-    tableau = list_of_tables[0]
-    list_of_tables = list_of_tables[1:]
-    for tab in list_of_tables:
-        tableau.n_qubits = tableau.n_qubits + tab.n_qubits
-        tableau.destabilizer_x = block_diag(tableau.destabilizer_x, tab.destabilizer_x)
-        tableau.destabilizer_z = block_diag(tableau.destabilizer_z, tab.destabilizer_z)
-        tableau.stabilizer_x = block_diag(tableau.stabilizer_x, tab.stabilizer_x)
-        tableau.stabilizer_z = block_diag(tableau.stabilizer_z, tab.stabilizer_z)
-        phase_list1 = np.split(tableau.phase, 2)
-        phase_list2 = np.split(tab.phase, 2)
-        phase_vector = np.hstack(
-            (phase_list1[0], phase_list2[0], phase_list1[1], phase_list2[1])
-        ).astype(int)
+    # The result is a fresh tableau, sized up front, filled once at the end.
+    # n_qubits and the table blocks live behind separate attributes with no
+    # shared resize path, so a tableau can only be built at its final size --
+    # widening n_qubits on an existing one leaves the block getters slicing a
+    # table that has not grown. Assembling off to the side also keeps every
+    # argument read-only.
+    n_qubits = sum(tab.n_qubits for tab in list_of_tables)
+    tableau = CliffordTableau(n_qubits)
 
-        tableau.phase = phase_vector
+    destabilizer_x = list_of_tables[0].destabilizer_x
+    destabilizer_z = list_of_tables[0].destabilizer_z
+    stabilizer_x = list_of_tables[0].stabilizer_x
+    stabilizer_z = list_of_tables[0].stabilizer_z
+    destabilizer_phase, stabilizer_phase = np.split(list_of_tables[0].phase, 2)
+    destabilizer_iphase, stabilizer_iphase = np.split(list_of_tables[0].iphase, 2)
 
-        iphase_list1 = np.split(tableau.iphase, 2)
-        iphase_list2 = np.split(tab.iphase, 2)
-        iphase_vector = np.hstack(
-            (iphase_list1[0], iphase_list2[0], iphase_list1[1], iphase_list2[1])
-        ).astype(int)
+    for tab in list_of_tables[1:]:
+        destabilizer_x = block_diag(destabilizer_x, tab.destabilizer_x)
+        destabilizer_z = block_diag(destabilizer_z, tab.destabilizer_z)
+        stabilizer_x = block_diag(stabilizer_x, tab.stabilizer_x)
+        stabilizer_z = block_diag(stabilizer_z, tab.stabilizer_z)
 
-        tableau.iphase = iphase_vector
+        tab_destabilizer_phase, tab_stabilizer_phase = np.split(tab.phase, 2)
+        destabilizer_phase = np.hstack((destabilizer_phase, tab_destabilizer_phase))
+        stabilizer_phase = np.hstack((stabilizer_phase, tab_stabilizer_phase))
+
+        tab_destabilizer_iphase, tab_stabilizer_iphase = np.split(tab.iphase, 2)
+        destabilizer_iphase = np.hstack((destabilizer_iphase, tab_destabilizer_iphase))
+        stabilizer_iphase = np.hstack((stabilizer_iphase, tab_stabilizer_iphase))
+
+    tableau.destabilizer_x = destabilizer_x
+    tableau.destabilizer_z = destabilizer_z
+    tableau.stabilizer_x = stabilizer_x
+    tableau.stabilizer_z = stabilizer_z
+    tableau.phase = np.hstack((destabilizer_phase, stabilizer_phase)).astype(int)
+    tableau.iphase = np.hstack((destabilizer_iphase, stabilizer_iphase)).astype(int)
 
     return tableau
 

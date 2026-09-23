@@ -115,3 +115,16 @@ def test_setting_callback_func_is_per_instance():
     d = {}
     setting = AlternateTargetSolverSetting(callback_func=d)
     assert setting.callback_func is d
+
+
+def test_default_setting_names_a_dispatchable_lc_method():
+    # every other test sets lc_method by hand, so an undispatchable default
+    # went unnoticed
+    setting = AlternateTargetSolverSetting()
+    assert setting.lc_method is None
+
+    solver = AlternateTargetSolver(
+        target=nx.path_graph(4), solver_setting=setting, seed=1
+    )
+    solver.solve()
+    assert solver.result is not None

@@ -517,7 +517,7 @@ class AlternateTargetSolverSetting:
         monte_carlo=False,
         monte_carlo_params=None,
         graph_metric=pre.graph_metric_lists[0],
-        lc_method="max edge",
+        lc_method=None,
         verbose=False,
         save_openqasm: str = "none",
         callback_func: dict = None,

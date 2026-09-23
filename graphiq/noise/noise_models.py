@@ -59,8 +59,9 @@ class NoiseBase(ABC):
         """
         Initialize a base class for noise model
 
-        :param noise_parameters: a dictionary of parameters to describe the noise model
-        :type noise_parameters: dict
+        :param noise_parameters: a dictionary of parameters to describe the noise model, or
+            None for an empty dictionary
+        :type noise_parameters: dict or None
         :return: nothing
         :rtype: None
         """
@@ -155,6 +156,8 @@ class NoNoise(AdditionNoiseBase):
         """
         Construct a NoNoise object
 
+        :return: nothing
+        :rtype: None
         """
         super().__init__()
 
@@ -190,6 +193,7 @@ class OneQubitGateReplacement(ReplacementNoiseBase):
 
     def apply(self, state: QuantumState, n_quantum, reg_list):
         """
+        Apply the noise to the state
 
         :param state: a quantum state to which the noise is applied
         :type state: QuantumState
@@ -470,7 +474,7 @@ class LocalCliffordError(AdditionNoiseBase):
 
 class AmplitudeDampingNoise(AdditionNoiseBase):
     """
-    Amplitude damping noise described by a depolarizing probability
+    Amplitude damping noise described by a damping probability
 
     """
 
@@ -480,6 +484,8 @@ class AmplitudeDampingNoise(AdditionNoiseBase):
 
         :param damping_probability: the dampening probability between 0 and 1
         :type damping_probability: float
+        :return: nothing
+        :rtype: None
         """
         noise_parameters = {"damping_probability": damping_probability}
         super().__init__(noise_parameters)
@@ -538,6 +544,8 @@ class DepolarizingNoise(AdditionNoiseBase):
 
         :param depolarizing_prob: the depolarizing probability
         :type depolarizing_prob: float
+        :return: nothing
+        :rtype: None
         """
         noise_parameters = {"Depolarizing probability": depolarizing_prob}
         super().__init__(noise_parameters)
@@ -677,7 +685,7 @@ class PhasePerturbedError(OneQubitGateReplacement):
 
     def __init__(self, theta_pert, phi_pert, lam_pert):
         """
-        Construct a HadamardPerturbedError object
+        Construct a PhasePerturbedError object
 
         :param theta_pert: the perturbation added to the theta angle
         :type theta_pert: float
@@ -706,7 +714,7 @@ class SigmaXPerturbedError(OneQubitGateReplacement):
 
     def __init__(self, theta_pert, phi_pert, lam_pert):
         """
-        Construct a HadamardPerturbedError object
+        Construct a SigmaXPerturbedError object
 
         :param theta_pert: the perturbation added to the theta angle
         :type theta_pert: float
@@ -806,6 +814,8 @@ class MixedUnitaryError(AdditionNoiseBase):
         :type unitaries_list: list[numpy.ndarray]
         :param prob_list: the corresponding probability distribution for the unitaries
         :type prob_list: list[float]
+        :return: nothing
+        :rtype: None
         """
         noise_parameters = {"Unitaries": unitaries_list, "Probabilities": prob_list}
         super().__init__(noise_parameters)
@@ -855,7 +865,7 @@ class CoherentUnitaryError(AdditionNoiseBase):
         Construct a coherent unitary error described by a single unitary
 
         :param unitary: a unitary that specified the error
-        :type unitary: numpy.nadrray or str
+        :type unitary: numpy.ndarray or str
         :return: nothing
         :rtype: None
         """
@@ -897,7 +907,7 @@ class CoherentUnitaryError(AdditionNoiseBase):
 
 class MeasurementError(NoiseBase):
     """
-    a measurement error described by a conditional probability distribution
+    A measurement error described by a conditional probability distribution
 
      # TODO: implement this error model
     """
@@ -981,6 +991,7 @@ class GeneralKrausError(AdditionNoiseBase):
         :param reg_list: a list of registers where non-identity gates are applied
         :type reg_list: list[int]
         :return: nothing
+        :rtype: None
         """
         state_rep = state.rep_data
         if isinstance(state_rep, DensityMatrix):

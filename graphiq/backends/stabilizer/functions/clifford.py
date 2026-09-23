@@ -448,16 +448,13 @@ def swap_gate(tableau, qubit1, qubit2):
     """
     n_qubits = tableau.n_qubits  # number of qubits
     assert qubit1 < n_qubits and qubit2 < n_qubits
+    # Conjugating by SWAP permutes qubit labels within each row, so only the
+    # two symplectic columns move. A sign belongs to the row it is on, and
+    # rows -- and the destabilizer/stabilizer pairing between them -- are
+    # untouched by a swap, so the phase and i-phase vectors stay exactly
+    # where they are.
     tableau.table = column_swap(tableau.table, qubit1, qubit2)
     tableau.table = column_swap(tableau.table, qubit1 + n_qubits, qubit2 + n_qubits)
-    tableau.phase[[qubit1, qubit2]] = tableau.phase[[qubit2, qubit1]]
-    tableau.phase[[qubit1 + n_qubits, qubit2 + n_qubits]] = tableau.phase[
-        [qubit2 + n_qubits, qubit1 + n_qubits]
-    ]
-    tableau.iphase[[qubit1, qubit2]] = tableau.iphase[[qubit2, qubit1]]
-    tableau.iphase[[qubit1 + n_qubits, qubit2 + n_qubits]] = tableau.iphase[
-        [qubit2 + n_qubits, qubit1 + n_qubits]
-    ]
     return tableau
 
 

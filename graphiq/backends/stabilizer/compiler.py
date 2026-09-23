@@ -297,5 +297,15 @@ class StabilizerCompiler(CompilerBase):
                 state, n_quantum, [q_index(op.control, op.control_type)]
             )
             target_noise.apply(state, n_quantum, [q_index(op.target, op.target_type)])
+        elif isinstance(op, ops.ClassicalControlledPairOperationBase):
+            # one leg per register, in q_registers order (control first, then
+            # target), each on its own qubit -- the same reading as a
+            # ControlledPairOperationBase's legs
+            for noise, register, reg_type in zip(
+                op.noise, op.q_registers, op.q_registers_type
+            ):
+                noise.apply(state, n_quantum, [q_index(register, reg_type)])
         else:
-            pass
+            raise ValueError(
+                f"Noise model not implemented for operation type {type(op)}"
+            )

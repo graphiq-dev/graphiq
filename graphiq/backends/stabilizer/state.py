@@ -146,7 +146,7 @@ class Stabilizer(StateRepresentationBase):
         self, qubit_position, measurement_determinism="probabilistic"
     ):
         """
-        Apply the measurement in the computational basis to a given qubit
+        Apply the measurement in the X basis to a given qubit
 
         :param qubit_position: the qubit position where the measurement is applied
         :type qubit_position: int
@@ -157,13 +157,7 @@ class Stabilizer(StateRepresentationBase):
         :return: the measurement outcome
         :rtype: int
         """
-        (
-            self._tableau,
-            outcome,
-            _,
-        ) = sfc.x_measurement_gate(
-            self._tableau, qubit_position, measurement_determinism
-        )
+        outcome = sfc.measure_x(self._tableau, qubit_position, measurement_determinism)
         return outcome
 
     def apply_hadamard(self, qubit_position):

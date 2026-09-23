@@ -42,7 +42,7 @@ def test_linear_cluster_state(expected):
         dims=n_photons * [2],
     )
     tableau = output_stabilizer.tableau.to_stabilizer()
-    output_state = rc.stabilizer_to_density(tableau.to_labels())
+    output_state = rc.stabilizer_to_density(tableau)
 
     assert np.allclose(output_state, target_state.rep_data.data)
     output_tableau = sfs.canonical_form(tableau)
@@ -64,7 +64,7 @@ def test_ghz3():
         dims=n_photons * [2],
     )
     output_s_tableau = output_state.rep_data.tableau.to_stabilizer()
-    output_dm = rc.stabilizer_to_density(output_s_tableau.to_labels())
+    output_dm = rc.stabilizer_to_density(output_s_tableau)
     # use representation conversion module to convert to density matrix
     assert np.allclose(output_dm, target_state.rep_data.data)
 

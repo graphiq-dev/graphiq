@@ -297,10 +297,13 @@ def _stabilizer_to_density_pure(input_stabilizer):
     """
     n_qubits = input_stabilizer.n_qubits
     generator_string = input_stabilizer.to_labels()
-    rho = np.eye(2**n_qubits)
-    for generator in generator_string:
+    # to_labels() carries no sign, so read it from the phase vector
+    phase = input_stabilizer.phase
+    identity = np.eye(2**n_qubits)
+    rho = identity
+    for i, generator in enumerate(generator_string):
         stabilizer_elem = sfu.get_stabilizer_element_by_string(generator)
-        rho = np.matmul(rho, (stabilizer_elem + np.eye(2**n_qubits)) / 2)
+        rho = np.matmul(rho, (identity + (-1) ** int(phase[i]) * stabilizer_elem) / 2)
 
     return rho
 

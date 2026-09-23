@@ -227,7 +227,7 @@ class DensityMatrix(StateRepresentationBase):
             self.apply_unitary(target_gate)
         return outcome
 
-    def partial_trace(self, keep, dims):
+    def partial_trace(self, keep, dims, measurement_determinism="probabilistic"):
         """
         Take the partial trace of the state
 
@@ -238,6 +238,10 @@ class DensityMatrix(StateRepresentationBase):
                     if the space is :math:`A \\times B \\times C \\times D`,
                     dims = [dim_A, dim_B, dim_C, dim_D]
         :type dims: list OR numpy.ndarray
+        :param measurement_determinism: accepted and ignored. This is a partial trace over a subsystem, not a
+            measure-and-delete, so there is no outcome to force. It is in the signature so that a caller working
+            across representations does not need a branch of its own.
+        :type measurement_determinism: str or int
         :return: nothing
         :rtype: None
         """

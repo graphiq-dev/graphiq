@@ -20,6 +20,11 @@ from graphiq.backends.density_matrix import numpy as dmnp
 import graphiq.backends.state_rep_conversion as rc
 from graphiq.backends.graph.state import Graph, MixedGraph
 from graphiq.backends.stabilizer.clifford_tableau import CliffordTableau
+from graphiq.backends.stabilizer.functions.clifford import create_n_ket0_state
+from graphiq.backends.stabilizer.functions.transformation import (
+    cnot_gate,
+    hadamard_gate,
+)
 from graphiq.state import QuantumState
 
 
@@ -124,3 +129,27 @@ def test_convert_representation_graph_to_stabilizer_pure_arm():
 
     expected = rc.graph_to_stabilizer(graph)[0][1]
     assert state.rep_data.data.to_stabilizer() == expected
+
+
+@pytest.mark.parametrize("outcome", [0, 1])
+def test_partial_trace_forwards_measurement_determinism_to_stabilizer(outcome):
+    # Tracing three qubits out of GHZ4 leaves |outcome> on the survivor, so the
+    # result shows whether the forced outcome reached the backend.
+    tableau = hadamard_gate(create_n_ket0_state(4), 0)
+    for target in (1, 2, 3):
+        tableau = cnot_gate(tableau, 0, target)
+    state = QuantumState(tableau, rep_type="s")
+
+    state.partial_trace(keep=[0], dims=4 * [2], measurement_determinism=outcome)
+
+    rho = rc.stabilizer_to_density(state.rep_data.tableau.to_stabilizer())
+    assert np.allclose(rho, np.diag([1.0 - outcome, float(outcome)]))
+
+
+def test_density_matrix_partial_trace_accepts_measurement_determinism():
+    bell = np.array([1, 0, 0, 1]) / np.sqrt(2)
+    state = QuantumState(np.outer(bell, bell), rep_type="dm")
+
+    state.partial_trace(keep=[0], dims=[2, 2], measurement_determinism=1)
+
+    assert np.allclose(state.rep_data.data, np.eye(2) / 2)

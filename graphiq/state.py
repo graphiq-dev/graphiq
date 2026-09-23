@@ -127,7 +127,7 @@ class QuantumState:
     def rep_type(self, new_rep_type):
         self._rep_type = self._get_rep_type_name(new_rep_type)
 
-    def partial_trace(self, keep, dims):
+    def partial_trace(self, keep, dims, measurement_determinism="probabilistic"):
         r"""
         Calculates the partial trace on all state representations which are currently defined
 
@@ -138,6 +138,10 @@ class QuantumState:
                     if the space is $A \times B \times C \times D$,
                     dims = [$dim_A$, $dim_B$, $dim_C$, $dim_D$]
         :type dims: list OR numpy.ndarray
+        :param measurement_determinism: how a stabilizer representation resolves the measurement of a traced-out
+            qubit whose outcome is not already fixed by the state: "probabilistic" to draw one, or 0 or 1 to force
+            it. A density-matrix trace has no outcome to resolve and ignores this.
+        :type measurement_determinism: str or int
         :return: nothing
         :rtype: None
         """
@@ -147,7 +151,9 @@ class QuantumState:
                 "Partial trace not yet implemented on graph state"
             )
         else:
-            self._rep_data.partial_trace(keep, dims)
+            self._rep_data.partial_trace(
+                keep, dims, measurement_determinism=measurement_determinism
+            )
 
     def show(self, show=True, ax=None):
         """

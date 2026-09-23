@@ -70,10 +70,13 @@ def search_for_alternative_circuits(
     benchmark_score, benchmark_circuit = det_solver.result
 
     compiled_state = compiler.compile(benchmark_circuit)
-    # trace out emitter qubits
+    # trace out emitter qubits, resolving the traced-out measurements the same
+    # way the compilation did -- this function sets the compiler to a forced
+    # outcome above, and a probabilistic trace would discard that choice.
     compiled_state.partial_trace(
         keep=list(range(n_photon)),
         dims=(n_photon + n_emitter) * [2],
+        measurement_determinism=compiler.measurement_determinism,
     )
     if isinstance(compiled_state.rep_data, MixedStabilizer):
         prob = compiled_state.rep_data.probability
@@ -106,6 +109,7 @@ def search_for_alternative_circuits(
             compiled_state.partial_trace(
                 keep=list(range(n_photon)),
                 dims=(n_photon + n_emitter) * [2],
+                measurement_determinism=compiler.measurement_determinism,
             )
             if isinstance(compiled_state.rep_data, MixedStabilizer):
                 prob = compiled_state.rep_data.probability

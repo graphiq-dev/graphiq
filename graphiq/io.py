@@ -111,7 +111,7 @@ class IO:
             warnings.warn(
                 "No folder entered. Saving to a folder with a unique identifier"
             )
-            include_data, include_id, verbose = True, True, True
+            include_date, include_id, verbose = True, True, True
 
         # build the full folder name with date, time, and uuid, if selected
         _str = ""

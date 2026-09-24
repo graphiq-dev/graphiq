@@ -19,6 +19,7 @@ import numpy as np
 import graphiq.backends.stabilizer.functions.stabilizer as sfs
 from graphiq.backends.density_matrix.compiler import DensityMatrixCompiler
 from graphiq.backends.stabilizer.compiler import StabilizerCompiler
+from graphiq.circuit.ops import MeasurementCNOTandReset, MeasurementZ
 from graphiq.io import IO
 from graphiq.metrics import Infidelity
 from graphiq.solvers.evolutionary_solver import (
@@ -92,6 +93,66 @@ def check_run(run_info, expected_info):
         assert state.rep_data == target_state.rep_data
 
 
+def assert_robust_to_measurement_outcome(
+    circuit, expected_info, compiler_class, n_photon, n_emitter
+):
+    """
+    Assert that a winning circuit scores 0 infidelity against the target state when every
+    measurement is forced to outcome 0 and when every measurement is forced to outcome 1, not
+    only under the outcome the solver searched with. For a circuit with a single measurement,
+    as every winner certified in this module has, that covers every measurement branch; with
+    more than one measurement the mixed outcome patterns are not checked.
+
+    The solver fixtures pin the compiler at measurement_determinism = 1, so every mid-circuit
+    measurement in the search, and in check_run, takes that one outcome. A circuit that is 0.0
+    there but far from the target in the other branch is effectively post-selecting on a
+    measurement outcome. Compiling the circuit under both settings catches it, so a change of
+    solver seed cannot silently accept a branch-dependent winner.
+
+    Deliberately not checked under "probabilistic": that draws an outcome at random, so a
+    post-selected circuit passes or fails by luck. Forcing both branches is stronger and
+    deterministic.
+
+    :param circuit: the circuit to check, e.g. the winner of an evolutionary search
+    :type circuit: CircuitDAG
+    :param expected_info: (target_state, ideal_circuit, metric) tuple, as produced by the
+        ``*_expected`` fixtures in this module
+    :type expected_info: tuple
+    :param compiler_class: the compiler class to instantiate fresh for each determinism setting
+        (e.g. StabilizerCompiler or DensityMatrixCompiler)
+    :type compiler_class: type
+    :param n_photon: number of photonic qubits in the circuit
+    :type n_photon: int
+    :param n_emitter: number of emitter qubits in the circuit, traced out before scoring
+    :type n_emitter: int
+    :return: nothing
+    :rtype: None
+    """
+    target_state, _, metric = expected_info
+
+    # Without a measurement the two compiles are identical and this function guards nothing
+    # while still passing.
+    assert any(
+        isinstance(op, (MeasurementCNOTandReset, MeasurementZ))
+        for op in circuit.sequence()
+    ), "circuit contains no measurement, so both determinism settings are the same run"
+
+    for determinism in (0, 1):
+        compiler = compiler_class()
+        compiler.measurement_determinism = determinism
+        state = compiler.compile(circuit)
+        state.partial_trace(
+            list(range(n_photon)),
+            (n_photon + n_emitter) * [2],
+            measurement_determinism=determinism,
+        )
+        infidelity = metric.evaluate(state, circuit)
+        assert np.isclose(infidelity, 0.0), (
+            f"circuit is not robust to measurement outcome: infidelity={infidelity} "
+            f"under measurement_determinism={determinism}"
+        )
+
+
 def check_run_visual(run_info, expected_info):
     hof, state = run_info
     target_state, _, metric = expected_info
@@ -142,12 +203,12 @@ def linear4_run(density_matrix_compiler, linear4_expected):
     Since we want to apply 2 separate tests on the same run (one visual, one non-visual), it makes sense to have a
     common fixture that only gets called once per module
     """
-    return generate_run(4, 1, linear4_expected, density_matrix_compiler, 1)
+    return generate_run(4, 1, linear4_expected, density_matrix_compiler, 2)
 
 
 @pytest.fixture(scope="module")
 def linear4_run_stabilizer(stabilizer_compiler, linear4_expected):
-    return generate_run(4, 1, linear4_expected, stabilizer_compiler, 1)
+    return generate_run(4, 1, linear4_expected, stabilizer_compiler, 2)
 
 
 @pytest.fixture(scope="module")
@@ -161,7 +222,7 @@ def linear4_expected():
 
 @pytest.fixture(scope="module")
 def ghz3_run(density_matrix_compiler, ghz3_expected):
-    return generate_run(3, 1, ghz3_expected, density_matrix_compiler, 25)
+    return generate_run(3, 1, ghz3_expected, density_matrix_compiler, 3)
 
 
 @pytest.fixture(scope="module")
@@ -180,10 +241,18 @@ def ghz3_expected():
 
 def test_solver_linear3(linear3_run, linear3_expected):
     check_run(linear3_run, linear3_expected)
+    hof, _ = linear3_run
+    assert_robust_to_measurement_outcome(
+        hof[0][1], linear3_expected, DensityMatrixCompiler, n_photon=3, n_emitter=1
+    )
 
 
 def test_solver_linear3_stabilizer(linear3_run_stabilizer, linear3_expected):
     check_run(linear3_run_stabilizer, linear3_expected)
+    hof, _ = linear3_run_stabilizer
+    assert_robust_to_measurement_outcome(
+        hof[0][1], linear3_expected, StabilizerCompiler, n_photon=3, n_emitter=1
+    )
 
 
 @visualization
@@ -193,10 +262,18 @@ def test_solver_linear3_visualized(linear3_run, linear3_expected):
 
 def test_solver_linear4(linear4_run, linear4_expected):
     check_run(linear4_run, linear4_expected)
+    hof, _ = linear4_run
+    assert_robust_to_measurement_outcome(
+        hof[0][1], linear4_expected, DensityMatrixCompiler, n_photon=4, n_emitter=1
+    )
 
 
 def test_solver_linear4_stabilizer(linear4_run_stabilizer, linear4_expected):
     check_run(linear4_run_stabilizer, linear4_expected)
+    hof, _ = linear4_run_stabilizer
+    assert_robust_to_measurement_outcome(
+        hof[0][1], linear4_expected, StabilizerCompiler, n_photon=4, n_emitter=1
+    )
 
 
 @visualization
@@ -206,17 +283,55 @@ def test_solver_linear4_visualized(linear4_run, linear4_expected):
 
 def test_solver_ghz3(ghz3_run, ghz3_expected, density_matrix_compiler):
     check_run(ghz3_run, ghz3_expected)
+    hof, _ = ghz3_run
+    assert_robust_to_measurement_outcome(
+        hof[0][1], ghz3_expected, DensityMatrixCompiler, n_photon=3, n_emitter=1
+    )
 
 
 def test_solver_ghz3_stabilizer(
     ghz3_run_stabilizer, ghz3_expected, stabilizer_compiler
 ):
     check_run(ghz3_run_stabilizer, ghz3_expected)
+    hof, _ = ghz3_run_stabilizer
+    assert_robust_to_measurement_outcome(
+        hof[0][1], ghz3_expected, StabilizerCompiler, n_photon=3, n_emitter=1
+    )
 
 
 @visualization
 def test_solver_ghz3_visualized(ghz3_run, ghz3_expected):
     check_run_visual(ghz3_run, ghz3_expected)
+
+
+def test_assert_robust_to_measurement_outcome_rejects_a_post_selected_winner(
+    stabilizer_compiler, linear4_expected
+):
+    """
+    Seed 48 of the linear4 stabilizer search ends on a winner that scores 0.0 in the branch the
+    compiler is pinned to (measurement_determinism = 1) but is wrong in the other one, so
+    check_run accepts it and assert_robust_to_measurement_outcome must not.
+
+    The seed only selects such a winner under the current search path. If a solver change moves
+    that path, the precondition below fails; pick a new seed by searching for one whose winner
+    scores 0.0 with measurement_determinism = 1 and not with measurement_determinism = 0.
+    """
+    hof, state = generate_run(4, 1, linear4_expected, stabilizer_compiler, 48)
+    circuit = hof[0][1]
+    _, _, metric = linear4_expected
+    branch0_compiler = StabilizerCompiler()
+    branch0_compiler.measurement_determinism = 0
+    branch0_state = branch0_compiler.compile(circuit)
+    branch0_state.partial_trace(list(range(4)), 5 * [2], measurement_determinism=0)
+    assert np.isclose(hof[0][0], 0.0) and not np.isclose(
+        metric.evaluate(branch0_state, circuit), 0.0
+    ), "seed 48 no longer gives a one-branch winner; pick a new seed (see docstring)"
+
+    check_run((hof, state), linear4_expected)
+    with pytest.raises(AssertionError, match="not robust to measurement outcome"):
+        assert_robust_to_measurement_outcome(
+            hof[0][1], linear4_expected, StabilizerCompiler, n_photon=4, n_emitter=1
+        )
 
 
 @pytest.mark.parametrize("seed", [0, 3, 325, 2949])
@@ -319,6 +434,14 @@ def test_stabilizer_linear3():
         print(f"the target stabilizer in the canonical form is {target_s_tableau}")
         assert output_s_tableau == target_s_tableau
         assert state.rep_data == target_state.rep_data
+
+    assert_robust_to_measurement_outcome(
+        circuit,
+        (target_state, circuit_ideal, metric),
+        StabilizerCompiler,
+        n_photon=n_photon,
+        n_emitter=n_emitter,
+    )
 
 
 # Tests for EvolutionarySolver.adapt_probabilities and get_emission_assignment, which have no

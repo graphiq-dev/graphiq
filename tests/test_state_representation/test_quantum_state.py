@@ -25,7 +25,7 @@ from graphiq.backends.stabilizer.functions.transformation import (
     cnot_gate,
     hadamard_gate,
 )
-from graphiq.state import QuantumState
+from graphiq.state import DENSITY_MATRIX_QUBIT_THRESH, QuantumState
 
 
 @pytest.mark.parametrize("n", [1, 2, 3, 4, 5])
@@ -157,9 +157,39 @@ def test_density_matrix_partial_trace_accepts_measurement_determinism():
 
 @pytest.mark.parametrize("rep_type", ["g", None])
 def test_partial_trace_on_a_graph_state_says_it_is_not_implemented(rep_type):
-    # rep_type=None autodetects the graph representation without recording its
-    # name, which used to slip past the refusal into an AttributeError.
+    # rep_type=None autodetects the graph representation; it is refused like an
+    # explicit one rather than failing with an AttributeError.
     state = QuantumState(nx.path_graph(4), rep_type=rep_type)
 
     with pytest.raises(NotImplementedError, match="Graph representation"):
         state.partial_trace(keep=[0], dims=4 * [2])
+
+
+@pytest.mark.parametrize(
+    "data, expected_rep_type",
+    [
+        (np.eye(4) / 4, "dm"),
+        (2, "dm"),
+        (create_n_ket0_state(3), "s"),
+        (DENSITY_MATRIX_QUBIT_THRESH, "s"),
+        (nx.path_graph(3), "g"),
+    ],
+)
+def test_autodetected_representation_records_its_rep_type(data, expected_rep_type):
+    # Without an explicit rep_type, __init__ picks the representation from the data;
+    # the name must be recorded too, since everything downstream dispatches on it.
+    state = QuantumState(data)
+
+    assert state.rep_type == expected_rep_type
+
+
+def test_autodetected_state_converts_like_an_explicit_one():
+    graph = nx.path_graph(3)
+    autodetected = QuantumState(graph)
+    explicit = QuantumState(graph, rep_type="g")
+
+    autodetected.convert_representation("dm")
+    explicit.convert_representation("dm")
+
+    assert autodetected.rep_type == "dm"
+    assert np.allclose(autodetected.rep_data.data, explicit.rep_data.data)

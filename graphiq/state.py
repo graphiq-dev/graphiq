@@ -97,15 +97,21 @@ class QuantumState:
                 f"Data's type is incorrect. Input data is {data}, which is of type {type(data)}"
             )
         if rep_type is None:
+            # record the detected representation's name: show,
+            # convert_representation and the metrics and solvers read rep_type
+            # to dispatch
             if (
                 self.n_qubits < DENSITY_MATRIX_QUBIT_THRESH
                 and DensityMatrix.valid_datatype(data)
             ):
                 self._rep_data = self._initialize_dm(data)
+                self._rep_type = "dm"
             elif Stabilizer.valid_datatype(data):
                 self._rep_data = self._initialize_stabilizer(data)
+                self._rep_type = "s"
             elif Graph.valid_datatype(data):
                 self._rep_data = self._initialize_graph(data)
+                self._rep_type = "g"
             elif DensityMatrix.valid_datatype(data):
                 raise ValueError(
                     "Data's type is correct for density matrix representation, but state size exceeds the "
@@ -170,10 +176,9 @@ class QuantumState:
         :raises NotImplementedError: if the representation object has no partial_trace
         """
 
-        # Asked of the representation object, not of _rep_type: __init__ can
-        # autodetect a representation without writing the name back, leaving
-        # _rep_type None, so a check on the name misses a graph state built
-        # without an explicit rep_type.
+        # Asked of the representation object, not of _rep_type: the rep_type
+        # setter renames without converting, so the name need not match the
+        # object held.
         if not hasattr(self._rep_data, "partial_trace"):
             raise NotImplementedError(
                 f"Partial trace not yet implemented on the "

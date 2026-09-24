@@ -244,3 +244,20 @@ def test_show_on_a_graph_state_in_a_subfigure_returns_the_root_figure():
     finally:
         plt.close(root)
         plt.close(other)
+
+
+def test_show_on_a_mixed_graph_state_raises_not_implemented():
+    t1 = QuantumState(nx.path_graph(3), rep_type="g")
+    t1.convert_representation("s")
+    t2 = QuantumState(nx.star_graph(2), rep_type="g")
+    t2.convert_representation("s")
+    state = QuantumState(
+        [(0.5, t1.rep_data.tableau), (0.5, t2.rep_data.tableau)],
+        rep_type="s",
+        mixed=True,
+    )
+    state.convert_representation("g")
+    assert isinstance(state.rep_data, MixedGraph)
+
+    with pytest.raises(NotImplementedError, match="mixed graph state"):
+        state.show(show=False)

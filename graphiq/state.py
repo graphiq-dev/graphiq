@@ -203,6 +203,10 @@ class QuantumState:
         if self._rep_type == "dm":
             fig, ax = self._rep_data.draw(show=show, style="heat")
         elif self._rep_type == "g":
+            if isinstance(self._rep_data, MixedGraph):
+                raise NotImplementedError(
+                    "No visualization tool is implemented for a mixed graph state."
+                )
             fig, ax = self._rep_data.draw(show=show, ax=ax, with_labels=True)
         elif self._rep_type == "s":
             raise NotImplementedError(

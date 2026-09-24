@@ -48,6 +48,27 @@ def symplectic_to_string(x_matrix, z_matrix):
     return generator_list
 
 
+_PAULI_CHARACTERS = frozenset("ixyzIXYZ")
+
+
+def _validate_pauli_label(label):
+    """
+    Raise ValueError if label contains a character other than I, X, Y, or Z
+    (case-insensitive).
+
+    :param label: a single stabilizer generator string
+    :type label: str
+    :return: nothing
+    :rtype: None
+    """
+    invalid = set(label) - _PAULI_CHARACTERS
+    if invalid:
+        raise ValueError(
+            f"Invalid stabilizer generator {label!r}: unexpected character(s) "
+            f"{''.join(sorted(invalid))!r}; expected one of I, X, Y, Z"
+        )
+
+
 def string_to_symplectic(generator_list):
     """
     Convert a string list representation of stabilizer generators to a symplectic representation
@@ -56,7 +77,36 @@ def string_to_symplectic(generator_list):
     :type generator_list: list[str]
     :return: two binary matrices, one for X part, the other for Z part
     :rtype: numpy.ndarray, numpy.ndarray
+    :raises ValueError: if generator_list is a bare string rather than a list of strings,
+        if it is empty, if any generator contains a character other than I, X, Y, Z
+        (case-insensitive), or if the generators are not all the same length
     """
+    if isinstance(generator_list, str):
+        raise ValueError(
+            "string_to_symplectic expects a list of generator strings, not a single "
+            f"string ({generator_list!r}); wrap it in a list"
+        )
+
+    # Materialise first: the validation below iterates twice, and an exhausted
+    # iterator would report an empty, actively misleading length set.
+    generator_list = list(generator_list)
+
+    if not generator_list:
+        raise ValueError(
+            "string_to_symplectic expects at least one generator; an empty list "
+            "gives no qubit count to build a tableau from"
+        )
+
+    for label in generator_list:
+        _validate_pauli_label(label)
+
+    lengths = {len(label) for label in generator_list}
+    if len(lengths) != 1:
+        raise ValueError(
+            f"Stabilizer generators have inconsistent lengths {sorted(lengths)}: "
+            f"{generator_list!r}"
+        )
+
     n_row = len(generator_list)
     n_column = len(generator_list[0])
     x_matrix = np.zeros((n_row, n_column))
@@ -82,7 +132,10 @@ def get_stabilizer_element_by_string(generator):
     :type generator: str
     :return: a matrix representation of the stabilizer element
     :rtype: numpy.ndarray
+    :raises ValueError: if generator contains a character other than I, X, Y, Z
+        (case-insensitive)
     """
+    _validate_pauli_label(generator)
     stabilizer_elem = 1
     for pauli in generator:
         if pauli.lower() == "x":

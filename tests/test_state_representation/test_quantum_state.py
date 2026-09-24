@@ -12,6 +12,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import matplotlib.axes
+import matplotlib.figure
+import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
 import pytest
@@ -193,3 +196,19 @@ def test_autodetected_state_converts_like_an_explicit_one():
 
     assert autodetected.rep_type == "dm"
     assert np.allclose(autodetected.rep_data.data, explicit.rep_data.data)
+
+
+def test_show_on_a_graph_state_returns_the_figure_and_axes():
+    # show() unpacks the (fig, ax) that Graph.draw returns. No ax is passed:
+    # draw_graph returns the current axes rather than a caller-supplied one.
+    state = QuantumState(nx.path_graph(3), rep_type="g")
+    fresh = plt.figure()
+    try:
+        fig, ax = state.show(show=False)
+
+        assert isinstance(fig, matplotlib.figure.Figure)
+        assert isinstance(ax, matplotlib.axes.Axes)
+        assert fig is fresh
+        assert ax.collections  # the nodes and edges nx.draw added
+    finally:
+        plt.close(fresh)

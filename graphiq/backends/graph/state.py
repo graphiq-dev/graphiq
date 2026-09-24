@@ -245,10 +245,10 @@ class Graph(StateRepresentationBase):
         :type ax: matplotlib.Axis
         :param with_labels: if True, node labels are drawn
         :type with_labels: bool
-        :return: nothing
-        :rtype: None
+        :return: fig, axes on which the state is drawn
+        :rtype: matplotlib.Figure, matplotlib.Axes
         """
-        draw_graph(self, show=show, ax=ax, with_labels=with_labels)
+        return draw_graph(self, show=show, ax=ax, with_labels=with_labels)
 
     def local_complementation(self, node_id, copy=False):
         """

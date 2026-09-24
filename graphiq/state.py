@@ -147,6 +147,11 @@ class QuantumState:
         """
         Representation type
 
+        Assigning to this only renames the representation; it does not convert the data.
+        Use `convert_representation` to change the representation, or assign `rep_data`
+        right after renaming, with input valid for the new type and the same number of
+        qubits.
+
         :return: representation type
         :rtype: str
         """

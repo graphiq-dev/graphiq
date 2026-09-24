@@ -28,8 +28,12 @@ class CliffordTableau(TableauBase):
 
         :param data: input data used to initialize the tableau
         :type data: numpy.ndarray or int or CliffordTableau
-        :param phase: a phase vector
-        :type phase: numpy.ndarray
+        :param phase: a phase vector, or None for an all-zero default; must
+            be omitted when data is an existing tableau, since the phase is
+            copied from it instead
+        :type phase: numpy.ndarray or list[int] or None
+        :raises ValueError: if phase is not None and its shape is wrong, or
+            if phase is passed alongside an existing tableau to copy
         """
         if isinstance(data, int):
             self._table = np.eye(2 * data).astype(int)
@@ -41,6 +45,11 @@ class CliffordTableau(TableauBase):
             self.n_qubits = int(data.shape[1] / 2)
             self._initialize_phase(phase)
         elif isinstance(data, CliffordTableau) or isinstance(data, StabilizerTableau):
+            if phase is not None:
+                raise ValueError(
+                    "phase cannot be set when constructing from an existing "
+                    "tableau; the phase is copied from data instead"
+                )
             if isinstance(data, StabilizerTableau):
                 data = stab.clifford_from_stabilizer(data)
             self._table = np.copy(data.table)
@@ -56,15 +65,21 @@ class CliffordTableau(TableauBase):
         """
         Helper function to initialize the phase vectors
 
-        :param phase:
-        :type phase: numpy.ndarray
+        :param phase: the phase vector, or None for an all-zero default
+        :type phase: numpy.ndarray or list[int] or None
         :return: nothing
         :rtype: None
+        :raises ValueError: if phase is not None and its shape is not (2 * n_qubits,)
         """
-        if isinstance(phase, np.ndarray) and phase.shape[0] == 2 * self.n_qubits:
-            self._phase = phase.astype(int)
-        else:
+        if phase is None:
             self._phase = np.zeros(2 * self.n_qubits).astype(int)
+        else:
+            phase = np.asarray(phase)
+            if phase.shape != (2 * self.n_qubits,):
+                raise ValueError(
+                    f"phase must have shape ({2 * self.n_qubits},), got {phase.shape}"
+                )
+            self._phase = phase.astype(int)
         self._iphase = np.zeros(2 * self.n_qubits).astype(int)
 
     def copy(self):
@@ -281,8 +296,12 @@ class CliffordTableau(TableauBase):
         :type value: numpy.ndarray
         :return: nothing
         :rtype: None
+        :raises ValueError: if value's shape is not (2 * n_qubits,)
         """
-        assert value.shape[0] == 2 * self.n_qubits
+        if value.shape != (2 * self.n_qubits,):
+            raise ValueError(
+                f"iphase must have shape ({2 * self.n_qubits},), got {value.shape}"
+            )
         self._iphase = value.astype(int)
 
     def __str__(self):
@@ -340,8 +359,8 @@ class CliffordTableau(TableauBase):
         # check without converting to canonical form
         if isinstance(other, CliffordTableau):
             return (
-                np.all(self.phase == other.phase)
-                and np.all(self.iphase == other.iphase)
+                np.array_equal(self.phase, other.phase)
+                and np.array_equal(self.iphase, other.iphase)
                 and np.array_equal(self.table.astype(int), other.table.astype(int))
             )
 
@@ -358,7 +377,14 @@ class CliffordTableau(TableauBase):
 
     def _reset(self, new_table, new_phase, new_iphase):
         new_n_qubits = int(new_table.shape[0] / 2)
-        assert len(new_phase) == 2 * new_n_qubits
+        if new_phase.shape != (2 * new_n_qubits,):
+            raise ValueError(
+                f"new_phase must have shape ({2 * new_n_qubits},), got {new_phase.shape}"
+            )
+        if new_iphase.shape != (2 * new_n_qubits,):
+            raise ValueError(
+                f"new_iphase must have shape ({2 * new_n_qubits},), got {new_iphase.shape}"
+            )
         self._table = new_table.astype(int)
         self._phase = new_phase.astype(int)
         self._iphase = new_iphase.astype(int)

@@ -88,8 +88,8 @@ def test_symplectic_product():
 def test_echelon_form(n_nodes):
     g1 = nx.complete_graph(n_nodes)
     g2 = nx.gnp_random_graph(n_nodes, 0.5)
-    r_vector1 = np.zeros([n_nodes, 1])
-    r_vector2 = np.zeros([n_nodes, 1])
+    r_vector1 = np.zeros(n_nodes)
+    r_vector2 = np.zeros(n_nodes)
     z1 = nx.to_numpy_array(g1).astype(int)
     z2 = nx.to_numpy_array(g2).astype(int)
     x1 = np.eye(n_nodes)

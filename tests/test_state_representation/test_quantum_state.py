@@ -199,8 +199,8 @@ def test_autodetected_state_converts_like_an_explicit_one():
 
 
 def test_show_on_a_graph_state_returns_the_figure_and_axes():
-    # show() unpacks the (fig, ax) that Graph.draw returns. No ax is passed:
-    # draw_graph returns the current axes rather than a caller-supplied one.
+    # show() unpacks the (fig, ax) that Graph.draw returns. No ax is passed, so
+    # this covers the ax=None path: the current figure and its current axes.
     state = QuantumState(nx.path_graph(3), rep_type="g")
     fresh = plt.figure()
     try:
@@ -212,3 +212,35 @@ def test_show_on_a_graph_state_returns_the_figure_and_axes():
         assert ax.collections  # the nodes and edges nx.draw added
     finally:
         plt.close(fresh)
+
+
+def test_show_on_a_graph_state_returns_the_axes_it_was_given():
+    state = QuantumState(nx.path_graph(3), rep_type="g")
+    f1, (a1, a2) = plt.subplots(1, 2)
+    f2 = plt.figure()  # the current figure and axes are now neither f1 nor a1
+    try:
+        fig, ax = state.show(show=False, ax=a1)
+
+        assert fig is f1
+        assert ax is a1
+        assert a1.collections
+        assert not a2.collections
+    finally:
+        plt.close(f1)
+        plt.close(f2)
+
+
+def test_show_on_a_graph_state_in_a_subfigure_returns_the_root_figure():
+    state = QuantumState(nx.path_graph(3), rep_type="g")
+    root = plt.figure()
+    sub_ax = root.subfigures(1, 2)[0].subplots()
+    other = plt.figure()
+    try:
+        fig, ax = state.show(show=False, ax=sub_ax)
+
+        assert isinstance(fig, matplotlib.figure.Figure)
+        assert fig is root
+        assert ax is sub_ax
+    finally:
+        plt.close(root)
+        plt.close(other)

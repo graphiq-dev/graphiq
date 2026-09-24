@@ -44,6 +44,7 @@ def draw_graph(state_graph, show=False, ax=None, with_labels=True):
     )
     if show:
         plt.show()
-    fig = plt.gcf()
-    ax = plt.gca()
-    return fig, ax
+    if ax is None:
+        return plt.gcf(), plt.gca()
+    # ax.figure is a SubFigure when ax sits in one; its .figure is the root Figure.
+    return ax.figure.figure, ax

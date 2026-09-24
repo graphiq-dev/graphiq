@@ -167,16 +167,21 @@ class QuantumState:
         :type measurement_determinism: str or int
         :return: nothing
         :rtype: None
+        :raises NotImplementedError: if the representation object has no partial_trace
         """
 
-        if self._rep_type == "g":
+        # Asked of the representation object, not of _rep_type: __init__ can
+        # autodetect a representation without writing the name back, leaving
+        # _rep_type None, so a check on the name misses a graph state built
+        # without an explicit rep_type.
+        if not hasattr(self._rep_data, "partial_trace"):
             raise NotImplementedError(
-                "Partial trace not yet implemented on graph state"
+                f"Partial trace not yet implemented on the "
+                f"{type(self._rep_data).__name__} representation"
             )
-        else:
-            self._rep_data.partial_trace(
-                keep, dims, measurement_determinism=measurement_determinism
-            )
+        self._rep_data.partial_trace(
+            keep, dims, measurement_determinism=measurement_determinism
+        )
 
     def show(self, show=True, ax=None):
         """

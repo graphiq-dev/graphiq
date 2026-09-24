@@ -153,3 +153,13 @@ def test_density_matrix_partial_trace_accepts_measurement_determinism():
     state.partial_trace(keep=[0], dims=[2, 2], measurement_determinism=1)
 
     assert np.allclose(state.rep_data.data, np.eye(2) / 2)
+
+
+@pytest.mark.parametrize("rep_type", ["g", None])
+def test_partial_trace_on_a_graph_state_says_it_is_not_implemented(rep_type):
+    # rep_type=None autodetects the graph representation without recording its
+    # name, which used to slip past the refusal into an AttributeError.
+    state = QuantumState(nx.path_graph(4), rep_type=rep_type)
+
+    with pytest.raises(NotImplementedError, match="Graph representation"):
+        state.partial_trace(keep=[0], dims=4 * [2])

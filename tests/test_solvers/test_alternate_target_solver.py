@@ -103,6 +103,59 @@ def test_solver_density_noise(setting=my_setting(), target_graph=linear_cluster)
     solver.solve()
 
 
+def _solve_with_label_map(label_map, n_iso_graphs):
+    setting = my_setting()
+    setting.n_iso_graphs = n_iso_graphs
+    setting.label_map = label_map
+    solver = AlternateTargetSolver(
+        target=linear_cluster,
+        solver_setting=setting,
+        noise_model_mapping="depolarizing",
+    )
+    solver.metric = Infidelity
+    solver.compiler = StabilizerCompiler()
+    solver.noise_compiler = DensityMatrixCompiler()
+    solver.io = None
+    solver.noise_simulation = False
+    solver.seed = 1
+    return solver.solve()
+
+
+@pytest.mark.parametrize(
+    "n_iso_graphs, iso_finder_returns_tuple", [(3, False), (12, True)]
+)
+def test_label_map_setting_gives_the_same_result_as_without_it(
+    n_iso_graphs, iso_finder_returns_tuple
+):
+    # With label_map set, iso_finder returns (matrices, label maps) only when it has to
+    # search past its first batch of labellings, and a bare array otherwise. Pin which
+    # case each parameter reaches, so both shapes stay covered.
+    setting = my_setting()
+    found = iso_finder(
+        nx.to_numpy_array(linear_cluster),
+        n_iso_graphs,
+        rel_inc_thresh=setting.rel_inc_thresh,
+        allow_exhaustive=setting.allow_exhaustive,
+        sort_emit=setting.sort_emitter,
+        label_map=True,
+        thresh=setting.iso_thresh,
+        seed=1,
+    )
+    assert isinstance(found, tuple) == iso_finder_returns_tuple
+
+    with_map = _solve_with_label_map(True, n_iso_graphs)
+    without_map = _solve_with_label_map(False, n_iso_graphs)
+
+    assert len(with_map) == len(without_map) == n_iso_graphs
+    for (circuit_a, props_a), (circuit_b, props_b) in zip(with_map, without_map):
+        assert nx.utils.graphs_equal(props_a["g"], props_b["g"])
+        assert props_a["map"] == props_b["map"]
+        assert props_a["score"] == props_b["score"]
+        assert [type(op) for op in circuit_a.sequence()] == [
+            type(op) for op in circuit_b.sequence()
+        ]
+
+
 def test_setting_callback_func_is_per_instance():
     a = AlternateTargetSolverSetting()
     b = AlternateTargetSolverSetting()

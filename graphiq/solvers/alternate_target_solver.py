@@ -178,6 +178,11 @@ class AlternateTargetSolver:
                 thresh=setting.iso_thresh,
                 seed=self.seed,
             )
+            # with label_map set, iso_finder can return (adjacency matrices, label maps)
+            # instead of the matrices alone; the maps are not needed here, since each
+            # graph's relabel map is computed below with get_relabel_map
+            if isinstance(iso_adjs, tuple):
+                iso_adjs = iso_adjs[0]
         else:
             # only the labelling given
             iso_adjs = [adj_matrix]

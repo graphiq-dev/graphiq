@@ -444,7 +444,12 @@ class CircuitBase(ABC):
         return self._map
 
     def _default_map(self):
-        """Default map, in which each op is mapped to itself (no parameter sharing, except for copied ops)"""
+        """
+        Default map, in which each op is mapped to itself (no parameter sharing, except for copied ops)
+
+        :return: a mapping from the id of each op in the unwrapped sequence to itself
+        :rtype: dict
+        """
         _map = {id(op): id(op) for op in self.sequence(unwrapped=True)}
         return _map
 

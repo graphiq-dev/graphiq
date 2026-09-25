@@ -76,7 +76,6 @@ class Infidelity(MetricBase):
         :type target: QuantumState
         :param log_steps: the metric values are computed at every log_steps optimization step
         :type log_steps: int
-        :raises AssertionError: if targe is not a valid density matrix
         :return: nothing
         :rtype: None
         """
@@ -110,7 +109,9 @@ class Infidelity(MetricBase):
         :param circuit: circuit which generated state
                         Not used for the fidelity evaluation, but argument is provided for API consistency
         :type circuit: CircuitBase (or subclass of it)
-        :raises AssertionError: if the state is not a valid density matrix
+        :raises AssertionError: if the target is a MixedStabilizer that is not one tableau with probability 1.0,
+            or, for a density matrix target, if the state or the target is not a valid density matrix
+        :raises ValueError: if the target's rep_type is neither "s" nor "dm"
         :return: infidelity = 1 - fidelity
         :rtype: float
         """

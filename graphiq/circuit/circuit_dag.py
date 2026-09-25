@@ -72,8 +72,10 @@ class CircuitDAG(CircuitBase):
         :param n_classical: the number of classical bits in the system
         :type n_classical: int
         :param openqasm_imports: None or an (ordered) dictionary, where the keys are import strings for openqasm
+                                 (the values are not used)
         :type openqasm_imports: a dictionary (with str keys) or None
         :param openqasm_defs: None or an (ordered) dictionary, where the keys are definitions strings for openqasm gates
+                              (the values are not used)
         :type openqasm_defs: a dictionary (with str keys) or None
         :return: nothing
         :rtype: None
@@ -1032,6 +1034,13 @@ class CircuitDAG(CircuitBase):
     def to_json(self):
         """
         Function to convert circuit object to json data format.
+
+        .. warning::
+            Operations for which ``ops.class_to_name_mapping`` returns None do not round-trip. These include
+            the parameterized gates (e.g. RX, RY, RZ, ParameterizedOneQubitRotation,
+            ParameterizedControlledRotationQubit) as well as MeasurementZ, PhaseDagger and Identity. Such an
+            operation is written with type None, or dropped from the op_list of a OneQubitGateWrapper, and gate
+            parameters are not stored. from_json then raises TypeError on a type None entry.
 
         :return: circuit json object
         :rtype: dict

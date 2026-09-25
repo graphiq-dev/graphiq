@@ -282,6 +282,13 @@ class IO:
     def _save_json(variable, path):
         """
         Helper method for saving to json files
+
+        :param variable: the object to save
+        :type variable: JSON-serializable object
+        :param path: path of the file to which variable should be saved
+        :type path: str or pathlib.Path
+        :return: the function returns nothing
+        :rtype: None
         """
         with open(path, "w+") as json_file:
             json.dump(variable, json_file, indent=4)
@@ -290,6 +297,11 @@ class IO:
     def _load_json(path):
         """
         Helper method for loading from json files
+
+        :param path: path of the file from which we are loading the object
+        :type path: str or pathlib.Path
+        :return: the object decoded from the file by json.load
+        :rtype: may vary
         """
         with open(path) as json_file:
             data = json.load(json_file)
@@ -299,6 +311,13 @@ class IO:
     def _save_txt(variable, path):
         """
         Helper method for saving to text files
+
+        :param variable: the text to save
+        :type variable: str
+        :param path: path of the file to which variable should be saved
+        :type path: str or pathlib.Path
+        :return: the function returns nothing
+        :rtype: None
         """
         with open(path, "w") as txt_file:
             txt_file.write(variable)
@@ -307,6 +326,11 @@ class IO:
     def _load_txt(path):
         """
         Helper method for loading from text files
+
+        :param path: path of the file from which we are loading the text
+        :type path: str or pathlib.Path
+        :return: the contents of the file
+        :rtype: str
         """
         f = open(path, "r")
         data = f.read()

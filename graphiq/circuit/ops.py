@@ -78,8 +78,8 @@ class OperationBase(ABC):
                             of registers the gate requires
         :type q_registers: tuple (tuple of: integers OR tuples of length 2)
         :param q_registers_type: tuple of strings, each is either 'p' (photonic qubit) or 'e' (emitter qubit)
-        :type q_registers: tuple (of str)
-        :param c_registers: same as photon/emitter_registers, but for the classical registers
+        :type q_registers_type: tuple (of str)
+        :param c_registers: same as q_registers, but for the classical registers
         :type c_registers: tuple (tuple of: integers OR tuples of length 2)
         :param noise: Noise model
         :type noise: graphiq.noise.noise_models.NoiseBase
@@ -87,7 +87,8 @@ class OperationBase(ABC):
         :type params: tuple
         :param param_info: a dictionary that specifies all the information regarding parameters
         :type param_info: dict
-        :raises AssertionError: if photon_register, emitter_register, c_registers are not tuples,
+        :raises AssertionError: if q_registers, q_registers_type, c_registers are not tuples,
+                               OR if q_registers and q_registers_type differ in length,
                                OR if the elements of the tuple do not correspond to the notation described above
         :return: nothing
         :rtype: None
@@ -619,6 +620,8 @@ class OneQubitGateWrapper(OneQubitOperationBase):
         Unwraps the Operation into a list of sub-operations (this can be useful for any operations which are composed
         of multiple other operations) in the reverse order, which corresponds to the order of applying gates
 
+        A list-valued ``noise`` is paired with ``operations`` by index before the reversal.
+
         :return: a sequence of base operations (i.e. operations which are not compositions of other operations)
         :rtype: list
         """
@@ -1032,7 +1035,7 @@ class Input(InputOutputOperationBase):
 
 class Output(InputOutputOperationBase):
     """
-    Input Operation. Serves as a placeholder in the circuit so that we know that this is the final operation on a
+    Output Operation. Serves as a placeholder in the circuit so that we know that this is the final operation on a
     qubit/cbit (i.e. there are no subsequent operations on it)
     """
 

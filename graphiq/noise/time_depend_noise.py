@@ -285,7 +285,7 @@ class NoiseEvent:
         :type prob: float
         :param nodes_and_regs: a list [(node, (reg, reg_type), noise_type)] to specify where in the DAG error gate are
         supposed to be inserted and what type of error is used for that specific location.
-        :type nodes_and_regs:
+        :type nodes_and_regs: list[tuple]
         """
         self._prob = prob
         self._nodes_and_regs = (
@@ -580,12 +580,13 @@ def cut_off_counter(cut_off_prob, time, rate):
 
     :param cut_off_prob: the minimum total probability of all events we want to consider
     :type cut_off_prob: float
+    :param time: the time duration
     :type time: float
     :param rate: the average rate of events happening per unit time
     :type rate: float
     :return: the maximum number of events needed to be considered, and the actual total probability of cases considered
     with this cut-off count.
-    :rtype: int
+    :rtype: tuple[int, float]
     """
     cut_off_count = 0
     prob_sum = poisson_prob(cut_off_count, time, rate)

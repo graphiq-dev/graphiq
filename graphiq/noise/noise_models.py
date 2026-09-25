@@ -89,7 +89,8 @@ class NoiseBase(ABC):
 
 class AdditionNoiseBase(NoiseBase):
     """
-    Base class for noise added before the operation
+    Base class for noise added to the operation: after it by default, or before it if
+    noise_parameters["After gate"] is False
     """
 
     def __init__(self, noise_parameters=None):

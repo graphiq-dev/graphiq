@@ -217,6 +217,43 @@ def test_op_noise_restored_when_gate_compilation_raises(monkeypatch):
     assert np.allclose(_compile_dm(circuit), _compile_dm(expected))
 
 
+@pytest.mark.parametrize("failing_call", [1, 2])
+def test_op_noise_restored_when_noise_application_raises(monkeypatch, failing_call):
+    """A raise while a half of the split noise is bound must restore the gate's noise.
+
+    The CNOT's noise is split into a pre-gate and a post-gate half, and `op.noise` is
+    bound to each in turn. Call 1 is the pre-gate half, call 2 the post-gate half; the
+    other ops carry no noise and never reach `_apply_additional_noise`.
+    """
+    circuit, cnot = _noisy_cnot_circuit(
+        _before_gate(nm.PauliError("X")), nm.PauliError("Z")
+    )
+    original = cnot.noise
+    original_legs = list(cnot.noise)
+    apply_noise = DensityMatrixCompiler._apply_additional_noise
+    bound = []
+
+    def _fail_on_call(self, state, op, n_quantum, q_index):
+        assert op is cnot
+        bound.append([not isinstance(leg, nm.NoNoise) for leg in op.noise])
+        if len(bound) == failing_call:
+            raise RuntimeError("noise application failed")
+        return apply_noise(self, state, op, n_quantum, q_index)
+
+    monkeypatch.setattr(DensityMatrixCompiler, "_apply_additional_noise", _fail_on_call)
+    with pytest.raises(RuntimeError, match="noise application failed"):
+        _compile_dm(circuit)
+
+    # Which leg carries real noise in each bound half: the X leg before, the Z leg after.
+    assert bound == [[True, False], [False, True]][:failing_call]
+    assert cnot.noise is original
+    assert list(cnot.noise) == original_legs
+
+    monkeypatch.undo()
+    expected = _explicit_circuit([(ops.SigmaX, 0)], [(ops.SigmaZ, 1)])
+    assert np.allclose(_compile_dm(circuit), _compile_dm(expected))
+
+
 def test_non_addition_noise_on_a_leg_is_rejected():
     """Both legs must be `AdditionNoiseBase`; differing *positions* are fine."""
     replacement = nm.OneQubitGateReplacement(np.eye(2))

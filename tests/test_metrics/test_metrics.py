@@ -371,6 +371,29 @@ def test_metrics_unrecognized_metric_raises():
         Metrics(["NotARealMetric"])
 
 
+@pytest.mark.parametrize(
+    "name",
+    [
+        "CircuitEmitterCount",
+        "CircuitCnotCount",
+        "CircuitUnitaryCount",
+        "CircuitMaxEmitDepth",
+        "CircuitMaxEmitResetDepth",
+        "CircuitMaxEmitEffDepth",
+        "CircuitMeasureCount",
+    ],
+)
+def test_metrics_accepts_each_circuit_metric_by_name(name):
+    metrics = Metrics([name])
+    assert [type(metric).__name__ for metric in metrics._metrics] == [name]
+
+
+def test_metrics_rejects_graph_metric_by_name():
+    # GraphMetric's evaluate takes a graph-metric name, not (state, circuit)
+    with pytest.raises(UserWarning):
+        Metrics(["GraphMetric"])
+
+
 def test_infidelity_graph_state_marked_mixed_matches_stabilizer_target():
     """Regression coverage for the Infidelity.evaluate bug where the mixed-
     stabilizer branch checked `isinstance(state.rep_data, MixedStabilizer)`

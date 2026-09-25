@@ -12,6 +12,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""
+The tableau base class and the stabilizer tableau: a binary symplectic table plus its phase vector.
+"""
 import copy
 from abc import ABC
 
@@ -151,6 +154,12 @@ class StabilizerTableau(TableauBase):
         self.shape = (self.n_qubits, 2 * self.n_qubits)
 
     def copy(self):
+        """
+        A deep copy of the tableau, sharing no array with the original
+
+        :return: an independent copy
+        :rtype: StabilizerTableau
+        """
         return copy.deepcopy(self)
 
     @property
@@ -258,6 +267,17 @@ class StabilizerTableau(TableauBase):
         return sfu.is_stabilizer(self._table)
 
     def _reset(self, new_table, new_phase):
+        """
+        Replace the table and phase together, re-deriving the qubit count and shape
+
+        :param new_table: the replacement table, whose row count gives the new qubit count
+        :type new_table: numpy.ndarray
+        :param new_phase: the replacement phase vector, of length n_qubits
+        :type new_phase: numpy.ndarray
+        :raises ValueError: if new_phase's shape does not match the new qubit count
+        :return: nothing
+        :rtype: None
+        """
         new_n_qubits = int(new_table.shape[0])
         if new_phase.shape != (new_n_qubits,):
             raise ValueError(

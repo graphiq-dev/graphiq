@@ -82,6 +82,14 @@ class DensityMatrix(StateRepresentationBase):
 
     @classmethod
     def valid_datatype(cls, data):
+        """
+        Whether data is an accepted input for this representation
+
+        :param data: the candidate data
+        :type data: any
+        :return: True if data is an int or a numpy.ndarray
+        :rtype: bool
+        """
         return isinstance(data, (int, np.ndarray))
 
     @property

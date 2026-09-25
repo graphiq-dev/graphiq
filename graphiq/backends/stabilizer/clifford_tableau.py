@@ -12,6 +12,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""
+The Clifford tableau: destabilizer and stabilizer generators with their phase exponents.
+"""
 import copy
 
 import numpy as np
@@ -22,6 +25,12 @@ from graphiq.backends.stabilizer.tableau import TableauBase, StabilizerTableau
 
 
 class CliffordTableau(TableauBase):
+    """
+    A full Clifford tableau: destabilizer generators stacked above stabilizer generators,
+    with a phase vector (exponents of :math:`-1`) and a separate i-phase exponent vector
+    that tracks residual factors of :math:`i`.
+    """
+
     def __init__(self, data, phase=None, *args, **kwargs):
         """
         Constructor for CliffordTableau
@@ -83,6 +92,12 @@ class CliffordTableau(TableauBase):
         self._iphase = np.zeros(2 * self.n_qubits).astype(int)
 
     def copy(self):
+        """
+        A deep copy of the tableau, sharing no array with the original
+
+        :return: an independent copy
+        :rtype: CliffordTableau
+        """
         return copy.deepcopy(self)
 
     @property
@@ -376,6 +391,22 @@ class CliffordTableau(TableauBase):
         return StabilizerTableau(self.stabilizer, self.phase[self.n_qubits :])
 
     def _reset(self, new_table, new_phase, new_iphase):
+        """
+        Replace the table, phase and i-phase together, re-deriving the qubit count and shape
+
+        The table holds destabilizers and stabilizers stacked, so the qubit count is half its
+        row count.
+
+        :param new_table: the replacement table, whose row count is twice the new qubit count
+        :type new_table: numpy.ndarray
+        :param new_phase: the replacement phase vector, of length 2 * n_qubits
+        :type new_phase: numpy.ndarray
+        :param new_iphase: the replacement i-phase exponent vector, of length 2 * n_qubits
+        :type new_iphase: numpy.ndarray
+        :raises ValueError: if new_phase or new_iphase does not match the new qubit count
+        :return: nothing
+        :rtype: None
+        """
         new_n_qubits = int(new_table.shape[0] / 2)
         if new_phase.shape != (2 * new_n_qubits,):
             raise ValueError(

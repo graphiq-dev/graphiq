@@ -96,6 +96,12 @@ class Graph(StateRepresentationBase):
 
     @property
     def n_qubits(self):
+        """
+        The number of qubits in the state, which is the number of nodes of the graph
+
+        :return: the number of qubits
+        :rtype: int
+        """
         return self.n_nodes
 
     def find_lc(self, node_id):
@@ -324,6 +330,20 @@ class MixedGraph(StateRepresentationBase):
     """
 
     def __init__(self, data, *args, **kwargs):
+        """
+        Create a MixedGraph representation object
+
+        A single Graph becomes a one-element mixture of probability 1.0. A bare
+        ``networkx.Graph`` is not accepted here; wrap it in a ``Graph`` first.
+
+        :param data: a Graph to hold as a one-element mixture, or a ready mixture as a list of
+            (probability_i, Graph_i)
+        :type data: Graph or list[tuple]
+        :raises TypeError: if data is neither a Graph nor a list
+        :raises AssertionError: if a list entry is not a (float, Graph) pair
+        :return: nothing
+        :rtype: None
+        """
         if isinstance(data, Graph):
             self._mixture = [
                 (1.0, data),
@@ -340,6 +360,16 @@ class MixedGraph(StateRepresentationBase):
 
     @classmethod
     def valid_datatype(cls, data):
+        """
+        Whether data is an accepted input for this representation
+
+        A list is accepted only if every entry is a (float, Graph) pair.
+
+        :param data: the candidate data
+        :type data: any
+        :return: True if data is a Graph or such a list
+        :rtype: bool
+        """
         valid = isinstance(data, (Graph, list))
         if isinstance(data, list):
             valid = valid and all(

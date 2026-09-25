@@ -26,7 +26,26 @@ from graphiq.backends.state_base import StateRepresentationBase
 
 
 class Stabilizer(StateRepresentationBase):
+    """
+    A pure state representation using the stabilizer formalism, backed by a single
+    CliffordTableau.
+
+    General unitaries are not supported; the state evolves by Clifford gates, Z and X
+    measurements, reset to |0>, and the qubit-removing operations (remove, trace out). For a
+    probability-weighted mixture of tableaus, see MixedStabilizer.
+    """
+
     def __init__(self, data, *args, **kwargs):
+        """
+        Create a Stabilizer representation object
+
+        :param data: the number of qubits to initialize in the all-zero state, or an existing
+            tableau to adopt (not copied)
+        :type data: int or CliffordTableau
+        :raises TypeError: if data is neither an int nor a CliffordTableau
+        :return: nothing
+        :rtype: None
+        """
         super().__init__(data, *args, **kwargs)
         if isinstance(data, int):
             self._tableau = CliffordTableau(data)
@@ -39,6 +58,14 @@ class Stabilizer(StateRepresentationBase):
 
     @classmethod
     def valid_datatype(cls, data):
+        """
+        Whether data is an accepted input for this representation
+
+        :param data: the candidate data
+        :type data: any
+        :return: True if data is an int or a CliffordTableau
+        :rtype: bool
+        """
         return isinstance(data, (int, CliffordTableau))
 
     @property
@@ -101,6 +128,17 @@ class Stabilizer(StateRepresentationBase):
         self.tableau = value
 
     def apply_unitary(self, qubit_position, unitary):
+        """
+        Not supported: the stabilizer formalism represents Clifford operations only.
+
+        :param qubit_position: the qubit the unitary would act on
+        :type qubit_position: int
+        :param unitary: the unitary that would be applied
+        :type unitary: numpy.ndarray
+        :raises NotImplementedError: always
+        :return: nothing
+        :rtype: None
+        """
         raise NotImplementedError(
             "Stabilizer backend does not support general unitary operation."
         )
@@ -356,6 +394,19 @@ class MixedStabilizer(StateRepresentationBase):
     """
 
     def __init__(self, data, *args, **kwargs):
+        """
+        Create a MixedStabilizer representation object
+
+        An int or a single tableau becomes a one-element mixture of probability 1.0.
+
+        :param data: the number of qubits to initialize in the all-zero state, a single tableau,
+            or a ready mixture as a list of (probability_i, tableau_i)
+        :type data: int or CliffordTableau or list[tuple]
+        :raises TypeError: if data is none of those
+        :raises AssertionError: if a list entry is not a (float, CliffordTableau) pair
+        :return: nothing
+        :rtype: None
+        """
         if isinstance(data, int):
             self._mixture = [
                 (1.0, CliffordTableau(data)),
@@ -377,6 +428,16 @@ class MixedStabilizer(StateRepresentationBase):
 
     @classmethod
     def valid_datatype(cls, data):
+        """
+        Whether data is an accepted input for this representation
+
+        A list is accepted only if every entry is a (float, CliffordTableau) pair.
+
+        :param data: the candidate data
+        :type data: any
+        :return: True if data is an int, a CliffordTableau, or such a list
+        :rtype: bool
+        """
         valid = isinstance(data, (int, CliffordTableau, list))
         if isinstance(data, list):
             valid = valid and all(
@@ -510,6 +571,17 @@ class MixedStabilizer(StateRepresentationBase):
         self._mixture = mixture_reduce
 
     def apply_unitary(self, qubit_position, unitary):
+        """
+        Not supported: the stabilizer formalism represents Clifford operations only.
+
+        :param qubit_position: the qubit the unitary would act on
+        :type qubit_position: int
+        :param unitary: the unitary that would be applied
+        :type unitary: numpy.ndarray
+        :raises NotImplementedError: always
+        :return: nothing
+        :rtype: None
+        """
         raise NotImplementedError(
             "Stabilizer backend does not support general unitary operation."
         )

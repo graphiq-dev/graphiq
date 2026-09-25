@@ -147,6 +147,24 @@ class QuantumState:
 
     @rep_data.setter
     def rep_data(self, data):
+        """
+        Replace the representation data, rebuilding it as the current rep_type
+
+        The width is not changed: n_qubits keeps its value, and a density matrix, graph or
+        newly built stabilizer representation of a different size raises AssertionError. An
+        existing Stabilizer (or, when the state is mixed, MixedStabilizer) object is adopted as
+        is, without that check.
+
+        :param data: data valid for the current rep_type
+        :type data: int or numpy.ndarray or CliffordTableau or list[(float, CliffordTableau)] or nx.Graph
+            or Graph (for "dm") or Stabilizer or MixedStabilizer
+        :raises AssertionError: if the new representation does not have n_qubits qubits, or if a
+            mixture list is malformed
+        :raises TypeError: if data is not a valid type for the current rep_type
+        :raises ValueError: if the data is not a valid density matrix, or if rep_type is None
+        :return: nothing
+        :rtype: None
+        """
         self._rep_data = self._initialize_representation(self._rep_type, data)
 
     @property
@@ -447,10 +465,34 @@ class QuantumState:
         return new_rep
 
     def _identity_fun(self, rep):
+        """
+        Helper function. Return a representation unchanged.
+
+        Sits on the diagonal of the conversion table, where source and target representation
+        are the same. ``convert_representation`` does nothing when they match, so these
+        entries are never reached.
+
+        :param rep: the representation to pass through
+        :type rep: DensityMatrix or Stabilizer or MixedStabilizer or Graph or MixedGraph
+        :return: the same representation, not a copy
+        :rtype: DensityMatrix or Stabilizer or MixedStabilizer or Graph or MixedGraph
+        """
         return rep
 
     @staticmethod
     def _get_rep_type_name(rep_type):
+        """
+        Normalize a representation-type alias to its canonical short name.
+
+        Maps "s", "stab" and "stabilizer" to "s", "dm" and "density matrix" to "dm", and
+        "g" and "graph" to "g". None passes through as None.
+
+        :param rep_type: a representation type or one of its aliases
+        :type rep_type: str or None
+        :raises ValueError: if rep_type is neither None nor a supported representation
+        :return: the canonical short name, or None
+        :rtype: str or None
+        """
         if rep_type in ("s", "stab", "stabilizer"):
             return "s"
         elif rep_type in ("dm", "density matrix"):

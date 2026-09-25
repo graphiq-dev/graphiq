@@ -74,4 +74,16 @@ class StateRepresentationBase(ABC):
 
     @classmethod
     def valid_datatype(cls, data):
+        """
+        Whether data is an accepted input for this representation
+
+        This base implementation raises, because the accepted datatypes are a property of
+        each concrete representation. Every subclass overrides it to return a bool.
+
+        :param data: the candidate data
+        :type data: any
+        :raises ValueError: always, on the abstract base class
+        :return: nothing
+        :rtype: None
+        """
         raise ValueError(f"Not implemented for abstract (base) class")

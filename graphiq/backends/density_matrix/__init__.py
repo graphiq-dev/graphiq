@@ -12,6 +12,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""
+Density-matrix state representation and the array library it is built on.
+"""
 from graphiq import DENSITY_MATRIX_ARRAY_LIBRARY
 
 # todo, reload numpy/jax if needed? possible package conflicts

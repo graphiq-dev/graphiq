@@ -241,7 +241,7 @@ def test_is_lc_equivalent_star5_and_star5_plus_edge_are_not_equivalent(mode):
     assert solution is None
 
 
-def test_find_lc_operations_recovers_first_graph_from_second():
+def test_find_lc_operations_maps_first_graph_to_second():
     # These two 5-node graphs are LC equivalent via a multi-step local
     # complementation sequence (not a single node, unlike star4/k4), which is
     # needed to tell apart which of the two adjacency matrices the sequence
@@ -253,12 +253,42 @@ def test_find_lc_operations_recovers_first_graph_from_second():
 
     op_list = find_lc_operations(adj_matrix1, adj_matrix2, mode="deterministic", seed=0)
 
-    # applying the returned local complementations to the second graph should
-    # turn it into the first graph
-    g = nx.from_numpy_array(adj_matrix2)
+    # find_lc_operations returns the local complementations that map the FIRST
+    # graph onto the second; applying them to the first graph yields the second.
+    g = nx.from_numpy_array(adj_matrix1)
     for node in op_list:
         g = local_comp_graph(g, node)
-    assert np.array_equal(nx.to_numpy_array(g).astype(int), adj_matrix1)
+    assert np.array_equal(nx.to_numpy_array(g).astype(int), adj_matrix2)
+
+
+@pytest.mark.parametrize(
+    "edges1, edges2",
+    [
+        (
+            [(0, 1), (1, 2), (1, 3), (1, 4), (2, 3), (2, 4), (3, 4)],
+            [(0, 1), (1, 4), (2, 4), (3, 4)],
+        ),
+        (
+            [(0, 1), (0, 2), (1, 2), (1, 3), (2, 3), (3, 4)],
+            [(0, 3), (0, 4), (1, 2), (2, 3), (2, 4), (3, 4)],
+        ),
+    ],
+)
+def test_find_lc_operations_are_built_on_the_first_graph(edges1, edges2):
+    # For these pairs, building the sequence on the second graph's adjacency
+    # matrix fails outright, so the test fails if find_lc_operations reverts to
+    # it (the pair in the test above yields a valid sequence either way).
+    adj_matrix1 = nx.to_numpy_array(nx.Graph(edges1), nodelist=range(5)).astype(int)
+    adj_matrix2 = nx.to_numpy_array(nx.Graph(edges2), nodelist=range(5)).astype(int)
+
+    op_list = find_lc_operations(adj_matrix1, adj_matrix2, mode="deterministic", seed=0)
+
+    g = nx.from_numpy_array(adj_matrix1)
+    for node in op_list:
+        g = local_comp_graph(g, node)
+    assert np.array_equal(
+        nx.to_numpy_array(g, nodelist=range(5)).astype(int), adj_matrix2
+    )
 
 
 def _adjacency(graph):

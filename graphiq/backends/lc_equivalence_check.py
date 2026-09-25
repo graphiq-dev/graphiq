@@ -638,9 +638,35 @@ def lc_graph_operations(adj_matrix, solution):
 
 
 def find_lc_operations(adj_matrix1, adj_matrix2, mode="deterministic", seed=0):
+    r"""
+    Finds the sequence of local complementations that transforms the first graph into the second one,
+    if the two graph states are local-Clifford equivalent.
+
+    The direction is fixed by the argument order: the returned operations are applied to the graph of
+    ``adj_matrix1`` (in the given order) to obtain the graph of ``adj_matrix2``. To obtain the reverse
+    transformation (``adj_matrix2`` into ``adj_matrix1``), call this function with the arguments swapped.
+
+    Internally, :py:func:`is_lc_equivalent` solves for the Clifford operator :math:`Q` that maps the first
+    graph state to the second, and :py:func:`lc_graph_operations` is called with ``adj_matrix1`` (the graph
+    that :math:`Q` acts on, since :math:`R = C\theta + D` must use that same :math:`\theta`).
+
+    :param adj_matrix1: the adjacency matrix of the first (initial) graph, i.e. the graph the returned
+        operations are applied to
+    :type adj_matrix1: numpy.ndarray
+    :param adj_matrix2: the adjacency matrix of the second (target) graph
+    :type adj_matrix2: numpy.ndarray
+    :param mode: the chosen mode for finding solutions, either 'deterministic' (default) or 'random'.
+    :type mode: str
+    :param seed: an optional input to set the random seed for the random search approach
+    :type seed: int
+    :raises ValueError: if the two graphs are not local-Clifford equivalent
+    :return: the ordered list of node indices on which to apply local complementations to transform the
+        first graph into the second
+    :rtype: list[int]
+    """
     equivalency, solution = is_lc_equivalent(adj_matrix1, adj_matrix2, mode, seed)
     if equivalency:
-        op_list = lc_graph_operations(adj_matrix2, solution)
+        op_list = lc_graph_operations(adj_matrix1, solution)
         return op_list
     else:
         raise ValueError("These two graphs are not local-Clifford equivalent.")

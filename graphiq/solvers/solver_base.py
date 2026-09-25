@@ -82,6 +82,15 @@ class SolverBase(ABC):
         Sets the seed for both the numpy.random and random packages.
         Accessible by any Solver subclass
 
+        The seed is recorded in last_seed, a class-level attribute on SolverBase (reported as
+        solver_info["seed"] by the solvers that log it). Like the numpy.random and random seeds it
+        sets, it is shared by the whole process: a solver reports the seed most recently set by any
+        solver, not necessarily its own. Measurement outcomes in the stabilizer and density matrix
+        backends are drawn from the global numpy.random state, so this seed does govern them.
+        It does not reach components that build their own unseeded np.random.default_rng()
+        (for example, AlternateTargetSolver's Monte Carlo seeding when a seed is missing, and the
+        random graph generators in benchmarks/graph_states.py when no np_rng is given).
+
         :param seed: a random number seed
         :type seed: int or None
         :return: nothing

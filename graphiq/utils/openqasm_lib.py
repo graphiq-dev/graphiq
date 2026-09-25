@@ -50,6 +50,10 @@ class OpenQASMInfo:
         :type definitions: str or list
         :param usage: A function which creates a gate string given q_reg, q_reg_type, c_reg
         :type usage: function
+        :param multi_comp: True if the operation is made of multiple components (visual blocks); when converting a
+                           circuit to openQASM, barriers are inserted to keep such an operation separate from its
+                           neighbours
+        :type multi_comp: bool
         :return: function returns nothing
         :rtype: None
         """

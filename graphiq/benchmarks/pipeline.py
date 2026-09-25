@@ -42,13 +42,15 @@ def run_combinations(solvers, targets, compilers, metrics):
     """
     Produces a benchmarking run for all possible combinations from lists of solvers, targets, compilers, and metrics.
 
-    :param solvers: a list of Solver classes (not instanced)
-    :type solvers: list
-    :param targets: a list of the target states
-    :type targets: list
-    :param compilers: list of compilers to use
+    :param solvers: a list of (Solver, solver_attr) pairs, where Solver is a solver class (not instanced) and
+        solver_attr is a dictionary of extra keyword arguments passed to its constructor
+    :type solvers: list[tuple]
+    :param targets: a list of (target, target_attr) pairs, where target is the target state and target_attr is a
+        dictionary providing the "n_photon" and "n_emitter" values passed to the solver
+    :type targets: list[tuple]
+    :param compilers: a list of compiler classes (not instanced); each is instantiated with no arguments
     :type compilers: list
-    :param metrics: list of metrics to use
+    :param metrics: a list of metric classes (not instanced); each is instantiated as Metric(target=target)
     :type metrics: list
     :return: a dictionary mapping each run name ("run0", "run1", ...) to a dictionary defining a single
         benchmarking run
@@ -223,7 +225,7 @@ def benchmark_run_graph_search_solver(run, name, io, circuit_format="qasm"):
 
 def benchmark_graph_search_solver(runs, io, circuit_format="qasm"):
     """
-    Runs a sequence of benchmark runs, either using parallel or serial processing.
+    Runs a sequence of benchmark runs serially.
 
     :param runs: a dictionary mapping each run name to a run, each being a dictionary containing the important
         class instances (solvers, etc.)

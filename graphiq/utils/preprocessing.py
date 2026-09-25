@@ -170,9 +170,10 @@ def get_lc_graph_by_max_edge(graph, n_graphs, graph_metric, n_trial=5):
     :type n_graphs: int
     :param graph_metric: a function scoring a graph, called as graph_metric(graph)
     :type graph_metric: function
-    :param n_trial: the number of local-complementation rounds
+    :param n_trial: the number of local-complementation rounds; defaults to 5
     :type n_trial: int
-    :raises TypeError: if graph is neither an nx.Graph nor a numpy.ndarray
+    :raises TypeError: if the type of graph is not exactly nx.Graph or numpy.ndarray (subclasses such as
+        nx.DiGraph or nx.MultiGraph are rejected)
     :return: at most n_graphs (score, graph) tuples, sorted by ascending score
     :rtype: list[(float, nx.Graph)]
     """
@@ -233,9 +234,10 @@ def get_lc_graph_by_max_neighbor_edge(graph, n_graphs, graph_metric, n_trial=5):
     :type n_graphs: int
     :param graph_metric: a function scoring a graph, called as graph_metric(graph)
     :type graph_metric: function
-    :param n_trial: the number of local-complementation rounds
+    :param n_trial: the number of local-complementation rounds; defaults to 5
     :type n_trial: int
-    :raises TypeError: if graph is neither an nx.Graph nor a numpy.ndarray
+    :raises TypeError: if the type of graph is not exactly nx.Graph or numpy.ndarray (subclasses such as
+        nx.DiGraph or nx.MultiGraph are rejected)
     :return: at most n_graphs (score, graph) tuples, sorted by ascending score
     :rtype: list[(float, nx.Graph)]
     """

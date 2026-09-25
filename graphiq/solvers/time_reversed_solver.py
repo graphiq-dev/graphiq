@@ -547,9 +547,9 @@ class TimeReversedSolver(SolverBase):
 
         :param circuit: a quantum circuit
         :type circuit: CircuitDAG
-        :param emitter_index: the index of the emitter qubit
+        :param emitter_index: the emitter's index relative to the emitter block
         :type emitter_index: int
-        :param photon_index: the index of the photonic qubit
+        :param photon_index: the photon's index
         :type photon_index: int
         :return: nothing
         :rtype: None
@@ -625,14 +625,14 @@ class TimeReversedSolver(SolverBase):
 
     def _add_measurement_cnot_and_reset(self, circuit, emitter_index, photon_index):
         """
-        Add a MeasurementCNOTandReset operation from an emitter qubit to a photonic qubit such that no consecutive
-        MeasurementCNOTReset is allowed. This operation cannot be added before the photonic qubit is initialized.
+        Add a MeasurementCNOTandReset operation from an emitter qubit to a photonic qubit. The operation is inserted
+        right after the input nodes of both qubits, i.e. at the start of the circuit; no ordering rules are checked.
 
         :param circuit: a quantum circuit
         :type circuit: CircuitDAG
-        :param emitter_index: the index of the emitter qubit
+        :param emitter_index: the emitter's index relative to the emitter block
         :type emitter_index: int
-        :param photon_index: the index of the photonic qubit
+        :param photon_index: the photon's index
         :type photon_index: int
         :return: nothing
         :rtype: None

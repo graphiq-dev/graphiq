@@ -86,6 +86,10 @@ class AlternateTargetSolver:
         :type solver_setting: AlternateTargetSolverSetting or None
         :param seed: a random seed
         :type seed: int
+        :raises TypeError: if noise_model_mapping is not exactly a dict (subclasses are rejected), the string
+            "depolarizing", or None
+        :raises ValueError: if target is a mixed QuantumState, or a QuantumState whose rep_type is not
+            "s", "dm", or "g"
         """
         if solver_setting is None:
             solver_setting = AlternateTargetSolverSetting(

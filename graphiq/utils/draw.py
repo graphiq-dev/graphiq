@@ -235,7 +235,7 @@ class Painter:
         the html figure, with a position mapping to that label.
 
         :param reg_name: register name
-        :type reg_type: str
+        :type reg_name: str
         :param size: size of the register
         :type size: int
         :param reg_type: type of the register (can only be "qreg" or "creg")
@@ -272,13 +272,15 @@ class Painter:
 
         :param gate_name: gate name
         :type gate_name: str
-        :param qargs: qargs of thge gate
+        :param qargs: qargs of the gate
         :type qargs: list
         :param params: params of the gate
         :type params: dict
         :param controls: gate controls for gate like CX, it will specify where the control at
+        :type controls: list
+        :raises ValueError: if qargs contains more than one entry
         :return: visualization info of the gate
-        rtype: dict
+        :rtype: dict
         """
         if len(qargs) > 1:
             raise ValueError("Gate that act on multi-qargs is not supported yet.")

@@ -473,7 +473,8 @@ class EvolutionarySolver(RandomSearchSolver):
         :type population: list
         :param iteration: iteration integer, from 0 to n_stop-1
         :type iteration: int
-        :return:
+        :return: nothing
+        :rtype: None
         """
         # get the scores from the population/hof as a list
         scores_pop = list(zip(*population))[0]
@@ -517,9 +518,13 @@ class EvolutionarySolver(RandomSearchSolver):
         Saves the population and/or the HoF circuits over iterations as openQASM strings.
 
         :param population: list of (score, circuit) pairs
+        :type population: list
         :param hof: list of (score, circuit) pairs
+        :type hof: list
         :param iteration: integer step in the solver algorithm
-        :return:
+        :type iteration: int
+        :return: nothing
+        :rtype: None
         """
         if self.io is None or self.setting.save_openqasm == "none":
             return

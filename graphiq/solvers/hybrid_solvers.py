@@ -60,18 +60,10 @@ class HybridEvolutionarySolver(EvolutionarySolver):
         :type compiler: CompilerBase
         :param io: input/output object for saving logs, intermediate results, circuits, etc.
         :type io: IO
-        :param n_hof: the size of the hall of fame (hof)
-        :type n_hof: int
-        :param selection_active: use selection in the evolutionary algorithm
-        :type selection_active: bool
-        :param use_adapt_probability: use adapted probability in the evolutionary algorithm
-        :type use_adapt_probability: bool
-        :param save_openqasm: save population, hof, or both to openQASM strings (options: None, "hof", "pop", "both")
-        :type save_openqasm: str, None
         :param solver_setting: the solver's settings; a fresh default is built when None
         :type solver_setting: EvolutionarySolverSetting or None
         :param noise_model_mapping: a dictionary that associates each operation type to a noise model
-        :type noise_model_mapping: dict
+        :type noise_model_mapping: dict or None
         """
         if solver_setting is None:
             solver_setting = EvolutionarySolverSetting()

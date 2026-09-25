@@ -366,21 +366,24 @@ def lc_orbit_finder(
     come up with new distinct graphs in the orbit of the input graph. The comp_depth determines the maximum depth of the
      orbit explored.
 
-    :param graph: original graph
+    :param graph: original graph; its nodes must be labelled 0..n-1 in iteration order, since node labels are also
+        used as adjacency-matrix indices
     :type graph: nx.Graph
     :param comp_depth: the maximum length of the sequence of local-complementations applied on the graph; if None,
                         continue till the required number of graphs are found, or no new graphs are found.
     :type comp_depth: int
     :param orbit_size_thresh: sets a limit on the maximum number of orbit graphs to look for
     :type orbit_size_thresh: int
-    :param with_iso: if true, isomorph graphs will be kept in the orbit
+    :param with_iso: if true, isomorphic graphs will be kept in the orbit
     :type with_iso: bool
     :param rand: if true, the search starts from a graph obtained by applying random local complementations to
-        the original graph, instead of from the original graph itself, and the nodes are tried in a random order
+        the original graph, instead of from the original graph itself, and the nodes are tried in a random order;
+        the returned list then starts with that graph instead of the original one
     :type rand: bool
     :param rep_allowed: if true the orbit finder does not check for iso or auto morphism; useful for large graphs.
     :type rep_allowed: bool
-    :return: list of distinct graphs in the orbit of original graph
+    :return: list of graphs in the orbit of original graph, starting with the graph the search starts from; the
+        graphs are distinct unless rep_allowed is true, in which case repeats may occur
     :rtype: list[nx.Graph]
     """
     orbit_list = [graph.copy()]
@@ -556,11 +559,14 @@ def check_isomorphism(graph, g_list, _only_auto=False):
 
 def _equal_graphs(g1, g2):
     """
+    Check whether two graphs have the same adjacency matrix, with the nodes of each graph taken in its iteration
+    order and edge weights ignored. This compares labelled graphs; it is not an isomorphism test.
+
     :param g1: a graph
     :type g1: nx.Graph
     :param g2: a graph
     :type g2: nx.Graph
-    :return: given two graphs this function return true if they have the same adjacency matrix.
+    :return: True if the two graphs have the same adjacency matrix, False otherwise
     :rtype: bool
     """
     adj1 = (nx.to_numpy_array(g1)).astype(bool)
@@ -570,7 +576,19 @@ def _equal_graphs(g1, g2):
 
 def _compare_graphs_visual(g, new_g, new_labels):
     """
-    Visual demonstration of initial graph, the relabeled one.
+    Visual demonstration of initial graph, the relabeled one. It relabels g by mapping node i to new_labels[i],
+    meant to draw g, the relabeled graph, and new_g in three stacked panels.
+
+    In the current code this always raises AssertionError at its label check, which compares a list with a
+    NodeView, so nothing past the relabelling is drawn.
+
+    :param g: the initial graph, with nodes labelled 0..n-1
+    :type g: nx.Graph
+    :param new_g: a graph to draw next to the relabeled one
+    :type new_g: nx.Graph
+    :param new_labels: the new labels, where new_labels[i] is the new label of node i
+    :type new_labels: list or numpy.ndarray
+    :raises AssertionError: always, at the check of the relabeled node labels
     """
     nx.draw_networkx(g, with_labels=True, pos=nx.kamada_kawai_layout(g))
     fig, (ax1, ax2, ax3) = plt.subplots(3, figsize=(15, 25))

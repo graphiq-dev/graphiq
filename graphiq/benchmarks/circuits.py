@@ -37,6 +37,10 @@ import graphiq.circuit.ops as ops
 def bell_state_circuit():
     """
     Two-qubit Bell state preparation circuit
+
+    :return: the circuit that prepares the Bell state, and the ideal Bell state as a QuantumState in density
+        matrix representation
+    :rtype: tuple[CircuitDAG, QuantumState]
     """
     rho = ket2dm((tensor(2 * [state_ketz0()]) + tensor(2 * [state_ketz1()]))) / 2.0
     ideal_state = QuantumState(rho, rep_type="dm")
@@ -49,6 +53,10 @@ def bell_state_circuit():
 def ghz3_state_circuit():
     """
     Three-qubit GHZ state
+
+    :return: the circuit that prepares the 3-qubit GHZ state, and the ideal GHZ state as a QuantumState in density
+        matrix representation
+    :rtype: tuple[CircuitDAG, QuantumState]
     """
     rho = ket2dm((tensor(3 * [state_ketz0()]) + tensor(3 * [state_ketz1()]))) / 2.0
     ideal_state = QuantumState(rho, rep_type="dm")
@@ -84,6 +92,10 @@ def ghz3_state_circuit():
 def ghz4_state_circuit():
     """
     Four-qubit GHZ state
+
+    :return: the circuit that prepares the 4-qubit GHZ state, and the ideal GHZ state as a QuantumState in density
+        matrix representation
+    :rtype: tuple[CircuitDAG, QuantumState]
     """
 
     rho = ket2dm((tensor(4 * [state_ketz0()]) + tensor(4 * [state_ketz1()]))) / 2.0
@@ -122,6 +134,10 @@ def ghz4_state_circuit():
 def linear_cluster_3qubit_circuit():
     """
     Three-qubit linear cluster state
+
+    :return: the circuit that prepares the 3-qubit linear cluster state, and the ideal linear cluster state as a
+        QuantumState in density matrix representation
+    :rtype: tuple[CircuitDAG, QuantumState]
     """
     graph = nx.Graph([(1, 2), (2, 3)])
     state = DensityMatrix.from_graph(graph)
@@ -151,6 +167,10 @@ def linear_cluster_3qubit_circuit():
 def linear_cluster_4qubit_circuit():
     """
     Four-qubit linear cluster state
+
+    :return: the circuit that prepares the 4-qubit linear cluster state, and the ideal linear cluster state as a
+        QuantumState in density matrix representation
+    :rtype: tuple[CircuitDAG, QuantumState]
     """
     graph = nx.Graph([(1, 2), (2, 3), (3, 4)])
     state = DensityMatrix.from_graph(graph)
@@ -184,6 +204,9 @@ def variational_entangling_layer_2qubit():
     """
     Variational circuit composed of one local rotation and entangling rotation gate, with the ideal state being a
     Bell state.
+
+    :return: the circuit, and the ideal Bell state as a QuantumState in density matrix representation
+    :rtype: tuple[CircuitDAG, QuantumState]
     """
     ket = dmf.tensor([dmf.state_ketz0(), dmf.state_ketz0()]) + dmf.tensor(
         [dmf.state_ketz1(), dmf.state_ketz1()]
@@ -204,7 +227,7 @@ def variational_entangling_layer_2qubit():
 
 def strongly_entangling_layer(n_qubits=3, layers=1):
     """
-    Variational circuit composed of a single entangling layer. Ideal state is an n-qubit GHZ state.
+    Variational circuit composed of ``layers`` entangling layers. Ideal state is an n-qubit GHZ state.
     """
 
     ket = (

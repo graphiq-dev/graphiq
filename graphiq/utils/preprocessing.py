@@ -12,6 +12,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""
+Graph-level metrics and local-complementation search helpers used to rank candidate graph
+states -- e.g. for greedy selection among the graphs reachable by local complementation.
+"""
+
 import heapq
 
 import networkx as nx
@@ -204,6 +209,14 @@ def get_lc_graph_by_max_edge(graph, n_graphs, graph_metric, n_trial=5):
 
 
 def _count_n_neighbor_edges(adj_matrix):
+    """
+    Count, for each node, the number of edges among that node's neighbors.
+
+    :param adj_matrix: adjacency matrix of the graph
+    :type adj_matrix: numpy.ndarray
+    :return: array giving, per node, the number of edges among its neighbors
+    :rtype: numpy.ndarray
+    """
     n_node = adj_matrix.shape[0]
     edges_count_list = np.zeros(n_node)
     for index in range(n_node):
@@ -214,6 +227,14 @@ def _count_n_neighbor_edges(adj_matrix):
 
 
 def _count_n_neighbor(adj_matrix):
+    """
+    Count, for each node, its number of neighbors (degree).
+
+    :param adj_matrix: adjacency matrix of the graph
+    :type adj_matrix: numpy.ndarray
+    :return: array giving, per node, its number of neighbors
+    :rtype: numpy.ndarray
+    """
     n_node = adj_matrix.shape[0]
     neighbor_count_list = np.zeros(n_node)
     for index in range(n_node):

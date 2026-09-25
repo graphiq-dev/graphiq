@@ -54,6 +54,29 @@ from graphiq.utils.relabel_module import (
 
 
 class AlternateTargetSolver:
+    """
+    Searches for circuits generating the target graph by way of alternative target graphs.
+
+    Rather than one fixed target, the solver also tries isomorphic relabellings of the target and
+    local-Clifford-equivalent graphs of each relabelling, since these can be far cheaper to
+    generate. Each candidate's circuit comes from TimeReversedSolver, followed by the
+    local-Clifford gates that convert it to the relabelled target.
+
+    How candidates are scored depends on noise_model_mapping and the setting's monte_carlo flag,
+    and every path writes to the same ``score`` column of the result:
+
+    - noise simulation off (noise_model_mapping None): no noisy simulation is scored, and every
+      candidate gets the placeholder score 0.0001.
+    - noise simulation on, Monte Carlo off: the noisy circuit is compiled on ``noise_compiler``
+      and scored with Infidelity against the relabelled target (see noise_score).
+    - noise simulation on, Monte Carlo on: the circuit is run on the compiler in
+      ``monte_carlo_params`` (a StabilizerCompiler when that entry is None) and scored against a
+      noiseless compile of that candidate's own circuit, so it reports sensitivity to noise
+      rather than agreement with the target, and is not comparable with the other path.
+
+    ``compiler`` and ``metric`` are stored, but no path of solve() uses them.
+    """
+
     def __init__(
         self,
         target: nx.Graph or QuantumState = None,
@@ -545,6 +568,70 @@ class AlternateTargetSolverSetting:
         save_openqasm: str = "none",
         callback_func: dict = None,
     ):
+        """
+        Create an AlternateTargetSolverSetting object
+
+        :param allow_relabel: whether isomorphic relabellings of the target are searched.
+            When False, only the labelling given is used, and n_iso_graphs is ignored
+        :type allow_relabel: bool
+        :param n_iso_graphs: the number of isomorphic relabellings to look for, including the
+            original graph
+        :type n_iso_graphs: int
+        :param rel_inc_thresh: threshold between 0 and 1 on the relative increase in how many
+            distinct isomorphic graphs are found as the label pool grows; the search stops once
+            that ratio falls below it, so a value closer to 0 searches closer to exhaustively
+        :type rel_inc_thresh: float
+        :param allow_exhaustive: whether the relabelling search may enumerate every permutation
+            rather than sampling; the runtime can be very long if it does
+        :type allow_exhaustive: bool
+        :param sort_emit: whether the graphs found are sorted, after the search, by the number
+            of emitters needed to generate each
+        :type sort_emit: bool
+        :param label_map: passed to iso_finder, which then also returns a label map per graph.
+            solve() keeps only the adjacency matrices from that tuple and computes each relabel
+            map itself, so this does not change the result
+        :type label_map: bool
+        :param iso_thresh: how many random label trials to attempt while looking for new
+            permutations; None uses five times the number of labellings sought
+        :type iso_thresh: int or None
+        :param allow_lc: whether local-Clifford-equivalent graphs are tried at all. When
+            False, each isomorphic graph is its own only candidate and lc_method is not
+            consulted
+        :type allow_lc: bool
+        :param n_lc_graphs: the number of local-Clifford-equivalent graphs to try, or None for
+            no cap
+        :type n_lc_graphs: int or None
+        :param lc_orbit_depth: how far into the local-complementation orbit to search, or None
+            to continue until enough graphs are found or no new ones appear; the "rgs", "linear"
+            and "depth_first" methods ignore it
+        :type lc_orbit_depth: int or None
+        :param depolarizing_rate: the depolarizing rate used to build the noise map when the
+            solver's noise_model_mapping is "depolarizing"
+        :type depolarizing_rate: float
+        :param monte_carlo: whether candidates are scored with Monte Carlo noise; only consulted
+            when noise simulation is on
+        :type monte_carlo: bool
+        :param monte_carlo_params: overrides merged over the Monte Carlo defaults (n_sample,
+            map, compiler, seed, n_parallel, n_single); None takes the defaults unchanged
+        :type monte_carlo_params: dict or None
+        :param graph_metric: a function scoring a graph, called as graph_metric(graph). Stored
+            for callers; nothing in the solver reads it
+        :type graph_metric: function
+        :param lc_method: which local-complementation search to use -- one of "rgs", "linear",
+            "depth_first", "lc_with_iso", "random", "random_with_iso", "random_with_rep", or
+            None, the default, which searches the orbit without a specialised strategy. Any
+            other value makes solve() raise ValueError when allow_lc is True
+        :type lc_method: str or None
+        :param verbose: stored for callers; AlternateTargetSolver never prints progress
+        :type verbose: bool
+        :param save_openqasm: stored for callers; AlternateTargetSolver never writes openQASM
+        :type save_openqasm: str
+        :param callback_func: stored for callers, no callback is ever invoked; an empty dict
+            is built when None
+        :type callback_func: dict or None
+        :return: nothing
+        :rtype: None
+        """
         self.allow_relabel = allow_relabel
         self.allow_lc = allow_lc
         self._n_iso_graphs = n_iso_graphs

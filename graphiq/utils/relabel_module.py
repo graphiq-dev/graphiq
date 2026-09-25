@@ -495,6 +495,23 @@ def linear_partial_orbit(graph: nx.Graph):
 
 
 def depth_first_orbit(graph: nx.Graph):
+    """
+    Find pairwise non-isomorphic representatives from the local-complementation orbit of a
+    graph, via a depth-first search over local-complementation sequences on nodes 0 to n-1
+    (see :func:`_depth_first`), then build every graph reached along the way by re-applying,
+    from scratch, every prefix of every path the search recorded.
+
+    This is far smaller than the labelled orbit, because :func:`_depth_first` prunes against
+    every graph found in any branch: the 5-cycle returns 3 graphs where its labelled orbit has
+    132, and the 4-path returns 4 where the orbit has 11. A caller that needs specific
+    labellings rather than one representative per isomorphism class cannot use this.
+
+    :param graph: original graph
+    :type graph: nx.Graph
+    :return: one graph per isomorphism class reached, including the original graph, in no
+        particular order
+    :rtype: list[nx.Graph]
+    """
     n = len(graph)
     g = graph.copy()
     _, _, _, path_list = _depth_first(g, n)
@@ -628,6 +645,22 @@ def _compare_graphs_visual(g, new_g, new_labels):
 
 
 def _retrieve_seq(n, seq_dict=None):
+    """
+    Recursively build the sequence of node indices to locally-complement, in order, to reach
+    every new graph obtainable by local-complementation operations on n nodes -- an
+    intermediate step used by :func:`_full_seq` to build the full sequence for larger node
+    counts. The entries run from 2 up to n inclusive and never include 0 or 1: for example
+    ``_retrieve_seq(3)`` is ``[3, 2, 3, 2, 2]``.
+
+    :param n: the node count this sub-sequence is built for
+    :type n: int
+    :param seq_dict: cache of previously computed sequences, keyed by node count; a cached
+        entry is reused instead of recomputed, but this function does not write new results
+        back into it
+    :type seq_dict: dict or None
+    :return: the sequence of node indices
+    :rtype: list[int]
+    """
     # an intermediate step finder to complete the full sequence of nodes eligible for generation of new graphs by LC ops
     if seq_dict is not None:
         if n in seq_dict:
@@ -652,6 +685,19 @@ def _retrieve_seq(n, seq_dict=None):
 
 
 def _full_seq(n):
+    """
+    Build the sequence of node indices to locally-complement, in order, that yields every new
+    graph reachable via local-complementation operations confined to nodes 0 to n - 1,
+    intended for use with node counts large compared to n (at least 2 * n). A 0 is inserted
+    after every entry built from :func:`_retrieve_seq`, including the last, and [0, 1] is
+    prepended -- ``_full_seq(3)`` is ``[0, 1, 2, 0, 2, 0]``. For n of 1 or less the result is
+    just ``[0]``, with no prefix.
+
+    :param n: upper node index (exclusive) the sequence's operations are confined to
+    :type n: int
+    :return: the sequence of node indices
+    :rtype: list[int]
+    """
     # for infinite (or at least larger than 2*n) find sequence of ndes for LC operations that result in new graphs
     # obtained by operations on nodes upto 'n'.
     seq = []
@@ -672,6 +718,18 @@ def _full_seq(n):
 
 
 def _partial_orbit(n):
+    """
+    Build, for a linear graph (path graph) on n nodes, the sequence of node indices to
+    locally-complement that reaches a partial (non-exhaustive) sample of its
+    local-complementation orbit, and return every prefix of that sequence.
+
+    :param n: number of nodes in the linear graph
+    :type n: int
+    :return: prefixes of the node-index sequence; applying each prefix in order as successive
+        local complementations, starting from the original linear graph, yields one member of
+        the sampled orbit
+    :rtype: list[list[int]]
+    """
     m = int(n / 2) + 1
     if n % 2 == 0:
         seq1 = _full_seq(m - 1)
@@ -695,6 +753,39 @@ def _partial_orbit(n):
 def _depth_first(
     g0, n, g_orbit=None, path=None, path_list=None, orbit_list=None, exact=False
 ):
+    """
+    Recursively depth-first search local-complementation sequences on nodes 0 to n - 1,
+    starting from g0. At each node visited that produces a graph not isomorphic (via
+    ``nx.vf2pp_is_isomorphic``) to any graph recorded so far -- in every branch explored
+    already, not merely along the current path -- the search recurses from that new graph.
+    Because the check is global, the search keeps one representative per isomorphism class
+    rather than every labelling. The maximal node-index paths explored, together with the
+    graphs visited along each, are recorded into path_list and orbit_list. Call with only g0,
+    n and (optionally) exact -- the remaining keyword arguments initialize the search state on
+    that first call and are threaded through by the recursion afterwards.
+
+    :param g0: graph to search from at this recursion step
+    :type g0: nx.Graph
+    :param n: number of nodes to try local complementation on at each step
+    :type n: int
+    :param g_orbit: graphs visited along the current path, seeded with [g0] on the top-level
+        call
+    :type g_orbit: list[nx.Graph] or None
+    :param path: sequence of node indices local-complemented so far to reach g0
+    :type path: list[int] or None
+    :param path_list: accumulator of the maximal paths explored; a path that is a prefix of one
+        already recorded is skipped, so callers wanting the prefixes must rebuild them
+    :type path_list: list[list[int]] or None
+    :param orbit_list: accumulator of the graphs visited along each path in path_list
+    :type orbit_list: list[list[nx.Graph]] or None
+    :param exact: if True, isomorphism is checked on the subgraphs induced by
+        ``range(n + 1)`` rather than on the whole graphs. On a graph labelled 0 to n - 1 that
+        range covers every node, so the flag has no effect there; no caller sets it
+    :type exact: bool
+    :return: the updated (g_orbit, orbit_list, path, path_list), with the branch taken at this
+        recursion step backtracked out of g_orbit and path
+    :rtype: tuple[list[nx.Graph], list[list[nx.Graph]], list[int], list[list[int]]]
+    """
     if g_orbit is None and path is None and path_list is None and orbit_list is None:
         g_orbit = [g0]
         orbit_list = []

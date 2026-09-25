@@ -12,6 +12,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""
+Circuit visualization data for an external web app: Painter builds per-operation drawing
+information, through its own drawing API or from an OpenQASM 2.0 string, with Columns
+managing the column layout, and posts the result as json to a web app on localhost.
+"""
+
 import json
 
 import requests

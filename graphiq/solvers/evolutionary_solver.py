@@ -50,6 +50,29 @@ class EvolutionarySolverSetting(RandomSearchSolverSetting):
         verbose=False,
         save_openqasm: str = "none",
     ):
+        """
+        Create an EvolutionarySolverSetting object
+
+        :param n_hof: the number of best circuits kept in the hall of fame
+        :type n_hof: int
+        :param n_stop: the number of iterations to run before stopping
+        :type n_stop: int
+        :param n_pop: the number of candidate circuits held per iteration
+        :type n_pop: int
+        :param tournament_k: the number of candidates entered in each selection tournament
+        :type tournament_k: int
+        :param selection_active: whether tournament selection is applied between iterations
+        :type selection_active: bool
+        :param use_adapt_probability: whether the transition probabilities adapt during the search
+        :type use_adapt_probability: bool
+        :param verbose: whether the solver prints the best score after each iteration
+        :type verbose: bool
+        :param save_openqasm: which circuits are saved as openQASM each iteration when the solver
+            has an IO: "hof", "pop" or "both"; "none" (or any other value) saves nothing
+        :type save_openqasm: str
+        :return: nothing
+        :rtype: None
+        """
         super().__init__(n_hof=n_hof, n_stop=n_stop, n_pop=n_pop)
         self._tournament_k = tournament_k
         self._selection_active = selection_active
@@ -541,11 +564,34 @@ class EvolutionarySolver(RandomSearchSolver):
         return
 
     def _save_pop(self, pop, iteration):
+        """
+        Write every circuit of one iteration's population out as openQASM, one file per circuit
+        under "pop/", through the solver's IO.
+
+        :param pop: the population, as (score, circuit) pairs
+        :type pop: list[tuple]
+        :param iteration: the iteration number, used in each file name
+        :type iteration: int
+        :return: nothing
+        :rtype: None
+        """
         for i, (score, circuit) in enumerate(pop):
             name = f"pop/iteration{iteration}_pop{i}.txt"
             self.io.save_json(circuit.to_openqasm(), name)
 
     def _save_hof(self, hof, iteration):
+        """
+        Write every circuit of the hall of fame out as openQASM, one file per circuit under "hof/",
+        through the solver's IO. Every entry must hold a circuit: a still-unfilled (np.inf, None)
+        slot raises AttributeError.
+
+        :param hof: the hall of fame, as (score, circuit) pairs
+        :type hof: list[tuple]
+        :param iteration: the iteration number, used in each file name
+        :type iteration: int
+        :return: nothing
+        :rtype: None
+        """
         for i, (score, circuit) in enumerate(hof):
             name = f"hof/iteration{iteration}_hof{i}.txt"
             self.io.save_json(circuit.to_openqasm(), name)

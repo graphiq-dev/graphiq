@@ -12,6 +12,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""
+Utilities for assembling and running a solver benchmarking pipeline: combining solvers, targets,
+compilers and metrics into individual runs, executing those runs (optionally in parallel with
+ray), and saving the resulting data.
+"""
+
 import pandas as pd
 import time
 import psutil
@@ -27,6 +33,13 @@ from graphiq.visualizers.solver_logs import plot_solver_logs
 
 
 def metadata():
+    """
+    Collect metadata about the machine running the benchmark.
+
+    :return: a dictionary with the system name, OS version, machine architecture, processor, and
+        CPU count
+    :rtype: dict
+    """
     uname = platform.uname()
     md = dict(
         system=uname.system,

@@ -60,6 +60,24 @@ class SolverBase(ABC):
         io: IO = None,
         solver_setting=None,
     ):
+        """
+        Create a SolverBase object
+
+        :param target: the target state the solver searches for a circuit to generate
+        :type target: QuantumState
+        :param metric: the objective the solver minimizes
+        :type metric: MetricBase
+        :param compiler: the compiler used to simulate each candidate circuit
+        :type compiler: CompilerBase
+        :param circuit: an initial circuit to start from, or None
+        :type circuit: CircuitBase or None
+        :param io: an IO object used to save results, or None for no saving
+        :type io: IO or None
+        :param solver_setting: the solver's own settings object, or None
+        :type solver_setting: object or None
+        :return: nothing
+        :rtype: None
+        """
         self.target = target
         self.metric = metric
         self.compiler = compiler
@@ -72,6 +90,13 @@ class SolverBase(ABC):
 
     @abstractmethod
     def solve(self, *args):
+        """
+        Run the search. Each concrete solver implements its own.
+
+        :raises NotImplementedError: always, on this base class
+        :return: nothing
+        :rtype: None
+        """
         raise NotImplementedError(
             "Base Solver class, solver method is not implemented."
         )
@@ -101,6 +126,14 @@ class SolverBase(ABC):
 
     @property
     def solver_info(self):
+        """
+        Solver-specific information to record alongside a result.
+
+        Empty on the base class; a subclass overrides it with whatever describes its own search.
+
+        :return: a dictionary of solver information
+        :rtype: dict
+        """
         return {}
 
     def _wrap_noise(self, op, noise_model_mapping):
@@ -174,12 +207,29 @@ class SolverBase(ABC):
 
 
 class RandomSearchSolverSetting(ABC):
+    """
+    The settings every random-search-style solver shares: hall-of-fame size, how long to run,
+    and how many candidates to hold per iteration.
+    """
+
     def __init__(
         self,
         n_hof=5,
         n_stop=50,
         n_pop=50,
     ):
+        """
+        Create a RandomSearchSolverSetting object
+
+        :param n_hof: the number of best circuits kept in the hall of fame
+        :type n_hof: int
+        :param n_stop: the number of iterations to run before stopping
+        :type n_stop: int
+        :param n_pop: the number of candidate circuits held per iteration
+        :type n_pop: int
+        :return: nothing
+        :rtype: None
+        """
         self._n_hof = n_hof
         self._n_stop = n_stop
         self._n_pop = n_pop
@@ -237,6 +287,25 @@ class RandomSearchSolver(SolverBase):
         *args,
         **kwargs,
     ):
+        """
+        Create a RandomSearchSolver object
+
+        :param target: the target state the solver searches for a circuit to generate
+        :type target: QuantumState
+        :param metric: the objective the solver minimizes
+        :type metric: MetricBase
+        :param compiler: the compiler used to simulate each candidate circuit
+        :type compiler: CompilerBase
+        :param circuit: an initial circuit to start from, or None
+        :type circuit: CircuitBase or None
+        :param io: an IO object used to save results, or None for no saving
+        :type io: IO or None
+        :param solver_setting: the hall-of-fame size, stopping point and population size, stored as
+            self.setting; a fresh default is built when None
+        :type solver_setting: RandomSearchSolverSetting or None
+        :return: nothing
+        :rtype: None
+        """
         super().__init__(target, metric, compiler, circuit, io)
 
         # built per instance: a default instance in the signature would be
@@ -305,6 +374,14 @@ class RandomSearchSolver(SolverBase):
         return population_new
 
     def solve(self, *args):
+        """
+        Run the search. Not implemented on RandomSearchSolver; a subclass such as
+        EvolutionarySolver overrides it.
+
+        :raises NotImplementedError: always, on this class
+        :return: nothing
+        :rtype: None
+        """
         raise NotImplementedError(
             "Base Solver class, solver method is not implemented."
         )

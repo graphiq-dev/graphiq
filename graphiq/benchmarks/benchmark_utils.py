@@ -31,6 +31,25 @@ from graphiq.io import IO
 
 
 def circuit_measurement_independent(circuit, compiler):
+    """
+    Check whether the compiled state, after tracing out the last qubit, is the same regardless
+    of which classical measurement outcome is forced during compilation.
+
+    Compiles the circuit twice, once with the compiler's measurement determinism forced to 0
+    and once forced to 1, then restores the compiler's original measurement_determinism
+    setting. Only compares the two deterministic ("all 0s", "all 1s") resolutions, not every
+    possible measurement outcome, and only works with a density-matrix compiler/state at the
+    moment.
+
+    :param circuit: the circuit to compile
+    :type circuit: CircuitDAG
+    :param compiler: the compiler to compile it with; its measurement_determinism attribute is
+        overwritten twice and then restored
+    :type compiler: DensityMatrixCompiler
+    :return: whether the two traced-out states are numerically close, and the two traced-out
+        states themselves
+    :rtype: tuple[bool, QuantumState, QuantumState]
+    """
     # Note: this doesn't check every option, only "all 0s, all 1s"
     # TODO: make applicable to other representations. This only works on density matrices at the moment
     original_measurement_determinism = compiler.measurement_determinism

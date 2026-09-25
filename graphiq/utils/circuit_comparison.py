@@ -339,6 +339,17 @@ def remove_redundant_circuits(circuit_list):
 
 
 def check_redundant_circuit(circuit1, circuit2):
+    """
+    Check whether two circuits are redundant (the same) using the direct comparison method,
+    after unwrapping wrapped nodes and removing identity operations on copies of both.
+
+    :param circuit1: circuit that to be compared
+    :type circuit1: CircuitDAG
+    :param circuit2: circuit that to be compared
+    :type circuit2: CircuitDAG
+    :return: whether the two circuits are the same
+    :rtype: bool
+    """
     circuit1_copy = circuit1.copy()
     circuit2_copy = circuit2.copy()
 
@@ -357,6 +368,18 @@ class CircuitStorage:
     """
 
     def __init__(self, check_function=None, disable_circuit_comparison=False):
+        """
+        Construct a CircuitStorage.
+
+        :param check_function: function used to check whether a new circuit is redundant with
+            one already stored; defaults to check_redundant_circuit when not given
+        :type check_function: function or None
+        :param disable_circuit_comparison: if True, skip the redundancy check and always add
+            new circuits
+        :type disable_circuit_comparison: bool
+        :return: nothing
+        :rtype: None
+        """
         self.circuit_list = []
         self.disable_circuit_comparison = disable_circuit_comparison
 

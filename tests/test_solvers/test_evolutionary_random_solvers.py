@@ -20,7 +20,13 @@ import graphiq.backends.stabilizer.functions.stabilizer as sfs
 from graphiq.backends.density_matrix.compiler import DensityMatrixCompiler
 from graphiq.backends.stabilizer.compiler import StabilizerCompiler
 from graphiq.backends.stabilizer.state import MixedStabilizer, Stabilizer
-from graphiq.circuit.ops import MeasurementCNOTandReset, MeasurementZ
+from graphiq.circuit.ops import (
+    Hadamard,
+    Identity,
+    MeasurementCNOTandReset,
+    MeasurementZ,
+    OneQubitGateWrapper,
+)
 from graphiq.io import IO
 from graphiq.metrics import Infidelity
 from graphiq.solvers.evolutionary_solver import (
@@ -208,12 +214,12 @@ def linear4_run(density_matrix_compiler, linear4_expected):
     Since we want to apply 2 separate tests on the same run (one visual, one non-visual), it makes sense to have a
     common fixture that only gets called once per module
     """
-    return generate_run(4, 1, linear4_expected, density_matrix_compiler, 2)
+    return generate_run(4, 1, linear4_expected, density_matrix_compiler, 1)
 
 
 @pytest.fixture(scope="module")
 def linear4_run_stabilizer(stabilizer_compiler, linear4_expected):
-    return generate_run(4, 1, linear4_expected, stabilizer_compiler, 2)
+    return generate_run(4, 1, linear4_expected, stabilizer_compiler, 1)
 
 
 @pytest.fixture(scope="module")
@@ -227,12 +233,12 @@ def linear4_expected():
 
 @pytest.fixture(scope="module")
 def ghz3_run(density_matrix_compiler, ghz3_expected):
-    return generate_run(3, 1, ghz3_expected, density_matrix_compiler, 3)
+    return generate_run(3, 1, ghz3_expected, density_matrix_compiler, 0)
 
 
 @pytest.fixture(scope="module")
 def ghz3_run_stabilizer(stabilizer_compiler, ghz3_expected):
-    return generate_run(3, 1, ghz3_expected, stabilizer_compiler, 10)
+    return generate_run(3, 1, ghz3_expected, stabilizer_compiler, 0)
 
 
 @pytest.fixture(scope="module")
@@ -310,10 +316,10 @@ def test_solver_ghz3_visualized(ghz3_run, ghz3_expected):
 
 
 def test_assert_robust_to_measurement_outcome_rejects_a_post_selected_winner(
-    stabilizer_compiler, linear4_expected
+    density_matrix_compiler, ghz3_expected
 ):
     """
-    Seed 48 of the linear4 stabilizer search ends on a winner that scores 0.0 in the branch the
+    Seed 25 of the ghz3 density-matrix search ends on a winner that scores 0.0 in the branch the
     compiler is pinned to (measurement_determinism = 1) but is wrong in the other one, so
     check_run accepts it and assert_robust_to_measurement_outcome must not.
 
@@ -321,21 +327,21 @@ def test_assert_robust_to_measurement_outcome_rejects_a_post_selected_winner(
     that path, the precondition below fails; pick a new seed by searching for one whose winner
     scores 0.0 with measurement_determinism = 1 and not with measurement_determinism = 0.
     """
-    hof, state = generate_run(4, 1, linear4_expected, stabilizer_compiler, 48)
+    hof, state = generate_run(3, 1, ghz3_expected, density_matrix_compiler, 25)
     circuit = hof[0][1]
-    _, _, metric = linear4_expected
-    branch0_compiler = StabilizerCompiler()
+    _, _, metric = ghz3_expected
+    branch0_compiler = DensityMatrixCompiler()
     branch0_compiler.measurement_determinism = 0
     branch0_state = branch0_compiler.compile(circuit)
-    branch0_state.rep_data.trace_out_qubits([4], measurement_determinism=0)
+    branch0_state.partial_trace(list(range(3)), 4 * [2])
     assert np.isclose(hof[0][0], 0.0) and not np.isclose(
         metric.evaluate(branch0_state, circuit), 0.0
-    ), "seed 48 no longer gives a one-branch winner; pick a new seed (see docstring)"
+    ), "seed 25 no longer gives a one-branch winner; pick a new seed (see docstring)"
 
-    check_run((hof, state), linear4_expected)
+    check_run((hof, state), ghz3_expected)
     with pytest.raises(AssertionError, match="not robust to measurement outcome"):
         assert_robust_to_measurement_outcome(
-            hof[0][1], linear4_expected, StabilizerCompiler, n_photon=4, n_emitter=1
+            hof[0][1], ghz3_expected, DensityMatrixCompiler, n_photon=3, n_emitter=1
         )
 
 
@@ -539,3 +545,39 @@ def test_get_emission_assignment_invariants_hold_over_many_seeded_draws(
     # could only ever appear once, in the forced tail. (3, 3) has no slack, so skip it there.
     if n_photon > n_emitter:
         assert top_emitter_reused
+
+
+# Tests for replace_photon_one_qubit_op on the photon gate that initialization places after each
+# emission and labels "Fixed" so that remove_op leaves it in place. With one photon and one
+# emitter it is the only photonic one-qubit gate, so the replace always picks it.
+
+
+def _one_photon_circuit():
+    solver = EvolutionarySolver(None, None, None, n_emitter=1, n_photon=1)
+    circuit = solver.initialization([0], [0])
+    (node,) = circuit.get_node_by_labels(["OneQubitGateWrapper", "Photonic"])
+    return solver, circuit, node
+
+
+def test_replacing_the_fixed_photon_gate_keeps_it_fixed():
+    solver, circuit, node = _one_photon_circuit()
+
+    solver.replace_photon_one_qubit_op(circuit)
+    solver.remove_op(circuit, node)
+
+    assert node in circuit.dag.nodes
+    assert "Fixed" in circuit.dag.nodes[node]["op"].labels
+
+
+def test_replacing_an_unfixed_photon_gate_leaves_it_removable():
+    solver, circuit, node = _one_photon_circuit()
+    # stands in for a gate a mutation added, which carries no "Fixed" label
+    circuit.replace_op(
+        node, OneQubitGateWrapper([Identity, Hadamard], register=0, reg_type="p")
+    )
+
+    solver.replace_photon_one_qubit_op(circuit)
+
+    assert "Fixed" not in circuit.dag.nodes[node]["op"].labels
+    solver.remove_op(circuit, node)
+    assert node not in circuit.dag.nodes

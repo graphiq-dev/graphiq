@@ -576,6 +576,10 @@ class EvolutionarySolver(RandomSearchSolver):
         op = self.one_qubit_ops[ind]
         noise = self._wrap_noise(op, self.noise_model_mapping["p"])
         gate = ops.OneQubitGateWrapper(op, reg_type="p", register=reg, noise=noise)
+        # keep the protection of the gate being replaced: initialization's photon gates
+        # stay out of remove_op's reach, gates without "Fixed" stay removable
+        if "Fixed" in old_op.labels:
+            gate.add_labels("Fixed")
         circuit.replace_op(node, gate)
 
     def replace_emitter_one_qubit_op(self, circuit):

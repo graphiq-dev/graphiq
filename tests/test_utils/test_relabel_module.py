@@ -18,7 +18,10 @@ import networkx as nx
 import numpy as np
 import pytest
 
+from graphiq.backends.stabilizer.functions.height import height_max
+from graphiq.benchmarks.graph_states import linear_cluster_state
 from graphiq.utils.relabel_module import *
+from graphiq.utils.relabel_module import _label_finder
 
 
 def random_connected_graph(n, p, seed=None):
@@ -77,3 +80,78 @@ def test_emitter_sort():
                 for i in range(len(n_emit_list) - 1)
             )
             assert isinstance(sorted_list[0][0], np.ndarray)
+
+
+def _linear_cluster_adj(n):
+    return nx.to_numpy_array(linear_cluster_state(n).data)
+
+
+def _returns_on_first_batch(adj, n_iso, seed):
+    # iso_finder returns straight after its first batch of labellings when that
+    # batch already holds n_iso distinct graphs
+    labels = _label_finder(n_iso, adj.shape[0], seed=seed)
+    return len(automorph_check(adj, labels)) >= n_iso
+
+
+def _emitter_counts(adj_arr):
+    return [height_max(graph=nx.from_numpy_array(adj)) for adj in adj_arr]
+
+
+def _assert_maps_pair_with_matrices(adj, found):
+    assert isinstance(found, tuple)
+    adj_arr, maps = found
+    assert len(maps) == len(adj_arr)
+    g = nx.from_numpy_array(adj)
+    for new_adj, mapping in zip(adj_arr, maps):
+        new_g = nx.from_numpy_array(new_adj)
+        mapped_edges = {frozenset((mapping[u], mapping[v])) for u, v in g.edges}
+        assert mapped_edges == {frozenset(e) for e in new_g.edges}
+
+
+def test_sort_emit_and_label_map_apply_when_the_first_batch_is_enough():
+    adj = _linear_cluster_adj(6)
+    kwargs = dict(rel_inc_thresh=0.1, allow_exhaustive=False, sort_emit=True, seed=1)
+    assert _returns_on_first_batch(adj, 10, seed=1)
+
+    adj_arr = iso_finder(adj, 10, **kwargs)
+    n_emit = _emitter_counts(adj_arr)
+    assert n_emit == sorted(n_emit)
+    assert n_emit != _emitter_counts(
+        iso_finder(adj, 10, **{**kwargs, "sort_emit": False})
+    )
+
+    # the maps must pair with the sorted matrices, not the order they were found in
+    _assert_maps_pair_with_matrices(adj, iso_finder(adj, 10, label_map=True, **kwargs))
+
+
+def test_label_map_applies_when_the_first_batch_is_enough():
+    adj = _linear_cluster_adj(4)
+    assert _returns_on_first_batch(adj, 3, seed=1)
+
+    found = iso_finder(adj, 3, label_map=True, seed=1)
+
+    _assert_maps_pair_with_matrices(adj, found)
+    assert len(found[0]) == 3
+
+
+def test_label_map_has_one_map_per_returned_matrix_after_a_longer_search():
+    adj = _linear_cluster_adj(4)
+    assert not _returns_on_first_batch(adj, 5, seed=5)
+
+    found = iso_finder(adj, 5, sort_emit=False, label_map=True, seed=5)
+
+    _assert_maps_pair_with_matrices(adj, found)
+    assert len(found[0]) == 5
+
+
+def test_sort_emit_and_label_map_apply_at_the_high_symmetry_stop():
+    adj = nx.to_numpy_array(nx.cycle_graph(4))
+    with pytest.warns(UserWarning, match="high symmetry"):
+        found = iso_finder(
+            adj, 5, allow_exhaustive=False, sort_emit=True, label_map=True, seed=1
+        )
+
+    _assert_maps_pair_with_matrices(adj, found)
+    n_emit = _emitter_counts(found[0])
+    assert n_emit == sorted(n_emit)
+    assert len(set(n_emit)) > 1  # mixed counts, so the sort is actually exercised

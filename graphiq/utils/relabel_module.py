@@ -41,7 +41,8 @@ def iso_finder(
 ):
     """
     The function permutes the labels of the vertices of a graph to get n_iso distinct isomorphic graphs. The original
-    graph will also be returned as the first element of the list and counted toward the number of found cases.
+    graph will also be returned as the first element of the list (unless sort_emit reorders the list) and counted
+    toward the number of found cases.
     The maximum number of possible distinct cases may be less than n_iso. The graph G with the nodes relabeled using
     consecutive integers.
 
@@ -76,8 +77,7 @@ def iso_finder(
     labels_arr = _label_finder(n_label, n_node, seed=seed, thresh=thresh)
     adj_arr = automorph_check(adj_matrix, labels_arr)
     if len(adj_arr) >= n_iso:
-        adj_arr = adj_arr[:n_iso]
-        return adj_arr
+        return _finish_iso_output(adj_matrix, adj_arr, n_iso, sort_emit, label_map)
     else:
         rel_inc = 1  # relative increase ratio of the number of non-redundant cases as the number of labeling increase
         all_checked = False
@@ -93,7 +93,9 @@ def iso_finder(
                         f"Only {len(adj_arr)} isomorphic graphs were found due to high symmetry."
                         f"This may not be the maximum value. Allow for exhaustive search to check"
                     )
-                    return adj_arr
+                    return _finish_iso_output(
+                        adj_matrix, adj_arr, n_iso, sort_emit, label_map
+                    )
 
             # update the seed used in _add_labels to get new values when we repeat it in the loop
             seed = seed + 1 if (seed is not None) else None
@@ -120,14 +122,35 @@ def iso_finder(
             )
         else:
             pass
-        if sort_emit:
-            adj_arr = np.array([x[0] for x in emitter_sorted(adj_arr[:n_iso])])
-        if label_map:
-            mapping = []
-            for new_adj in adj_arr:
-                mapping.append(get_relabel_map(adj_matrix, new_adj))
-            return adj_arr[:n_iso], mapping
-        return adj_arr[:n_iso]
+        return _finish_iso_output(adj_matrix, adj_arr, n_iso, sort_emit, label_map)
+
+
+def _finish_iso_output(adj_matrix, adj_arr, n_iso, sort_emit, label_map):
+    """
+    Truncates the adjacency matrices found by <iso_finder> to n_iso, then applies its sort_emit and label_map
+    options, so that every return path of <iso_finder> treats them the same way.
+
+    :param adj_matrix: the initial adjacency matrix given to <iso_finder>
+    :type adj_matrix: numpy.ndarray
+    :param adj_arr: the distinct relabeled adjacency matrices found
+    :type adj_arr: numpy.ndarray
+    :param n_iso: number of the isomorphic graphs to return at most
+    :type n_iso: int
+    :param sort_emit: if True the outcome is sorted by the number of emitters needed to generate each graph
+    :type sort_emit: bool
+    :param label_map: if True, a list of label maps between the initial graph and each returned one is returned too
+    :type label_map: bool
+    :return: the adjacency matrices, or a tuple of the adjacency matrices and the list of label maps if label_map
+        is True
+    :rtype: numpy.ndarray or tuple (numpy.ndarray, list[dict])
+    """
+    adj_arr = adj_arr[:n_iso]
+    if sort_emit:
+        adj_arr = np.array([x[0] for x in emitter_sorted(adj_arr)])
+    if label_map:
+        mapping = [get_relabel_map(adj_matrix, new_adj) for new_adj in adj_arr]
+        return adj_arr, mapping
+    return adj_arr
 
 
 def emitter_sorted(adj_arr):

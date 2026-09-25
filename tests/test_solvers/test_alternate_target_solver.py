@@ -16,6 +16,7 @@ import pytest as pytest
 
 from graphiq.benchmarks.graph_states import linear_cluster_state
 from graphiq.solvers.alternate_target_solver import *
+from graphiq.utils.relabel_module import _label_finder, automorph_check
 
 linear_cluster = nx.from_numpy_array(nx.to_numpy_array(linear_cluster_state(4).data))
 
@@ -121,18 +122,17 @@ def _solve_with_label_map(label_map, n_iso_graphs):
     return solver.solve()
 
 
-@pytest.mark.parametrize(
-    "n_iso_graphs, iso_finder_returns_tuple", [(3, False), (12, True)]
-)
-def test_label_map_setting_gives_the_same_result_as_without_it(
-    n_iso_graphs, iso_finder_returns_tuple
-):
-    # With label_map set, iso_finder returns (matrices, label maps) only when it has to
-    # search past its first batch of labellings, and a bare array otherwise. Pin which
-    # case each parameter reaches, so both shapes stay covered.
+@pytest.mark.parametrize("n_iso_graphs", [3, 12])
+def test_label_map_setting_gives_the_same_result_as_without_it(n_iso_graphs):
+    # With label_map set, iso_finder returns (matrices, label maps). With seed 1, 3
+    # graphs are found in its first batch of labellings and 12 need a longer search,
+    # so both of its return paths are covered.
     setting = my_setting()
+    adj = nx.to_numpy_array(linear_cluster)
+    first_batch = automorph_check(adj, _label_finder(n_iso_graphs, len(adj), seed=1))
+    assert (len(first_batch) >= n_iso_graphs) == (n_iso_graphs == 3)
     found = iso_finder(
-        nx.to_numpy_array(linear_cluster),
+        adj,
         n_iso_graphs,
         rel_inc_thresh=setting.rel_inc_thresh,
         allow_exhaustive=setting.allow_exhaustive,
@@ -141,7 +141,8 @@ def test_label_map_setting_gives_the_same_result_as_without_it(
         thresh=setting.iso_thresh,
         seed=1,
     )
-    assert isinstance(found, tuple) == iso_finder_returns_tuple
+    assert isinstance(found, tuple)
+    assert len(found[1]) == len(found[0])
 
     with_map = _solve_with_label_map(True, n_iso_graphs)
     without_map = _solve_with_label_map(False, n_iso_graphs)

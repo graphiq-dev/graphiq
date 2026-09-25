@@ -92,10 +92,31 @@ def test_pure_and_mixed_stabilizers_compare_unequal_without_raising():
     assert (mixed == pure) is False
 
 
-@pytest.mark.parametrize("measurement_determinism", ["probabilstic", 2, None])
-def test_measurement_rejects_an_unrecognised_determinism(measurement_determinism):
-    # |+> has a random Z outcome, so the determinism setting is consulted
+def _plus_state():
     state = Stabilizer(1)
     state.apply_hadamard(0)
+    return state
+
+
+def _cz_graph_state():
+    state = Stabilizer(2)
+    state.apply_hadamard(0)
+    state.apply_hadamard(1)
+    state.apply_cz(0, 1)
+    return state
+
+
+@pytest.mark.parametrize("make_state", [_plus_state, _cz_graph_state])
+@pytest.mark.parametrize("measurement_determinism", ["probabilstic", 2, None])
+def test_measurement_rejects_an_unrecognised_determinism(
+    make_state, measurement_determinism
+):
+    # qubit 0 has a random Z outcome in both states, so the determinism setting is
+    # consulted; the rejected call must leave the tableau as it found it
+    state = make_state()
+    before = state.tableau.copy()
     with pytest.raises(ValueError, match="measurement_determinism"):
         state.apply_measurement(0, measurement_determinism=measurement_determinism)
+    assert np.array_equal(state.tableau.table, before.table)
+    assert np.array_equal(state.tableau.phase, before.phase)
+    assert np.array_equal(state.tableau.iphase, before.iphase)

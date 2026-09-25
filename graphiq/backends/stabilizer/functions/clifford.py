@@ -64,6 +64,20 @@ def z_measurement_gate(
             break
     if x_p != 0:
         # probabilistic outcome
+        # Pick the outcome before touching the tableau, so a rejected
+        # measurement_determinism leaves it as it was.
+        # We have the option to remove randomness and pick a specific outcome
+        # measurement_determinism is only used when we know random measurement outcome is possible
+        if measurement_determinism == "probabilistic":
+            outcome = np.random.randint(0, 2)
+        elif measurement_determinism == 1:
+            outcome = 1
+        elif measurement_determinism == 0:
+            outcome = 0
+        else:
+            raise ValueError(
+                f'measurement_determinism parameter must be "probabilistic", 0, or 1'
+            )
         x_matrix = tableau.table_x
         z_matrix = tableau.table_z
         r_vector = tableau.phase
@@ -93,20 +107,7 @@ def z_measurement_gate(
         # and no factor of i.
         tableau.iphase[x_p] = 0
 
-        # set that row of the phase vector to random measurement outcome 0 or 1 with an equal probability.
-        # We have the option to remove randomness and pick a specific outcome
-        # measurement_determinism is only used when we know random measurement outcome is possible
-        if measurement_determinism == "probabilistic":
-            outcome = np.random.randint(0, 2)
-        elif measurement_determinism == 1:
-            outcome = 1
-        elif measurement_determinism == 0:
-            outcome = 0
-        else:
-            raise ValueError(
-                f'measurement_determinism parameter must be "probabilistic", 0, or 1'
-            )
-
+        # set that row of the phase vector to the measurement outcome
         tableau.phase[x_p] = outcome
         tableau.table = table
         return tableau, outcome, x_p

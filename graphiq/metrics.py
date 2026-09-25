@@ -68,6 +68,15 @@ class MetricBase(ABC):
 
 
 class Infidelity(MetricBase):
+    """
+    Infidelity of a state with respect to a fixed target state, 1 - F.
+
+    Zero means the state matches the target. With a stabilizer target and a MixedStabilizer state, the value is
+    1 - sum_i p_i F_i over the mixture's tableaux. The weights p_i need not sum to 1 (photon loss lowers them), so
+    missing probability counts as infidelity. The target must be in the stabilizer ("s") or density matrix ("dm")
+    representation.
+    """
+
     def __init__(self, target, log_steps=1, *args, **kwargs):
         """
         Creates an Infidelity Metric object, which computes 1-fidelity with respect to the ideal_state
@@ -156,6 +165,14 @@ class Infidelity(MetricBase):
 
 
 class TraceDistance(MetricBase):
+    """
+    Trace distance between a state and a fixed target state.
+
+    Zero means the states are identical and one means they are perfectly distinguishable. The evaluated state is
+    converted to a density matrix if it is not one already, but the target is not: a target held in any other
+    representation is rejected.
+    """
+
     def __init__(self, target, log_steps=1, *args, **kwargs):
         """
         Creates a TraceDistance Metric object, which computes the trace distance between the current state and the

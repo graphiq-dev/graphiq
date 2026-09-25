@@ -12,6 +12,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""
+Matplotlib-based visualization helpers: density-matrix heatmaps and bar plots, graph drawing, solver-log plots,
+and openqasm-driven circuit diagrams.
+"""
+
 from .density_matrix import density_matrix_bars, density_matrix_heatmap
 from .graph import *
 from .solver_logs import *

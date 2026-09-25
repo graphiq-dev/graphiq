@@ -1196,6 +1196,23 @@ class CircuitDAG(CircuitBase):
         return empty_circ
 
     def _noisy_gates(self, noise_model_map):
+        """
+        Helper function that returns the circuit's operations with a noise model attached to each
+
+        Operates on a copy, so the circuit itself is not modified. Each OneQubitGateWrapper receives a list with one
+        noise model per gate returned by its ``unwrap``, in that order; note that the wrapper pairs ``noise[i]`` with
+        ``operations[i]``, and ``unwrap`` returns the operations in reverse. A controlled-pair operation receives its
+        section's list of two models, or its single model duplicated. Every other operation receives the model its
+        register section names. Operations without an entry get NoNoise.
+
+        :param noise_model_map: a nested dict of register-type section to operation class name to noise model, as
+            accepted by ``assign_noise``
+        :type noise_model_map: dict[str, dict]
+        :raises AssertionError: if a controlled-pair operation's noise list does not have length 2
+        :raises KeyError: if noise_model_map has no entry for an operation's register-type section
+        :return: the operations (Input and Output excluded), each carrying its noise model
+        :rtype: list[ops.OperationBase]
+        """
         # copy first: the noise is set on the ops in place, and these must not
         # be this circuit's own ops
         seq = self.copy()._slim_seq()
@@ -1242,6 +1259,20 @@ class CircuitDAG(CircuitBase):
         return noisy_ops
 
     def _find_wrapped_noise(self, op_type_list, mapping):
+        """
+        Helper function that looks up one noise model per gate wrapped inside a OneQubitGateWrapper
+
+        A gate whose class name is absent from the mapping gets NoNoise, so the returned list always has the same
+        length as op_type_list.
+
+        :param op_type_list: the classes of the wrapped gates; ``_noisy_gates`` passes them in the order returned by
+            the wrapper's ``unwrap``
+        :type op_type_list: list[type]
+        :param mapping: one section of a noise model map, keyed by operation class name
+        :type mapping: dict
+        :return: a noise model for each entry of op_type_list, in the same order
+        :rtype: list[graphiq.noise.noise_models.NoiseBase]
+        """
         noise_list = []
         for op_type in op_type_list:
             op_name = op_type.__name__
@@ -1252,6 +1283,12 @@ class CircuitDAG(CircuitBase):
         return noise_list
 
     def _slim_seq(self):
+        """
+        Helper function that returns the operation sequence with the Input and Output placeholders removed
+
+        :return: the operations of the circuit, in topological order, with wrappers not unwrapped
+        :rtype: list[ops.OperationBase]
+        """
         seq = self.sequence()
         length = len(seq) - 1
         for i, op in enumerate(seq[::-1]):

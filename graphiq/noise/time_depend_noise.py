@@ -12,6 +12,18 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""
+Time-dependent noise as a Poisson process over the gate durations of an ideal circuit.
+
+``NoisyEnsemble`` partitions each noisy register's operation history into sections (``section_finder``), finds the
+probability of each placement of errors across those sections from the section durations and an error rate
+(``prob_tree_finder``, using a Poisson distribution -- ``poisson_prob`` -- truncated at a cut-off probability,
+``cut_off_counter``), and expresses the result as a weighted list of ``NoiseEvent`` objects (``to_event_tree``), one
+event tree per noisy register and noise type, all merged into one (``unwrapper``). ``insert_error`` turns an event
+tree into a list of noisy circuits and their probabilities -- a "circuit tree" -- by inserting the corresponding error
+operation, from ``graphiq.noise.model_parameters.error_ops``, into a copy of the ideal circuit.
+"""
+
 import copy
 import math
 from itertools import combinations_with_replacement

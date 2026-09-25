@@ -12,6 +12,16 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""
+Default gate-duration and noise-parameter data consumed by :mod:`graphiq.noise.time_depend_noise`.
+
+``gate_duration_dict`` gives each operation type it lists a duration of 1 (0 for ``Input`` and ``Output``); types
+it does not list, such as ``PhaseDagger`` or ``OneQubitGateWrapper``, have no default duration.
+``noise_parameters`` is the default noise-parameter dict, merged into any partial one a caller supplies;
+``error_ops`` maps the ``"x"``/``"y"``/``"z"``/``"I"`` noise-type letters to the operation class ``insert_error``
+inserts for each. ``equal_time_dict`` builds a gate-duration dict with one duration for every given operation type.
+"""
+
 import graphiq.circuit.ops as ops
 
 

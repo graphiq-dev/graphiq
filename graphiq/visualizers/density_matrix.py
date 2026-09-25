@@ -12,6 +12,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""
+Plots a density matrix's real and imaginary parts side by side, either as 2D heatmaps or as 3D bar plots.
+"""
+
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns

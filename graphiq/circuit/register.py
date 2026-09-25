@@ -12,6 +12,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""
+Register bookkeeping for circuits: which qubit and cbit registers exist, and their sizes.
+"""
+
+
 class Register:
     """
     Register class object, the class includes a dictionary which map the register type as the key and the register array
@@ -76,6 +81,12 @@ class Register:
 
     @property
     def n_quantum(self):
+        """
+        The total number of quantum registers, counting every register type except classical ('c')
+
+        :return: the number of quantum registers
+        :rtype: int
+        """
         q_sum = 0
 
         for key in self._registers:

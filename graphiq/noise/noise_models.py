@@ -94,6 +94,17 @@ class AdditionNoiseBase(NoiseBase):
     """
 
     def __init__(self, noise_parameters=None):
+        """
+        Initialize a base class for noise added before or after a gate
+
+        If ``noise_parameters`` is None or not a dict, it is replaced with ``{"After gate": True}``. Otherwise, an
+        ``"After gate"`` key set to True is added to it when not already present.
+
+        :param noise_parameters: a dictionary of parameters to describe the noise model
+        :type noise_parameters: dict or None
+        :return: nothing
+        :rtype: None
+        """
         if noise_parameters is None or type(noise_parameters) is not dict:
             noise_parameters = {"After gate": True}
         else:
@@ -125,6 +136,15 @@ class ReplacementNoiseBase(NoiseBase):
     """
 
     def __init__(self, noise_parameters=None):
+        """
+        Initialize a base class for noisy gate that replaces the original gate
+
+        :param noise_parameters: a dictionary of parameters to describe the noise model, or None for an empty
+            dictionary
+        :type noise_parameters: dict or None
+        :return: nothing
+        :rtype: None
+        """
         super().__init__(noise_parameters)
 
     def apply(self, state: QuantumState, n_quantum, reg_list):
@@ -767,6 +787,14 @@ class PhotonLoss(AdditionNoiseBase):
     """
 
     def __init__(self, loss_rate):
+        """
+        Construct a PhotonLoss object
+
+        :param loss_rate: the probability that a photon is lost while undergoing this gate
+        :type loss_rate: float
+        :return: nothing
+        :rtype: None
+        """
         noise_parameters = {"loss rate": loss_rate}
         super().__init__(noise_parameters)
 
@@ -1046,6 +1074,15 @@ class ResetError(NoiseBase):
     """
 
     def __init__(self, noise_parameters=None):
+        """
+        Construct a ResetError object
+
+        :param noise_parameters: a dictionary of parameters to describe the noise model, or None for an empty
+            dictionary
+        :type noise_parameters: dict or None
+        :return: nothing
+        :rtype: None
+        """
         super().__init__(noise_parameters)
 
     def apply(self, state: QuantumState, n_quantum, reg_list):

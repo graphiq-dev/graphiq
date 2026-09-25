@@ -366,6 +366,22 @@ class MonteCarloNoise:
 
 
 def parallel_monte_carlo(mc: MonteCarloNoise, n_parallel, n_single):
+    """
+    Run a MonteCarloNoise simulation as n_parallel ray tasks of n_single samples each
+
+    The first task uses ``mc.seed`` (0 if it is None) and the others use n_parallel - 1 distinct seeds drawn from
+    ``mc.rng`` in [0, 100 * n_parallel). ``mc.n_sample`` is restored afterwards, and ``mc.all_scores`` is set to
+    every task's scores, pooled in task order. Requires the optional ``ray`` dependency.
+
+    :param mc: the Monte Carlo simulation to run
+    :type mc: MonteCarloNoise
+    :param n_parallel: the number of ray tasks
+    :type n_parallel: int
+    :param n_single: the number of samples in each task
+    :type n_single: int
+    :return: the average infidelity over all n_parallel * n_single samples
+    :rtype: float
+    """
     import ray
 
     rnd_array = mc.rng.choice(n_parallel * 100, n_parallel - 1, replace=False)

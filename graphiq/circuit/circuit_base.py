@@ -12,6 +12,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""
+Base class (interface) that every circuit representation implements.
+"""
+
 import copy
 import random
 import warnings
@@ -62,6 +66,12 @@ class CircuitBase(ABC):
 
     @property
     def register(self):
+        """
+        The register dictionary of the circuit, keyed by register type
+
+        :return: a shallow copy of the register dictionary
+        :rtype: dict
+        """
         return self._registers.register
 
     @property

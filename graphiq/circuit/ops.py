@@ -601,6 +601,31 @@ class OneQubitGateWrapper(OneQubitOperationBase):
     """
 
     def __init__(self, operations: list, register=0, reg_type="e", noise=nm.NoNoise()):
+        """
+        Create a wrapper treating a list of one-qubit operations as a single component
+
+        A NoNoise given as a scalar is expanded to one NoNoise per wrapped operation. Any other scalar noise model is
+        stored as-is. For an addition-type model, ``unwrap`` then gives every wrapped gate NoNoise and carries that
+        model on a separate Identity operation, applied after the gates when its "After gate" parameter is True and
+        before them otherwise; ``unwrap`` raises KeyError for any other scalar model (one without an "After gate"
+        parameter).
+
+        :param operations: the one-qubit operation classes to compose; ``unwrap`` applies them last entry first
+        :type operations: list[type]
+        :param register: the (quantum) register on which the composed operation acts
+        :type register: int OR tuple (of ints, length 2)
+        :param reg_type: 'e' if emitter qubit, 'p' if a photonic qubit
+        :type reg_type: str
+        :param noise: one noise model per wrapped operation, in the same order as ``operations`` (``noise[i]`` is
+            applied with ``operations[i]``), or a single model for the whole wrapper
+        :type noise: graphiq.noise.noise_models.NoiseBase or list
+        :raises ValueError: if operations is empty
+        :raises AssertionError: if any entry is an operation class that is not a OneQubitOperationBase subclass, or
+            is itself a OneQubitGateWrapper
+        :raises TypeError: if any entry is not a class (e.g. an operation instance)
+        :return: nothing
+        :rtype: None
+        """
         if isinstance(noise, nm.NoNoise):
             noise = len(operations) * [nm.NoNoise()]
         super().__init__(register, reg_type, noise)
@@ -651,6 +676,15 @@ class OneQubitGateWrapper(OneQubitOperationBase):
         return gates[::-1]
 
     def openqasm_info(self):
+        """
+        Returns the information needed to generate an openQASM script using this operation
+        (needed imports, how to define a gate, how to use a gate), packaged as a single object.
+
+        Unlike the class-level lookup on OperationBase, this returns the per-instance value built from the wrapped
+        operation list at construction time.
+
+        :return: the openqasm information for this wrapper's operation list
+        """
         return self._openqasm_info
 
 
@@ -662,6 +696,18 @@ class Hadamard(OneQubitOperationBase):
     _openqasm_info = oq_lib.hadamard_info()
 
     def __init__(self, register=0, reg_type="e", noise=nm.NoNoise()):
+        """
+        Create a Hadamard gate Operation
+
+        :param register: the (quantum) register on which the single-qubit operation acts
+        :type register: int OR tuple (of ints, length 2)
+        :param reg_type: 'e' if emitter qubit, 'p' if a photonic qubit
+        :type reg_type: str
+        :param noise: Noise model
+        :type noise: graphiq.noise.noise_models.NoiseBase
+        :return: nothing
+        :rtype: None
+        """
         super().__init__(register, reg_type, noise)
 
 
@@ -673,6 +719,18 @@ class SigmaX(OneQubitOperationBase):
     _openqasm_info = oq_lib.sigma_x_info()
 
     def __init__(self, register=0, reg_type="e", noise=nm.NoNoise()):
+        """
+        Create a Pauli X gate Operation
+
+        :param register: the (quantum) register on which the single-qubit operation acts
+        :type register: int OR tuple (of ints, length 2)
+        :param reg_type: 'e' if emitter qubit, 'p' if a photonic qubit
+        :type reg_type: str
+        :param noise: Noise model
+        :type noise: graphiq.noise.noise_models.NoiseBase
+        :return: nothing
+        :rtype: None
+        """
         super().__init__(register, reg_type, noise)
 
 
@@ -684,6 +742,18 @@ class SigmaY(OneQubitOperationBase):
     _openqasm_info = oq_lib.sigma_y_info()
 
     def __init__(self, register=0, reg_type="e", noise=nm.NoNoise()):
+        """
+        Create a Pauli Y gate Operation
+
+        :param register: the (quantum) register on which the single-qubit operation acts
+        :type register: int OR tuple (of ints, length 2)
+        :param reg_type: 'e' if emitter qubit, 'p' if a photonic qubit
+        :type reg_type: str
+        :param noise: Noise model
+        :type noise: graphiq.noise.noise_models.NoiseBase
+        :return: nothing
+        :rtype: None
+        """
         super().__init__(register, reg_type, noise)
 
 
@@ -695,6 +765,18 @@ class SigmaZ(OneQubitOperationBase):
     _openqasm_info = oq_lib.sigma_z_info()
 
     def __init__(self, register=0, reg_type="e", noise=nm.NoNoise()):
+        """
+        Create a Pauli Z gate Operation
+
+        :param register: the (quantum) register on which the single-qubit operation acts
+        :type register: int OR tuple (of ints, length 2)
+        :param reg_type: 'e' if emitter qubit, 'p' if a photonic qubit
+        :type reg_type: str
+        :param noise: Noise model
+        :type noise: graphiq.noise.noise_models.NoiseBase
+        :return: nothing
+        :rtype: None
+        """
         super().__init__(register, reg_type, noise)
 
 
@@ -706,6 +788,18 @@ class Phase(OneQubitOperationBase):
     _openqasm_info = oq_lib.phase_info()
 
     def __init__(self, register=0, reg_type="e", noise=nm.NoNoise()):
+        """
+        Create a Phase (S) gate Operation
+
+        :param register: the (quantum) register on which the single-qubit operation acts
+        :type register: int OR tuple (of ints, length 2)
+        :param reg_type: 'e' if emitter qubit, 'p' if a photonic qubit
+        :type reg_type: str
+        :param noise: Noise model
+        :type noise: graphiq.noise.noise_models.NoiseBase
+        :return: nothing
+        :rtype: None
+        """
         super().__init__(register, reg_type, noise)
 
 
@@ -717,6 +811,18 @@ class PhaseDagger(OneQubitOperationBase):
     _openqasm_info = oq_lib.phase_dagger_info()
 
     def __init__(self, register=0, reg_type="e", noise=nm.NoNoise()):
+        """
+        Create a Phase-dagger (S-dagger) gate Operation
+
+        :param register: the (quantum) register on which the single-qubit operation acts
+        :type register: int OR tuple (of ints, length 2)
+        :param reg_type: 'e' if emitter qubit, 'p' if a photonic qubit
+        :type reg_type: str
+        :param noise: Noise model
+        :type noise: graphiq.noise.noise_models.NoiseBase
+        :return: nothing
+        :rtype: None
+        """
         super().__init__(register, reg_type, noise)
 
 
@@ -732,6 +838,25 @@ class ParameterizedOneQubitRotation(OneQubitOperationBase):
     def __init__(
         self, register=0, reg_type="e", noise=nm.NoNoise(), params=None, param_info=None
     ):
+        """
+        Create a general parameterized one-qubit rotation, with angles (theta, phi, lambda)
+
+        :param register: the (quantum) register on which the single-qubit operation acts
+        :type register: int OR tuple (of ints, length 2)
+        :param reg_type: 'e' if emitter qubit, 'p' if a photonic qubit
+        :type reg_type: str
+        :param noise: Noise model
+        :type noise: graphiq.noise.noise_models.NoiseBase
+        :param params: an ordered list of parameter values for the rotation angles; defaults to (0.0, 0.0, 0.0)
+        :type params: tuple
+        :param param_info: bounds and labels for each parameter; defaults to (-pi, pi) for each of theta, phi and
+            lambda
+        :type param_info: dict
+        :raises ValueError: if params has a length other than 3, or param_info is not a dict with 'bounds' and
+            'labels' entries of length 3
+        :return: nothing
+        :rtype: None
+        """
         super().__init__(register, reg_type, noise)
 
         if params is None:
@@ -773,6 +898,31 @@ class ParameterizedControlledRotationQubit(ControlledPairOperationBase):
         params=None,
         param_info=None,
     ):
+        """
+        Create a parameterized two-qubit controlled rotation, with angles (theta, phi, lambda)
+
+        :param control: control register/qubit for the Operation
+        :type control: int OR tuple (of ints, length 2)
+        :param control_type: 'p' if photonic qubit, 'e' if emitter qubit
+        :type control_type: str
+        :param target: target register/qubit for the Operation
+        :type target: int OR tuple (of ints, length 2)
+        :param target_type: 'p' if photonic qubit, 'e' if emitter qubit
+        :type target_type: str
+        :param noise: Noise model, or a list of two noise models (one for the control, one for the target);
+            a single noise model is applied to both
+        :type noise: graphiq.noise.noise_models.NoiseBase or list
+        :param params: an ordered list of parameter values for the rotation angles; defaults to (0.0, 0.0, 0.0)
+        :type params: tuple
+        :param param_info: bounds and labels for each parameter; defaults to (-pi, pi) for each of theta, phi and
+            lambda
+        :type param_info: dict
+        :raises ValueError: if params has a length other than 3, or param_info is not a dict with 'bounds' and
+            'labels' entries of length 3
+        :raises AssertionError: if noise is a list whose length is not 2
+        :return: nothing
+        :rtype: None
+        """
         super().__init__(control, control_type, target, target_type, noise)
         if params is None:
             params = (0.0, 0.0, 0.0)
@@ -803,6 +953,26 @@ class RY(ParameterizedOneQubitRotation):
     def __init__(
         self, register=0, reg_type="e", noise=nm.NoNoise(), params=None, param_info=None
     ):
+        """
+        Create a rotation around the Y axis
+
+        :param register: the (quantum) register on which the single-qubit operation acts
+        :type register: int OR tuple (of ints, length 2)
+        :param reg_type: 'e' if emitter qubit, 'p' if a photonic qubit
+        :type reg_type: str
+        :param noise: Noise model
+        :type noise: graphiq.noise.noise_models.NoiseBase
+        :param params: an ordered list of parameter values for the rotation angle; defaults to (0.0,)
+        :type params: tuple
+        :param param_info: bounds and labels for the parameter; defaults to bounds (-pi, pi) and label 'theta'. A
+            dict passed here must wrap each in a length-1 sequence, e.g. {"bounds": ((-pi, pi),), "labels":
+            ("theta",)}; the stored default's own shape does not pass that check
+        :type param_info: dict
+        :raises ValueError: if params has a length other than 1, or param_info is not a dict with 'bounds' and
+            'labels' entries of length 1
+        :return: nothing
+        :rtype: None
+        """
         super().__init__(register, reg_type, noise)
 
         if params is None:
@@ -833,6 +1003,26 @@ class RX(ParameterizedOneQubitRotation):
     def __init__(
         self, register=0, reg_type="e", noise=nm.NoNoise(), params=None, param_info=None
     ):
+        """
+        Create a rotation around the X axis
+
+        :param register: the (quantum) register on which the single-qubit operation acts
+        :type register: int OR tuple (of ints, length 2)
+        :param reg_type: 'e' if emitter qubit, 'p' if a photonic qubit
+        :type reg_type: str
+        :param noise: Noise model
+        :type noise: graphiq.noise.noise_models.NoiseBase
+        :param params: an ordered list of parameter values for the rotation angle; defaults to (0.0,)
+        :type params: tuple
+        :param param_info: bounds and labels for the parameter; defaults to bounds (-pi, pi) and label 'theta'. A
+            dict passed here must wrap each in a length-1 sequence, e.g. {"bounds": ((-pi, pi),), "labels":
+            ("theta",)}; the stored default's own shape does not pass that check
+        :type param_info: dict
+        :raises ValueError: if params has a length other than 1, or param_info is not a dict with 'bounds' and
+            'labels' entries of length 1
+        :return: nothing
+        :rtype: None
+        """
         super().__init__(register, reg_type, noise)
 
         if params is None:
@@ -865,6 +1055,26 @@ class RZ(ParameterizedOneQubitRotation):
     def __init__(
         self, register=0, reg_type="e", noise=nm.NoNoise(), params=None, param_info=None
     ):
+        """
+        Create a rotation around the Z axis
+
+        :param register: the (quantum) register on which the single-qubit operation acts
+        :type register: int OR tuple (of ints, length 2)
+        :param reg_type: 'e' if emitter qubit, 'p' if a photonic qubit
+        :type reg_type: str
+        :param noise: Noise model
+        :type noise: graphiq.noise.noise_models.NoiseBase
+        :param params: an ordered list of parameter values for the rotation angle; defaults to (0.0,)
+        :type params: tuple
+        :param param_info: bounds and labels for the parameter; defaults to bounds (-pi, pi) and label 'phi'. A
+            dict passed here must wrap each in a length-1 sequence, e.g. {"bounds": ((-pi, pi),), "labels":
+            ("phi",)}; the stored default's own shape does not pass that check
+        :type param_info: dict
+        :raises ValueError: if params has a length other than 1, or param_info is not a dict with 'bounds' and
+            'labels' entries of length 1
+        :return: nothing
+        :rtype: None
+        """
         super().__init__(register, reg_type, noise)
 
         if params is None:
@@ -894,6 +1104,18 @@ class Identity(OneQubitOperationBase):
     _openqasm_info = oq_lib.empty_info()
 
     def __init__(self, register=0, reg_type="e", noise=nm.NoNoise()):
+        """
+        Create an Identity gate Operation
+
+        :param register: the (quantum) register on which the single-qubit operation acts
+        :type register: int OR tuple (of ints, length 2)
+        :param reg_type: 'e' if emitter qubit, 'p' if a photonic qubit
+        :type reg_type: str
+        :param noise: Noise model
+        :type noise: graphiq.noise.noise_models.NoiseBase
+        :return: nothing
+        :rtype: None
+        """
         super().__init__(register, reg_type, noise)
 
 
@@ -907,6 +1129,24 @@ class CNOT(ControlledPairOperationBase):
     def __init__(
         self, control=0, control_type="e", target=0, target_type="e", noise=nm.NoNoise()
     ):
+        """
+        Create a CNOT gate Operation
+
+        :param control: control register/qubit for the Operation
+        :type control: int OR tuple (of ints, length 2)
+        :param control_type: 'p' if photonic qubit, 'e' if emitter qubit
+        :type control_type: str
+        :param target: target register/qubit for the Operation
+        :type target: int OR tuple (of ints, length 2)
+        :param target_type: 'p' if photonic qubit, 'e' if emitter qubit
+        :type target_type: str
+        :param noise: Noise model, or a list of two noise models (one for the control, one for the target);
+            a single noise model is applied to both
+        :type noise: graphiq.noise.noise_models.NoiseBase or list
+        :raises AssertionError: if noise is a list whose length is not 2
+        :return: nothing
+        :rtype: None
+        """
         super().__init__(control, control_type, target, target_type, noise)
 
 
@@ -920,6 +1160,24 @@ class CZ(ControlledPairOperationBase):
     def __init__(
         self, control=0, control_type="e", target=0, target_type="e", noise=nm.NoNoise()
     ):
+        """
+        Create a CZ (controlled-Z) gate Operation
+
+        :param control: control register/qubit for the Operation
+        :type control: int OR tuple (of ints, length 2)
+        :param control_type: 'p' if photonic qubit, 'e' if emitter qubit
+        :type control_type: str
+        :param target: target register/qubit for the Operation
+        :type target: int OR tuple (of ints, length 2)
+        :param target_type: 'p' if photonic qubit, 'e' if emitter qubit
+        :type target_type: str
+        :param noise: Noise model, or a list of two noise models (one for the control, one for the target);
+            a single noise model is applied to both
+        :type noise: graphiq.noise.noise_models.NoiseBase or list
+        :raises AssertionError: if noise is a list whose length is not 2
+        :return: nothing
+        :rtype: None
+        """
         super().__init__(control, control_type, target, target_type, noise)
 
 
@@ -955,6 +1213,27 @@ class MeasurementCNOTandReset(ClassicalControlledPairOperationBase):
         c_register: object = 0,
         noise: object = nm.NoNoise(),
     ) -> object:
+        """
+        Create an Operation that measures the control in the Z basis, applies X to the target conditioned on the
+        outcome, records the outcome in the classical register, and resets the control
+
+        :param control: the control register/qubit
+        :type control: int OR tuple (of ints, length 2)
+        :param control_type: 'p' if photonic qubit, 'e' if emitter qubit
+        :type control_type: str
+        :param target: target register/qubit for the Operation
+        :type target: int OR tuple (of ints, length 2)
+        :param target_type: 'p' if photonic qubit, 'e' if emitter qubit
+        :type target_type: str
+        :param c_register: the classical register/cbit
+        :type c_register: int OR tuple (of ints, length 2)
+        :param noise: Noise model, or a list of two noise models (one for the control, one for the target);
+            a single noise model is applied to both
+        :type noise: graphiq.noise.noise_models.NoiseBase or list
+        :raises AssertionError: if noise is a list whose length is not 2
+        :return: nothing
+        :rtype: None
+        """
         super().__init__(control, control_type, target, target_type, c_register, noise)
 
 
@@ -1030,6 +1309,19 @@ class Input(InputOutputOperationBase):
     """
 
     def __init__(self, register=None, reg_type="e"):
+        """
+        Create an Input placeholder Operation
+
+        :param register: the register/qubit which this I/O operation acts on
+        :type register: int OR tuple (of ints, length 2)
+        :param reg_type: the input/output is for a quantum photonic register if 'p',
+                         for a quantum emitter register if 'e',
+                         and for a classical register if 'c'
+        :type reg_type: str
+        :raises ValueError: if reg_type is not 'p', 'e' or 'c'
+        :return: nothing
+        :rtype: None
+        """
         super().__init__(register, reg_type=reg_type)
 
 
@@ -1040,6 +1332,19 @@ class Output(InputOutputOperationBase):
     """
 
     def __init__(self, register=None, reg_type="e"):
+        """
+        Create an Output placeholder Operation
+
+        :param register: the register/qubit which this I/O operation acts on
+        :type register: int OR tuple (of ints, length 2)
+        :param reg_type: the input/output is for a quantum photonic register if 'p',
+                         for a quantum emitter register if 'e',
+                         and for a classical register if 'c'
+        :type reg_type: str
+        :raises ValueError: if reg_type is not 'p', 'e' or 'c'
+        :return: nothing
+        :rtype: None
+        """
         super().__init__(register, reg_type=reg_type)
 
 
@@ -1047,6 +1352,15 @@ class Output(InputOutputOperationBase):
 
 
 def local_clifford_composition():
+    """
+    Returns the two gate-sequence lists whose products generate every one-qubit local Clifford
+
+    Concatenating one entry of the first list with one entry of the second gives each of the 24 one-qubit Cliffords
+    (up to a global phase) exactly once, which is how ``one_qubit_cliffords`` enumerates them.
+
+    :return: the six-entry list and the four-entry list of gate-class sequences
+    :rtype: tuple[list, list]
+    """
     a = [
         [Identity],
         [Hadamard, Phase, Hadamard, Phase],

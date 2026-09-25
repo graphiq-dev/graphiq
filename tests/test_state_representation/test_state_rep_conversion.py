@@ -276,6 +276,37 @@ def test_density_to_graph_mixed_state_decomposes_into_eigenstates():
         assert np.array_equal(adj, np.zeros((1, 1)))
 
 
+def test_density_to_graph_reads_each_branch_from_an_eigenvector_column():
+    # 0.7 |empty> + 0.3 |triangle> on 3 qubits: the two graph states are orthogonal, so they
+    # are the eigenvectors of rho with nonzero weight. The 1-qubit test above cannot see which
+    # vectors are read: every 1-qubit branch has the adjacency zeros((1, 1)). Here the branches
+    # differ, and eigh's eigenvector matrix is not symmetric, so reading a row instead of a
+    # column builds a different projector.
+    rho = 0.7 * rc.graph_to_density(nx.empty_graph(3)) + 0.3 * rc.graph_to_density(
+        nx.complete_graph(3)
+    )
+    eigenvalues, eigenvectors = np.linalg.eigh(rho)
+    weighted = [i for i in range(len(eigenvalues)) if eigenvalues[i] > 1e-9]
+    assert not np.allclose(eigenvectors, eigenvectors.T)
+    for i in weighted:
+        column, row = eigenvectors[:, i], eigenvectors[i]
+        assert not np.allclose(
+            np.outer(column, column.conj()), np.outer(row, row.conj())
+        )
+
+    graph_list = rc.density_to_graph(rho)
+
+    # every eigenvalue gets an entry; the zero-weight ones come from an arbitrary basis of the
+    # null space, so only the weighted entries are checked
+    branches = sorted(
+        (round(float(p_i), 9), adj.tolist()) for p_i, adj in graph_list if p_i > 1e-9
+    )
+    assert branches == [
+        (0.3, nx.to_numpy_array(nx.complete_graph(3)).tolist()),
+        (0.7, np.zeros((3, 3)).tolist()),
+    ]
+
+
 def test_state_to_graph_rejects_an_unrepresentable_input():
     # Neither an adjacency matrix, a graph, nor a stabilizer/Clifford tableau: falls through
     # every isinstance check to the final else arm.

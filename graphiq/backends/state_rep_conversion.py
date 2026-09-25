@@ -314,8 +314,14 @@ def density_to_stabilizer(input_matrix):
 
     This works only for graph states, not for general stabilizer states that are not graph states
 
+    A mixed input is decomposed spectrally and each eigenvector with an eigenvalue above 1e-9 is
+    converted. This is guaranteed to succeed for a mixture of mutually orthogonal graph states
+    (with an all-zero phase vector) with distinct weights; the eigenvectors of any other mixture
+    generally are not such graph states, and it is then rejected.
+
     :param input_matrix: a density matrix
     :type input_matrix: numpy.ndarray
+    :raise AssertionError: if input_matrix, or an eigenvector of a mixed input, is not a graph state
     :return: a stabilizer representation
     :rtype: list[(float, StabilizerTableau)]
     """
@@ -333,6 +339,10 @@ def density_to_stabilizer(input_matrix):
         eigenvalues, eigenvectors = linalg.eigh(input_matrix)
         stabilizer = []
         for i in range(len(eigenvalues)):
+            # a zero-weight eigenvector is an arbitrary null-space vector, not a
+            # graph state, and does not contribute to the mixture
+            if eigenvalues[i] <= 1e-9:
+                continue
             v = eigenvectors[:, i]
             rho_i = np.outer(v, np.conjugate(v))
             graph = density_to_graph(rho_i)

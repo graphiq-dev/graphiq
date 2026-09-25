@@ -25,6 +25,10 @@ import pytest
 import graphiq.backends.density_matrix.functions as dmf
 import graphiq.circuit.ops as ops
 from graphiq.backends.stabilizer.compiler import StabilizerCompiler
+from graphiq.backends.stabilizer.functions.rep_conversion import (
+    get_clifford_tableau_from_graph,
+)
+from graphiq.backends.state_rep_conversion import graph_to_density
 from graphiq.circuit.circuit_dag import CircuitDAG
 from graphiq.state import QuantumState
 from graphiq.metrics import (
@@ -422,6 +426,37 @@ def test_infidelity_graph_state_marked_mixed_matches_stabilizer_target():
     infidelity = Infidelity(target=target).evaluate(state, None)
 
     assert infidelity == pytest.approx(0.0, abs=1e-9)
+
+
+def _empty_plus_triangle_mixture():
+    # two orthogonal 3-qubit graph states with distinct weights
+    return 0.7 * graph_to_density(nx.empty_graph(3)) + 0.3 * graph_to_density(
+        nx.complete_graph(3)
+    )
+
+
+def test_infidelity_of_a_mixed_density_matrix_against_a_stabilizer_target():
+    rho = _empty_plus_triangle_mixture()
+    state = QuantumState(rho, rep_type="dm", mixed=True)
+    target = QuantumState(
+        get_clifford_tableau_from_graph(nx.empty_graph(3)), rep_type="s"
+    )
+
+    infidelity = Infidelity(target=target).evaluate(state, None)
+
+    expected = 1 - dmf.fidelity(graph_to_density(nx.empty_graph(3)), rho)
+    assert infidelity == pytest.approx(expected)
+
+
+def test_infidelity_rejects_a_mixed_density_matrix_not_marked_mixed():
+    # Converting it would keep one branch of the mixture and score only that branch.
+    state = QuantumState(_empty_plus_triangle_mixture(), rep_type="dm")
+    target = QuantumState(
+        get_clifford_tableau_from_graph(nx.empty_graph(3)), rep_type="s"
+    )
+
+    with pytest.raises(ValueError, match="mixed=True"):
+        Infidelity(target=target).evaluate(state, None)
 
 
 def test_trace_distance_stabilizer_state_against_its_own_density_matrix_is_zero():

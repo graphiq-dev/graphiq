@@ -21,7 +21,9 @@ import pytest
 import graphiq.backends.density_matrix.functions as dmf
 import graphiq.backends.stabilizer.functions.linalg as sla
 import graphiq.backends.state_rep_conversion as rc
+from graphiq.backends.stabilizer.state import MixedStabilizer
 from graphiq.backends.stabilizer.tableau import StabilizerTableau
+from graphiq.state import QuantumState
 
 
 def test_position_finder_single_z_stabilized_qubit_needs_hadamard():
@@ -305,6 +307,56 @@ def test_density_to_graph_reads_each_branch_from_an_eigenvector_column():
         (0.3, nx.to_numpy_array(nx.complete_graph(3)).tolist()),
         (0.7, np.zeros((3, 3)).tolist()),
     ]
+
+
+def _empty_plus_triangle_mixture():
+    # 0.7 |empty> + 0.3 |triangle> on 3 qubits: two orthogonal graph states with distinct
+    # weights, so they are the eigenvectors of rho with nonzero eigenvalue. The other six
+    # eigenvalues are zero, and their eigenvectors are not graph states.
+    return 0.7 * rc.graph_to_density(nx.empty_graph(3)) + 0.3 * rc.graph_to_density(
+        nx.complete_graph(3)
+    )
+
+
+def test_density_to_stabilizer_converts_an_orthogonal_graph_state_mixture():
+    rho = _empty_plus_triangle_mixture()
+
+    stabilizer = rc.density_to_stabilizer(rho)
+
+    assert len(stabilizer) == 2
+    assert sorted(float(p_i) for p_i, _ in stabilizer) == pytest.approx([0.3, 0.7])
+    assert np.allclose(rc.stabilizer_to_density(stabilizer), rho)
+
+
+def test_mixed_density_matrix_state_converts_to_a_mixed_stabilizer():
+    rho = _empty_plus_triangle_mixture()
+    state = QuantumState(rho, rep_type="dm", mixed=True)
+
+    state.convert_representation("s")
+
+    assert isinstance(state.rep_data, MixedStabilizer)
+    state.convert_representation("dm")
+    assert np.allclose(state.rep_data.data, rho)
+
+
+def test_mixed_density_matrix_state_not_marked_mixed_is_not_converted_to_one_branch():
+    # With mixed=False a stabilizer conversion can hold one tableau only; keeping one branch
+    # of a mixture would silently change the state.
+    state = QuantumState(_empty_plus_triangle_mixture(), rep_type="dm")
+
+    with pytest.raises(ValueError, match="mixed=True"):
+        state.convert_representation("s")
+
+
+def test_density_to_stabilizer_rejects_a_mixture_of_non_orthogonal_graph_states():
+    # The empty and edge graphs are the only 2-qubit graph states, and they are not
+    # orthogonal, so no eigenvector of their mixture is a graph state.
+    rho = 0.6 * rc.graph_to_density(nx.empty_graph(2)) + 0.4 * rc.graph_to_density(
+        nx.complete_graph(2)
+    )
+
+    with pytest.raises(AssertionError, match="not a graph state"):
+        rc.density_to_stabilizer(rho)
 
 
 def test_state_to_graph_rejects_an_unrepresentable_input():

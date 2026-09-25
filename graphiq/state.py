@@ -327,6 +327,7 @@ class QuantumState:
 
         :param rep: density matrix representation
         :type rep: DensityMatrix
+        :raises ValueError: if the state is mixed but self.mixed is False
         :return: stabilizer representation
         :rtype: Stabilizer or MixedStabilizer
         """
@@ -339,6 +340,11 @@ class QuantumState:
 
             new_rep = MixedStabilizer(new_tab_list)
         else:
+            if len(new_data) != 1:
+                raise ValueError(
+                    "Cannot convert a mixed density matrix to a stabilizer state with "
+                    "mixed=False; create the QuantumState with mixed=True"
+                )
             new_tableau = CliffordTableau(new_data[0][1])
             new_rep = Stabilizer(new_tableau)
         return new_rep

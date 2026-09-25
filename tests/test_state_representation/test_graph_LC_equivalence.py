@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import time
+from itertools import combinations
 
 import matplotlib.pyplot as plt
 import pytest
@@ -482,7 +483,12 @@ def test_candidates_include_single_basis_vectors(monkeypatch):
     assert solution is None
 
     assert len(recorded) == k + k * (k - 1) // 2
-    singles = recorded[:k]
+    # The pairwise sums come first, in the order combinations gives them, so a graph that a
+    # pairwise sum solves gets the same solution it got before the singles were added.
+    n_pairs = k * (k - 1) // 2
+    for candidate, (b1, b2) in zip(recorded[:n_pairs], combinations(basis, 2)):
+        assert np.array_equal(candidate, (b1 + b2) % 2)
+    singles = recorded[n_pairs:]
     remaining_basis = list(basis)
     for single in singles:
         match = next(
@@ -494,6 +500,22 @@ def test_candidates_include_single_basis_vectors(monkeypatch):
         ), "recorded single basis-vector candidate not found in basis"
         remaining_basis.pop(match)
     assert remaining_basis == []
+
+
+def test_a_graph_a_pairwise_sum_solves_keeps_that_solution():
+    # K4 against itself: its solution basis has 5 vectors, one single vector is valid and so are
+    # 3 pairwise sums. The first valid pairwise sum is the solution returned.
+    k4 = _adjacency(nx.complete_graph(4))
+
+    equivalent, solution = is_lc_equivalent(k4, k4, mode="deterministic")
+
+    assert equivalent
+    assert solution.tolist() == [
+        [[0, 1], [1, 0]],
+        [[1, 0], [0, 1]],
+        [[0, 1], [1, 0]],
+        [[1, 0], [0, 1]],
+    ]
 
 
 def test_symmetric_connected_graphs():

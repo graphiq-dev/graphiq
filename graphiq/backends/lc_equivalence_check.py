@@ -335,14 +335,16 @@ def _is_lc_equivalent_connected(adj_matrix1, adj_matrix2, mode, seed):
     else:
         # mode == "deterministic" (mode is validated by the wrapper, so this is the only
         # remaining branch). Bouchet (4.4): a valid Q, when one exists, is a sum of at most two
-        # vectors of basis B, so the candidates are the k basis vectors followed by their
-        # k(k-1)/2 pairwise sums. The empty sum (the zero vector) is also "a sum of <= 2 vectors
-        # of B", but it fails the per-vertex constraint (4.2) at every vertex (a_i d_i + b_i c_i
-        # = 0 mod 2, never 1), so it is skipped rather than tried.
+        # vectors of basis B, so the candidates are the k(k-1)/2 pairwise sums of the basis
+        # vectors followed by the k basis vectors themselves. The pairwise sums go first so that
+        # a graph a pairwise sum solves gets the first such sum as its solution; the single
+        # vectors only decide the cases no pairwise sum solves. The empty sum (the zero vector)
+        # is also "a sum of <= 2 vectors of B", but it fails the per-vertex constraint (4.2) at
+        # every vertex (a_i d_i + b_i c_i = 0 mod 2, never 1), so it is skipped rather than tried.
         basis = solution_basis
         candidates = chain(
-            (b % 2 for b in basis),
             (((b1 + b2) % 2) for b1, b2 in combinations(basis, 2)),
+            (b % 2 for b in basis),
         )
         for solution in candidates:
             if _is_valid_clifford(solution):

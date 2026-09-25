@@ -370,7 +370,7 @@ def rz_info():
     :rtype: OpenQASMInfo
     """
     imports = []
-    definition = " gate rz(phi) a { U(phi) a; }"
+    definition = " gate rz(phi) a { U(0,0,phi) a; }"
 
     def usage(q_reg, q_reg_type, c_reg, params):
         return f"rz({params[0]}) {q_reg_type[0]}{q_reg[0]}[0];"

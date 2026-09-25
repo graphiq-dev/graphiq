@@ -1161,8 +1161,9 @@ def simplify_local_clifford(gate_list):
 
 
 # Openqasm gate names emitted for single-qubit gates by single_qubit_wrapper_info
-# (OneQubitGateWrapper serialization concatenates these with no separator). Kept
-# as an explicit companion so the name_to_class_map dictionary stays untouched.
+# (OneQubitGateWrapper serialization concatenates these with no separator), plus
+# "p", which name_to_class_map also accepts for Phase. Kept as an explicit
+# companion so the name_to_class_map dictionary stays untouched.
 # Multi-character tokens (e.g. "sdg") are decoded by greedy longest-match.
 _ONE_QUBIT_WRAPPER_TOKENS = {
     "h": Hadamard,
@@ -1170,6 +1171,7 @@ _ONE_QUBIT_WRAPPER_TOKENS = {
     "y": SigmaY,
     "z": SigmaZ,
     "s": Phase,
+    "p": Phase,
     "sdg": PhaseDagger,
 }
 
@@ -1183,9 +1185,8 @@ def _decode_wrapped_gate_name(name):
 
     :param name: concatenated openqasm gate name
     :type name: str
-    :raises ValueError: if the name cannot be fully tokenised into valid gates
-    :return: list of operation classes
-    :rtype: list
+    :return: list of operation classes, or None if the name cannot be fully tokenised
+    :rtype: list or None
     """
     max_token_len = max(len(token) for token in _ONE_QUBIT_WRAPPER_TOKENS)
     op_list = []
@@ -1198,7 +1199,7 @@ def _decode_wrapped_gate_name(name):
                 i += size
                 break
         else:
-            raise ValueError(f"{name} not existing in the mapping dictionary")
+            return None
     return op_list
 
 
@@ -1230,12 +1231,7 @@ def name_to_class_map(name):
     }
     if name in mapping:
         return mapping[name]
-    # Not a single known gate name: interpret it as a composite of one-qubit
-    # gates (e.g. "hsy" or "hsdgy"), as produced by OneQubitGateWrapper
-    # serialization which concatenates the gates' openqasm names with no
-    # separator. Decode via greedy longest-match so multi-character names
-    # (e.g. "sdg") are handled. Raises ValueError if not a valid composite.
-    return _decode_wrapped_gate_name(name)
+    return None
 
 
 def class_to_name_mapping(class_op):

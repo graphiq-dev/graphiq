@@ -672,18 +672,23 @@ class CircuitDAG(CircuitBase):
                 reg_type = command_breakdown[1][0]
                 reg = int(command_breakdown[1][1:-3])  # we must parse out [0] so -3
                 gate_class = ops.name_to_class_map(name)
-                if isinstance(gate_class, list):
-                    if len(gate_class) == 1:
-                        # single (possibly multi-character) gate, e.g. "sdg"
-                        circuit.add(gate_class[0](register=reg, reg_type=reg_type))
+                if gate_class is not None:
+                    circuit.add(gate_class(register=reg, reg_type=reg_type))
+                else:
+                    # a OneQubitGateWrapper writes its gates' names with no separator, and
+                    # some names are several characters long (e.g. "sdg")
+                    circuit_list = ops._decode_wrapped_gate_name(name)
+                    assert (
+                        circuit_list is not None
+                    ), f"Gate not recognized, parsing invalid/{name}"
+                    if len(circuit_list) == 1:
+                        circuit.add(circuit_list[0](register=reg, reg_type=reg_type))
                     else:
                         circuit.add(
                             ops.OneQubitGateWrapper(
-                                gate_class, register=reg, reg_type=reg_type
+                                circuit_list, register=reg, reg_type=reg_type
                             )
                         )
-                else:
-                    circuit.add(gate_class(register=reg, reg_type=reg_type))
             elif command.count("[0]") == 2:  # two-qubit gate
                 command_breakdown = command.split()
                 name = command_breakdown[0]

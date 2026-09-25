@@ -226,8 +226,24 @@ def test_load_circuit_3(initialization_circuit):
     """
     str = initialization_circuit.to_openqasm()
     str += "hshk e0[0];"
-    with pytest.raises(ValueError):
+    with pytest.raises(AssertionError):
         circuit = CircuitDAG.from_openqasm(str)
+
+
+@pytest.mark.parametrize("name", ["hs", "hsdgy", "hk"])
+def test_name_to_class_map_returns_none_outside_its_mapping(name):
+    # composite wrapper names are decoded by from_openqasm, not by name_to_class_map
+    assert ops.name_to_class_map(name) is None
+
+
+def test_load_circuit_wrapped_gate_written_with_p_for_phase():
+    circuit = CircuitDAG.from_openqasm(
+        CircuitDAG(n_emitter=1, n_photon=0, n_classical=0).to_openqasm() + "hp e0[0];"
+    )
+    (wrapper,) = [
+        op for op in circuit.sequence() if isinstance(op, ops.OneQubitGateWrapper)
+    ]
+    assert wrapper.operations == [ops.Hadamard, ops.Phase]
 
 
 def test_load_circuit_multichar_wrapped_gate():

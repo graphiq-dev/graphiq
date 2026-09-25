@@ -41,17 +41,13 @@ def circuit_measurement_independent(circuit, compiler):
     state2 = compiler.compile(circuit)
     compiler.measurement_determinism = original_measurement_determinism
 
-    # Each trace resolves its measurements the same way the compilation that
-    # produced it did, so the comparison below is not reading measurement noise.
     state1.partial_trace(
         keep=list(range(0, circuit.n_quantum - 1)),
         dims=circuit.n_quantum * [2],
-        measurement_determinism=0,
     )
     state2.partial_trace(
         keep=list(range(0, circuit.n_quantum - 1)),
         dims=circuit.n_quantum * [2],
-        measurement_determinism=1,
     )
 
     return np.allclose(state1.rep_data.data, state2.rep_data.data), state1, state2

@@ -37,7 +37,6 @@ from graphiq.backends.stabilizer.functions.transformation import (
     hadamard_gate,
     x_gate,
 )
-from graphiq.backends.stabilizer.state import Stabilizer
 
 
 def tableau_to_density(tableau):
@@ -197,15 +196,3 @@ def test_partial_trace_of_multiple_qubits_forced_to_one_leaves_ket_1():
     tableau = partial_trace(_ghz4(), keep=[0], dims=4 * [2], measurement_determinism=1)
 
     assert np.allclose(tableau_to_density(tableau), np.diag([0.0, 1.0]))
-
-
-def test_stabilizer_partial_trace_accepts_measurement_determinism():
-    # Stabilizer.partial_trace forwards measurement_determinism, so a caller
-    # can pin the traced-out qubit's measurement. That matters because the
-    # removal now transfers the outcome's sign to the surviving generators:
-    # the outcome is observable in the result, where before it could not be,
-    # so a caller with no way to force it would be left with a random state.
-    state = Stabilizer(_ghz4())
-    state.partial_trace(keep=[0], dims=4 * [2], measurement_determinism=1)
-
-    assert np.allclose(tableau_to_density(state.tableau), np.diag([0.0, 1.0]))

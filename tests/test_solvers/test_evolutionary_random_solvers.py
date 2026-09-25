@@ -19,6 +19,7 @@ import numpy as np
 import graphiq.backends.stabilizer.functions.stabilizer as sfs
 from graphiq.backends.density_matrix.compiler import DensityMatrixCompiler
 from graphiq.backends.stabilizer.compiler import StabilizerCompiler
+from graphiq.backends.stabilizer.state import MixedStabilizer, Stabilizer
 from graphiq.circuit.ops import MeasurementCNOTandReset, MeasurementZ
 from graphiq.io import IO
 from graphiq.metrics import Infidelity
@@ -141,11 +142,15 @@ def assert_robust_to_measurement_outcome(
         compiler = compiler_class()
         compiler.measurement_determinism = determinism
         state = compiler.compile(circuit)
-        state.partial_trace(
-            list(range(n_photon)),
-            (n_photon + n_emitter) * [2],
-            measurement_determinism=determinism,
-        )
+        emitters = list(range(n_photon, n_photon + n_emitter))
+        if isinstance(state.rep_data, (Stabilizer, MixedStabilizer)):
+            # a stabilizer trace measures the emitters; resolve it in the same branch
+            state.rep_data.trace_out_qubits(
+                emitters, measurement_determinism=determinism
+            )
+        else:
+            # an exact density-matrix trace has no outcome to resolve
+            state.partial_trace(list(range(n_photon)), (n_photon + n_emitter) * [2])
         infidelity = metric.evaluate(state, circuit)
         assert np.isclose(infidelity, 0.0), (
             f"circuit is not robust to measurement outcome: infidelity={infidelity} "
@@ -322,7 +327,7 @@ def test_assert_robust_to_measurement_outcome_rejects_a_post_selected_winner(
     branch0_compiler = StabilizerCompiler()
     branch0_compiler.measurement_determinism = 0
     branch0_state = branch0_compiler.compile(circuit)
-    branch0_state.partial_trace(list(range(4)), 5 * [2], measurement_determinism=0)
+    branch0_state.rep_data.trace_out_qubits([4], measurement_determinism=0)
     assert np.isclose(hof[0][0], 0.0) and not np.isclose(
         metric.evaluate(branch0_state, circuit), 0.0
     ), "seed 48 no longer gives a one-branch winner; pick a new seed (see docstring)"

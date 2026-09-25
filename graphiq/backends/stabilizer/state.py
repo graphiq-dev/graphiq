@@ -310,7 +310,7 @@ class Stabilizer(StateRepresentationBase):
             measurement_determinism=measurement_determinism,
         )
 
-    def partial_trace(self, keep, dims, measurement_determinism="probabilistic"):
+    def partial_trace(self, keep, dims):
         """
         Trace out qubits after disentangling them from the rest
 
@@ -318,19 +318,10 @@ class Stabilizer(StateRepresentationBase):
         :type keep: list[int] or numpy.ndarray
         :param dims: dimension of each subsystem
         :type dims: list[int] or numpy.ndarray
-        :param measurement_determinism: if "probabilistic", measurement results are probabilistically selected
-                if 1, measurement results default to 1 unless the probability of measuring p(1) = 0
-                if 0, measurement results default to 0 unless the probability of measuring p(0) = 0
-        :type measurement_determinism: str/int
         :return: nothing
         :rtype: None
         """
-        self._tableau = sfc.partial_trace(
-            self._tableau,
-            keep=keep,
-            dims=dims,
-            measurement_determinism=measurement_determinism,
-        )
+        self._tableau = sfc.partial_trace(self._tableau, keep=keep, dims=dims)
 
     def __str__(self):
         """
@@ -769,7 +760,7 @@ class MixedStabilizer(StateRepresentationBase):
             for (p_i, t_i) in self._mixture
         ]
 
-    def partial_trace(self, keep, dims, measurement_determinism="probabilistic"):
+    def partial_trace(self, keep, dims):
         """
         Trace out qubits after disentangling them from the rest
 
@@ -777,10 +768,6 @@ class MixedStabilizer(StateRepresentationBase):
         :type keep: list[int] or numpy.ndarray
         :param dims: dimension of each subsystem
         :type dims: list[int] or numpy.ndarray
-        :param measurement_determinism: if "probabilistic", measurement results are probabilistically selected
-                if 1, measurement results default to 1 unless the probability of measuring p(1) = 0
-                if 0, measurement results default to 0 unless the probability of measuring p(0) = 0
-        :type measurement_determinism: str/int
         :return: nothing
         :rtype: None
         """
@@ -791,7 +778,6 @@ class MixedStabilizer(StateRepresentationBase):
                     t_i,
                     keep=keep,
                     dims=dims,
-                    measurement_determinism=measurement_determinism,
                 ),
             )
             for (p_i, t_i) in self._mixture

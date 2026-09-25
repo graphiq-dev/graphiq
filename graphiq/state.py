@@ -568,9 +568,7 @@ class QuantumState:
         elif isinstance(data, nx.Graph):
             n_qubits = data.number_of_nodes()
         elif isinstance(data, list):
-            if isinstance(data[0][1], CliffordTableau) or isinstance(
-                data[0][1], nx.Graph
-            ):
+            if isinstance(data[0][1], CliffordTableau):
                 n_qubits = data[0][1].n_qubits
             else:
                 return False, None

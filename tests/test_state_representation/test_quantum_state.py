@@ -233,3 +233,23 @@ def test_show_on_a_mixed_graph_state_raises_not_implemented():
 
     with pytest.raises(NotImplementedError, match="mixed graph state"):
         state.show(show=False)
+
+
+def _nx_graph_mixture():
+    return [(0.5, nx.path_graph(3)), (0.5, nx.star_graph(2))]
+
+
+def test_validate_data_rejects_a_list_of_networkx_graphs():
+    # No representation here can be built from a list of (p, nx.Graph), so
+    # validate_data reports it as unsupported rather than reading n_qubits,
+    # which an nx.Graph does not have.
+    assert QuantumState.validate_data(_nx_graph_mixture()) == (False, None)
+
+
+def test_constructor_rejects_a_list_of_networkx_graphs_with_type_error():
+    with pytest.raises(TypeError, match="Data's type is incorrect"):
+        QuantumState(_nx_graph_mixture(), rep_type="g", mixed=True)
+
+
+def test_validate_data_accepts_a_list_of_clifford_tableaux():
+    assert QuantumState.validate_data([(1.0, CliffordTableau(3))]) == (True, 3)

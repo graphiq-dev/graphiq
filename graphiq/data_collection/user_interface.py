@@ -185,7 +185,15 @@ def result_maker(result, graph_met_list=None, circ_met_list=None):
             n_emitters.append(c.n_emitters)
         if "n_unitary" in circ_met_list:
             n_u = 0
-            for label in ["SigmaX", "SigmaX", "SigmaX", "Phase", "Hadamard", "CNOT"]:
+            for label in [
+                "SigmaX",
+                "SigmaY",
+                "SigmaZ",
+                "Phase",
+                "PhaseDagger",
+                "Hadamard",
+                "CNOT",
+            ]:
                 if label in c.node_dict:
                     n_u += len(c.get_node_by_labels([label]))
             n_unitary.append(n_u)

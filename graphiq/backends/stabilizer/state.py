@@ -743,8 +743,7 @@ class MixedStabilizer(StateRepresentationBase):
         :rtype: None
         """
         # partial_trace takes the qubits to keep, not the ones to trace out.
-        # Both are computed before the mixture is rebuilt, since n_qubits is
-        # read from it.
+        # keep is computed once, before the comprehension, for every term.
         n_qubits = self.n_qubits
         keep = [q for q in range(n_qubits) if q not in set(qubit_positions)]
         self._mixture = [

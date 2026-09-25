@@ -190,8 +190,8 @@ def _ghz4():
 
 def test_partial_trace_of_multiple_qubits_forced_to_one_leaves_ket_1():
     # sfc.partial_trace removes three qubits from a GHZ4 state in one call
-    # (each a remove_qubit under the hood), which is the multi-qubit path
-    # ~14 production call sites actually use. Forcing all three removed
+    # (each a remove_qubit under the hood), which is the multi-qubit removal
+    # path the solvers' emitter trace uses. Forcing all three removed
     # measurements to outcome 1 must leave the surviving qubit at |1>.
     tableau = partial_trace(_ghz4(), keep=[0], dims=4 * [2], measurement_determinism=1)
 

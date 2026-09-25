@@ -97,9 +97,9 @@ def test_str_of_a_mixed_graph():
 
 
 def test_graph_to_density_mixed_arm_reached_through_the_private_helper():
-    # QuantumState.validate_data has no MixedGraph arm, so a MixedGraph cannot enter a
-    # QuantumState through the constructor at all -- the mixed-graph conversion path can only be
-    # reached by calling the private helper directly on an instance whose "mixed" flag is set.
+    # This calls the private helper directly on an instance whose "mixed" flag is set, since
+    # the constructor rejects a MixedGraph. The same arm is also reached publicly by converting
+    # a mixed stabilizer state to "g" and then to "dm".
     qs = QuantumState(nx.path_graph(3), rep_type="g", mixed=True)
     graph_a = nx.path_graph(3)
     graph_b = nx.cycle_graph(3)

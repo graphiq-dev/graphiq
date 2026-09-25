@@ -84,9 +84,9 @@ def test_measuring_one_qubit_of_a_bell_pair_in_the_x_basis_leaves_the_other_corr
 def test_measuring_qubit_one_of_an_asymmetric_state_measures_that_qubit():
     # The Bell case above cannot see which qubit was measured: that state is
     # symmetric under exchanging the two, so measuring either gives the same
-    # answer. H then CNOT then H on qubit 1 breaks the symmetry -- qubit 0 is
-    # so this pins that the position argument reaches the measurement rather
-    # than the method always measuring qubit 0.
+    # answer. H then CNOT then H on qubit 1 breaks the symmetry, so this pins
+    # that the position argument reaches the measurement rather than the
+    # method always measuring qubit 0.
     #
     # H, CNOT, H leaves (|0>|+> + |1>|->)/sqrt(2). Forcing qubit 1 onto the -1
     # eigenstate of X selects the second branch, so the state collapses to

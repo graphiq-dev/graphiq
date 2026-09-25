@@ -35,12 +35,12 @@ def _state_with_mixed_graph_rep():
     """
     A QuantumState whose backing representation is a MixedGraph.
 
-    MixedGraph cannot reach QuantumState.rep_data through either public entry
-    point. The constructor's validate_data has no arm for it, and its rejection
-    path crashes with AttributeError while formatting the message. The
-    rep_data setter re-initialises the representation and Graph(data) raises
-    TypeError on a MixedGraph input. Assigning _rep_data directly is the only
-    way to construct this state.
+    The constructor rejects a MixedGraph with TypeError, and the rep_data
+    setter re-initialises the representation, where Graph(data) raises
+    TypeError on a MixedGraph. A MixedGraph rep_data can be reached publicly
+    only by converting a mixed stabilizer state with
+    convert_representation("g"); assigning _rep_data directly gives a
+    MixedGraph rep_data without that detour.
 
     :return: the state
     :rtype: QuantumState

@@ -132,6 +132,7 @@ def inverse_circuit(tableau):
 
     :param tableau: the input tableau
     :type tableau: StabilizerTableau
+    :raises ValueError: if the tableau is not a valid stabilizer state
     :return: the tableau that is converted to the basis state, list of gate instructions
     :rtype: StabilizerTableau, list[tuple]
     """
@@ -226,8 +227,7 @@ def _reduce_to_zero_state(tableau, pivot_every_column):
                 # Unreachable on a valid stabilizer state. It must raise rather than
                 # assert: with assertions off, a pivot_row below j would swap a row
                 # upward over an already-placed column and return a wrong tableau with a
-                # circuit that does not zero the state -- silently, which is how this
-                # defect survived in the first place.
+                # circuit that does not zero the state, with no error.
                 raise ValueError(
                     f"column {j} has no generator left to pivot on; the tableau is "
                     f"not a valid stabilizer state"

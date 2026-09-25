@@ -168,9 +168,11 @@ class CompilerBase(ABC):
                             for leg in noise_copy
                         ]
                         # `op` belongs to the caller's circuit, so the rebinding
-                        # below has to be undone on every exit path -- a
-                        # half-built list left behind here fails the isinstance
-                        # guard the next time this circuit is compiled.
+                        # below has to be undone on every exit path. A half list
+                        # left behind would pass the isinstance guard on the next
+                        # compile (NoNoise is an AdditionNoiseBase), or read as no
+                        # noise at all, and the legs it left out would be
+                        # silently dropped.
                         try:
                             op.noise = pre_noise
                             self._apply_additional_noise(

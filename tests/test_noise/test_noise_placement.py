@@ -52,8 +52,8 @@ def _before_gate(noise):
 def _noisy_cnot_circuit(control_noise, target_noise):
     """H(0), then a CNOT(0, 1) carrying one noise model per leg.
 
-    Two things about the probe are load-bearing, and both were arrived at by
-    watching a weaker one pass against the broken compiler:
+    Two things about the probe are load-bearing; a weaker probe passes even
+    when the noise is placed on the wrong side of the gate:
 
     The Hadamard leaves qubit 0 in an X eigenstate, so the Pauli errors do not
     act as a global phase on a Z eigenstate -- which a density-matrix comparison
@@ -115,9 +115,8 @@ def _compile_dm(circuit):
 
 
 # --------------------------------------------------------------------------
-# The two positions that agree. No coverage existed for either before this
-# file, so these are written to pass against the unmodified compiler and
-# then to pin that behaviour across any restructuring of the placement code.
+# The two positions that agree. These pin the existing behaviour across any
+# restructuring of the placement code.
 # --------------------------------------------------------------------------
 
 
@@ -188,12 +187,12 @@ def test_op_noise_restored_after_compile():
 
 
 def test_op_noise_restored_when_gate_compilation_raises(monkeypatch):
-    """A failed compile must not leave the circuit poisoned.
+    """A compile that raises must leave the circuit usable.
 
-    Without an unwind, `op.noise` keeps a half-built list holding the
-    `nm.NoNoise` *class* in one slot. That slot then fails the
-    `isinstance(..., AdditionNoiseBase)` guard on the next compile, so a
-    circuit with nothing wrong with it reports a defect it does not have.
+    The raise comes from the first operation, before the CNOT's noise is split, so
+    this pins that the CNOT's noise list is untouched and that the circuit
+    compiles correctly afterwards. It does not reach the unwind around the
+    split; test_op_noise_restored_when_noise_application_raises does.
     """
     circuit, cnot = _noisy_cnot_circuit(
         _before_gate(nm.PauliError("X")), nm.PauliError("Z")

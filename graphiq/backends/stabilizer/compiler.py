@@ -129,8 +129,8 @@ class StabilizerCompiler(CompilerBase):
                 # outcome has one entry per mixture branch, and branches can
                 # disagree; classical_registers only has room for one value
                 # per bit, so we report branch 0's outcome. The gate itself
-                # is still applied correctly per-branch above. See the TODO
-                # on MixedStabilizer.apply_measurement.
+                # is still applied correctly per-branch above. See the note
+                # in MixedStabilizer.apply_measurement.
                 classical_registers[op.c_register] = outcome[0]
 
             else:

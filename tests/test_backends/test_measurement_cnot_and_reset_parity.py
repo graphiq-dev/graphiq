@@ -18,10 +18,10 @@ Parity between the density-matrix and stabilizer backends for
 (`ClassicalCNOT`, `ClassicalCZ`) on `MixedStabilizer`.
 
 Every measurement-outcome assertion here pins `measurement_determinism = 1`.
-Both defects this file targets are invisible at `determinism = 0`: the emitter
-is projected to |0> anyway, and the stabilizer's never-written 0.0 is correct
-by accident. The default is "probabilistic", so a test that does not pin
-determinism would pass on the buggy code about half the time.
+At `determinism = 0` the emitter is projected to |0> anyway and the recorded
+outcome is 0.0, so a missing reset or a missing register write would go
+unseen. The default is "probabilistic", so a test that does not pin
+determinism would catch either only about half the time.
 """
 
 import numpy as np
@@ -102,8 +102,8 @@ def _stabilizer_qubit_density(state, qubit, n_qubits):
 
 
 # ---------------------------------------------------------------------------
-# Mutant: the emitter is |0> after MeasurementCNOTandReset, on both backends,
-# pinned at determinism = 1.
+# The emitter is |0> after MeasurementCNOTandReset, on both backends, pinned
+# at determinism = 1.
 # ---------------------------------------------------------------------------
 
 
@@ -122,9 +122,8 @@ def test_stabilizer_emitter_is_reset_after_measurement_cnot_and_reset():
 
 
 # ---------------------------------------------------------------------------
-# Mutant: classical_registers[c_register] holds the outcome on both backends,
-# pinned at determinism = 1 (correct value 1.0; the stabilizer currently
-# gives 0.0).
+# classical_registers[c_register] holds the outcome on both backends, pinned
+# at determinism = 1, where the outcome is 1.0.
 # ---------------------------------------------------------------------------
 
 
@@ -141,13 +140,13 @@ def test_stabilizer_creg_records_the_outcome():
 
 
 # ---------------------------------------------------------------------------
-# Mutant: a circuit that re-uses the emitter after the reset. Without this,
-# the fix is pinned only at the op boundary -- this is the failure the issue
-# exists for: feed-forward work that reads the emitter after a measurement.
+# A circuit that re-uses the emitter after the reset, as feed-forward work
+# that reads the emitter after a measurement does. The tests above check the
+# state right after the op; these check what a later op sees.
 #
 # A second op (MeasurementZ, not another MeasurementCNOTandReset) reads the
-# emitter directly, so this is decoupled from defect 2 (the stabilizer's own
-# missing register write) and isolates defect 1 (the DM reset).
+# emitter directly, so this depends only on the reset, not on
+# MeasurementCNOTandReset's own register write.
 # ---------------------------------------------------------------------------
 
 
@@ -176,11 +175,10 @@ def test_stabilizer_emitter_reuse_after_reset():
 
 
 # ---------------------------------------------------------------------------
-# Mutant: MixedStabilizer writes a scalar, not a list, for
-# MeasurementCNOTandReset, ClassicalCNOT and ClassicalCZ. Red today for all
-# three: ClassicalCNOT and ClassicalCZ raise ValueError (they try to assign
-# the whole outcomes list into a scalar slot of the classical_registers
-# ndarray), and MeasurementCNOTandReset writes nothing at all (defect 2).
+# MixedStabilizer writes a scalar, not a list, for MeasurementCNOTandReset,
+# ClassicalCNOT and ClassicalCZ. The outcome has one entry per mixture
+# branch, and a classical_registers slot holds one value, so writing the
+# whole list would raise ValueError.
 #
 # `noise_simulation = True` with every op carrying NoNoise still routes
 # through compile_one_gate (CompilerBase.compile's no_noise branch), but now
@@ -230,7 +228,7 @@ def test_mixed_stabilizer_writes_a_scalar_not_a_list(op_cls):
 
 
 # ---------------------------------------------------------------------------
-# Mutant: no stray stdout from a MixedStabilizer ClassicalCNOT compile.
+# No stray stdout from a MixedStabilizer ClassicalCNOT compile.
 # ---------------------------------------------------------------------------
 
 

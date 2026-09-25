@@ -71,7 +71,7 @@ def test_the_setters_leave_the_phase_vectors_alone():
     assert np.array_equal(tableau.iphase, [1, 0, 0, 0])
 
 
-def test_a_tableau_renders_both_halves_and_both_phases():
+def test_a_tableau_renders_both_halves():
     # __str__ is the only caller of the label getters in the library, so this
     # is what keeps that path from breaking unnoticed.
     rendered = str(CliffordTableau(1))

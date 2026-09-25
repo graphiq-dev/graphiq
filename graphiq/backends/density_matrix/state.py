@@ -157,7 +157,12 @@ class DensityMatrix(StateRepresentationBase):
         :param measurement_determinism: if "probabilistic", measurement results are probabilistically selected
                                     if 1, measurement results default to 1 unless the probability of measuring p(1) = 0
                                     if 0, measurement results default to 0 unless the probability of measuring p(0) = 0
+                                    or p(1) >= 1
+                                    In modes 0 and 1, a forced outcome the state does not allow returns
+                                    the other outcome
         :type measurement_determinism: str/int
+        :raises ValueError: if the density matrix of the state has a different size from the POVM elements,
+            or if measurement_determinism is not "probabilistic", 0, or 1
         :return: the measurement outcome
         :rtype: int
         """
@@ -216,7 +221,12 @@ class DensityMatrix(StateRepresentationBase):
         :param measurement_determinism: if "probabilistic", measurement results are probabilistically selected
                                     if 1, measurement results default to 1 unless the probability of measuring p(1) = 0
                                     if 0, measurement results default to 0 unless the probability of measuring p(0) = 0
+                                    or p(1) >= 1
+                                    In modes 0 and 1, a forced outcome the state does not allow returns
+                                    the other outcome
         :type measurement_determinism: str/int
+        :raises ValueError: if the density matrix of the state has a different size from the POVM elements,
+            or if measurement_determinism is not "probabilistic", 0, or 1
         :raises AssertionError: if target_gate has different dimensions from the density matrix of the state
         :return: the measurement outcome
         :rtype: int

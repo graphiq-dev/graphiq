@@ -66,7 +66,10 @@ class CompilerBase(ABC):
         Set the flag for running noise.
 
         :param value: True or False
-        :return:
+        :type value: bool
+        :raises ValueError: if value is not a bool
+        :return: nothing
+        :rtype: None
         """
         if isinstance(value, bool):
             self._noise_simulation = value
@@ -80,7 +83,18 @@ class CompilerBase(ABC):
 
         :param circuit: the circuit to compile
         :type circuit: CircuitBase
-        :raises ValueError: if there is a circuit Operation which is incompatible with this compiler
+        :param initial_state: the state to start from; if None (or otherwise falsy), every register
+            starts in |0>
+        :type initial_state: QuantumState or None
+        :raises AssertionError: if initial_state is not a QuantumState, or its qubit count does
+            not match the circuit's
+        :raises RuntimeError: if the circuit contains an Operation class this compiler does not
+            support
+        :raises ValueError: if a controlled gate's two legs are not both an AdditionNoiseBase, if
+            an operation's noise is neither an AdditionNoiseBase nor a ReplacementNoiseBase, or if a
+            MeasurementZ carries a (non-NoNoise) AdditionNoiseBase
+        :raises NotImplementedError: if a MeasurementZ carries a ReplacementNoiseBase, for which
+            the compiler has no noisy arm
         :return: the state produced by the circuit
         :rtype: QuantumState
         """

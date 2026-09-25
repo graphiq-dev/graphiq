@@ -205,8 +205,10 @@ def is_lc_equivalent(adj_matrix1, adj_matrix2, mode="deterministic", seed=0):
         reduced matrix is less than the rank of coefficient matrix, or if the number of linearly dependent
         columns is not equal to :math:`4n - rank` (for :math:`n` being the number of nodes in the graph)
     :raises ValueError: if ``mode`` is neither ``"deterministic"`` nor ``"random"``
-    :return: If a solution is found, returns True and an array of single-qubit Clifford :math:`2 \\times 2`
-        matrices in the symplectic formalism. If not, graphs are not LC equivalent and returns False, None.
+    :return: ``(True, solution)`` if a solution is found, where ``solution`` is an array of single-qubit
+        Clifford :math:`2 \\times 2` matrices in the symplectic formalism, or ``(False, None)`` if none is found.
+        In ``'deterministic'`` mode ``False`` means the graphs are not LC equivalent; in ``'random'`` mode it
+        can also mean only that the sampling did not find a solution
     :rtype: bool, numpy.ndarray or None
     """
     if mode not in ("deterministic", "random"):

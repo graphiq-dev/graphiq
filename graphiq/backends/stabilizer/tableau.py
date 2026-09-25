@@ -112,7 +112,8 @@ class StabilizerTableau(TableauBase):
         :type data: int or numpy.ndarray or [numpy.ndarray, numpy.ndarray]
         :param phase: the phase vector, or None for an all-zero default
         :type phase: numpy.ndarray or list[int] or None
-        :raises ValueError: if phase is not None and its shape is not (n_qubits,)
+        :raises ValueError: if data is a list whose two matrices are not square 2-D arrays, or if phase is not None
+            and its shape is not (n_qubits,)
         """
         if isinstance(data, int):
             self._table = np.hstack([np.zeros((data, data)), np.eye(data)]).astype(int)

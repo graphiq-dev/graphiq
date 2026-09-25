@@ -31,7 +31,8 @@ def dagger(matrix):
     Returns the hermitian conjugate of an input matrix.
     :param matrix: input matrix
     :type matrix: np.ndarray
-    :return:
+    :return: the conjugate transpose of matrix
+    :rtype: np.ndarray
     """
     return matrix.conjugate().T
 
@@ -257,7 +258,7 @@ def _get_multi_qubit_gate(n_qubits, target_gates_dict):
     :type n_qubits: int
     :param target_gates_dict: a dictionary where the key is the qubit position
         and the value is a single-qubit gate that is non-identity components of the final gate
-    :type target_gates_dct: dict
+    :type target_gates_dict: dict
     :return: the resulting matrix that acts on the whole state
     :rtype: numpy.ndarray
     """
@@ -938,6 +939,9 @@ def amplitude_damping_operators(damping_prob):
     """
     Return two channel operators corresponding to the single-qubit amplitude damping channel.
 
+    :param damping_prob: the damping probability, in [0, 1]
+    :type damping_prob: float
+    :raises AssertionError: if damping_prob is outside [0, 1]
     :return: channel operator
     :rtype: (numpy.ndarray, numpy.ndarray)
     """

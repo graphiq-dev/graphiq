@@ -46,6 +46,8 @@ def density_to_graph(input_matrix, threshold=0.1, validate=True):
     Converts a density matrix state representation to a graph representation via an adjacency matrix.
     It assumes qubit systems.
 
+    A mixed input is decomposed spectrally, and each eigenvector is converted to a graph weighted by its eigenvalue.
+
     :param input_matrix: a density matrix to be converted to a graph
     :type input_matrix: numpy.ndarray
     :param threshold: a minimum threshold value of negativity for the state to assume entangled
@@ -53,7 +55,8 @@ def density_to_graph(input_matrix, threshold=0.1, validate=True):
     :param validate: validate the input density is a graph state if True
     :type validate: bool
     :raise AssertionError: if input_matrix is not a valid graph state when validate is True
-    :return: an adjacency matrix representation for a pure state or a list of adjacency matrices for a mixed state
+    :return: an adjacency matrix representation for a pure state or a list of (weight, adjacency matrix) pairs
+        for a mixed state
     :rtype: numpy.ndarray or list[(float, numpy.ndarray)]
     """
     if dmf.is_pure(input_matrix):
@@ -146,6 +149,7 @@ def _graph_to_density_pure(graph_data):
 
     :param graph_data: the graph from which we will build a density matrix
     :type graph_data: networkX.Graph or numpy.ndarray
+    :raises TypeError: if graph_data is neither a networkx.Graph nor a numpy.ndarray
     :return: a density matrix as a numpy array
     :rtype: numpy.ndarray
     """
@@ -225,8 +229,9 @@ def stabilizer_to_graph(input_stabilizer, validate=True):
     :param validate: validate if input_stabilizer is a graph state when enabled
     :type validate: bool
     :raises AssertionError: if input stabilizer is not a graph state when validate is True
+    :raises ValueError: if input_stabilizer is neither a list nor a StabilizerTableau
     :return: a graph representation
-    :rtype: [(float, numpy.ndarray)]
+    :rtype: list[(float, networkx.Graph)]
     """
     graph_list = []
     if isinstance(input_stabilizer, list):
@@ -255,8 +260,16 @@ def stabilizer_to_density(input_stabilizer):
     """
     Convert a stabilizer to a density matrix
 
+    A list[str] input carries no signs: every generator is read with a +1 phase, and a sign character
+    such as "-" is rejected. Only a StabilizerTableau input keeps its phase vector.
+
     :param input_stabilizer: the stabilizer representation
-    :type input_stabilizer: list[(float, StabilizerTableau)] or StabilizerTableau
+    :type input_stabilizer: list[(float, StabilizerTableau)] or StabilizerTableau or list[str]
+    :raises ValueError: if input_stabilizer is a list[str] with a character other than I, X, Y, Z
+        (case-insensitive), with generators of inconsistent lengths, or whose number of generators differs from
+        the number of qubits
+    :raises ValueError: if input_stabilizer is a list whose first element is neither str nor tuple, or if it is
+        itself neither a list nor a StabilizerTableau
     :return: a density matrix
     :rtype: numpy.ndarray
     """

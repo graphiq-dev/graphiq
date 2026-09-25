@@ -807,8 +807,9 @@ class MixedStabilizer(StateRepresentationBase):
 
         :param other: the other MixedStabilizer to be compared
         :type other: MixedStabilizer
-        :return: True if the stabilizer tableaux of two MixedStabilizer objects
-            are the same; NotImplemented if other is not a MixedStabilizer
+        :return: True if the two mixtures have the same length and, after each is sorted by
+            probability, every pair of entries has the same probability (up to np.isclose) and
+            the same stabilizer tableau; NotImplemented if other is not a MixedStabilizer
         :rtype: bool or NotImplementedType
         """
         if not isinstance(other, MixedStabilizer):

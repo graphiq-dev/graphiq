@@ -140,7 +140,8 @@ class Graph(StateRepresentationBase):
         :type node_to_add: int
         :param lc_gate: a list of local Clifford gates
         :type lc_gate: list(str)
-        :raises ValueError: if node_to_add is of an invalid datatype
+        :raises ValueError: if node_to_add is None, which networkx rejects as a node
+        :raises TypeError: if node_to_add is not hashable
         :return: nothing
         :rtype: None
         """

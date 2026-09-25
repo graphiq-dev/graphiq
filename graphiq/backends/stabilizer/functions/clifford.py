@@ -46,8 +46,9 @@ def z_measurement_gate(
         select a specific outcome
     :type measurement_determinism: str or int
     :raises ValueError: if the outcome is random and measurement_determinism is not "probabilistic", 0 or 1
-    :return: the resulting state after gate action, the measurement outcome, whether the measurement outcome is
-        probabilistic (zero means deterministic)
+    :return: the resulting state after gate action, the measurement outcome, and x_p, which says whether the
+        measurement outcome is probabilistic: zero means deterministic; otherwise the outcome is random and x_p is
+        the index (at least n_qubits) of the stabilizer row that anticommutes with the measurement
     :rtype: CliffordTableau, int, int
     """
     n_qubits = tableau.n_qubits  # number of qubits
@@ -262,7 +263,7 @@ def reset_x(
     :param measurement_determinism: if the outcome is probabilistic from the simulation, we have the option to
         select a specific outcome
     :type measurement_determinism: str or int
-    :return:
+    :return: the tableau after the reset
     :rtype: CliffordTableau
     """
     new_tableau = reset_z(
@@ -290,7 +291,7 @@ def reset_y(
     :param measurement_determinism: if the outcome is probabilistic from the simulation, we have the option to
         select a specific outcome
     :type measurement_determinism: str or int
-    :return:
+    :return: the tableau after the reset
     :rtype: CliffordTableau
     """
     new_tableau = reset_z(

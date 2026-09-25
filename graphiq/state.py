@@ -77,13 +77,20 @@ class QuantumState:
             Density matrices representations support np.ndarray or int inputs
             Stabilizer representations take int or CliffordTableau
             Graph representations take networkx.Graph
-        :type data: list OR numpy.ndarray OR Graph OR nx.Graph or CliffordTableau
+        :type data: int OR list OR numpy.ndarray OR nx.Graph or CliffordTableau
         :param rep_type: selected representation to initialize;
-            if not specified, the default choice is the density matrix if the number of qubits is
-            less than the threshold value or stabilizer otherwise.
+            if not specified, the density matrix is chosen for int or numpy.ndarray data if the number
+            of qubits is less than the threshold value, otherwise the stabilizer for int or
+            CliffordTableau data, otherwise the graph for nx.Graph data.
         :type rep_type: str
         :param mixed: boolean flag to initialize as a mixed state or not (mainly used for Stabilizer rep_type)
         :type mixed: boolean
+        :raises TypeError: if validate_data rejects data
+        :raises AssertionError: if data is a non-square numpy.ndarray, or if the initialized
+            representation does not have the expected number of qubits
+        :raises ValueError: if rep_type is not a supported representation name, or if rep_type is None
+            and no representation can be chosen for data (including a numpy.ndarray with too many qubits
+            for the density matrix)
         :return: nothing
         :rtype: None
         """
@@ -193,8 +200,11 @@ class QuantumState:
 
         :param show: if True, the state representation is plotted. Otherwise, it is drawn but not plotted
         :type show: bool
-        :param ax: axis/axes on which to plot the state representation
+        :param ax: axis/axes on which to plot the state representation; ignored for the density matrix
+            representation
         :type ax: matplotlib.Axis
+        :raises NotImplementedError: for the stabilizer representation or a mixed graph state
+        :raises ValueError: for an unknown representation type
         :return: fig, ax (the figure and axes on which data was plotted)
         :rtype: matplotlib.Figure, matplotlib.Axis
         """
@@ -378,6 +388,7 @@ class QuantumState:
 
         :param rep: stabilizer representation
         :type rep: Stabilizer or MixedStabilizer
+        :raises AssertionError: if the state is not a graph state
         :return: graph representation
         :rtype: Graph or MixedGraph
         """
@@ -497,9 +508,10 @@ class QuantumState:
         Validate data type for input data
 
         :param data: input data
-        :type data: int or np.ndarray or CliffordTableau or nx.Graph
-        :return: True and the number of qubits if the data type is valid
-        :rtype: bool, int
+        :type data: int or np.ndarray or CliffordTableau or nx.Graph or list[(float, CliffordTableau)]
+        :raises AssertionError: if data is a numpy.ndarray that is not a square matrix
+        :return: True and the number of qubits if the data type is valid; False and None for an unsupported data type
+        :rtype: bool, int or None
         """
         valid = True
         if isinstance(data, int):

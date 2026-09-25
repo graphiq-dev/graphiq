@@ -164,8 +164,8 @@ def height_plotter(h_dict):
 
     :param h_dict: the height function dict which is the output of the ``height_dict``.
     :type h_dict: dict
-    :return: maximum of height function over all qubits.
-    :rtype: int
+    :return: nothing
+    :rtype: None
     """
     h_max = h_dict[max(h_dict, key=h_dict.get)]
     positions = list(h_dict.keys())

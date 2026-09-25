@@ -545,30 +545,98 @@ class MixedStabilizer(StateRepresentationBase):
             "Simulating using a mixed state representation, no tableau defined."
         )
 
+    @staticmethod
+    def _state_key(tableau):
+        """
+        A hashable key identifying the STATE a branch's tableau represents,
+        as opposed to the raw tableau data.
+
+        Two CliffordTableau that represent the same state can differ in their
+        destabilizer rows (a free choice of completion) and in the order/linear
+        combination of their stabilizer generators, so raw data equality
+        (``CliffordTableau.__eq__``) is too strict for grouping branches of a
+        mixture. The key is instead built from the stabilizer half only, put
+        into canonical form, together with its phase -- phase is included
+        because two branches whose stabilizer groups agree up to canonical
+        form but differ in sign (e.g. |0> vs |1>) are physically distinct
+        states and must not be folded together.
+
+        ``canonical_form`` mutates the StabilizerTableau it is given in place,
+        and both halves of that tableau are views into the CliffordTableau
+        until ``StabilizerTableau.__init__`` copies them:
+        ``CliffordTableau.stabilizer`` is a view into the table, and
+        ``to_stabilizer`` slices the phase vector rather than copying it. Two
+        separate copies therefore stand between this and the branch being
+        reduced -- ``np.copy`` for the table, and ``phase.astype(int)`` for the
+        phase. The phase one is the easier to lose in a refactor and the more
+        damaging: ``tab_row_swap`` assigns ``tableau.phase = row_swap(...)``,
+        and ``row_swap`` mutates its argument in place before the setter runs,
+        so without that copy an ordinary canonical-form row swap would corrupt
+        the parent CliffordTableau's phase vector directly.
+
+        Internally, the row operations ``canonical_form`` performs discard
+        the i-phase of each row (only the +-1 phase is tracked). This is
+        harmless specifically inside canonical form reduction of a
+        stabilizer's own generators: since stabilizer generators mutually
+        commute, the sum of any two rows' g-function terms is always even, so
+        no residual factor of i is ever dropped on the floor.
+
+        Separately from that, the key ignores the CliffordTableau's whole
+        i-phase vector, destabilizer and stabilizer rows alike, because
+        ``to_stabilizer`` keeps only the +-1 phase and a StabilizerTableau has
+        no i-phase at all. ``reduce`` does not check the i-phase either, so a
+        branch with a non-zero i-phase is folded into the first branch of the
+        same state and disappears; the i-phase check made when converting to
+        a density matrix sees it only if it is the branch kept. No
+        correct gate produces such a tableau.
+
+        :param tableau: a branch's tableau
+        :type tableau: CliffordTableau
+        :return: a hashable key identifying the state
+        :rtype: tuple[bytes, bytes]
+        """
+        canonical = canonical_form(tableau.to_stabilizer())
+        table_bytes = np.ascontiguousarray(canonical.table.astype(np.int8)).tobytes()
+        phase_bytes = np.ascontiguousarray(canonical.phase.astype(np.int8)).tobytes()
+        return table_bytes, phase_bytes
+
     def reduce(self):
         """
-        Fold tableaux that compare equal into a single entry, summing their probabilities.
+        Fold branches that represent the same state into a single entry,
+        summing their probabilities.
+
+        Branches are grouped by state identity (see ``_state_key``) rather
+        than by raw tableau equality, so two branches that reach the same
+        state by different routes -- e.g. different destabilizer completions,
+        or stabilizer generators produced in a different order -- fold
+        together even though ``CliffordTableau.__eq__`` would call them
+        unequal.
+
+        ``reduce`` itself costs more per call than a raw-equality scan, since
+        ``canonical_form`` is O(n^3) Python-level row operations paid once per
+        branch. The simulation as a whole is faster, because it merges
+        branches that raw equality misses (on a noisy compile at
+        n_emitters=3, a mixture of 64 branches reduces to 8), and every later
+        operation on the mixture iterates all of it.
 
         :return: nothing
         :rtype: None
         """
-        # TODO: explore other ways of reduction and further simplification using a standard form.
-        # Copy: the mixture setter stores the caller's list by reference, and the
-        # pop below would otherwise take an element out from under them.
-        mixture_temp = list(self._mixture)
-        mixture_reduce = []
-        while len(mixture_temp) != 0:
-            p0, t0 = mixture_temp.pop(0)
-            remaining = []
-            for p_i, t_i in mixture_temp:
-                if t0 == t_i:
-                    p0 += p_i
-                else:
-                    remaining.append((p_i, t_i))
-            mixture_temp = remaining
-
-            mixture_reduce.append((p0, t0))
-        self._mixture = mixture_reduce
+        # Grouping builds a new list rather than mutating in place: the
+        # mixture setter stores the caller's list by reference, so rewriting
+        # it here would change it out from under the caller. `order` records
+        # the first-seen order of the groups, which the result follows.
+        groups = {}
+        order = []
+        for p_i, t_i in self._mixture:
+            key = self._state_key(t_i)
+            if key in groups:
+                p0, t0 = groups[key]
+                groups[key] = (p0 + p_i, t0)
+            else:
+                groups[key] = (p_i, t_i)
+                order.append(key)
+        self._mixture = [groups[key] for key in order]
 
     def apply_unitary(self, qubit_position, unitary):
         """

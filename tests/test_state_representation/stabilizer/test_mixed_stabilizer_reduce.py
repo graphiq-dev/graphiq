@@ -18,12 +18,11 @@ summing their probabilities. Every match has to be found: comparing a
 matched entry and moving on, without also re-checking the entry that shifted
 into its place, would leave later duplicates unmerged.
 
-These tests build mixtures out of tableaux that are ``==`` to each other --
-copies of the very same tableau -- so the only thing under test is whether
-every match gets folded in, not whether the equality check itself is generous
-enough to recognise two different routes to the same state. That is a
-separate limitation of ``CliffordTableau.__eq__``, which compares destabilizer
-rows and generator order without canonicalizing, and is not what this tests.
+These tests build mixtures out of copies of the very same tableau, so the
+only thing under test is whether every match gets folded in. Folding
+different tableaux of the same state (other destabilizer rows or signs, or
+another generator order) is covered by
+tests/test_noise/test_mixed_stabilizer_reduce.py.
 """
 
 from graphiq.backends.stabilizer.clifford_tableau import CliffordTableau

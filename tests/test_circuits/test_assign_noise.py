@@ -12,9 +12,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import numpy as np
+
 import graphiq.benchmarks.circuits as circ
 import graphiq.circuit.ops as ops
 import graphiq.noise.noise_models as nm
+from graphiq.backends.density_matrix.compiler import DensityMatrixCompiler
 from graphiq.circuit.circuit_dag import CircuitDAG
 from graphiq.noise.monte_carlo_noise import McNoiseMap, MonteCarloNoise
 
@@ -122,3 +125,92 @@ def test_monte_carlo_trials_leave_the_source_circuit_alone():
             assert all(isinstance(leg, nm.NoNoise) for leg in op.noise)
         else:
             assert isinstance(op.noise, nm.NoNoise)
+
+
+def _one_emitter_wrapper_circuit(operations, noise=nm.NoNoise()):
+    circuit = CircuitDAG(n_emitter=1, n_photon=0, n_classical=0)
+    circuit.add(
+        ops.OneQubitGateWrapper(operations, register=0, reg_type="e", noise=noise)
+    )
+    return circuit
+
+
+def _emitter_only_mapping(emitter_section):
+    return {"e": emitter_section, "p": {}, "ee": {}, "ep": {}}
+
+
+def _the_wrapper(circuit):
+    wrappers = [
+        op for op in circuit.sequence() if isinstance(op, ops.OneQubitGateWrapper)
+    ]
+    assert len(wrappers) == 1
+    return wrappers[0]
+
+
+def _noisy_state(circuit):
+    compiler = DensityMatrixCompiler()
+    compiler.noise_simulation = True
+    return compiler.compile(circuit=circuit).rep_data.data
+
+
+def test_assign_noise_pairs_wrapper_noise_with_its_sub_gate():
+    # a wrapper pairs noise[i] with operations[i], so the model mapped to Hadamard must end up
+    # on the Hadamard sub-gate, not on the sub-gate at the mirrored position in unwrap() order
+    hadamard_noise = nm.DepolarizingNoise(0.1)
+    circuit = _one_emitter_wrapper_circuit([ops.Hadamard, ops.Phase])
+
+    noisy = circuit.assign_noise(_emitter_only_mapping({"Hadamard": hadamard_noise}))
+
+    noise_by_gate = {
+        type(gate).__name__: gate.noise for gate in _the_wrapper(noisy).unwrap()
+    }
+    assert noise_by_gate["Hadamard"] is hadamard_noise
+    assert isinstance(noise_by_gate["Phase"], nm.NoNoise)
+
+
+def test_assign_noise_wrapper_noise_reaches_the_right_sub_gate_in_the_compiled_state():
+    # [Hadamard, SigmaX] applies SigmaX first, then Hadamard; a Z error on the Hadamard gives a
+    # different state from a Z error on the SigmaX, so the compiled state shows which gate got it
+    circuit = _one_emitter_wrapper_circuit([ops.Hadamard, ops.SigmaX])
+    noisy = circuit.assign_noise(
+        _emitter_only_mapping({"Hadamard": nm.PauliError("Z")})
+    )
+
+    reference = CircuitDAG(n_emitter=1, n_photon=0, n_classical=0)
+    reference.add(ops.SigmaX(register=0, reg_type="e"))
+    reference.add(ops.Hadamard(register=0, reg_type="e", noise=nm.PauliError("Z")))
+    control = CircuitDAG(n_emitter=1, n_photon=0, n_classical=0)
+    control.add(ops.SigmaX(register=0, reg_type="e", noise=nm.PauliError("Z")))
+    control.add(ops.Hadamard(register=0, reg_type="e"))
+
+    state = _noisy_state(noisy)
+    reference_state = _noisy_state(reference)
+    control_state = _noisy_state(control)
+
+    assert not np.allclose(reference_state, control_state)
+    assert np.allclose(state, reference_state)
+    assert not np.allclose(state, control_state)
+
+
+def test_assign_noise_leaves_a_whole_wrapper_model_in_place():
+    # a wrapper carrying one model for the whole wrapper keeps it; the per-gate entries of the
+    # mapping are not applied to it
+    wrapper_noise = nm.PauliError("X")
+    circuit = _one_emitter_wrapper_circuit(
+        [ops.Hadamard, ops.SigmaX], noise=wrapper_noise
+    )
+
+    noisy = circuit.assign_noise(
+        _emitter_only_mapping({"Hadamard": nm.DepolarizingNoise(0.1)})
+    )
+
+    wrapper = _the_wrapper(noisy)
+    assert isinstance(wrapper.noise, nm.PauliError)
+    assert wrapper.noise.noise_parameters == wrapper_noise.noise_parameters
+    gates = wrapper.unwrap()
+    assert len(gates) == 3
+    assert {type(gate).__name__ for gate in gates} == {
+        "Hadamard",
+        "SigmaX",
+        "Identity",
+    }

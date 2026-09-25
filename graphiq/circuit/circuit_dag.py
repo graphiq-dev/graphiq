@@ -1180,7 +1180,9 @@ class CircuitDAG(CircuitBase):
         :param noise_model_map: a nested dictionary whose outer keys are register-type sections ("e", "p", "ee",
             "ep", ...) and whose inner dictionaries map an operation's class name to its noise model; for a
             two-qubit operation, the section is its control type followed by its target type, and the noise
-            model may be a list of two (one per leg). Operations without an entry get NoNoise
+            model may be a list of two (one per leg). Operations without an entry get NoNoise. A
+            OneQubitGateWrapper carrying a single model for the whole wrapper keeps it, and the mapping is not applied
+            to it
         :type noise_model_map: dict[str, dict]
         :return: a new circuit
         :rtype: CircuitDAG
@@ -1200,10 +1202,10 @@ class CircuitDAG(CircuitBase):
         Helper function that returns the circuit's operations with a noise model attached to each
 
         Operates on a copy, so the circuit itself is not modified. Each OneQubitGateWrapper receives a list with one
-        noise model per gate returned by its ``unwrap``, in that order; note that the wrapper pairs ``noise[i]`` with
-        ``operations[i]``, and ``unwrap`` returns the operations in reverse. A controlled-pair operation receives its
-        section's list of two models, or its single model duplicated. Every other operation receives the model its
-        register section names. Operations without an entry get NoNoise.
+        noise model per wrapped gate, in the order of its ``operations``, since the wrapper pairs ``noise[i]`` with
+        ``operations[i]``; a wrapper carrying a single model for the whole wrapper keeps it and is left unchanged.
+        A controlled-pair operation receives its section's list of two models, or its single model duplicated. Every
+        other operation receives the model its register section names. Operations without an entry get NoNoise.
 
         :param noise_model_map: a nested dict of register-type section to operation class name to noise model, as
             accepted by ``assign_noise``
@@ -1220,7 +1222,11 @@ class CircuitDAG(CircuitBase):
         for op in seq:
             is_controlled = False
             if isinstance(op, ops.OneQubitGateWrapper):
-                op_type_seq = [type(gate) for gate in op.unwrap()]
+                if not isinstance(op.noise, list):
+                    # a single model for the whole wrapper is left as it is
+                    noisy_ops.append(op)
+                    continue
+                op_type_seq = list(op.operations)
                 noise_list = self._find_wrapped_noise(
                     op_type_seq, noise_model_map[op.reg_type]
                 )
@@ -1265,8 +1271,8 @@ class CircuitDAG(CircuitBase):
         A gate whose class name is absent from the mapping gets NoNoise, so the returned list always has the same
         length as op_type_list.
 
-        :param op_type_list: the classes of the wrapped gates; ``_noisy_gates`` passes them in the order returned by
-            the wrapper's ``unwrap``
+        :param op_type_list: the classes of the wrapped gates; ``_noisy_gates`` passes the wrapper's ``operations``,
+            in constructor order
         :type op_type_list: list[type]
         :param mapping: one section of a noise model map, keyed by operation class name
         :type mapping: dict

@@ -294,7 +294,11 @@ class MonteCarloNoise:
         for op in seq:
             is_controlled = False
             if isinstance(op, ops.OneQubitGateWrapper):
-                op_type_seq = [type(gate) for gate in op.unwrap()]
+                if not isinstance(op.noise, list):
+                    # a single model for the whole wrapper is left as it is
+                    noisy_ops.append(op)
+                    continue
+                op_type_seq = list(op.operations)
                 noise_list = self._find_wrapped_noise(op_type_seq, op.reg_type)
                 op.noise = noise_list
                 noisy_ops.append(op)

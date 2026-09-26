@@ -160,6 +160,9 @@ class DensityMatrix(StateRepresentationBase):
         """
         Apply a measurement, either deterministically (with a certain outcome) or probabilistically
 
+        The post-measurement state keeps the pre-measurement trace, so a subnormalised state (photon loss)
+        stays subnormalised. A trace within 1e-12 of 1 counts as 1, so a loss below 1e-12 is not kept.
+
         :param projectors: a list of projective measurements in the computational basis
         :type projectors: list[numpy.ndarray]
         :param measurement_determinism: if "probabilistic", measurement results are probabilistically selected
@@ -176,6 +179,7 @@ class DensityMatrix(StateRepresentationBase):
         """
 
         if self._data.shape == projectors[0].shape:
+            trace = np.real(np.trace(self._data))
             probs = []
             for m in projectors:
                 prob = np.real(np.trace(self._data @ m))
@@ -208,6 +212,11 @@ class DensityMatrix(StateRepresentationBase):
 
             # this assumes that the projector, m, has the properties: m = sqrt(m) and m = m.dag()
             self._data = (m @ self._data @ np.transpose(np.conjugate(m))) / norm
+            # divide by probs[outcome] / trace instead, the outcome's probability
+            # relative to the state's trace, so photon loss is not renormalised
+            # away; a trace of 1 up to rounding drift keeps the old result exactly
+            if abs(trace - 1.0) > 1e-12:
+                self._data = self._data * trace
 
         else:
             raise ValueError(

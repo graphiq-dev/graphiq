@@ -73,8 +73,9 @@ class Infidelity(MetricBase):
 
     Zero means the state matches the target. With a stabilizer target and a MixedStabilizer state, the value is
     1 - sum_i p_i F_i over the mixture's tableaux. The weights p_i need not sum to 1 (photon loss lowers them), so
-    missing probability counts as infidelity. The target must be in the stabilizer ("s") or density matrix ("dm")
-    representation.
+    missing probability counts as infidelity. Likewise, a density matrix state with trace t below 1 (photon loss)
+    is scored as t F(rho / t), so its missing trace counts as infidelity. The target must be in the stabilizer
+    ("s") or density matrix ("dm") representation.
     """
 
     def __init__(self, target, log_steps=1, *args, **kwargs):
@@ -119,7 +120,8 @@ class Infidelity(MetricBase):
                         Not used for the fidelity evaluation, but argument is provided for API consistency
         :type circuit: CircuitBase (or subclass of it)
         :raises AssertionError: if the target is a MixedStabilizer that is not one tableau with probability 1.0,
-            or, for a density matrix target, if the state or the target is not a valid density matrix
+            or, for a density matrix target, if the target is not a valid density matrix, or the state is not
+            positive semi-definite or has zero trace
         :raises ValueError: if the target's rep_type is neither "s" nor "dm"
         :return: infidelity = 1 - fidelity
         :rtype: float
@@ -148,11 +150,20 @@ class Infidelity(MetricBase):
 
         elif self.target.rep_type == "dm":
             if state.rep_type == "dm":
-                fid = dmf.fidelity(self.target.rep_data.data, state.rep_data.data)
+                rho = state.rep_data.data
             else:
                 tmp_state = state.copy()
                 tmp_state.convert_representation("dm")
-                fid = dmf.fidelity(self.target.rep_data.data, tmp_state.rep_data.data)
+                rho = tmp_state.rep_data.data
+            target = self.target.rep_data.data
+            trace = np.real(np.trace(rho))
+            if np.isclose(trace, 1.0):
+                fid = dmf.fidelity(target, rho)
+            else:
+                # photon loss leaves trace < 1; the fidelity scales with rho's
+                # trace, F(sigma, t rho') = t F(sigma, rho'), so the missing trace
+                # counts as infidelity, as the stabilizer arm's sum_i p_i F_i does
+                fid = trace * dmf.fidelity(target, rho / trace)
         else:
             raise ValueError("Cannot compute the infidelity.")
 

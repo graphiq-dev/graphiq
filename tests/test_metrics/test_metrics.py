@@ -24,12 +24,16 @@ import pytest
 
 import graphiq.backends.density_matrix.functions as dmf
 import graphiq.circuit.ops as ops
+import graphiq.noise.noise_models as nm
+from graphiq.backends.density_matrix.compiler import DensityMatrixCompiler
 from graphiq.backends.stabilizer.compiler import StabilizerCompiler
 from graphiq.backends.stabilizer.functions.rep_conversion import (
     get_clifford_tableau_from_graph,
 )
 from graphiq.backends.state_rep_conversion import graph_to_density
+from graphiq.benchmarks.alternate_circuits import noise_model_pure_loss
 from graphiq.circuit.circuit_dag import CircuitDAG
+from graphiq.solvers.alternate_target_solver import graph_to_circ
 from graphiq.state import QuantumState
 from graphiq.metrics import (
     CircuitCnotCount,
@@ -487,3 +491,105 @@ def test_trace_distance_raises_when_target_is_not_a_density_matrix():
 
     with pytest.raises(ValueError, match="Cannot compute the trace distance"):
         TraceDistance(target=target).evaluate(state, None)
+
+
+def _path3_mixture():
+    return 0.5 * graph_to_density(nx.path_graph(3)) + 0.5 * graph_to_density(
+        nx.star_graph(2)
+    )
+
+
+@pytest.mark.parametrize(
+    "rho", [graph_to_density(nx.path_graph(3)), _path3_mixture()], ids=["pure", "mixed"]
+)
+def test_infidelity_counts_the_missing_trace_of_a_lossy_density_matrix(rho):
+    target = QuantumState(rho, rep_type="dm")
+    state = QuantumState(rho, rep_type="dm")
+    # lose 0.1 in place; building the state from 0.9 * rho would renormalise it
+    state.rep_data.apply_channel([np.sqrt(0.9) * np.eye(8)])
+
+    assert Infidelity(target=target).evaluate(state, None) == pytest.approx(0.1)
+
+
+def test_infidelity_of_a_density_matrix_with_trace_one_up_to_rounding_is_unchanged():
+    target = QuantumState(graph_to_density(nx.path_graph(3)), rep_type="dm")
+    state = QuantumState(graph_to_density(nx.path_graph(3)), rep_type="dm")
+    # four gate and dephasing steps leave the trace at 1 - 1.4e-15
+    h = np.array([[1, 1], [1, -1]]) / np.sqrt(2)
+    unitaries = [np.kron(np.eye(2), np.kron(h, h)), np.kron(h, np.eye(4))]
+    dephasing = [np.sqrt(0.9) * np.eye(8), np.sqrt(0.1) * np.diag([1, -1] * 4)]
+    for step in range(4):
+        state.rep_data.apply_unitary(unitaries[step % 2])
+        state.rep_data.apply_channel(dephasing)
+    sigma, rho = target.rep_data.data, state.rep_data.data
+    trace = np.real(np.trace(rho))
+    assert np.trace(rho) != 1.0 and np.isclose(trace, 1)
+    # the lossy-state formula rounds differently here, so the check can tell
+    assert 1 - trace * dmf.fidelity(sigma, rho / trace) != 1 - dmf.fidelity(sigma, rho)
+
+    infidelity = Infidelity(target=target).evaluate(state, None)
+
+    assert infidelity == 1 - dmf.fidelity(sigma, rho)
+
+
+def _lossy_linear4(compiler, determinism, loss=0.1, lossy_gate_after=False):
+    circuit = graph_to_circ(nx.path_graph(4)).assign_noise(noise_model_pure_loss(loss))
+    if lossy_gate_after:
+        # a loss after photon 3's last measurement, then a gate undoing the
+        # lossy Hadamard so the state still overlaps the target
+        circuit.add(ops.Hadamard(register=3, reg_type="p", noise=nm.PhotonLoss(0.1)))
+        circuit.add(ops.Hadamard(register=3, reg_type="p"))
+    compiler.noise_simulation = True
+    compiler.measurement_determinism = determinism
+    state = compiler.compile(circuit)
+    state.partial_trace(keep=list(range(4)), dims=(4 + circuit.n_emitters) * [2])
+    return state
+
+
+def _stabilizer_target_linear4():
+    return QuantumState(get_clifford_tableau_from_graph(nx.path_graph(4)), rep_type="s")
+
+
+def _density_matrix_target_linear4():
+    return QuantumState(graph_to_density(nx.path_graph(4)), rep_type="dm")
+
+
+@pytest.mark.parametrize("determinism", [0, 1])
+def test_infidelity_of_a_lossy_density_matrix_against_a_stabilizer_target(determinism):
+    state = _lossy_linear4(DensityMatrixCompiler(), determinism)
+
+    infidelity = Infidelity(target=_stabilizer_target_linear4()).evaluate(state, None)
+
+    assert infidelity == pytest.approx(0.1)
+
+
+@pytest.mark.parametrize("determinism", [0, 1])
+@pytest.mark.parametrize("loss", [0.1, 1e-6])
+def test_density_matrix_infidelity_under_loss_matches_the_stabilizer_one(
+    loss, determinism
+):
+    dm_state = _lossy_linear4(DensityMatrixCompiler(), determinism, loss)
+    stab_state = _lossy_linear4(StabilizerCompiler(), determinism, loss)
+
+    dm = Infidelity(target=_density_matrix_target_linear4()).evaluate(dm_state, None)
+    stab = Infidelity(target=_stabilizer_target_linear4()).evaluate(stab_state, None)
+
+    assert stab == pytest.approx(loss, rel=1e-6)
+    # relative only: an absolute tolerance near 1e-6 would accept 0.0
+    assert dm == pytest.approx(stab, rel=1e-6)
+
+
+@pytest.mark.parametrize("determinism", [0, 1])
+def test_density_matrix_infidelity_with_a_loss_after_the_last_measurement(determinism):
+    dm_state = _lossy_linear4(
+        DensityMatrixCompiler(), determinism, lossy_gate_after=True
+    )
+    stab_state = _lossy_linear4(
+        StabilizerCompiler(), determinism, lossy_gate_after=True
+    )
+
+    dm = Infidelity(target=_density_matrix_target_linear4()).evaluate(dm_state, None)
+    stab = Infidelity(target=_stabilizer_target_linear4()).evaluate(stab_state, None)
+
+    assert stab == pytest.approx(0.19)
+    assert dm == pytest.approx(stab)

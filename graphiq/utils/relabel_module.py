@@ -594,18 +594,20 @@ def _equal_graphs(g1, g2):
 def _compare_graphs_visual(g, new_g, new_labels):
     """
     Visual demonstration of initial graph, the relabeled one. It relabels g by mapping node i to new_labels[i],
-    meant to draw g, the relabeled graph, and new_g in three stacked panels.
-
-    In the current code this always raises AssertionError at its label check, which compares a list with a
-    NodeView, so nothing past the relabelling is drawn.
+    and draws g, the relabeled graph, and new_g in three stacked panels. g is also first drawn on the current
+    axes.
 
     :param g: the initial graph, with nodes labelled 0..n-1
     :type g: nx.Graph
-    :param new_g: a graph to draw next to the relabeled one
+    :param new_g: a graph to draw next to the relabeled one; every node of new_g must be one of new_labels,
+        since it is drawn with the relabeled graph's layout
     :type new_g: nx.Graph
     :param new_labels: the new labels, where new_labels[i] is the new label of node i
     :type new_labels: list or numpy.ndarray
-    :raises AssertionError: always, at the check of the relabeled node labels
+    :raises AssertionError: if the relabeled graph's nodes, in order, are not new_labels, e.g. for repeated
+        labels, a label list of the wrong length, or a g whose nodes do not iterate as 0..n-1
+    :return: nothing
+    :rtype: None
     """
     nx.draw_networkx(g, with_labels=True, pos=nx.kamada_kawai_layout(g))
     fig, (ax1, ax2, ax3) = plt.subplots(3, figsize=(15, 25))
@@ -613,7 +615,7 @@ def _compare_graphs_visual(g, new_g, new_labels):
     n = len(new_labels)
     relabel_map_dict = dict(zip([*range(n)], new_labels))
     g_relabeled = nx.relabel_nodes(g, relabel_map_dict)
-    assert list(new_labels) == g_relabeled.nodes()
+    assert list(new_labels) == list(g_relabeled.nodes())
 
     nx.draw_networkx(
         g_relabeled,

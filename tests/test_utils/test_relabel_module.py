@@ -14,6 +14,7 @@
 # limitations under the License.
 import math
 
+import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
 import pytest
@@ -21,7 +22,7 @@ import pytest
 from graphiq.backends.stabilizer.functions.height import height_max
 from graphiq.benchmarks.graph_states import linear_cluster_state
 from graphiq.utils.relabel_module import *
-from graphiq.utils.relabel_module import _label_finder
+from graphiq.utils.relabel_module import _compare_graphs_visual, _label_finder
 
 
 def random_connected_graph(n, p, seed=None):
@@ -155,3 +156,34 @@ def test_sort_emit_and_label_map_apply_at_the_high_symmetry_stop():
     n_emit = _emitter_counts(found[0])
     assert n_emit == sorted(n_emit)
     assert len(set(n_emit)) > 1  # mixed counts, so the sort is actually exercised
+
+
+def test_compare_graphs_visual_draws_the_three_panels(monkeypatch):
+    monkeypatch.setattr(plt, "show", lambda: None)
+    g = nx.path_graph(4)
+    new_labels = [2, 0, 3, 1]
+    new_g = nx.relabel_nodes(g, dict(enumerate(new_labels)))
+    plt.close("all")
+    try:
+        _compare_graphs_visual(g, new_g, new_labels)
+        panels = [
+            plt.figure(n) for n in plt.get_fignums() if len(plt.figure(n).axes) == 3
+        ]
+        assert len(panels) == 1
+        assert all(ax.collections for ax in panels[0].axes)
+    finally:
+        plt.close("all")
+
+
+def test_compare_graphs_visual_rejects_repeated_labels(monkeypatch):
+    # relabel_nodes merges nodes that share a label, so the relabeled graph
+    # does not have exactly new_labels as its nodes
+    monkeypatch.setattr(plt, "show", lambda: None)
+    g = nx.path_graph(4)
+    new_labels = [0, 0, 1, 2]
+    new_g = nx.relabel_nodes(g, dict(enumerate(new_labels)))
+    try:
+        with pytest.raises(AssertionError):
+            _compare_graphs_visual(g, new_g, new_labels)
+    finally:
+        plt.close("all")

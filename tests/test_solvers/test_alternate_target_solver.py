@@ -286,3 +286,37 @@ def test_mc_depol_builds_the_expected_noise_map():
     # The residual is built as 1 - 3 * (rate / 3), which differs from 1 - rate by one ulp
     # for some rates, so the comparison is approximate rather than bit-exact.
     assert no_noise_prob == pytest.approx(1 - rate)
+
+
+# graph_to_circ input checks
+
+_p3_plus_k1 = nx.disjoint_union(nx.path_graph(3), nx.empty_graph(1))
+
+
+@pytest.mark.parametrize(
+    "graph",
+    [
+        _p3_plus_k1,
+        nx.disjoint_union(nx.empty_graph(1), nx.path_graph(3)),
+        nx.to_numpy_array(_p3_plus_k1),
+    ],
+    ids=["isolate_last", "isolate_first", "adjacency_matrix"],
+)
+def test_graph_to_circ_rejects_a_graph_with_an_isolated_vertex(graph):
+    with pytest.raises(ValueError, match="isolated"):
+        graph_to_circ(graph)
+
+
+@pytest.mark.parametrize("outcome", [0, 1])
+def test_graph_to_circ_solves_a_disconnected_graph_without_an_isolated_vertex(outcome):
+    graph = nx.disjoint_union(nx.path_graph(2), nx.path_graph(2))
+    circuit = graph_to_circ(graph)
+
+    target = QuantumState(get_clifford_tableau_from_graph(graph), rep_type="s")
+    # force every measurement to 0, then to 1, so each outcome is checked every run
+    compiler = StabilizerCompiler()
+    compiler.measurement_determinism = outcome
+    state = compiler.compile(circuit)
+    n_photon = graph.number_of_nodes()
+    state.partial_trace(list(range(n_photon)), [2] * circuit.n_quantum)
+    assert np.isclose(Infidelity(target).evaluate(state, circuit), 0.0)

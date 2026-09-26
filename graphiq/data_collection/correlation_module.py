@@ -1035,12 +1035,21 @@ def graph_to_circ(graph, show=False):
     :type show: bool
     :return: A circuit corresponding to the input graph
     :rtype: CircuitDAG
+    :raises ValueError: if the graph has an isolated vertex
     """
     if not isinstance(graph, nx.Graph):
         graph = nx.from_numpy_array(graph)
         assert isinstance(
             graph, nx.Graph
         ), "input must be a networkx graph object or a numpy adjacency matrix"
+    n_isolated = nx.number_of_isolates(graph)
+    if n_isolated:
+        raise ValueError(
+            f"graph has an isolated vertex ({n_isolated} in total); an isolated "
+            "vertex is a photon entangled with no other qubit, which "
+            "TimeReversedSolver cannot absorb into an emitter, so graph_to_circ "
+            "does not support it"
+        )
     tabs = converter.graph_to_stabilizer(graph)
     c_tableau = CliffordTableau(tabs[0][1])
     ideal_state = QuantumState(c_tableau, rep_type="stabilizer")

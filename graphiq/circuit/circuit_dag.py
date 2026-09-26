@@ -1183,8 +1183,10 @@ class CircuitDAG(CircuitBase):
             two-qubit operation, the section is its control type followed by its target type, and its per-leg keys
             ``<Op>_control`` and ``<Op>_target`` are read first; only when neither is present does the bare class name
             apply, and its noise model may then be a list of two (one per leg). Operations without an entry get
-            NoNoise. A OneQubitGateWrapper carrying a single model for the whole wrapper keeps it, and the mapping is
-            not applied to it
+            NoNoise. A section's ``"OneQubitGateWrapper"`` key gives each wrapper in it that key's value (a
+            single model for the whole wrapper, or a list with one per wrapped gate), and the section's per-gate
+            keys are then not read for wrappers. A OneQubitGateWrapper carrying a single model for the whole
+            wrapper keeps it, and the mapping is not applied to it
         :type noise_model_map: dict[str, dict]
         :return: a new circuit
         :rtype: CircuitDAG
@@ -1203,9 +1205,14 @@ class CircuitDAG(CircuitBase):
         """
         Helper function that returns the circuit's operations with a noise model attached to each
 
-        Operates on a copy, so the circuit itself is not modified. Each OneQubitGateWrapper receives a list with one
-        noise model per wrapped gate, in the order of its ``operations``, since the wrapper pairs ``noise[i]`` with
-        ``operations[i]``; a wrapper carrying a single model for the whole wrapper keeps it and is left unchanged.
+        Operates on a copy, so the circuit itself is not modified. A wrapper carrying a single model for the whole
+        wrapper keeps it and is left unchanged. Otherwise, when the wrapper's section has a ``"OneQubitGateWrapper"``
+        key, the wrapper receives that value as it is, except that a NoNoise becomes one NoNoise per wrapped gate, as
+        in the wrapper's constructor; this is the noise ``SolverBase._wrap_noise`` gives a wrapper. A single model
+        under the key is applied once for the whole wrapper by ``OneQubitGateWrapper.unwrap``, which reads its "After
+        gate" parameter, so a model without one (not an addition-type model) raises KeyError when the circuit is
+        compiled. Without the key, the wrapper receives a list with one noise model per wrapped gate, in the order of
+        its ``operations``, since the wrapper pairs ``noise[i]`` with ``operations[i]``.
         A controlled-pair operation receives its ``<Op>_control`` and ``<Op>_target`` models, or, when neither key is
         present, its bare name's list of two models or its single model duplicated. Every other operation receives
         the model its register section names. Operations without an entry get NoNoise. The lookup is
@@ -1229,11 +1236,19 @@ class CircuitDAG(CircuitBase):
                     # a single model for the whole wrapper is left as it is
                     noisy_ops.append(op)
                     continue
-                op_type_seq = list(op.operations)
-                noise_list = self._find_wrapped_noise(
-                    op_type_seq, noise_model_map[op.reg_type]
-                )
-                op.noise = noise_list
+                section = noise_model_map[op.reg_type]
+                if "OneQubitGateWrapper" in section:
+                    # the key's value for the whole wrapper, as
+                    # SolverBase._wrap_noise gives it
+                    noise = section["OneQubitGateWrapper"]
+                    # as in the wrapper's constructor, a single NoNoise becomes
+                    # one per wrapped gate
+                    if isinstance(noise, NoNoise):
+                        noise = len(op.operations) * [NoNoise()]
+                    op.noise = noise
+                else:
+                    op_type_seq = list(op.operations)
+                    op.noise = self._find_wrapped_noise(op_type_seq, section)
                 noisy_ops.append(op)
             else:
                 mapping = noise_model_map[register_section(op)]

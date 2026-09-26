@@ -13,12 +13,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import numpy as np
+import pytest
 
 import graphiq.benchmarks.circuits as circ
 import graphiq.circuit.ops as ops
 import graphiq.noise.noise_models as nm
 from graphiq.backends.density_matrix.compiler import DensityMatrixCompiler
-from graphiq.benchmarks.alternate_circuits import noise_model_loss_and_depolarizing
+from graphiq.backends.stabilizer.compiler import StabilizerCompiler
+from graphiq.benchmarks.alternate_circuits import (
+    noise_model_loss_and_depolarizing,
+    noise_model_pure_loss,
+)
 from graphiq.circuit.circuit_dag import CircuitDAG
 from graphiq.noise.monte_carlo_noise import McNoiseMap, MonteCarloNoise
 from graphiq.solvers.solver_base import SolverBase
@@ -303,3 +308,88 @@ def test_assign_noise_with_the_loss_and_depolarizing_benchmark_mapping_reaches_t
     assert isinstance(ee_cnot.noise[1], nm.DepolarizingNoise)
     assert isinstance(ep_cnot.noise[0], nm.DepolarizingNoise)
     assert isinstance(ep_cnot.noise[1], nm.NoNoise)
+
+
+# the five-gate photon wrapper graph_to_circ emits
+_FIVE_GATE_WRAPPER = [ops.Hadamard, ops.Phase, ops.Hadamard, ops.Phase, ops.SigmaX]
+
+
+def _one_photon_wrapper_circuit(operations):
+    circuit = CircuitDAG(n_emitter=0, n_photon=1, n_classical=0)
+    circuit.add(ops.OneQubitGateWrapper(operations, register=0, reg_type="p"))
+    return circuit
+
+
+def _photon_only_mapping(photon_section):
+    return {"e": {}, "p": photon_section, "ee": {}, "ep": {}}
+
+
+def test_assign_noise_gives_a_wrapper_the_section_wrapper_key_model():
+    gate_noise = nm.DepolarizingNoise(0.1)
+    wrapper_noise = nm.PhotonLoss(0.1)
+    section = {
+        "Hadamard": gate_noise,
+        "Phase": gate_noise,
+        "SigmaX": gate_noise,
+        "OneQubitGateWrapper": wrapper_noise,
+    }
+    circuit = _one_photon_wrapper_circuit(_FIVE_GATE_WRAPPER)
+
+    noisy = circuit.assign_noise(_photon_only_mapping(section))
+
+    assert _the_wrapper(noisy).noise is wrapper_noise
+
+
+@pytest.mark.parametrize(
+    "wrapper_noise",
+    [nm.PhotonLoss(0.1), [nm.PhotonLoss(0.1)] + 4 * [nm.NoNoise()]],
+    ids=["scalar", "list"],
+)
+def test_assign_noise_wrapper_key_agrees_with_the_solvers(wrapper_noise):
+    section = {
+        "Hadamard": nm.DepolarizingNoise(0.1),
+        "OneQubitGateWrapper": wrapper_noise,
+    }
+    solver = _MinimalSolver(target=None, metric=None, compiler=None)
+    solver_built = ops.OneQubitGateWrapper(
+        _FIVE_GATE_WRAPPER,
+        register=0,
+        reg_type="p",
+        noise=solver._wrap_noise(_FIVE_GATE_WRAPPER, section),
+    )
+
+    noisy = _one_photon_wrapper_circuit(_FIVE_GATE_WRAPPER).assign_noise(
+        _photon_only_mapping(section)
+    )
+
+    assert _the_wrapper(noisy).noise is solver_built.noise
+    assert solver_built.noise is wrapper_noise
+
+
+def test_assign_noise_no_noise_wrapper_key_gives_every_wrapped_gate_no_noise():
+    section = {
+        "Hadamard": nm.DepolarizingNoise(0.1),
+        "OneQubitGateWrapper": nm.NoNoise(),
+    }
+
+    noisy = _one_photon_wrapper_circuit(_FIVE_GATE_WRAPPER).assign_noise(
+        _photon_only_mapping(section)
+    )
+
+    noise = _the_wrapper(noisy).noise
+    assert isinstance(noise, list)
+    assert len(noise) == len(_FIVE_GATE_WRAPPER)
+    assert all(isinstance(model, nm.NoNoise) for model in noise)
+
+
+def test_assign_noise_wrapper_key_loss_is_applied_once_per_wrapper():
+    noisy = _one_photon_wrapper_circuit(_FIVE_GATE_WRAPPER).assign_noise(
+        noise_model_pure_loss(0.1)
+    )
+
+    compiler = StabilizerCompiler()
+    compiler.noise_simulation = True
+    state = compiler.compile(circuit=noisy)
+
+    # one loss for the wrapper, not one per lossy gate (0.9 ** 5)
+    assert np.isclose(state.rep_data.probability, 0.9)

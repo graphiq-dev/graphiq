@@ -29,6 +29,7 @@ from graphiq.backends.compiler_base import CompilerBase
 from graphiq.circuit.circuit_base import CircuitBase, ops
 from graphiq.io import IO
 from graphiq.metrics import MetricBase
+from graphiq.noise.noise_mapping import noise_for_op
 
 
 class SolverBase(ABC):
@@ -159,51 +160,23 @@ class SolverBase(ABC):
 
     def _identify_noise(self, op, noise_model_mapping):
         """
-        A helper function to identify the noise model for an operation
+        A helper function to identify the noise model for an operation. Delegates to
+        ``graphiq.noise.noise_mapping.noise_for_op``, which also backs
+        ``CircuitDAG._noisy_gates``, so both callers read a noise-model mapping the same way.
 
         :param op: an operation
         :type op: ops.OperationBase
         :param noise_model_mapping: a dictionary that stores the mapping between an operation
             and its associated noise model. A two-legged op is looked up by its per-leg keys,
             ``<Op>_control`` and ``<Op>_target``, first; the bare ``<Op>`` key is only used as a
-            fallback when neither per-leg key is present, in which case the same model is
-            returned for both legs
+            fallback when neither per-leg key is present, in which case a single model is
+            returned for both legs and a list of two is returned as it is
         :type noise_model_mapping: dict
+        :raises ValueError: if a two-legged op's bare list value does not have length 2
         :return: a noise model
         :rtype: nm.NoiseBase
         """
-        # first make sure whether the passed operations are instances (of a class) or classes.
-        if isinstance(op, ops.OperationBase):
-            # if op is an instance, turn it into the class itself.
-            op = type(op)
-        # op is a class here, so this must be issubclass, not isinstance
-        if issubclass(
-            op,
-            (ops.ControlledPairOperationBase, ops.ClassicalControlledPairOperationBase),
-        ):
-            op_name = op.__name__
-            op_control = op.__name__ + "_control"
-            op_target = op.__name__ + "_target"
-            if op_control in noise_model_mapping.keys():
-                control_noise = noise_model_mapping[op_control]
-            else:
-                control_noise = nm.NoNoise()
-            if op_target in noise_model_mapping.keys():
-                target_noise = noise_model_mapping[op_target]
-            else:
-                target_noise = nm.NoNoise()
-            if op_name in noise_model_mapping.keys() and type(
-                target_noise
-            ) == nm.NoNoise == type(control_noise):
-                return [noise_model_mapping[op_name], noise_model_mapping[op_name]]
-            else:
-                return [control_noise, target_noise]
-        else:
-            op_name = op.__name__
-            if op_name in noise_model_mapping.keys():
-                return noise_model_mapping[op_name]
-            else:
-                return nm.NoNoise()
+        return noise_for_op(op, noise_model_mapping)
 
 
 class RandomSearchSolverSetting(ABC):

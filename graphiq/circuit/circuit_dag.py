@@ -38,6 +38,7 @@ import numpy as np
 
 import graphiq.circuit.ops as ops
 from graphiq.circuit.circuit_base import CircuitBase
+from graphiq.noise.noise_mapping import noise_for_op, register_section
 from graphiq.noise.noise_models import NoNoise
 from graphiq.utils.circuit_comparison import compare_circuits
 from graphiq.visualizers.dag import dag_topology_pos
@@ -1179,10 +1180,11 @@ class CircuitDAG(CircuitBase):
 
         :param noise_model_map: a nested dictionary whose outer keys are register-type sections ("e", "p", "ee",
             "ep", ...) and whose inner dictionaries map an operation's class name to its noise model; for a
-            two-qubit operation, the section is its control type followed by its target type, and the noise
-            model may be a list of two (one per leg). Operations without an entry get NoNoise. A
-            OneQubitGateWrapper carrying a single model for the whole wrapper keeps it, and the mapping is not applied
-            to it
+            two-qubit operation, the section is its control type followed by its target type, and its per-leg keys
+            ``<Op>_control`` and ``<Op>_target`` are read first; only when neither is present does the bare class name
+            apply, and its noise model may then be a list of two (one per leg). Operations without an entry get
+            NoNoise. A OneQubitGateWrapper carrying a single model for the whole wrapper keeps it, and the mapping is
+            not applied to it
         :type noise_model_map: dict[str, dict]
         :return: a new circuit
         :rtype: CircuitDAG
@@ -1204,13 +1206,15 @@ class CircuitDAG(CircuitBase):
         Operates on a copy, so the circuit itself is not modified. Each OneQubitGateWrapper receives a list with one
         noise model per wrapped gate, in the order of its ``operations``, since the wrapper pairs ``noise[i]`` with
         ``operations[i]``; a wrapper carrying a single model for the whole wrapper keeps it and is left unchanged.
-        A controlled-pair operation receives its section's list of two models, or its single model duplicated. Every
-        other operation receives the model its register section names. Operations without an entry get NoNoise.
+        A controlled-pair operation receives its ``<Op>_control`` and ``<Op>_target`` models, or, when neither key is
+        present, its bare name's list of two models or its single model duplicated. Every other operation receives
+        the model its register section names. Operations without an entry get NoNoise. The lookup is
+        ``graphiq.noise.noise_mapping.noise_for_op``, which ``SolverBase._identify_noise`` also uses.
 
         :param noise_model_map: a nested dict of register-type section to operation class name to noise model, as
             accepted by ``assign_noise``
         :type noise_model_map: dict[str, dict]
-        :raises AssertionError: if a controlled-pair operation's noise list does not have length 2
+        :raises ValueError: if a controlled-pair operation's bare noise list does not have length 2
         :raises KeyError: if noise_model_map has no entry for an operation's register-type section
         :return: the operations (Input and Output excluded), each carrying its noise model
         :rtype: list[ops.OperationBase]
@@ -1220,7 +1224,6 @@ class CircuitDAG(CircuitBase):
         seq = self.copy()._slim_seq()
         noisy_ops = []
         for op in seq:
-            is_controlled = False
             if isinstance(op, ops.OneQubitGateWrapper):
                 if not isinstance(op.noise, list):
                     # a single model for the whole wrapper is left as it is
@@ -1233,34 +1236,8 @@ class CircuitDAG(CircuitBase):
                 op.noise = noise_list
                 noisy_ops.append(op)
             else:
-                if isinstance(
-                    op,
-                    (
-                        ops.ControlledPairOperationBase,
-                        ops.ClassicalControlledPairOperationBase,
-                    ),
-                ):
-                    control_type = op.control_type
-                    target_type = op.target_type
-                    mapping = noise_model_map[control_type + target_type]
-                    is_controlled = True
-                else:
-                    mapping = noise_model_map[op.reg_type]
-                name = type(op).__name__
-                if name in mapping:
-                    noise_object = mapping[name]
-                else:
-                    noise_object = NoNoise()
-                if is_controlled:
-                    if isinstance(noise_object, list):
-                        assert (
-                            len(noise_object) == 2
-                        ), "controlled gate noise list must be of length 2"
-                        op.noise = noise_object
-                    else:
-                        op.noise = [noise_object, noise_object]
-                else:
-                    op.noise = noise_object
+                mapping = noise_model_map[register_section(op)]
+                op.noise = noise_for_op(op, mapping)
                 noisy_ops.append(op)
         return noisy_ops
 

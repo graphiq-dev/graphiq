@@ -18,8 +18,10 @@ import graphiq.benchmarks.circuits as circ
 import graphiq.circuit.ops as ops
 import graphiq.noise.noise_models as nm
 from graphiq.backends.density_matrix.compiler import DensityMatrixCompiler
+from graphiq.benchmarks.alternate_circuits import noise_model_loss_and_depolarizing
 from graphiq.circuit.circuit_dag import CircuitDAG
 from graphiq.noise.monte_carlo_noise import McNoiseMap, MonteCarloNoise
+from graphiq.solvers.solver_base import SolverBase
 
 
 def _assert_every_leg_is_no_noise(op):
@@ -214,3 +216,90 @@ def test_assign_noise_leaves_a_whole_wrapper_model_in_place():
         "SigmaX",
         "Identity",
     }
+
+
+class _MinimalSolver(SolverBase):
+    """A concrete SolverBase subclass with no search behaviour, so that ``_identify_noise`` can be called
+    without constructing a full solver."""
+
+    def solve(self, *args):
+        raise NotImplementedError
+
+
+def test_assign_noise_honours_per_leg_keys():
+    control_noise = nm.DepolarizingNoise(0.1)
+    circuit = CircuitDAG(n_emitter=2, n_photon=0, n_classical=0)
+    circuit.add(ops.CNOT(control=0, control_type="e", target=1, target_type="e"))
+
+    mapping = {
+        "e": {},
+        "p": {},
+        "ee": {"CNOT_control": control_noise},
+        "ep": {},
+    }
+    noisy = circuit.assign_noise(mapping)
+
+    cnots = [op for op in noisy.sequence() if isinstance(op, ops.CNOT)]
+    assert len(cnots) == 1
+    assert cnots[0].noise[0] is control_noise
+    assert isinstance(cnots[0].noise[1], nm.NoNoise)
+
+
+def test_assign_noise_and_identify_noise_agree():
+    ee_control_noise = nm.DepolarizingNoise(0.1)
+    ee_target_noise = nm.DepolarizingNoise(0.2)
+    ep_noise = nm.DepolarizingNoise(0.3)
+    hadamard_noise = nm.DepolarizingNoise(0.4)
+
+    mapping = {
+        "e": {"Hadamard": hadamard_noise},
+        "p": {},
+        "ee": {
+            "CNOT_control": ee_control_noise,
+            "CNOT_target": ee_target_noise,
+        },
+        "ep": {"MeasurementCNOTandReset": ep_noise},
+    }
+
+    circuit = CircuitDAG(n_emitter=2, n_photon=1, n_classical=1)
+    circuit.add(ops.Hadamard(register=0, reg_type="e"))
+    circuit.add(ops.CNOT(control=0, control_type="e", target=1, target_type="e"))
+    circuit.add(
+        ops.MeasurementCNOTandReset(
+            control=0, control_type="e", target=0, target_type="p", c_register=0
+        )
+    )
+
+    noisy = circuit.assign_noise(mapping)
+    solver = _MinimalSolver(target=None, metric=None, compiler=None)
+    # each op's section, picked by hand
+    sections = {ops.Hadamard: "e", ops.CNOT: "ee", ops.MeasurementCNOTandReset: "ep"}
+
+    checked = 0
+    for op in noisy.sequence():
+        if isinstance(op, (ops.Input, ops.Output)):
+            continue
+        expected = solver._identify_noise(type(op), mapping[sections[type(op)]])
+        if isinstance(expected, list):
+            assert len(op.noise) == len(expected)
+            for actual_leg, expected_leg in zip(op.noise, expected):
+                assert actual_leg is expected_leg
+        else:
+            assert op.noise is expected
+        checked += 1
+    assert checked == 3
+
+
+def test_assign_noise_with_the_loss_and_depolarizing_benchmark_mapping_reaches_the_cnot_legs():
+    circuit = CircuitDAG(n_emitter=2, n_photon=1, n_classical=0)
+    circuit.add(ops.CNOT(control=0, control_type="e", target=1, target_type="e"))
+    circuit.add(ops.CNOT(control=0, control_type="e", target=0, target_type="p"))
+
+    noisy = circuit.assign_noise(noise_model_loss_and_depolarizing(0.1, 0.05))
+
+    ee_cnot, ep_cnot = [op for op in noisy.sequence() if isinstance(op, ops.CNOT)]
+    assert ee_cnot.target_type == "e" and ep_cnot.target_type == "p"
+    assert isinstance(ee_cnot.noise[0], nm.DepolarizingNoise)
+    assert isinstance(ee_cnot.noise[1], nm.DepolarizingNoise)
+    assert isinstance(ep_cnot.noise[0], nm.DepolarizingNoise)
+    assert isinstance(ep_cnot.noise[1], nm.NoNoise)

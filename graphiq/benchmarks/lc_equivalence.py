@@ -56,13 +56,17 @@ def run_multiple_graphs_and_report(graph, lc_nodes):
     complementation at that node, and print an alternate-circuit search report for each, so
     ``1 + len(lc_nodes)`` searches and reports in all.
 
+    Each local complementation returns a graph labelled 0..n-1 by position.
+
     Each local complementation is computed from the original graph, not cumulatively, so
     lc_nodes describes a fan out from the one graph rather than a chain. Every graph drawn is
     the graph its accompanying report describes.
 
     :param graph: the graph to draw and search
     :type graph: networkX.Graph
-    :param lc_nodes: nodes to apply a local complementation to, one at a time
+    :param lc_nodes: the nodes to apply a local complementation to, one at a time, given as positions in graph's
+        node iteration order (local_comp_graph reads them so); these are the node labels when graph's nodes are
+        0..n-1 in iteration order, as in every example in this module
     :type lc_nodes: list
     :return: nothing
     :rtype: None

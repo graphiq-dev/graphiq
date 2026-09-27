@@ -440,9 +440,11 @@ def rgs_orbit_finder(graph: nx.Graph):
     """
     Takes a repeater graph state, and returns the full list of distinct graphs in the orbit.
     The first graph in the list is the original graph state.
-    :param graph: original graph
+    :param graph: original graph; its nodes must be labelled 0..n-1 in iteration order, since node labels are
+        also used as adjacency-matrix indices by local_comp_graph
     :type graph: nx.Graph
-    :return: a full list of graphs in the LC orbit of the graph state
+    :return: a full list of graphs in the LC orbit of the graph state, each after the first labelled 0..n-1 by
+        position
     :rtype: list
     """
     n = len(graph)
@@ -473,9 +475,14 @@ def linear_partial_orbit(graph: nx.Graph):
     """
     Takes a linear cluster state, and returns a list of distinct graphs in the orbit. Not exhaustive.
     The first graph in the list is the original graph state.
-    :param graph: original graph
+    :param graph: original graph, a path that runs through its nodes in iteration order (the first node in
+        iteration order is one end, the next is its neighbour, and so on); node labels are never read. On a path
+        in another order the graphs are still in its LC orbit, but the first need not be the original and they
+        need not be distinct
     :type graph: nx.Graph
-    :return: a list of graphs in the LC orbit of the linear cluster state
+    :return: a list of graphs in the LC orbit of the linear cluster state, labelled 0..n-1 by position in graph's
+        iteration order, so the first is literally the original graph only when graph's labels are already 0..n-1
+        in iteration order
     :rtype: list
     """
     orbit_list = []

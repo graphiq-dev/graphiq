@@ -543,7 +543,7 @@ def graph_analyzer(
             if fidelity:
                 if out_dict["fidelity"][j] > best_fid[1]:
                     best_fid = (f"LC: {i} iso: {j}", out_dict["fidelity"][j], edge_list)
-                if out_dict["fidelity"][j] < best_fid[1]:
+                if out_dict["fidelity"][j] < worst_fid[1]:
                     worst_fid = (
                         f"LC: {i} iso: {j}",
                         out_dict["fidelity"][j],

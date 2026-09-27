@@ -17,6 +17,7 @@ import json
 import networkx as nx
 import numpy as np
 import pandas as pd
+import pytest
 
 import graphiq.circuit.ops as ops
 from graphiq.benchmarks.circuits import ghz3_state_circuit
@@ -25,6 +26,7 @@ from graphiq.data_collection.correlation_module import graph_to_circ, graph_to_c
 from graphiq.data_collection.user_interface import (
     LC_scaling_known,
     find_best,
+    graph_analyzer,
     plot_map_based,
     result_maker,
     rgs_analysis,
@@ -129,3 +131,35 @@ def test_lc_scaling_known_creates_its_save_directory(tmp_path):
     assert (tmp_path / "cls" / "bwDepth.csv").read_text() == pd.DataFrame(
         (d_means, d_stds)
     ).to_csv(index=False, header=False)
+
+
+@pytest.mark.parametrize(
+    "fidelities, best, worst",
+    [
+        ([0.9, 0.5, 0.7], ("LC: 0 iso: 0", 0.9), ("LC: 0 iso: 1", 0.5)),
+        ([0.9, 0.5, 0.5], ("LC: 0 iso: 0", 0.9), ("LC: 0 iso: 1", 0.5)),
+        ([0.5, 0.9], ("LC: 0 iso: 1", 0.9), ("LC: 0 iso: 0", 0.5)),
+    ],
+)
+def test_graph_analyzer_reports_the_lowest_fidelity_as_worst(
+    tmp_path, monkeypatch, fidelities, best, worst
+):
+    ui = "graphiq.data_collection.user_interface"
+    path3 = nx.to_numpy_array(nx.path_graph(3))
+    monkeypatch.setattr(f"{ui}.lcs", lambda *args, **kwargs: [path3])
+    n_cases = len(fidelities)
+    cases = {
+        "cost": list(range(1, n_cases + 1)),
+        "edges": [[(0, 1), (1, 2)]] * n_cases,
+        "n_cnots": [0] * n_cases,
+        "max_emit_reset_depth": [1] * n_cases,
+        "fidelity": fidelities,
+    }
+    monkeypatch.setattr(f"{ui}.find_best", lambda *args, **kwargs: cases)
+
+    out = graph_analyzer([0, 1, 1, 2], dir_path=str(tmp_path), graph_class="c")
+
+    assert out[0][:2] == best
+    assert out[4][:2] == worst
+    bests = (tmp_path / "c" / "bests.txt").read_text()
+    assert f"worst graph w.r.t fidelity {worst[0]}" in bests

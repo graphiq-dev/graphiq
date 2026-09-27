@@ -524,8 +524,11 @@ class CircuitDAG(CircuitBase):
         # TODO: fix this such that we can see double edges properly!
         pos = dag_topology_pos(self.dag, method="topology")
 
-        if ax is None or fig is None:
+        if ax is None:
             fig, ax = plt.subplots()
+        elif fig is None:
+            # ax.figure is a SubFigure when ax sits in one; its .figure is the root Figure.
+            fig = ax.figure.figure
         nx.draw(self.dag, pos=pos, ax=ax, with_labels=True)
         if show:
             plt.show()

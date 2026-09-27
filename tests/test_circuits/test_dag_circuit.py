@@ -14,6 +14,7 @@
 # limitations under the License.
 import random
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 
@@ -832,3 +833,37 @@ def test_parameters_setter_after_initialize_parameters_assigns_given_values():
     assert parameterized
     for op in parameterized:
         assert list(op.params) == shifted[circuit.map[id(op)]]
+
+
+def _one_hadamard_dag():
+    dag = CircuitDAG(n_emitter=1, n_photon=1, n_classical=0)
+    dag.add(ops.Hadamard(register=0, reg_type="e"))
+    return dag
+
+
+def test_draw_dag_draws_on_the_ax_it_is_given_without_a_fig():
+    dag = _one_hadamard_dag()
+    fig0, ax0 = plt.subplots()
+    try:
+        n_figures = len(plt.get_fignums())
+        fig, ax = dag.draw_dag(show=False, ax=ax0)
+        assert ax is ax0
+        assert fig is fig0
+        assert len(ax0.collections) > 0
+        assert len(plt.get_fignums()) == n_figures
+    finally:
+        plt.close("all")
+
+
+def test_draw_dag_returns_the_root_figure_for_an_ax_in_a_subfigure():
+    dag = _one_hadamard_dag()
+    root = plt.figure()
+    try:
+        axs = root.subfigures(1, 2)[0].subplots()
+        n_figures = len(plt.get_fignums())
+        fig, ax = dag.draw_dag(show=False, ax=axs)
+        assert ax is axs
+        assert fig is root
+        assert len(plt.get_fignums()) == n_figures
+    finally:
+        plt.close("all")

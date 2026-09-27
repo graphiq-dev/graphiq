@@ -19,6 +19,7 @@ underlying quantum state.
 The Base class defines an API which all compiler implementations should follow
 """
 
+import copy
 import logging
 from abc import ABC, abstractmethod
 
@@ -108,11 +109,9 @@ class CompilerBase(ABC):
                 initial_state.n_qubits == circuit.n_quantum
             ), "the number of qubits in initial state must match the circuit"
             # copy the data so evolving the compiled state does not change the
-            # tableau of a caller's pure stabilizer initial_state (a mixed
-            # stabilizer's list of tableaux is copied only shallowly)
-            state_data = initial_state.rep_data.data
-            if hasattr(state_data, "copy"):
-                state_data = state_data.copy()
+            # caller's initial_state; deep, since a mixed stabilizer's data is a
+            # list of (probability, tableau) pairs
+            state_data = copy.deepcopy(initial_state.rep_data.data)
         else:
             state_data = circuit.n_quantum
 

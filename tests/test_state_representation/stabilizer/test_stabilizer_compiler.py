@@ -128,3 +128,20 @@ def test_compile_leaves_the_initial_state_unchanged():
     assert initial_state.rep_data.data == before
     assert compiled_state.rep_data.data is not initial_tableau
     assert compiled_state.rep_data.data != before
+
+
+def test_compile_leaves_a_mixed_initial_state_unchanged():
+    circuit = CircuitDAG(n_emitter=0, n_photon=2, n_classical=0)
+    circuit.add(ops.Hadamard(register=0, reg_type="p"))
+    initial_state = QuantumState(
+        [(0.5, CliffordTableau(2)), (0.5, CliffordTableau(2))], rep_type="s", mixed=True
+    )
+    before = [(p, tableau.copy()) for p, tableau in initial_state.rep_data.mixture]
+    compiler = StabilizerCompiler()
+    # a noisy compile evolves a mixed stabilizer state
+    compiler.noise_simulation = True
+
+    compiled_state = compiler.compile(circuit, initial_state=initial_state)
+
+    assert initial_state.rep_data.mixture == before
+    assert compiled_state.rep_data.mixture != before

@@ -526,7 +526,7 @@ class Painter:
                 self.add_gate(gate_name="CX", qargs=[qargs], controls=[controls])
             if node["type"] == "measure":
                 creg_size = parser.get_register_size(node["creg"]["name"], "creg")
-                if hasattr(node, "index"):
+                if "index" in node["qreg"]:
                     qreg = self.to_reg_label(
                         node["qreg"]["name"], node["qreg"]["index"]
                     )
@@ -542,7 +542,7 @@ class Painter:
                         creg = self.to_reg_label(node["creg"]["name"], creg_size)
                         self.add_measurement(qreg=qreg, creg=creg, cbit=i)
             if node["type"] == "reset":
-                if hasattr(node, "index"):
+                if "index" in node:
                     qreg = self.to_reg_label(node["name"], node["index"])
                     self.add_reset(qreg)
                 else:

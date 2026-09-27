@@ -446,11 +446,12 @@ def find_best(
     # del out_dict['std of score']
     del out_dict["graph_metric"]
     df = pd.DataFrame(out_dict)
-    if not os.path.exists(dir_path):
-        os.makedirs(dir_path)
-    filename = dir_path + f"/{file_name}.csv"
-    df.to_csv(filename, index=False)
-    result.save2json(dir_path, f"res_{file_name}")
+    if dir_path is not None:
+        if not os.path.exists(dir_path):
+            os.makedirs(dir_path)
+        filename = dir_path + f"/{file_name}.csv"
+        df.to_csv(filename, index=False)
+        result.save2json(dir_path, f"res_{file_name}")
     cost = []
     for i in range(len(result)):
         cost.append(

@@ -791,6 +791,7 @@ class Metrics(MetricBase):
         :type metric_weight: None, numpy.ndarray, list, or Function
         :param log_steps: the metric values are computed at every log_steps optimization step
         :type log_steps: int
+        :raises TypeError: if metric_weight is not None, a list, a numpy.ndarray or a callable
         :return: function returns nothing
         :rtype: None
         """
@@ -833,6 +834,11 @@ class Metrics(MetricBase):
             self.weighting_func = weighting_func
         elif callable(metric_weight):
             self.weighting_func = metric_weight
+        else:
+            raise TypeError(
+                "metric_weight must be None, a list, a numpy.ndarray or a callable; "
+                f"got {type(metric_weight).__name__}."
+            )
 
     def evaluate(self, state, circuit):
         """

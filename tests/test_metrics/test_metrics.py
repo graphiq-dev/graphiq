@@ -358,6 +358,14 @@ def test_metrics_callable_weighting():
     assert metrics.evaluate(None, circuit) == 99
 
 
+@pytest.mark.parametrize("metric_weight", [(1, 10), 2.0])
+def test_metrics_rejects_an_unsupported_weight_type(metric_weight):
+    # a tuple or a scalar used to be accepted, and the first evaluate then
+    # raised AttributeError for the missing weighting function
+    with pytest.raises(TypeError, match="metric_weight"):
+        Metrics([CircuitDepth(), CircuitEmitterCount()], metric_weight=metric_weight)
+
+
 def test_metrics_per_metric_log():
     circuit = _emitter_circuit(1)
     circuit.add(ops.Hadamard(register=0, reg_type="e"))

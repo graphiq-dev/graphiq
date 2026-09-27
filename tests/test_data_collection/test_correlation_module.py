@@ -16,18 +16,21 @@ import networkx as nx
 import numpy as np
 import pytest
 
+import graphiq.circuit.ops as ops
 from graphiq.backends.stabilizer.compiler import StabilizerCompiler
 from graphiq.backends.stabilizer.functions.rep_conversion import (
     get_clifford_tableau_from_graph,
 )
+from graphiq.circuit.circuit_dag import CircuitDAG
 from graphiq.data_collection.correlation_module import (
     GraphCorr,
     NodeCorr,
     graph_to_circ,
     graph_to_cnot,
+    graph_to_emit_depth,
     rnd_graph,
 )
-from graphiq.metrics import Infidelity
+from graphiq.metrics import CircuitMaxEmitDepth, Infidelity
 from graphiq.state import QuantumState
 
 
@@ -154,3 +157,15 @@ def test_cnot_per_photon_divides_the_cnot_count_by_the_number_of_photons():
     assert n_cnot > 0
     corr = GraphCorr(circ_metric="cnot_per_photon", graph_list=[graph])
     assert corr._circ_met_value(graph) == pytest.approx(n_cnot / 6)
+
+
+def test_graph_to_emit_depth_counts_only_the_gates_on_the_emitter():
+    circuit = CircuitDAG(n_emitter=1, n_photon=0, n_classical=0)
+    circuit.add(ops.Hadamard(register=0, reg_type="e"))
+    circuit.add(ops.SigmaX(register=0, reg_type="e"))
+    assert graph_to_emit_depth(circuit) == 2
+
+    graph_circuit = graph_to_circ(nx.cycle_graph(6))
+    assert graph_to_emit_depth(graph_circuit) == CircuitMaxEmitDepth().evaluate(
+        None, graph_circuit
+    )

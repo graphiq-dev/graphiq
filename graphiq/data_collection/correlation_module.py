@@ -1124,7 +1124,7 @@ def graph_to_emit_depth(graph):
     circ.unwrap_nodes()
     circ.remove_identity()
     for e_i in range(circ.n_emitters):
-        depth[e_i] = len(circ.reg_gate_history(reg=e_i)[1])
+        depth[e_i] = len(circ.reg_gate_history(reg=e_i)[1]) - 2
     return max(depth.values())
 
 

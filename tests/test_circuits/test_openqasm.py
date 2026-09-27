@@ -16,6 +16,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 from qiskit import QuantumCircuit
+from qiskit.quantum_info import Operator
 
 import graphiq.circuit.ops as ops
 import graphiq.utils.openqasm_lib as oq_lib
@@ -164,6 +165,47 @@ def test_gates_wrapper_1(gate_list):
     except Exception as e:
         print(qasm_str)
         raise e
+
+
+@pytest.mark.parametrize(
+    "gate_list",
+    [
+        [ops.Hadamard, ops.Phase],
+        [ops.Phase, ops.Hadamard],
+        [ops.Hadamard, ops.SigmaX],
+        [ops.Hadamard, ops.SigmaY, ops.Phase],
+        [ops.Hadamard, ops.PhaseDagger, ops.SigmaY],
+        [ops.Hadamard, ops.Phase, ops.Hadamard, ops.Phase],
+        [ops.Phase, ops.Identity, ops.Hadamard],
+        [ops.Identity, ops.SigmaX],
+        [ops.Hadamard],
+    ],
+)
+def test_wrapper_openqasm_applies_the_last_gate_first(gate_list):
+    # the compilers apply a wrapper through unwrap(), so its openQASM must match
+    wrapper = ops.OneQubitGateWrapper(gate_list, register=0, reg_type="e")
+    wrapped = CircuitDAG(n_emitter=1)
+    wrapped.add(wrapper)
+    unwrapped = CircuitDAG(n_emitter=1)
+    for op in wrapper.unwrap():
+        unwrapped.add(op)
+    u_wrapped = Operator(QuantumCircuit.from_qasm_str(wrapped.to_openqasm()))
+    u_unwrapped = Operator(QuantumCircuit.from_qasm_str(unwrapped.to_openqasm()))
+    assert u_wrapped.equiv(u_unwrapped)
+
+
+def test_wrapper_openqasm_name_and_symbol_unchanged():
+    gate_list = [ops.Hadamard, ops.Phase, ops.SigmaY]
+    circuit = CircuitDAG(n_emitter=1)
+    circuit.add(ops.OneQubitGateWrapper(gate_list, register=0, reg_type="e"))
+    assert "hsy e0[0];" in circuit.to_openqasm()
+    assert circuit.openqasm_symbols["hsy"] == "U=HPY"
+    (wrapper,) = [
+        op
+        for op in CircuitDAG.from_openqasm(circuit.to_openqasm()).sequence()
+        if isinstance(op, ops.OneQubitGateWrapper)
+    ]
+    assert wrapper.operations == gate_list
 
 
 @visualization

@@ -382,7 +382,8 @@ def single_qubit_wrapper_info(op_list):
     """
     This function combines the openqasm info from multiple base Operations,
     to create a composed block of multiple operations
-    :param op_list: list of operation classes which will be applied by the Operation block
+    :param op_list: list of operation classes which will be applied by the Operation block,
+        in OneQubitGateWrapper order: the last entry is applied first
     :type op_list: list
     :return: OpenQASMInfo object corresponding to the composed gate
     :rtype: OpenQASMInfo
@@ -406,7 +407,9 @@ def single_qubit_wrapper_info(op_list):
         definitions = definitions + oq_info.define_gate
         gate_name += oq_info.gate_name
         gate_symbol += oq_info.gate_symbol
-        def_usage += f"{oq_info.gate_name} a;\n"
+        # a OneQubitGateWrapper applies its operations last entry first, so the
+        # definition body lists them in reverse
+        def_usage = f"{oq_info.gate_name} a;\n" + def_usage
 
     if gate_name in gate_name_dict:  # i.e. gate is already somehow defined
         return gate_name_dict[gate_name]

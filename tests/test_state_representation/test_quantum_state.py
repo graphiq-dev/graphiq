@@ -206,6 +206,17 @@ def test_convert_representation_graph_to_density_matrix_pure_arm():
     assert np.allclose(state.rep_data.data, rc.graph_to_density(graph))
 
 
+def test_convert_representation_graph_marked_mixed_to_density_matrix():
+    # a state built from a graph with mixed=True holds a plain Graph, not a MixedGraph
+    graph = nx.path_graph(3)
+    state = QuantumState(graph, rep_type="g", mixed=True)
+
+    state.convert_representation("dm")
+
+    assert state.rep_type == "dm"
+    assert np.allclose(state.rep_data.data, rc.graph_to_density(graph))
+
+
 def test_convert_representation_graph_to_stabilizer_pure_arm():
     graph = nx.path_graph(3)
     state = QuantumState(graph, rep_type="g")

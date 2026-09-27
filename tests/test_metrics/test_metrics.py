@@ -432,6 +432,14 @@ def test_infidelity_graph_state_marked_mixed_matches_stabilizer_target():
     assert infidelity == pytest.approx(0.0, abs=1e-9)
 
 
+def test_infidelity_and_trace_distance_of_a_graph_state_marked_mixed_against_a_dm_target():
+    state = QuantumState(nx.path_graph(3), rep_type="g", mixed=True)
+    target = QuantumState(graph_to_density(nx.path_graph(3)), rep_type="dm")
+
+    assert Infidelity(target).evaluate(state, None) == pytest.approx(0.0, abs=1e-9)
+    assert TraceDistance(target).evaluate(state, None) == pytest.approx(0.0, abs=1e-9)
+
+
 def _empty_plus_triangle_mixture():
     # two orthogonal 3-qubit graph states with distinct weights
     return 0.7 * graph_to_density(nx.empty_graph(3)) + 0.3 * graph_to_density(

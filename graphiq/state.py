@@ -469,8 +469,9 @@ class QuantumState:
         :return: density matrix representation
         :rtype: DensityMatrix
         """
-        if self.mixed:
-            assert isinstance(rep, MixedGraph)
+        # a mixed state may hold a plain Graph (_initialize_graph never builds a
+        # MixedGraph)
+        if self.mixed and isinstance(rep, MixedGraph):
             rho = 0
             for p_i, t_i in rep.mixture:
                 rho += p_i * rc.graph_to_density(t_i.data)

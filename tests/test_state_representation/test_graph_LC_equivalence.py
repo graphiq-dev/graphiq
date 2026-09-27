@@ -716,3 +716,18 @@ def test_iso_graph_finder_output_for_labels_0_to_n_minus_1(graph):
     assert len(result) == 24
     assert all(list(g.nodes) == [0, 1, 2, 3] for g in result)
     assert all(np.array_equal(nx.to_numpy_array(g), s) for g, s in zip(result, spec))
+
+
+def test_local_comp_graph_selects_the_node_by_position():
+    # the path 0-1-2, with its nodes added as 2, 0, 1
+    graph = nx.Graph()
+    graph.add_nodes_from([2, 0, 1])
+    graph.add_edges_from([(0, 1), (1, 2)])
+    # position 2 holds label 1, the middle of the path
+    result = local_comp_graph(graph, 2)
+    assert list(result.nodes) == [0, 1, 2]
+    assert sorted(map(sorted, result.edges)) == [[0, 1], [0, 2], [1, 2]]
+    # position 0 holds label 2, an end of the path: the input relabelled by position
+    result = local_comp_graph(graph, 0)
+    assert list(result.nodes) == [0, 1, 2]
+    assert sorted(map(sorted, result.edges)) == [[0, 2], [1, 2]]

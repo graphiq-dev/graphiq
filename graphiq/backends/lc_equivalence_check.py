@@ -729,15 +729,20 @@ def iso_graph_finder(input_graph):
 
 def local_comp_graph(input_graph, node_id):
     """
-    Applies a local complementation on the node (specified by node_id) of the input graph input_graph
-    and returns the resulting graph.
+    Applies a local complementation on one node of the input graph input_graph and returns the resulting graph.
+
+    The node is chosen by position, not by label: node_id indexes the rows of ``nx.to_numpy_array(input_graph)``,
+    i.e. the node iteration order of input_graph, and the returned graph is labelled 0..n-1 by that same position.
+    Positions and labels coincide when input_graph's nodes are 0..n-1 in ascending iteration order, as for a graph
+    built with ``nx.from_numpy_array`` or returned by this function.
 
     :param input_graph: input graph
     :type input_graph: networkx.Graph
-    :param node_id: the index of the node to apply tho local complementation on
+    :param node_id: the position, in input_graph's node iteration order, of the node to apply the local
+        complementation on
     :type node_id: int
-    :raises AssertionError: if the node index node_id is not in the graph
-    :return: a new transformed graph
+    :raises AssertionError: if node_id is not a position in the graph (not in 0..n-1)
+    :return: a new transformed graph, labelled 0..n-1 by position in input_graph's node iteration order
     :rtype: networkx.Graph
     """
     # TODO: integrate this with the state representation functions

@@ -48,6 +48,18 @@ def test_result_maker_counts_each_one_qubit_gate_once():
     assert result["n_unitary"][0] == CircuitUnitaryCount().evaluate(None, circuit)
 
 
+def test_result_maker_gives_0_emitter_depths_for_a_circuit_without_emitters():
+    circuit = CircuitDAG(n_emitter=0, n_photon=2, n_classical=0)
+
+    result = result_maker(SolverResult([circuit]), graph_met_list=[])
+
+    assert result["n_emitters"] == [0]
+    assert result["max_emit_depth"] == [0]
+    assert result["max_emit_reset_depth"] == [0]
+    assert result["max_emit_eff_depth"] == [0]
+    assert result["depth"] == [0]
+
+
 def test_plot_map_based_plots_each_relabel_map_group(monkeypatch):
     calls = []
 

@@ -173,13 +173,13 @@ def result_maker(result, graph_met_list=None, circ_met_list=None):
                 ]
                 eff_depth[e_i] = max(depth_diff)
         if "max_emit_depth" in circ_met_list:
-            max_emit_depth.append(max(e_depth.values()))
+            max_emit_depth.append(max(e_depth.values(), default=0))
         if "max_emit_reset_depth" in circ_met_list:
-            max_emit_reset_depth.append(max(reset_depths.values()))
+            max_emit_reset_depth.append(max(reset_depths.values(), default=0))
         if "max_emit_eff_depth" in circ_met_list:
-            max_emit_eff_depth.append(max(eff_depth.values()))
+            max_emit_eff_depth.append(max(eff_depth.values(), default=0))
         if "depth" in circ_met_list:
-            depth.append(max(c.register_depth["e"]))
+            depth.append(max(c.register_depth["e"], default=0))
         # calculate n_emitter and n_cnots
         if "n_emitters" in circ_met_list:
             n_emitters.append(c.n_emitters)

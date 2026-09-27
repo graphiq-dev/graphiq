@@ -14,6 +14,7 @@
 # limitations under the License.
 import random
 
+import numpy as np
 import pytest
 
 import graphiq.circuit.ops as ops
@@ -679,3 +680,53 @@ def test_initialize_parameters_different_seed_gives_different_parameter_values()
     parameters_b = circuit_b.initialize_parameters(seed=43)
 
     assert list(parameters_a.values()) != list(parameters_b.values())
+
+
+@pytest.mark.parametrize("gate", [ops.RX, ops.RY, ops.RZ])
+def test_initialize_parameters_samples_default_rotation_gate_bounds(gate):
+    circuit = CircuitDAG(n_emitter=1)
+    op = gate(register=0, reg_type="e")
+    circuit.add(op)
+
+    parameters = circuit.initialize_parameters(seed=0)
+
+    random.seed(0)
+    expected = [random.uniform(-np.pi, np.pi)]
+    assert list(parameters.values()) == [expected]
+    assert list(op.params) == expected
+
+
+@pytest.mark.parametrize("gate", [ops.RX, ops.RY, ops.RZ])
+def test_default_rotation_gate_param_info_is_accepted_back(gate):
+    assert ops.OperationBase._validate_param_info(gate().param_info, 1)
+    gate(param_info=gate().param_info)
+
+
+def test_initialize_parameters_draws_in_sequence_order_across_gate_kinds():
+    circuit = CircuitDAG(n_emitter=1)
+    gates = [
+        ops.ParameterizedOneQubitRotation(register=0, reg_type="e"),
+        ops.RX(register=0, reg_type="e"),
+        ops.ParameterizedOneQubitRotation(register=0, reg_type="e"),
+    ]
+    for op in gates:
+        circuit.add(op)
+
+    circuit.initialize_parameters(seed=7)
+
+    random.seed(7)
+    draws = [random.uniform(-np.pi, np.pi) for _ in range(7)]
+    assert [list(op.params) for op in gates] == [draws[0:3], draws[3:4], draws[4:7]]
+
+
+def test_initialize_parameters_of_the_variational_layer_is_unchanged():
+    from graphiq.benchmarks.circuits import variational_entangling_layer_2qubit
+
+    circuit, _ = variational_entangling_layer_2qubit()
+
+    parameters = circuit.initialize_parameters(seed=42)
+
+    assert list(parameters.values()) == [
+        [0.8760444114976647, -2.984445443853267, -1.4135324813693264],
+        [-1.7391182232484002, 1.48579245840624, 1.1102356231618007],
+    ]

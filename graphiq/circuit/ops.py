@@ -964,9 +964,8 @@ class RY(ParameterizedOneQubitRotation):
         :type noise: graphiq.noise.noise_models.NoiseBase
         :param params: an ordered list of parameter values for the rotation angle; defaults to (0.0,)
         :type params: tuple
-        :param param_info: bounds and labels for the parameter; defaults to bounds (-pi, pi) and label 'theta'. A
-            dict passed here must wrap each in a length-1 sequence, e.g. {"bounds": ((-pi, pi),), "labels":
-            ("theta",)}; the stored default's own shape does not pass that check
+        :param param_info: bounds and labels for the parameter; defaults to {"bounds": ((-pi, pi),), "labels":
+            ("theta",)}. A dict passed here must have that shape: 'bounds' and 'labels' each a length-1 sequence
         :type param_info: dict
         :raises ValueError: if params has a length other than 1, or param_info is not a dict with 'bounds' and
             'labels' entries of length 1
@@ -982,8 +981,8 @@ class RY(ParameterizedOneQubitRotation):
                 raise ValueError("Length of params must be 1")
         if param_info is None:
             param_info = {
-                "bounds": (-np.pi, np.pi),
-                "labels": "theta",
+                "bounds": ((-np.pi, np.pi),),
+                "labels": ("theta",),
             }
         else:
             if not self._validate_param_info(param_info, 1):
@@ -1014,9 +1013,8 @@ class RX(ParameterizedOneQubitRotation):
         :type noise: graphiq.noise.noise_models.NoiseBase
         :param params: an ordered list of parameter values for the rotation angle; defaults to (0.0,)
         :type params: tuple
-        :param param_info: bounds and labels for the parameter; defaults to bounds (-pi, pi) and label 'theta'. A
-            dict passed here must wrap each in a length-1 sequence, e.g. {"bounds": ((-pi, pi),), "labels":
-            ("theta",)}; the stored default's own shape does not pass that check
+        :param param_info: bounds and labels for the parameter; defaults to {"bounds": ((-pi, pi),), "labels":
+            ("theta",)}. A dict passed here must have that shape: 'bounds' and 'labels' each a length-1 sequence
         :type param_info: dict
         :raises ValueError: if params has a length other than 1, or param_info is not a dict with 'bounds' and
             'labels' entries of length 1
@@ -1034,8 +1032,8 @@ class RX(ParameterizedOneQubitRotation):
 
         if param_info is None:
             param_info = {
-                "bounds": (-np.pi, np.pi),
-                "labels": "theta",
+                "bounds": ((-np.pi, np.pi),),
+                "labels": ("theta",),
             }
         else:
             if not self._validate_param_info(param_info, 1):
@@ -1066,9 +1064,8 @@ class RZ(ParameterizedOneQubitRotation):
         :type noise: graphiq.noise.noise_models.NoiseBase
         :param params: an ordered list of parameter values for the rotation angle; defaults to (0.0,)
         :type params: tuple
-        :param param_info: bounds and labels for the parameter; defaults to bounds (-pi, pi) and label 'phi'. A
-            dict passed here must wrap each in a length-1 sequence, e.g. {"bounds": ((-pi, pi),), "labels":
-            ("phi",)}; the stored default's own shape does not pass that check
+        :param param_info: bounds and labels for the parameter; defaults to {"bounds": ((-pi, pi),), "labels":
+            ("phi",)}. A dict passed here must have that shape: 'bounds' and 'labels' each a length-1 sequence
         :type param_info: dict
         :raises ValueError: if params has a length other than 1, or param_info is not a dict with 'bounds' and
             'labels' entries of length 1
@@ -1085,8 +1082,8 @@ class RZ(ParameterizedOneQubitRotation):
                 raise ValueError("Length of params must be 1")
         if param_info is None:
             param_info = {
-                "bounds": (-np.pi, np.pi),
-                "labels": "phi",
+                "bounds": ((-np.pi, np.pi),),
+                "labels": ("phi",),
             }
         else:
             if not self._validate_param_info(param_info, 1):

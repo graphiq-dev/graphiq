@@ -47,9 +47,13 @@ def photon_survival_rate(circuit):
                 if edge[2] == f"p{reg}"
             ]
             node = out_edge[0][1]
-            op_noise = circuit.dag.nodes[node]["op"].noise
+            op = circuit.dag.nodes[node]["op"]
+            op_noise = op.noise
             if isinstance(op_noise, list):
-                op_noise = op_noise[1]
+                # a two-qubit operation keeps one noise model per leg, in
+                # (control, target) order
+                on_control = op.q_registers_type[0] == "p" and op.q_registers[0] == reg
+                op_noise = op_noise[0] if on_control else op_noise[1]
 
             if isinstance(op_noise, PhotonLoss):
                 survive[reg] = (1 - op_noise.noise_parameters["loss rate"]) * survive[

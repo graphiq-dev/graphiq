@@ -736,7 +736,7 @@ def local_comp_graph(input_graph, node_id):
     Positions and labels coincide when input_graph's nodes are 0..n-1 in ascending iteration order, as for a graph
     built with ``nx.from_numpy_array`` or returned by this function.
 
-    :param input_graph: input graph
+    :param input_graph: input graph; edge weights are ignored, so every edge counts once
     :type input_graph: networkx.Graph
     :param node_id: the position, in input_graph's node iteration order, of the node to apply the local
         complementation on
@@ -748,7 +748,7 @@ def local_comp_graph(input_graph, node_id):
     # TODO: integrate this with the state representation functions
     n_nodes = input_graph.number_of_nodes()
     assert n_nodes > node_id >= 0, "node index is not in the graph"
-    adj_matrix = nx.to_numpy_array(input_graph).astype(int)
+    adj_matrix = nx.to_numpy_array(input_graph, weight=None).astype(int)
     identity = np.eye(n_nodes, n_nodes)
     gamma_matrix = np.zeros((n_nodes, n_nodes))
 

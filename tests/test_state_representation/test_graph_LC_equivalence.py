@@ -731,3 +731,12 @@ def test_local_comp_graph_selects_the_node_by_position():
     result = local_comp_graph(graph, 0)
     assert list(result.nodes) == [0, 1, 2]
     assert sorted(map(sorted, result.edges)) == [[0, 2], [1, 2]]
+
+
+def test_local_comp_graph_reads_edges_not_weights():
+    # the path 0-1-2 with a weight of 2.0 on edge 0-1
+    graph = nx.path_graph(3)
+    graph[0][1]["weight"] = 2.0
+    result = local_comp_graph(graph, 1)
+    # the unweighted path's result: complementing at the middle node joins its ends
+    assert sorted(map(sorted, result.edges)) == [[0, 1], [0, 2], [1, 2]]

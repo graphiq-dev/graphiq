@@ -36,7 +36,7 @@ from graphiq.benchmarks.graph_states import linear_cluster_state
 from graphiq.benchmarks.pipeline import benchmark_run, benchmark_run_graph_search_solver
 
 
-def test_benchmark_run_graph_search_solver():
+def test_benchmark_run_graph_search_solver(tmp_path):
     target_graph = linear_cluster_state(4)
     target_graph = target_graph.data
     target_tableau = get_clifford_tableau_from_graph(target_graph)
@@ -82,11 +82,17 @@ def test_benchmark_run_graph_search_solver():
         "compiler": compiler,
     }
     io = IO.new_directory(
-        folder="benchmarks", include_date=True, include_time=True, include_id=False
+        path=tmp_path,
+        folder="benchmarks",
+        include_date=True,
+        include_time=True,
+        include_id=False,
     )
 
     data = benchmark_run_graph_search_solver(example_run, "test_pipeline", io)
     assert type(data) == dict
+    # the run saves its results under tmp_path, not the default data/ folder
+    assert (tmp_path / io.path.name / "solver_result.csv").is_file()
 
 
 def test_benchmark_run_records_metric_name(monkeypatch, tmp_path):

@@ -463,6 +463,19 @@ def test_infidelity_rejects_a_mixed_density_matrix_not_marked_mixed():
         Infidelity(target=target).evaluate(state, None)
 
 
+def test_infidelity_rejects_a_lossy_density_matrix_not_marked_mixed():
+    # Converting it to a stabilizer state would drop the lost 0.1 and score it lossless.
+    state = QuantumState(graph_to_density(nx.path_graph(3)), rep_type="dm")
+    state.rep_data.apply_channel([np.sqrt(0.9) * np.eye(8)])
+    assert np.real(np.trace(state.rep_data.data)) == pytest.approx(0.9)
+    target = QuantumState(
+        get_clifford_tableau_from_graph(nx.path_graph(3)), rep_type="s"
+    )
+
+    with pytest.raises(ValueError, match="mixed=True"):
+        Infidelity(target=target).evaluate(state, None)
+
+
 def test_trace_distance_stabilizer_state_against_its_own_density_matrix_is_zero():
     # TraceDistance.evaluate only compares density matrices; a stabilizer-represented state is
     # converted to "dm" on the fly (a copy, so the original state is left untouched).

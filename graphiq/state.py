@@ -355,7 +355,7 @@ class QuantumState:
 
         :param rep: density matrix representation
         :type rep: DensityMatrix
-        :raises ValueError: if the state is mixed but self.mixed is False
+        :raises ValueError: if the state is mixed, or its trace is not close to 1, but self.mixed is False
         :return: stabilizer representation
         :rtype: Stabilizer or MixedStabilizer
         """
@@ -368,10 +368,11 @@ class QuantumState:
 
             new_rep = MixedStabilizer(new_tab_list)
         else:
-            if len(new_data) != 1:
+            if len(new_data) != 1 or not np.isclose(new_data[0][0], 1.0):
                 raise ValueError(
-                    "Cannot convert a mixed density matrix to a stabilizer state with "
-                    "mixed=False; create the QuantumState with mixed=True"
+                    "Cannot convert a mixed density matrix, or one whose trace is not close "
+                    "to 1, to a stabilizer state with mixed=False; create the QuantumState "
+                    "with mixed=True"
                 )
             new_tableau = CliffordTableau(new_data[0][1])
             new_rep = Stabilizer(new_tableau)

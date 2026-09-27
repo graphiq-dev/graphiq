@@ -348,6 +348,35 @@ def test_mixed_density_matrix_state_not_marked_mixed_is_not_converted_to_one_bra
         state.convert_representation("s")
 
 
+def _lossy_path3_state(mixed):
+    state = QuantumState(
+        rc.graph_to_density(nx.path_graph(3)), rep_type="dm", mixed=mixed
+    )
+    # lose 0.1 in place; building the state from 0.9 * rho would renormalise it
+    state.rep_data.apply_channel([np.sqrt(0.9) * np.eye(8)])
+    assert np.real(np.trace(state.rep_data.data)) == pytest.approx(0.9)
+    return state
+
+
+def test_subnormalised_density_matrix_state_not_marked_mixed_is_not_converted():
+    # A Stabilizer holds one tableau and no weight, so converting would drop the 0.9 and
+    # leave the lossless state.
+    state = _lossy_path3_state(mixed=False)
+
+    with pytest.raises(ValueError, match="mixed=True"):
+        state.convert_representation("s")
+
+
+def test_subnormalised_density_matrix_state_marked_mixed_keeps_its_weight():
+    state = _lossy_path3_state(mixed=True)
+
+    state.convert_representation("s")
+
+    assert isinstance(state.rep_data, MixedStabilizer)
+    assert len(state.rep_data.mixture) == 1
+    assert state.rep_data.mixture[0][0] == pytest.approx(0.9)
+
+
 def test_density_to_stabilizer_rejects_a_mixture_of_non_orthogonal_graph_states():
     # The empty and edge graphs are the only 2-qubit graph states, and they are not
     # orthogonal, so no eigenvector of their mixture is a graph state.

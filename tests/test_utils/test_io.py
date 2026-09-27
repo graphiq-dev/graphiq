@@ -12,6 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import builtins
 import datetime
 
 import matplotlib.pyplot as plt
@@ -19,6 +20,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
+import graphiq.io
 from graphiq.io import IO
 
 
@@ -57,6 +59,24 @@ def test_save_and_load_txt_round_trip(tmp_path):
     io = IO(path=str(tmp_path), verbose=False)
     io.save_txt("hello world", "data.txt")
     assert io.load_txt("data.txt") == "hello world"
+
+
+def test_load_txt_closes_its_file(tmp_path, monkeypatch):
+    io = IO(path=str(tmp_path), verbose=False)
+    io.save_txt("hello world", "data.txt")
+    opened = []
+
+    def recording_open(*args, **kwargs):
+        file = builtins.open(*args, **kwargs)
+        opened.append(file)
+        return file
+
+    # a module global shadows the builtin inside graphiq/io.py only; the list
+    # keeps each file alive, so only an explicit close can close it
+    monkeypatch.setattr(graphiq.io, "open", recording_open, raising=False)
+    assert io.load_txt("data.txt") == "hello world"
+    assert len(opened) == 1
+    assert opened[0].closed
 
 
 def test_save_and_load_dataframe_round_trip(tmp_path):

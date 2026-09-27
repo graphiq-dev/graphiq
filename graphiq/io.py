@@ -336,6 +336,6 @@ class IO:
         :return: the contents of the file
         :rtype: str
         """
-        f = open(path, "r")
-        data = f.read()
+        with open(path, "r") as f:
+            data = f.read()
         return data

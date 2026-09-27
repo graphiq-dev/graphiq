@@ -741,6 +741,7 @@ def LC_scaling_known(result, dir_path: str, graph_class: str, n_lc_list=None):
     df_cnot = pd.DataFrame((c_means, c_stds))
     df_depth = pd.DataFrame((d_means, d_stds))
 
+    os.makedirs(os.path.join(dir_path, graph_class), exist_ok=True)
     output_path1 = os.path.join(os.path.join(dir_path, graph_class), "bwCNOT.csv")
     df_cnot.to_csv(output_path1, index=False, header=False)
     output_path2 = os.path.join(os.path.join(dir_path, graph_class), "bwDepth.csv")

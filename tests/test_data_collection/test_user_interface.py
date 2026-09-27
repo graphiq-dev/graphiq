@@ -15,11 +15,15 @@
 import json
 
 import networkx as nx
+import numpy as np
+import pandas as pd
 
 import graphiq.circuit.ops as ops
+from graphiq.benchmarks.circuits import ghz3_state_circuit
 from graphiq.circuit.circuit_dag import CircuitDAG
 from graphiq.data_collection.correlation_module import graph_to_circ, graph_to_cnot
 from graphiq.data_collection.user_interface import (
+    LC_scaling_known,
     find_best,
     plot_map_based,
     result_maker,
@@ -105,3 +109,23 @@ def test_rgs_analysis_creates_its_save_directory(tmp_path, monkeypatch):
 
     saved = json.loads((tmp_path / "RGS" / "run" / "run.json").read_text())
     assert saved["n_cnots"] == [graph_to_cnot(graph)]
+
+
+def test_lc_scaling_known_creates_its_save_directory(tmp_path):
+    circuit, _ = ghz3_state_circuit()
+    result = SolverResult([circuit] * 3, ["n_cnots", "max_emit_eff_depth"])
+    result["n_cnots"] = [1, 2, 4]
+    result["max_emit_eff_depth"] = [3, 5, 6]
+    np.random.seed(0)
+
+    c_means, c_stds, d_means, d_stds = LC_scaling_known(
+        result, str(tmp_path), "cls", n_lc_list=[1, 2]
+    )
+
+    # the files hold the returned statistics, whatever the random draws were
+    assert (tmp_path / "cls" / "bwCNOT.csv").read_text() == pd.DataFrame(
+        (c_means, c_stds)
+    ).to_csv(index=False, header=False)
+    assert (tmp_path / "cls" / "bwDepth.csv").read_text() == pd.DataFrame(
+        (d_means, d_stds)
+    ).to_csv(index=False, header=False)

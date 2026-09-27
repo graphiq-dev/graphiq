@@ -326,9 +326,12 @@ for i in range(len(result)):
     index_map_dict[tuple(result["map"][i].items())].append(i)
 
 
-def plot_map_based():
+def plot_map_based(result):
+    index_map_dict = {}
+    for i in range(len(result)):
+        index_map_dict.setdefault(tuple(result["map"][i].items()), []).append(i)
     for i, index_list in enumerate(index_map_dict.values()):
-        plot_figs(indices=index_list, dir_name=f"map_{i}_len{len(index_list)}")
+        plot_figs(result, indices=index_list, dir_name=f"map_{i}_len{len(index_list)}")
 
 
 def plot_graphs(result):

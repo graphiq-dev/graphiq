@@ -19,7 +19,12 @@ import networkx as nx
 import graphiq.circuit.ops as ops
 from graphiq.circuit.circuit_dag import CircuitDAG
 from graphiq.data_collection.correlation_module import graph_to_circ, graph_to_cnot
-from graphiq.data_collection.user_interface import find_best, result_maker, rgs_analysis
+from graphiq.data_collection.user_interface import (
+    find_best,
+    plot_map_based,
+    result_maker,
+    rgs_analysis,
+)
 from graphiq.metrics import CircuitUnitaryCount
 from graphiq.solvers.solver_result import SolverResult
 
@@ -35,6 +40,27 @@ def test_result_maker_counts_each_one_qubit_gate_once():
 
     assert result["n_unitary"] == [5]
     assert result["n_unitary"][0] == CircuitUnitaryCount().evaluate(None, circuit)
+
+
+def test_plot_map_based_plots_each_relabel_map_group(monkeypatch):
+    calls = []
+
+    def record(result, indices=None, dir_name="new", **kwargs):
+        calls.append((result, indices, dir_name))
+
+    monkeypatch.setattr("graphiq.data_collection.user_interface.plot_figs", record)
+    # the shape get_relabel_map returns for an unchanged labelling
+    identity = {-1: "self", 0: 0, 1: 1}
+    result = SolverResult([None, None, None], ["map"])
+    result["map"] = [identity, {0: 1, 1: 0}, dict(identity)]
+
+    plot_map_based(result)
+
+    assert [(c[1], c[2]) for c in calls] == [
+        ([0, 2], "map_0_len2"),
+        ([1], "map_1_len1"),
+    ]
+    assert all(c[0] is result for c in calls)
 
 
 def test_find_best_without_dir_path_returns_results_and_writes_nothing(

@@ -288,7 +288,7 @@ class OpenQASMParser:
             "name": creg_node.name,
         }
         if hasattr(creg_node, "index"):
-            measure_info["creg"]["index"] = qreg_node.index
+            measure_info["creg"]["index"] = creg_node.index
 
         return measure_info
 

@@ -45,7 +45,7 @@ classifiers = [
   "Development Status :: 4 - Beta",
 
   # Indicate who your project is intended for
-  "Intended Audience :: Science/Research ",
+  "Intended Audience :: Science/Research",
   "Topic :: Scientific/Engineering :: Physics",
   "Topic :: Security :: Cryptography",
   "Topic :: Scientific/Engineering :: Information Analysis",

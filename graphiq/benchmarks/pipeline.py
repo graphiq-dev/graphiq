@@ -111,7 +111,9 @@ def benchmark_run(run: dict, name: str, io: IO):
 
     t0 = time.time()
     run["solver"].io = io
-    run["solver"].save_openqasm = "both"
+    # save_openqasm is a setting; a solver without a setting saves no openQASM
+    if hasattr(run["solver"], "setting"):
+        run["solver"].setting.save_openqasm = "both"
     run["solver"].solve()
     t1 = time.time()
 

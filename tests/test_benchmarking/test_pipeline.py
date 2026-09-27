@@ -12,7 +12,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import json
+
 import graphiq.noise.monte_carlo_noise as mcn
+from graphiq.backends.density_matrix.compiler import DensityMatrixCompiler
 from graphiq.backends.stabilizer.compiler import StabilizerCompiler
 from graphiq.backends.stabilizer.functions.rep_conversion import (
     get_clifford_tableau_from_graph,
@@ -23,9 +26,14 @@ from graphiq.solvers.alternate_target_solver import (
     AlternateTargetSolverSetting,
     AlternateTargetSolver,
 )
+from graphiq.solvers.evolutionary_solver import (
+    EvolutionarySolver,
+    EvolutionarySolverSetting,
+)
 from graphiq.state import QuantumState
+from graphiq.benchmarks.circuits import linear_cluster_3qubit_circuit
 from graphiq.benchmarks.graph_states import linear_cluster_state
-from graphiq.benchmarks.pipeline import benchmark_run_graph_search_solver
+from graphiq.benchmarks.pipeline import benchmark_run, benchmark_run_graph_search_solver
 
 
 def test_benchmark_run_graph_search_solver():
@@ -111,3 +119,30 @@ def test_benchmark_run_records_metric_name(monkeypatch, tmp_path):
 
     assert d["compiler"] == "StabilizerCompiler"
     assert d["metric"] == "Infidelity"
+
+
+def test_benchmark_run_saves_the_population_and_hof_as_openqasm(tmp_path):
+    circuit, target = linear_cluster_3qubit_circuit()
+    compiler = DensityMatrixCompiler()
+    metric = Infidelity(target)
+    # n_pop >= n_hof, so every hall-of-fame slot is filled from the first iteration
+    setting = EvolutionarySolverSetting(n_stop=2, n_pop=3, n_hof=2)
+    solver = EvolutionarySolver(
+        target=target,
+        metric=metric,
+        compiler=compiler,
+        n_emitter=circuit.n_emitters,
+        n_photon=circuit.n_photons,
+        solver_setting=setting,
+    )
+    solver.seed(0)
+    run = dict(solver=solver, target=target, compiler=compiler, metric=metric)
+
+    benchmark_run(run, "run0", IO(path=tmp_path, verbose=False))
+
+    saved = {p.relative_to(tmp_path).as_posix() for p in tmp_path.rglob("*.txt")}
+    assert saved == {
+        f"pop/iteration{i}_pop{j}.txt" for i in range(2) for j in range(3)
+    } | {f"hof/iteration{i}_hof{j}.txt" for i in range(2) for j in range(2)}
+    best = json.loads((tmp_path / "hof" / "iteration1_hof0.txt").read_text())
+    assert best == solver.hof[0][1].to_openqasm()

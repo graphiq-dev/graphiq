@@ -146,3 +146,11 @@ def test_rnd_graph_with_a_seed_keeps_a_connected_first_draw():
     for s in seeds:
         expected = nx.gnp_random_graph(n, p, seed=s)
         assert sorted(rnd_graph(n, p, seed=s).edges()) == sorted(expected.edges())
+
+
+def test_cnot_per_photon_divides_the_cnot_count_by_the_number_of_photons():
+    graph = nx.cycle_graph(6)
+    n_cnot = graph_to_cnot(graph)
+    assert n_cnot > 0
+    corr = GraphCorr(circ_metric="cnot_per_photon", graph_list=[graph])
+    assert corr._circ_met_value(graph) == pytest.approx(n_cnot / 6)

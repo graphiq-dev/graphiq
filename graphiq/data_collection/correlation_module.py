@@ -669,7 +669,7 @@ class GraphCorr:
         elif self.circ_metric == "cnot":
             circ_value = graph_to_cnot(graph=g)
         elif self.circ_metric == "cnot_per_photon":
-            circ_value = graph_to_cnot(graph=g) / len([g_temp])
+            circ_value = graph_to_cnot(graph=g) / g_temp.number_of_nodes()
         elif self.circ_metric == "cnot_per_emitter":
             circ_value = graph_to_cnot(graph=g) / height_max(graph=g_temp)
         else:

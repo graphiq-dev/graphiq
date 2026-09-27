@@ -514,7 +514,8 @@ class CircuitDAG(CircuitBase):
 
         :param show: if True, the DAG is displayed (shown). If False, the DAG is drawn but not displayed
         :type show: bool
-        :param fig: fig on which to draw the DAG (optional)
+        :param fig: fig on which to draw the DAG (optional); without ax, the DAG is drawn on fig's current axes,
+            which is created if fig has none
         :type fig: None or matplotlib.pyplot.figure
         :param ax: ax on which to draw the DAG (optional)
         :type ax: None or matplotlib.pyplot.axes
@@ -525,7 +526,10 @@ class CircuitDAG(CircuitBase):
         pos = dag_topology_pos(self.dag, method="topology")
 
         if ax is None:
-            fig, ax = plt.subplots()
+            if fig is None:
+                fig, ax = plt.subplots()
+            else:
+                ax = fig.gca()
         elif fig is None:
             # ax.figure is a SubFigure when ax sits in one; its .figure is the root Figure.
             fig = ax.figure.figure

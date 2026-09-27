@@ -867,3 +867,37 @@ def test_draw_dag_returns_the_root_figure_for_an_ax_in_a_subfigure():
         assert len(plt.get_fignums()) == n_figures
     finally:
         plt.close("all")
+
+
+def test_draw_dag_draws_on_the_fig_it_is_given_without_an_ax():
+    dag = _one_hadamard_dag()
+    fig0 = plt.figure()
+    other = plt.figure()  # the pyplot-current figure, which draw_dag should leave alone
+    try:
+        n_figures = len(plt.get_fignums())
+        fig, ax = dag.draw_dag(show=False, fig=fig0)
+        assert fig is fig0
+        assert fig0.axes == [ax]
+        assert len(ax.collections) > 0
+        assert other.axes == []
+        assert len(plt.get_fignums()) == n_figures
+    finally:
+        plt.close("all")
+
+
+def test_draw_dag_draws_on_the_current_axes_of_a_fig_given_without_an_ax():
+    dag = _one_hadamard_dag()
+    fig0, (ax_left, ax_middle, ax_right) = plt.subplots(1, 3)
+    try:
+        fig0.sca(ax_middle)
+        n_figures = len(plt.get_fignums())
+        fig, ax = dag.draw_dag(show=False, fig=fig0)
+        assert fig is fig0
+        assert ax is ax_middle
+        assert fig0.axes == [ax_left, ax_middle, ax_right]
+        assert len(ax_middle.collections) > 0
+        assert len(ax_left.collections) == 0
+        assert len(ax_right.collections) == 0
+        assert len(plt.get_fignums()) == n_figures
+    finally:
+        plt.close("all")

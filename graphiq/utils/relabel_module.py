@@ -475,14 +475,14 @@ def linear_partial_orbit(graph: nx.Graph):
     """
     Takes a linear cluster state, and returns a list of distinct graphs in the orbit. Not exhaustive.
     The first graph in the list is the original graph state.
-    :param graph: original graph, a path that runs through its nodes in iteration order (the first node in
-        iteration order is one end, the next is its neighbour, and so on); node labels are never read. On a path
-        in another order the graphs are still in its LC orbit, but the first need not be the original and they
-        need not be distinct
+    :param graph: original graph, a path (linear graph) whose nodes may come in any iteration order and carry any
+        labels; the local complementations are applied along the path, from whichever end comes first in graph's
+        node iteration order
     :type graph: nx.Graph
+    :raises AssertionError: if graph is not a path on at least 3 nodes
     :return: a list of graphs in the LC orbit of the linear cluster state, labelled 0..n-1 by position in graph's
-        iteration order, so the first is literally the original graph only when graph's labels are already 0..n-1
-        in iteration order
+        iteration order, so the first is the original graph relabelled that way (literally the original graph when
+        graph's labels are already 0..n-1 in iteration order)
     :rtype: list
     """
     orbit_list = []
@@ -491,12 +491,18 @@ def linear_partial_orbit(graph: nx.Graph):
     # check that graph is linear
     degrees = [degree for _, degree in g.degree()]
     assert (
-        n - 1 == graph.size() and max(degrees) == 2
+        n - 1 == graph.size() and max(degrees) == 2 and nx.is_connected(g)
     ), "input graph is not a linear graph"
+    # _partial_orbit indexes nodes along the path, but local_comp_graph reads positions in
+    # iteration order, so map each path index to the position of that node, walking the path
+    # from the end that comes first in iteration order
+    position = {node: i for i, node in enumerate(g)}
+    start = next(node for node in g if g.degree(node) == 1)
+    path = [position[node] for node in nx.dfs_preorder_nodes(g, start)]
     for lc_ops in _partial_orbit(n):
         new_g = g
         for x in lc_ops:
-            new_g = local_comp_graph(new_g, x)
+            new_g = local_comp_graph(new_g, path[x])
         orbit_list.append(new_g)
     return orbit_list
 

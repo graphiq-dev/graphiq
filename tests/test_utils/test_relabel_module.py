@@ -19,10 +19,15 @@ import networkx as nx
 import numpy as np
 import pytest
 
+from graphiq.backends.lc_equivalence_check import local_comp_graph
 from graphiq.backends.stabilizer.functions.height import height_max
 from graphiq.benchmarks.graph_states import linear_cluster_state
 from graphiq.utils.relabel_module import *
-from graphiq.utils.relabel_module import _compare_graphs_visual, _label_finder
+from graphiq.utils.relabel_module import (
+    _compare_graphs_visual,
+    _label_finder,
+    _partial_orbit,
+)
 
 
 def random_connected_graph(n, p, seed=None):
@@ -187,3 +192,80 @@ def test_compare_graphs_visual_rejects_repeated_labels(monkeypatch):
             _compare_graphs_visual(g, new_g, new_labels)
     finally:
         plt.close("all")
+
+
+def _edge_set(g):
+    return {frozenset(e) for e in g.edges}
+
+
+def _path_in_order(order, nodes=None):
+    # nodes are inserted in sorted order (or as given), then the edges run along order
+    g = nx.Graph()
+    g.add_nodes_from(sorted(order) if nodes is None else nodes)
+    g.add_edges_from(zip(order, order[1:]))
+    return g
+
+
+@pytest.mark.parametrize(
+    "order", [[1, 0, 2, 3], [0, 2, 1, 4, 3], [2, 0, 4, 1, 5, 3], [3, 6, 0, 5, 1, 4, 2]]
+)
+def test_linear_partial_orbit_follows_a_path_not_in_iteration_order(order):
+    g = _path_in_order(order)
+    orbit = linear_partial_orbit(g)
+    assert len(orbit) == len(_partial_orbit(len(g)))
+    assert _edge_set(orbit[0]) == _edge_set(g)
+    assert len({frozenset(_edge_set(h)) for h in orbit}) == len(orbit)
+    for i, a in enumerate(orbit):
+        for b in orbit[:i]:
+            assert not nx.is_isomorphic(a, b)
+
+
+@pytest.mark.parametrize(
+    "order", [[1, 0, 2, 3], [2, 0, 4, 1, 5, 3], [3, 6, 0, 5, 1, 4, 2]]
+)
+def test_linear_partial_orbit_matches_the_in_order_orbit_carried_along_the_path(order):
+    # the reference applies _partial_orbit's sequences to the path 0-1-...-(n-1) and
+    # carries the result onto the path walked from the end that comes first in
+    # iteration order
+    n = len(order)
+    reference = []
+    for lc_ops in _partial_orbit(n):
+        r = nx.path_graph(n)
+        for x in lc_ops:
+            r = local_comp_graph(r, x)
+        reference.append(r)
+    walk = order if order[0] < order[-1] else order[::-1]
+    orbit = linear_partial_orbit(_path_in_order(order))
+    assert [_edge_set(h) for h in orbit] == [
+        _edge_set(nx.relabel_nodes(r, dict(enumerate(walk)))) for r in reference
+    ]
+
+
+def test_linear_partial_orbit_labels_by_position_for_other_labels():
+    nodes = ["c", "a", "d", "b"]
+    # the path a-c-d-b runs through positions 1-0-2-3
+    g = _path_in_order(["a", "c", "d", "b"], nodes)
+    orbit = linear_partial_orbit(g)
+    assert list(orbit[0].nodes) == [0, 1, 2, 3]
+    assert _edge_set(orbit[0]) == _edge_set(
+        nx.relabel_nodes(g, {v: i for i, v in enumerate(nodes)})
+    )
+
+
+def test_linear_partial_orbit_in_order_path_is_unchanged():
+    orbit = linear_partial_orbit(nx.path_graph(5))
+    assert [sorted(tuple(sorted(e)) for e in h.edges) for h in orbit] == [
+        [(0, 1), (1, 2), (2, 3), (3, 4)],
+        [(0, 1), (0, 2), (1, 2), (2, 3), (3, 4)],
+        [(0, 2), (0, 3), (1, 2), (1, 3), (2, 3), (3, 4)],
+        [(0, 2), (0, 3), (1, 2), (1, 3), (3, 4)],
+        [(0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (3, 4)],
+        [(0, 1), (0, 2), (0, 3), (2, 3), (3, 4)],
+    ]
+
+
+def test_linear_partial_orbit_rejects_a_path_plus_a_cycle():
+    # n - 1 edges and maximum degree 2, but not connected
+    g = nx.Graph([(0, 1), (1, 2), (2, 3), (4, 5), (5, 6), (6, 4)])
+    with pytest.raises(AssertionError, match="not a linear graph"):
+        linear_partial_orbit(g)

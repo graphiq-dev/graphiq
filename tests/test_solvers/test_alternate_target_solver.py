@@ -18,7 +18,11 @@ from graphiq.backends.stabilizer.clifford_tableau import CliffordTableau
 from graphiq.backends.stabilizer.functions.transformation import run_circuit
 from graphiq.benchmarks.graph_states import linear_cluster_state
 from graphiq.solvers.alternate_target_solver import *
-from graphiq.utils.relabel_module import _label_finder, automorph_check
+from graphiq.utils.relabel_module import (
+    _label_finder,
+    _partial_orbit,
+    automorph_check,
+)
 
 linear_cluster = nx.from_numpy_array(nx.to_numpy_array(linear_cluster_state(4).data))
 
@@ -198,6 +202,21 @@ def test_allow_relabel_false_searches_only_the_given_labelling():
     for _, properties in results:
         # get_relabel_map also carries a -1 "self" key, so identity is over range(n)
         assert {i: properties["map"][i] for i in range(n)} == {i: i for i in range(n)}
+
+
+def test_linear_lc_method_on_a_path_not_in_iteration_order():
+    # nodes 0..5 inserted in order, path 2-0-4-1-5-3
+    order = [2, 0, 4, 1, 5, 3]
+    target = nx.Graph()
+    target.add_nodes_from(range(6))
+    target.add_edges_from(zip(order, order[1:]))
+    setting = AlternateTargetSolverSetting(n_iso_graphs=1, n_lc_graphs=10)
+    setting.allow_relabel = False
+    setting.lc_method = "linear"
+    solver = AlternateTargetSolver(target=target, solver_setting=setting, seed=1)
+    results = solver.solve()
+    candidates = {frozenset(map(frozenset, r[1]["g"].edges())) for r in results}
+    assert len(candidates) == len(_partial_orbit(6))
 
 
 def test_allow_lc_false_keeps_the_isomorphic_graph_unchanged():

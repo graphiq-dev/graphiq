@@ -17,7 +17,11 @@ import numpy as np
 import pytest
 from mpl_toolkits.mplot3d import Axes3D
 
-from graphiq.visualizers.density_matrix import cmap_div, density_matrix_bars
+from graphiq.visualizers.density_matrix import (
+    cmap_div,
+    density_matrix_bars,
+    density_matrix_heatmap,
+)
 
 # Row-major entries 0.4, -0.1, -0.4, 0. The largest magnitude is 0.4, so the real
 # panel's range is [-0.5, 0.5] and entry x sits at 0.5 + x on the colour map.
@@ -78,3 +82,57 @@ def test_bar_alpha_is_unchanged(bar_colours):
         real[:, 3], 1 - 0.5 * np.abs([0.4, -0.1, -0.4, 0.0]) / 0.5
     )
     np.testing.assert_array_equal(imag[:, 3], np.ones(4))
+
+
+def test_heatmap_returns_the_figure_of_the_axes_it_is_given():
+    fig, axs = plt.subplots(nrows=1, ncols=2)
+    try:
+        returned_fig, returned_axs = density_matrix_heatmap(RHO, axs=axs)
+        assert returned_fig is fig
+        assert returned_axs is axs
+    finally:
+        plt.close(fig)
+
+
+def test_heatmap_given_a_tuple_of_axes_returns_their_figure_and_the_tuple():
+    fig, axs = plt.subplots(nrows=1, ncols=2)
+    axs = tuple(axs)
+    try:
+        returned_fig, returned_axs = density_matrix_heatmap(RHO, axs=axs)
+        assert returned_fig is fig
+        assert returned_axs is axs
+    finally:
+        plt.close(fig)
+
+
+def test_heatmap_given_axes_in_a_subfigure_returns_the_root_figure():
+    fig = plt.figure()
+    axs = fig.subfigures(1, 1).subplots(1, 2)
+    try:
+        returned_fig, _ = density_matrix_heatmap(RHO, axs=axs)
+        assert returned_fig is fig
+    finally:
+        plt.close(fig)
+
+
+def test_heatmap_given_axes_from_two_figures_returns_the_first_axes_figure():
+    fig_real, ax_real = plt.subplots()
+    fig_imag, ax_imag = plt.subplots()
+    try:
+        returned_fig, _ = density_matrix_heatmap(RHO, axs=[ax_real, ax_imag])
+        assert returned_fig is fig_real
+        # the imaginary heatmap is still drawn there
+        assert len(ax_imag.collections) == 1
+    finally:
+        plt.close(fig_real)
+        plt.close(fig_imag)
+
+
+def test_heatmap_without_axes_still_opens_a_new_two_panel_figure():
+    before = set(plt.get_fignums())
+    fig, axs = density_matrix_heatmap(RHO)
+    try:
+        assert fig.number not in before
+        assert [ax.figure for ax in axs] == [fig, fig]
+    finally:
+        plt.close(fig)

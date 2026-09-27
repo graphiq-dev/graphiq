@@ -30,15 +30,17 @@ def density_matrix_heatmap(rho, axs=None):
 
     :param rho: a complex numpy array representing the density matrix
     :type rho: numpy.ndarray
-    :param axs: axis to plot on
-    :type axs: plt.Axis
-    :return: fig (figure handle), axs (list of axes handles)
+    :param axs: two axes to plot on, the real part on axs[0] and the imaginary part on axs[1] (optional);
+        when given, the returned figure is axs[0]'s root figure
+    :type axs: sequence of two matplotlib.Axes
+    :return: fig (figure handle), axs (the axes plotted on)
     :rtype: matplotlib.Figure, matplotlib.Axes
     """
     if axs is None:
         fig, axs = plt.subplots(nrows=1, ncols=2, figsize=[10, 4])
     else:
-        fig = None
+        # axs[0].figure is a SubFigure when the axes sit in one; its .figure is the root Figure.
+        fig = axs[0].figure.figure
 
     kwargs = dict(vmin=-1, vmax=1, cmap=cmap_div, linewidths=0.5, square=True)
     axs[0].set(title="Real")

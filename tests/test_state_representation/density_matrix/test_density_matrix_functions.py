@@ -228,3 +228,66 @@ def test_fidelity_still_raises_above_one(monkeypatch):
 
     with pytest.raises(Warning):
         fidelity(np.diag([0.7, 0.3]), np.diag([0.5, 0.5]))
+
+
+def _elementwise_partial_transpose(rho, dim1, dim2, subsys):
+    # the definition: with row index (i, j) and column index (k, l), transposing
+    # subsystem 0 exchanges i and k, and transposing subsystem 1 exchanges j and l
+    out = np.zeros_like(rho)
+    for i in range(dim1):
+        for j in range(dim2):
+            for k in range(dim1):
+                for l in range(dim2):
+                    if subsys == 0:
+                        out[k * dim2 + j, i * dim2 + l] = rho[
+                            i * dim2 + j, k * dim2 + l
+                        ]
+                    else:
+                        out[i * dim2 + l, k * dim2 + j] = rho[
+                            i * dim2 + j, k * dim2 + l
+                        ]
+    return out
+
+
+@pytest.mark.parametrize("subsys", [0, 1])
+@pytest.mark.parametrize("dim1, dim2", [(2, 2), (3, 3), (2, 3), (3, 2), (2, 4), (4, 2)])
+def test_bipartite_partial_transpose_matches_the_elementwise_definition(
+    dim1, dim2, subsys
+):
+    rng = np.random.default_rng(0)
+    a = rng.normal(size=(dim1 * dim2, dim1 * dim2)) + 1j * rng.normal(
+        size=(dim1 * dim2, dim1 * dim2)
+    )
+    rho = a @ a.conj().T
+    rho = rho / np.trace(rho)
+
+    assert np.allclose(
+        bipartite_partial_transpose(rho, dim1, dim2, subsys),
+        _elementwise_partial_transpose(rho, dim1, dim2, subsys),
+    )
+
+
+def test_bipartite_partial_transpose_of_a_product_transposes_one_factor():
+    rng = np.random.default_rng(1)
+    a = rng.normal(size=(2, 2))
+    b = rng.normal(size=(3, 3))
+
+    assert np.allclose(
+        bipartite_partial_transpose(np.kron(a, b), 2, 3, 0), np.kron(a.T, b)
+    )
+    assert np.allclose(
+        bipartite_partial_transpose(np.kron(a, b), 2, 3, 1), np.kron(a, b.T)
+    )
+
+
+def test_negativity_with_unequal_dimensions():
+    # a Bell pair on qubits 0 and 1, with qubit 2 in |0>, split as qubit 0 | qubits 1, 2
+    bell = np.array([1, 0, 0, 1]) / np.sqrt(2)
+    state = np.kron(bell, np.array([1, 0]))
+    assert np.isclose(negativity(np.outer(state, state.conj()), 2, 4), 0.5)
+
+    # a product state across the same 2 | 4 split has no negativity
+    plus = np.array([1, 1]) / np.sqrt(2)
+    phi = np.array([1, 0, 1j, 0]) / np.sqrt(2)
+    product = np.kron(np.outer(plus, plus.conj()), np.outer(phi, phi.conj()))
+    assert np.isclose(negativity(product, 2, 4), 0, atol=1e-12)

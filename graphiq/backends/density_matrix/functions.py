@@ -728,7 +728,7 @@ def bipartite_partial_transpose(rho, dim1, dim2, subsys):
     )
 
     rho_pt = (
-        rho.reshape(np.array([dim1, dim1, dim2, dim2]))
+        rho.reshape(np.array([dim1, dim2, dim1, dim2]))
         .transpose(pt_index)
         .reshape(rho.shape)
     )

@@ -162,7 +162,9 @@ class HybridEvolutionarySolver(EvolutionarySolver):
         )
         deterministic_solver.noise_simulation = False
         deterministic_solver.solve()
-        self.compiler.noise_simulation = True
+        # the deterministic solve set the shared compiler's flag to False; restore
+        # the one solve() chose from noise_model_mapping for the search
+        self.compiler.noise_simulation = self.noise_simulation
         _, ideal_circuit = deterministic_solver.result
         population = []
         for j in range(self.setting.n_pop):

@@ -209,3 +209,69 @@ def test_a_graph_target_with_the_stabilizer_compiler_still_solves():
     assert [score for score, _ in solver.hof] == pytest.approx(
         [0.5, 0.5, 0.75, 0.75, 0.75]
     )
+
+
+def _path3_hybrid(noise_model_mapping=None):
+    target = QuantumState(
+        get_clifford_tableau_from_graph(nx.path_graph(3)), rep_type="s"
+    )
+    compiler = StabilizerCompiler()
+    solver = HybridEvolutionarySolver(
+        target=target,
+        metric=Infidelity(target),
+        compiler=compiler,
+        noise_model_mapping=noise_model_mapping,
+        solver_setting=EvolutionarySolverSetting(n_stop=2, n_pop=2),
+    )
+    return solver, compiler
+
+
+def _record_search_compiles(solver, compiler, monkeypatch):
+    # record the `mixed` flag of every state compiled after the population is
+    # initialised; the deterministic solve that seeds it compiles first
+    recorded = []
+    initialize = solver.population_initialization
+    compile_ = compiler.compile
+
+    def recording_compile(circuit, initial_state=None):
+        state = compile_(circuit, initial_state)
+        recorded.append(state.mixed)
+        return state
+
+    def initialize_then_record():
+        population = initialize()
+        monkeypatch.setattr(compiler, "compile", recording_compile)
+        return population
+
+    monkeypatch.setattr(solver, "population_initialization", initialize_then_record)
+    return recorded
+
+
+def test_hybrid_without_noise_leaves_the_compiler_noise_free():
+    solver, compiler = _path3_hybrid()
+    HybridEvolutionarySolver.seed(0)
+    solver.solve()
+    assert solver.noise_simulation is False
+    assert compiler.noise_simulation is False
+    assert compiler.compile(solver.result[1]).mixed is False
+
+
+def test_hybrid_without_noise_searches_with_noise_free_compiles(monkeypatch):
+    solver, compiler = _path3_hybrid()
+    recorded = _record_search_compiles(solver, compiler, monkeypatch)
+    HybridEvolutionarySolver.seed(0)
+    solver.solve()
+    assert recorded
+    assert not any(recorded)
+
+
+def test_hybrid_with_a_noise_mapping_still_simulates_noise(monkeypatch):
+    solver, compiler = _path3_hybrid(
+        noise_model_mapping={"e": {}, "p": {}, "ee": {}, "ep": {}}
+    )
+    recorded = _record_search_compiles(solver, compiler, monkeypatch)
+    HybridEvolutionarySolver.seed(0)
+    solver.solve()
+    assert solver.noise_simulation is True
+    assert recorded
+    assert all(recorded)

@@ -277,6 +277,37 @@ def test_circuit_max_emit_eff_depth_diverges_from_reset_depth_with_cross_registe
     assert CircuitMaxEmitEffDepth().evaluate(None, circuit) == 8
 
 
+def _circuit_without_emitters():
+    circuit = _emitter_circuit(0, n_photon=2)
+    circuit.add(ops.Hadamard(register=0, reg_type="p"))
+    circuit.add(ops.CNOT(control=0, control_type="p", target=1, target_type="p"))
+    return circuit
+
+
+_EMITTER_DEPTH_METRICS = [
+    CircuitMaxEmitDepth,
+    CircuitMaxEmitResetDepth,
+    CircuitMaxEmitEffDepth,
+]
+
+
+@pytest.mark.parametrize("metric_class", _EMITTER_DEPTH_METRICS)
+def test_emitter_depth_metrics_on_a_circuit_without_emitters(metric_class):
+    assert metric_class().evaluate(None, _circuit_without_emitters()) == 0
+
+
+def test_emitter_depth_metrics_by_name_on_a_circuit_without_emitters():
+    metrics = Metrics([m.__name__ for m in _EMITTER_DEPTH_METRICS])
+    assert metrics.evaluate(None, _circuit_without_emitters()) == 0.0
+
+
+@pytest.mark.parametrize("metric_class", _EMITTER_DEPTH_METRICS)
+def test_emitter_depth_penalty_applies_without_emitters(metric_class):
+    metric = metric_class(depth_penalty=lambda d: d + 100)
+    assert metric.evaluate(None, _circuit_without_emitters()) == 100
+    assert metric.log == [100]
+
+
 @pytest.fixture
 def path_graph():
     # 0 - 1 - 2 - 3, a simple, hand-checkable graph

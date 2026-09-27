@@ -495,7 +495,7 @@ class CircuitMaxEmitDepth(MetricBase):
         e_depth = {}
         for e_i in range(c.n_emitters):
             e_depth[e_i] = len(c.reg_gate_history(reg=e_i)[1]) - 2
-        depth = max(e_depth.values())
+        depth = max(e_depth.values(), default=0)
         val = self.depth_penalty(depth)
         self.increment()
 
@@ -559,7 +559,7 @@ class CircuitMaxEmitResetDepth(MetricBase):
                 m_list[j + 1] - m_list[j] for j in range(len(m_list) - 1)
             ]
             reset_depths[e_i] = max(reset_intervals)
-        depth = max(reset_depths.values())
+        depth = max(reset_depths.values(), default=0)
         val = self.depth_penalty(depth)
         self.increment()
 
@@ -625,7 +625,7 @@ class CircuitMaxEmitEffDepth(MetricBase):
                 for j in range(len(node_list) - 1)
             ]
             eff_depth[e_i] = max(depth_diff)
-        depth = max(eff_depth.values())
+        depth = max(eff_depth.values(), default=0)
         val = self.depth_penalty(depth)
         self.increment()
 

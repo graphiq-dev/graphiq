@@ -104,7 +104,7 @@ class QuantumState:
         :type mixed: boolean
         :raises TypeError: if validate_data rejects data
         :raises AssertionError: if data is a non-square numpy.ndarray, or if the initialized
-            representation does not have the expected number of qubits
+            representation does not have the number of qubits validate_data reports for data
         :raises ValueError: if rep_type is not a supported representation name, or if rep_type is None
             and no representation can be chosen for data (including a numpy.ndarray with too many qubits
             for the density matrix)
@@ -114,7 +114,7 @@ class QuantumState:
 
         self.mixed = mixed
         self._rep_type = self._get_rep_type_name(rep_type)
-        valid, self.n_qubits = self.validate_data(data)
+        valid, n_qubits = self.validate_data(data)
 
         if not valid:
             raise TypeError(
@@ -124,17 +124,16 @@ class QuantumState:
             # record the detected representation's name: show,
             # convert_representation and the metrics and solvers read rep_type
             # to dispatch
-            if (
-                self.n_qubits < DENSITY_MATRIX_QUBIT_THRESH
-                and DensityMatrix.valid_datatype(data)
+            if n_qubits < DENSITY_MATRIX_QUBIT_THRESH and DensityMatrix.valid_datatype(
+                data
             ):
-                self._rep_data = self._initialize_dm(data)
+                self._rep_data = self._initialize_dm(data, n_qubits)
                 self._rep_type = "dm"
             elif Stabilizer.valid_datatype(data):
-                self._rep_data = self._initialize_stabilizer(data)
+                self._rep_data = self._initialize_stabilizer(data, n_qubits)
                 self._rep_type = "s"
             elif Graph.valid_datatype(data):
-                self._rep_data = self._initialize_graph(data)
+                self._rep_data = self._initialize_graph(data, n_qubits)
                 self._rep_type = "g"
             elif DensityMatrix.valid_datatype(data):
                 raise ValueError(
@@ -147,7 +146,7 @@ class QuantumState:
                 )
 
         elif isinstance(rep_type, str):
-            self._rep_data = self._initialize_representation(rep_type, data)
+            self._rep_data = self._initialize_representation(rep_type, data, n_qubits)
 
         else:
             raise ValueError("passed rep_type argument must be a String")
@@ -167,10 +166,11 @@ class QuantumState:
         """
         Replace the representation data, rebuilding it as the current rep_type
 
-        The width is not changed: n_qubits keeps its value, and a density matrix, graph or
-        newly built stabilizer representation of a different size raises AssertionError. An
-        existing Stabilizer (or, when the state is mixed, MixedStabilizer) object is adopted as
-        is, without that check.
+        The new data must have the state's current width, n_qubits, which is read off the
+        representation being replaced: a density matrix, graph or newly built stabilizer
+        representation of a different size raises AssertionError. An existing Stabilizer (or,
+        when the state is mixed, MixedStabilizer) object is adopted as is, without that check,
+        and its width becomes the state's width.
 
         :param data: data valid for the current rep_type
         :type data: int or numpy.ndarray or CliffordTableau or list[(float, CliffordTableau)] or nx.Graph
@@ -182,7 +182,9 @@ class QuantumState:
         :return: nothing
         :rtype: None
         """
-        self._rep_data = self._initialize_representation(self._rep_type, data)
+        self._rep_data = self._initialize_representation(
+            self._rep_type, data, self.n_qubits
+        )
 
     @property
     def rep_type(self):
@@ -202,6 +204,17 @@ class QuantumState:
     @rep_type.setter
     def rep_type(self, new_rep_type):
         self._rep_type = self._get_rep_type_name(new_rep_type)
+
+    @property
+    def n_qubits(self):
+        """
+        Number of qubits in the state, derived from the current representation, so it follows
+        any change of width, such as a partial_trace or a resize made through rep_data
+
+        :return: the number of qubits
+        :rtype: int
+        """
+        return self._rep_data.n_qubits
 
     def partial_trace(self, keep, dims):
         r"""
@@ -261,13 +274,15 @@ class QuantumState:
 
         return fig, ax
 
-    def _initialize_dm(self, data):
+    def _initialize_dm(self, data, n_qubits):
         """
         Initializes a density matrix based on the data
 
         :param data: either a graph or ndarray matrix
         :type data: Graph OR nx.Graph OR numpy.ndarray
-        :raises AssertionError: if the density matrix being initialized does not have self.n_qubits
+        :param n_qubits: the number of qubits the density matrix must have
+        :type n_qubits: int
+        :raises AssertionError: if the density matrix being initialized does not have n_qubits
         :return: the density matrix representation
         :rtype: DensityMatrix
         """
@@ -276,33 +291,38 @@ class QuantumState:
         else:
             dm = DensityMatrix(data)
 
-        assert dm.data.shape[0] == dm.data.shape[1] == 2**self.n_qubits
+        assert dm.data.shape[0] == dm.data.shape[1] == 2**n_qubits
         return dm
 
-    def _initialize_graph(self, data):
+    def _initialize_graph(self, data, n_qubits):
         """
         Initializes a graph state based on the data
 
         :param data: data to construct the Graph representation
         :type data: networkX.Graph
-        :raises AssertionError: if the graph being initialized does not have self.n_qubits
+        :param n_qubits: the number of qubits the graph must have
+        :type n_qubits: int
+        :raises AssertionError: if the graph being initialized does not have n_qubits
         :return: the graph representation
         :rtype: Graph
         """
         graph = Graph(data)
 
-        assert graph.n_qubits == self.n_qubits, (
-            f"Expected {self.n_qubits} qubits, " f"graph rep_type has {graph.n_qubits}"
+        assert graph.n_qubits == n_qubits, (
+            f"Expected {n_qubits} qubits, " f"graph rep_type has {graph.n_qubits}"
         )
         return graph
 
-    def _initialize_stabilizer(self, data):
+    def _initialize_stabilizer(self, data, n_qubits):
         """
         Initializes a stabilizer state based on the data
 
         :param data: data to construct the stabilizer state representation
         :type data: Stabilizer or int or CliffordTableau or MixedStabilizer or list[(float, CliffordTableau)]
-        :raises AssertionError: if the stabilizer being initialized does not have self.n_qubits
+        :param n_qubits: the number of qubits a newly built stabilizer must have; an existing
+            Stabilizer or MixedStabilizer object is returned as is, without that check
+        :type n_qubits: int
+        :raises AssertionError: if the stabilizer being initialized does not have n_qubits
         :return: a MixedStabilizer if self.mixed is True, a Stabilizer otherwise
         :rtype: Stabilizer or MixedStabilizer
         """
@@ -317,13 +337,13 @@ class QuantumState:
             else:
                 stabilizer = MixedStabilizer(data)
 
-        assert stabilizer.n_qubits == self.n_qubits, (
-            f"Expected {self.n_qubits} qubits, "
+        assert stabilizer.n_qubits == n_qubits, (
+            f"Expected {n_qubits} qubits, "
             f"Stabilizer representation has {stabilizer.n_qubits}"
         )
         return stabilizer
 
-    def _initialize_representation(self, rep_type, data):
+    def _initialize_representation(self, rep_type, data, n_qubits):
         """
         Helper function to initialize any given representation
 
@@ -331,22 +351,24 @@ class QuantumState:
         :type rep_type: str
         :param data: data with which the rep_type should be initialized
         :type data: int OR Graph OR nx.Graph OR numpy.ndarray OR CliffordTableau OR Stabilizer OR MixedStabilizer
+        :param n_qubits: the number of qubits the representation must have
+        :type n_qubits: int
         :raises ValueError: if rep_type is invalid
         :return: the initialized representation
         :rtype: DensityMatrix or Graph or Stabilizer or MixedStabilizer
         """
         if rep_type in ("dm", "density matrix"):
-            if self.n_qubits > DENSITY_MATRIX_QUBIT_THRESH:
+            if n_qubits > DENSITY_MATRIX_QUBIT_THRESH:
                 warnings.warn(
                     UserWarning(
                         "Density matrix is not recommended for a state of this size"
                     )
                 )
-            return self._initialize_dm(data)
+            return self._initialize_dm(data, n_qubits)
         elif rep_type in ("g", "graph"):
-            return self._initialize_graph(data)
+            return self._initialize_graph(data, n_qubits)
         elif rep_type in ("s", "stab", "stabilizer"):
-            return self._initialize_stabilizer(data)
+            return self._initialize_stabilizer(data, n_qubits)
         else:
             raise ValueError("Passed rep_type is invalid")
 

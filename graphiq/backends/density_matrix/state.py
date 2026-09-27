@@ -111,6 +111,17 @@ class DensityMatrix(StateRepresentationBase):
         return isinstance(data, (int, np.ndarray))
 
     @property
+    def n_qubits(self):
+        """
+        Number of qubits represented by this density matrix, derived from
+        the matrix dimension, assuming qubits (dimension 2 per subsystem)
+
+        :return: the number of qubits
+        :rtype: int
+        """
+        return int(np.log2(self.data.shape[0]))
+
+    @property
     def trace(self):
         """
         Return the trace of the state

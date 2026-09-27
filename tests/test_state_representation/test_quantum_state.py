@@ -408,3 +408,145 @@ def test_constructor_rejects_a_list_of_networkx_graphs_with_type_error():
 
 def test_validate_data_accepts_a_list_of_clifford_tableaux():
     assert QuantumState.validate_data([(1.0, CliffordTableau(3))]) == (True, 3)
+
+
+# QuantumState.n_qubits used to be stored once in __init__ and never updated, so a traced or
+# otherwise resized state kept reporting its old width while the representation reported the
+# real one. It is now derived from the representation, and the rep_data setter checks the
+# incoming data against that live width.
+
+
+def _traced_state(rep_type, mixed=False):
+    """A 4-qubit state traced down to its first 3 qubits."""
+    state = QuantumState(4, rep_type=rep_type, mixed=mixed)
+    state.partial_trace(keep=[0, 1, 2], dims=4 * [2])
+    return state
+
+
+@pytest.mark.parametrize("rep_type", ["dm", "s"])
+def test_n_qubits_follows_a_partial_trace(rep_type):
+    assert _traced_state(rep_type).n_qubits == 3
+
+
+def test_n_qubits_follows_a_partial_trace_on_a_mixed_stabilizer():
+    # Reaches the count through mixture[0][1], a different path from the pure case.
+    assert _traced_state("s", mixed=True).n_qubits == 3
+
+
+def test_n_qubits_follows_a_resize_made_through_the_representation():
+    # rep_data hands out the live representation, so resizing it bypasses QuantumState. A count
+    # updated only in partial_trace would still go stale here.
+    state = QuantumState(4, rep_type="s")
+
+    state.rep_data.remove_qubit(0)
+
+    assert state.n_qubits == 3
+
+
+@pytest.mark.parametrize(
+    "rep_type, mixed",
+    [("dm", False), ("s", False), ("s", True)],
+    ids=["dm", "s", "mixed s"],
+)
+def test_a_traced_state_accepts_its_own_data_back(rep_type, mixed):
+    # Raw data, not the representation object, so the assignment is rebuilt and goes through
+    # the width check, which used to compare it against the pre-trace count.
+    state = _traced_state(rep_type, mixed=mixed)
+    rep = state.rep_data
+
+    state.rep_data = rep.mixture if mixed else rep.data
+
+    assert state.n_qubits == 3
+
+
+@pytest.mark.parametrize("rep_type", ["dm", "s"])
+def test_a_traced_state_rejects_data_of_its_old_width(rep_type):
+    state = _traced_state(rep_type)
+
+    with pytest.raises(AssertionError):
+        state.rep_data = np.eye(16, dtype=complex) / 16 if rep_type == "dm" else 4
+
+
+@pytest.mark.parametrize(
+    "n_nodes, accepted", [(4, True), (3, False)], ids=["new width", "old width"]
+)
+def test_a_graph_state_grown_in_place_checks_against_its_new_width(n_nodes, accepted):
+    state = QuantumState(nx.path_graph(3), rep_type="g")
+    state.rep_data.add_node(3)
+
+    if accepted:
+        state.rep_data = nx.path_graph(n_nodes)
+    else:
+        with pytest.raises(AssertionError):
+            state.rep_data = nx.path_graph(n_nodes)
+
+    assert state.n_qubits == 4
+
+
+def test_assigning_a_wider_density_matrix_is_rejected():
+    state = QuantumState(np.eye(8, dtype=complex) / 8, rep_type="dm")
+
+    with pytest.raises(AssertionError):
+        state.rep_data = np.eye(32, dtype=complex) / 32
+
+    assert state.n_qubits == 3
+
+
+def test_n_qubits_is_read_only():
+    state = QuantumState(3, rep_type="s")
+
+    with pytest.raises(AttributeError):
+        state.n_qubits = 5
+
+
+@pytest.mark.parametrize(
+    "assign", [False, True], ids=["at construction", "through the setter"]
+)
+def test_a_non_power_of_two_density_matrix_is_rejected(assign):
+    bad = np.eye(9, dtype=complex) / 9
+
+    if assign:
+        state = QuantumState(np.eye(8, dtype=complex) / 8, rep_type="dm")
+        with pytest.raises(AssertionError):
+            state.rep_data = bad
+    else:
+        with pytest.raises(AssertionError):
+            QuantumState(bad, rep_type="dm")
+
+
+def _emitter_circuit(n_emitter, hadamards):
+    from graphiq.circuit.circuit_dag import CircuitDAG
+    import graphiq.circuit.ops as ops
+
+    circuit = CircuitDAG(n_emitter=n_emitter, n_photon=0, n_classical=0)
+    for register in hadamards:
+        circuit.add(ops.Hadamard(register=register, reg_type="e"))
+    return circuit
+
+
+def test_a_traced_state_can_seed_a_circuit_of_its_new_width():
+    # CompilerBase asserts initial_state.n_qubits == circuit.n_quantum, so a stale count rejected
+    # a state whose data was exactly the circuit's width. The Hadamard applied before the trace
+    # shows the compiled state really started from initial_state.
+    from graphiq.backends.stabilizer.compiler import StabilizerCompiler
+
+    state = QuantumState(4, rep_type="s")
+    state.rep_data.apply_hadamard(0)
+    state.partial_trace(keep=[0, 1, 2], dims=4 * [2])
+
+    compiled = StabilizerCompiler().compile(
+        _emitter_circuit(3, [2]), initial_state=state
+    )
+    expected = StabilizerCompiler().compile(_emitter_circuit(3, [0, 2]))
+
+    assert compiled.n_qubits == 3
+    assert compiled.rep_data.data == expected.rep_data.data
+
+
+def test_a_traced_state_cannot_seed_a_circuit_of_its_old_width():
+    from graphiq.backends.stabilizer.compiler import StabilizerCompiler
+
+    with pytest.raises(AssertionError, match="must match the circuit"):
+        StabilizerCompiler().compile(
+            _emitter_circuit(4, []), initial_state=_traced_state("s")
+        )

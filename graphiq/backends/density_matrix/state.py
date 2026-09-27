@@ -30,6 +30,24 @@ from graphiq.visualizers.density_matrix import (
     density_matrix_bars,
 )
 
+# the backend is double precision; the tolerance below assumes it
+_PROB_EPS = numpy.finfo(numpy.float64).eps
+
+
+def _forced_measurement_tolerance(shape0, raw_probs):
+    """
+    The resolution floor below which a measured probability is rounding error left by the
+    arithmetic that built the state, rather than a reachable outcome
+
+    :param shape0: the density matrix's first dimension
+    :type shape0: int
+    :param raw_probs: the unclamped probability of each outcome, Tr(rho m)
+    :type raw_probs: numpy.ndarray
+    :return: the tolerance
+    :rtype: float
+    """
+    return shape0 * _PROB_EPS * np.sum(np.abs(raw_probs))
+
 
 class DensityMatrix(StateRepresentationBase):
     """
@@ -166,9 +184,10 @@ class DensityMatrix(StateRepresentationBase):
         :param projectors: a list of projective measurements in the computational basis
         :type projectors: list[numpy.ndarray]
         :param measurement_determinism: if "probabilistic", measurement results are probabilistically selected
-                                    if 1, measurement results default to 1 unless the probability of measuring p(1) = 0
-                                    if 0, measurement results default to 0 unless the probability of measuring p(0) = 0
-                                    or p(1) >= 1
+                                    if 1, measurement results default to 1 unless p(1) is at or below the
+                                    numerical noise floor
+                                    if 0, measurement results default to 0 unless p(0) is at or below the
+                                    numerical noise floor
                                     In modes 0 and 1, a forced outcome the state does not allow returns
                                     the other outcome
         :type measurement_determinism: str/int
@@ -180,29 +199,21 @@ class DensityMatrix(StateRepresentationBase):
 
         if self._data.shape == projectors[0].shape:
             trace = np.real(np.trace(self._data))
-            probs = []
-            for m in projectors:
-                prob = np.real(np.trace(self._data @ m))
-                if prob < 0:
-                    prob = 0
-                probs.append(prob)
-            probs = np.array(probs)
+            raw_probs = np.array(
+                [np.real(np.trace(self._data @ m)) for m in projectors]
+            )
+            # the error on a diagonal entry is O(eps * trace), accumulated across the
+            # matrix width, so the floor scales with the total, not with probs[i]; at
+            # or below it a probability counts as 0, and so does any negative value,
+            # as before
+            tol = _forced_measurement_tolerance(self._data.shape[0], raw_probs)
+            probs = np.array([prob if prob > tol else 0.0 for prob in raw_probs])
             if measurement_determinism == "probabilistic":
                 outcome = numpy.random.choice([0, 1], p=probs / np.sum(probs))
             elif measurement_determinism == 1:
-                if probs[1] > 0:
-                    outcome = 1
-                else:
-                    outcome = 0
-
+                outcome = 1 if probs[1] > tol else 0
             elif measurement_determinism == 0:
-                # probs[0] is what outcome 0 divides by below; testing only
-                # probs[1] < 1 let a rounding-error probs[1] = 1 - 1e-16 with
-                # probs[0] = 0 through, producing a NaN matrix
-                if probs[1] < 1 and probs[0] > 0:
-                    outcome = 0
-                else:
-                    outcome = 1
+                outcome = 0 if probs[0] > tol else 1
             else:
                 raise ValueError(
                     f'measurement_determinism parameter must be "probabilistic", 0, or 1'
@@ -236,9 +247,10 @@ class DensityMatrix(StateRepresentationBase):
         :param target_gate: the gate to be applied if the measurement outcome is 1
         :type target_gate: numpy.ndarray
         :param measurement_determinism: if "probabilistic", measurement results are probabilistically selected
-                                    if 1, measurement results default to 1 unless the probability of measuring p(1) = 0
-                                    if 0, measurement results default to 0 unless the probability of measuring p(0) = 0
-                                    or p(1) >= 1
+                                    if 1, measurement results default to 1 unless p(1) is at or below the
+                                    numerical noise floor
+                                    if 0, measurement results default to 0 unless p(0) is at or below the
+                                    numerical noise floor
                                     In modes 0 and 1, a forced outcome the state does not allow returns
                                     the other outcome
         :type measurement_determinism: str/int

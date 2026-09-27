@@ -1017,6 +1017,9 @@ def rnd_graph(n, p=None, m=None, seed=None, model="erdos"):
     elif model == "albert":
         rnd_maker = nx.barabasi_albert_graph
         x = m
+    if isinstance(seed, int):
+        # one seeded stream for all draws, so a disconnected draw is not repeated forever
+        seed = random.Random(seed)
     g = nx.Graph()
     g.add_edges_from(((0, 1), (2, 3)))
     while not nx.is_connected(g):

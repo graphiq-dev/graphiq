@@ -20,7 +20,7 @@ from graphiq.backends.stabilizer.compiler import StabilizerCompiler
 from graphiq.backends.stabilizer.functions.rep_conversion import (
     get_clifford_tableau_from_graph,
 )
-from graphiq.data_collection.correlation_module import graph_to_circ
+from graphiq.data_collection.correlation_module import graph_to_circ, rnd_graph
 from graphiq.metrics import Infidelity
 from graphiq.state import QuantumState
 
@@ -54,3 +54,32 @@ def test_graph_to_circ_solves_a_disconnected_graph_without_an_isolated_vertex(ou
     n_photon = graph.number_of_nodes()
     state.partial_trace(list(range(n_photon)), [2] * circuit.n_quantum)
     assert np.isclose(Infidelity(target).evaluate(state, circuit), 0.0)
+
+
+def test_rnd_graph_with_a_seed_redraws_until_connected(monkeypatch):
+    n, p, seed = 6, 0.3, 0
+    assert not nx.is_connected(nx.gnp_random_graph(n, p, seed=seed))
+
+    draw = nx.gnp_random_graph
+    calls = []
+
+    def bounded(*args, **kwargs):
+        calls.append(1)
+        if len(calls) > 100:
+            raise RuntimeError("rnd_graph drew 100 graphs without a connected one")
+        return draw(*args, **kwargs)
+
+    monkeypatch.setattr(nx, "gnp_random_graph", bounded)
+    graph = rnd_graph(n, p, seed=seed)
+    assert nx.is_connected(graph)
+    assert graph.number_of_nodes() == n
+    assert sorted(rnd_graph(n, p, seed=seed).edges()) == sorted(graph.edges())
+
+
+def test_rnd_graph_with_a_seed_keeps_a_connected_first_draw():
+    n, p = 6, 0.3
+    seeds = [s for s in range(50) if nx.is_connected(nx.gnp_random_graph(n, p, seed=s))]
+    assert seeds
+    for s in seeds:
+        expected = nx.gnp_random_graph(n, p, seed=s)
+        assert sorted(rnd_graph(n, p, seed=s).edges()) == sorted(expected.edges())

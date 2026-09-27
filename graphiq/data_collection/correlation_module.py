@@ -653,7 +653,7 @@ class GraphCorr:
         if isinstance(g, nx.Graph):
             g_temp = g
         # use the circuit list instead of the graph if possible
-        g = self._graph_circ_dictionary[g] if self._graph_circ_dictionary else g
+        g = self._graph_circ_dictionary.get(g, g) if self._graph_circ_dictionary else g
         # if graph list is provided, g is now a circuit and g_temp is the corresponding graph
         if self.circ_metric == "num_emit":
             circ_value = height_max(graph=g_temp)

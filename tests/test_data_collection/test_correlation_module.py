@@ -23,6 +23,7 @@ from graphiq.backends.stabilizer.functions.rep_conversion import (
 from graphiq.data_collection.correlation_module import (
     GraphCorr,
     graph_to_circ,
+    graph_to_cnot,
     rnd_graph,
 )
 from graphiq.metrics import Infidelity
@@ -52,6 +53,26 @@ def test_num_isomorph_setter_without_an_initial_graph_sets_the_relabel_count(
     monkeypatch.setattr(GraphCorr, "_graph_list_maker", staticmethod(record))
     corr._min_circ_met_over_relabel(graph)
     assert counts == [3]
+
+
+def test_relabel_trials_work_after_graph_circ_dict(monkeypatch):
+    graph = nx.cycle_graph(6)
+    perm = [0, 1, 2, 3, 5, 4]
+    adj = nx.to_numpy_array(graph)
+    relabeled = nx.from_numpy_array(adj[np.ix_(perm, perm)])
+    assert graph_to_cnot(graph) == 3
+    assert graph_to_cnot(relabeled) == 2
+    monkeypatch.setattr(
+        GraphCorr, "_graph_list_maker", staticmethod(lambda g, count: [g, relabeled])
+    )
+
+    corr = GraphCorr(
+        circ_metric="cnot", graph_list=[graph], relabel_trials=2, num_isomorph=1
+    )
+    corr.graph_circ_dict()
+    assert relabeled not in corr._graph_circ_dictionary
+
+    assert corr._min_circ_met_over_relabel(graph) == 2
 
 
 _p3_plus_k1 = nx.disjoint_union(nx.path_graph(3), nx.empty_graph(1))

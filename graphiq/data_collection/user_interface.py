@@ -752,7 +752,7 @@ def rgs_analysis(res_rgsn, dir_path: str, filename: str):
             n_cnots.append(len(c.get_node_by_labels(["Emitter-Emitter", "CNOT"])))
         else:
             n_cnots.append(0)
-    res_rgsn.add_properties("n_cnot")
+    res_rgsn.add_properties("n_cnots")
     res_rgsn["n_cnots"] = n_cnots
     graph_met_list = [
         "node_connect",

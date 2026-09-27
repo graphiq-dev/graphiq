@@ -25,6 +25,7 @@ from graphiq.backends.graph.state import Graph, MixedGraph
 from graphiq.backends.stabilizer.clifford_tableau import CliffordTableau
 from graphiq.backends.stabilizer.functions.clifford import create_n_ket0_state
 from graphiq.backends.stabilizer.functions.transformation import run_circuit
+from graphiq.backends.stabilizer.state import MixedStabilizer
 from graphiq.state import DENSITY_MATRIX_QUBIT_THRESH, QuantumState
 
 
@@ -225,6 +226,63 @@ def test_convert_representation_graph_to_stabilizer_pure_arm():
 
     expected = rc.graph_to_stabilizer(graph)[0][1]
     assert state.rep_data.data.to_stabilizer() == expected
+
+
+def _graph_tableau(graph):
+    return CliffordTableau(rc.graph_to_stabilizer(graph)[0][1])
+
+
+def test_convert_representation_mixed_stabilizer_to_graph_and_back():
+    path3 = nx.path_graph(3)
+    star3 = nx.star_graph(2)
+    mixture = [(0.7, _graph_tableau(path3)), (0.3, _graph_tableau(star3))]
+    state = QuantumState(mixture, rep_type="s", mixed=True)
+
+    state.convert_representation("g")
+    state.convert_representation("s")
+
+    mixed_stabilizer = state.rep_data
+    assert isinstance(mixed_stabilizer, MixedStabilizer)
+    assert [p_i for p_i, _ in mixed_stabilizer.mixture] == [0.7, 0.3]
+    assert mixed_stabilizer.mixture[0][1] == _graph_tableau(path3)
+    assert mixed_stabilizer.mixture[1][1] == _graph_tableau(star3)
+    # the two tableaux differ, so the comparisons above can fail
+    assert not mixed_stabilizer.mixture[0][1] == _graph_tableau(star3)
+
+
+def test_convert_representation_density_matrix_marked_mixed_to_graph_to_stabilizer():
+    path3 = nx.path_graph(3)
+    state = QuantumState(rc.graph_to_density(path3), rep_type="dm", mixed=True)
+
+    state.convert_representation("g")
+    state.convert_representation("s")
+
+    mixed_stabilizer = state.rep_data
+    assert isinstance(mixed_stabilizer, MixedStabilizer)
+    assert len(mixed_stabilizer.mixture) == 1
+    assert np.isclose(mixed_stabilizer.mixture[0][0], 1.0)
+    assert mixed_stabilizer.mixture[0][1] == _graph_tableau(path3)
+
+
+def test_convert_representation_plain_graph_marked_mixed_to_stabilizer():
+    # a state built from a graph with mixed=True holds a plain Graph, not a MixedGraph
+    graph = nx.path_graph(3)
+    state = QuantumState(graph, rep_type="g", mixed=True)
+
+    state.convert_representation("s")
+
+    mixed_stabilizer = state.rep_data
+    assert isinstance(mixed_stabilizer, MixedStabilizer)
+    assert [p_i for p_i, _ in mixed_stabilizer.mixture] == [1.0]
+    assert mixed_stabilizer.mixture[0][1] == _graph_tableau(graph)
+
+
+def test_graph_to_stabilizer_rejects_a_mixed_graph_on_a_state_not_marked_mixed():
+    # This calls the private helper directly, since the constructor rejects a MixedGraph.
+    qs = QuantumState(nx.path_graph(3), rep_type="g")
+
+    with pytest.raises(TypeError):
+        qs._graph_to_stabilizer(MixedGraph(Graph(nx.path_graph(3))))
 
 
 @pytest.mark.parametrize("rep_type", ["g", None])

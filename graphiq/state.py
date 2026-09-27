@@ -488,7 +488,15 @@ class QuantumState:
         :return: stabilizer representation
         :rtype: Stabilizer or MixedStabilizer
         """
-        new_data = rc.graph_to_stabilizer(rep.data)
+        # a mixed state may hold a plain Graph (_initialize_graph never builds a
+        # MixedGraph); a MixedGraph's mixture holds graphiq Graphs, and
+        # rc.graph_to_stabilizer takes networkx graphs
+        if self.mixed and isinstance(rep, MixedGraph):
+            new_data = rc.graph_to_stabilizer(
+                [(p_i, g_i.data) for p_i, g_i in rep.mixture]
+            )
+        else:
+            new_data = rc.graph_to_stabilizer(rep.data)
         # new_data is of type list[(float, StabilizerTableau)]
         if self.mixed:
             new_tab_list = []

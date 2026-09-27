@@ -249,7 +249,8 @@ def circuit_is_isomorphic(circuit1, circuit2):
 def _create_edge_control_target_attr(operation, reg_type, reg):
     """
     Helper function that return the correct control_target attribute for the edge, base on reg_type, reg, and operation.
-    If the operation is ControlledPairOperationBase return either 'c' or 't' else return None.
+    If the operation is a ControlledPairOperationBase or a ClassicalControlledPairOperationBase, return 'c' or 't'
+    for its control and target registers, else None.
 
     :param operation: operation
     :type operation: OperationBase
@@ -260,7 +261,9 @@ def _create_edge_control_target_attr(operation, reg_type, reg):
     :return: control_target attribute. Can be 'c', 't' or None
     :rtype: str or nothing
     """
-    if isinstance(operation, ControlledPairOperationBase):
+    if isinstance(
+        operation, (ControlledPairOperationBase, ClassicalControlledPairOperationBase)
+    ):
         if reg_type == operation.control_type and reg == operation.control:
             return "c"
         if reg_type == operation.target_type and reg == operation.target:

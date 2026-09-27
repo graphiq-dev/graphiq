@@ -86,6 +86,78 @@ def test_convert_representation_stabilizer_to_graph_of_a_circuit_prepared_graph_
     assert sorted(state.rep_data.data.edges) == [(0, 1), (0, 2)]
 
 
+def _edge_set(graph):
+    return {frozenset(edge) for edge in graph.edges}
+
+
+@pytest.mark.parametrize(
+    "edges", [[(0, 1), (1, 2)], [(0, 1)]], ids=["path3", "isolated_node"]
+)
+def test_convert_representation_density_matrix_to_graph_pure_arm(edges):
+    graph = nx.Graph(edges)
+    graph.add_nodes_from(range(3))
+    rho = rc.graph_to_density(graph)
+    state = QuantumState(rho, rep_type="dm")
+
+    state.convert_representation("g")
+
+    assert isinstance(state.rep_data, Graph)
+    assert set(state.rep_data.data.nodes) == {0, 1, 2}
+    assert _edge_set(state.rep_data.data) == _edge_set(graph)
+    assert all(not data for _, _, data in state.rep_data.data.edges(data=True))
+    state.convert_representation("dm")
+    assert np.allclose(state.rep_data.data, rho)
+
+
+def test_convert_representation_density_matrix_to_graph_pure_arm_marked_mixed():
+    rho = rc.graph_to_density(nx.path_graph(3))
+    state = QuantumState(rho, rep_type="dm", mixed=True)
+
+    state.convert_representation("g")
+
+    assert isinstance(state.rep_data, MixedGraph)
+    assert len(state.rep_data.mixture) == 1
+    weight, graph = state.rep_data.mixture[0]
+    assert weight == 1.0
+    assert _edge_set(graph.data) == _edge_set(nx.path_graph(3))
+    state.convert_representation("dm")
+    assert np.allclose(state.rep_data.data, rho)
+
+
+def _empty_plus_triangle_mixture():
+    # two orthogonal graph states with distinct weights
+    return 0.7 * rc.graph_to_density(nx.empty_graph(3)) + 0.3 * rc.graph_to_density(
+        nx.complete_graph(3)
+    )
+
+
+def test_convert_representation_density_matrix_to_graph_mixed_arm():
+    rho = _empty_plus_triangle_mixture()
+    state = QuantumState(rho, rep_type="dm", mixed=True)
+
+    state.convert_representation("g")
+
+    assert isinstance(state.rep_data, MixedGraph)
+    # the six zero-weight eigenvectors are not branches of the mixture
+    assert len(state.rep_data.mixture) == 2
+    branches = sorted(
+        (round(float(p_i), 9), sorted(map(sorted, _edge_set(g_i.data))))
+        for p_i, g_i in state.rep_data.mixture
+    )
+    assert branches == [(0.3, [[0, 1], [0, 2], [1, 2]]), (0.7, [])]
+    for _, g_i in state.rep_data.mixture:
+        assert set(g_i.data.nodes) == {0, 1, 2}
+    state.convert_representation("dm")
+    assert np.allclose(state.rep_data.data, rho)
+
+
+def test_convert_representation_density_matrix_to_graph_rejects_a_mixture_not_marked_mixed():
+    state = QuantumState(_empty_plus_triangle_mixture(), rep_type="dm")
+
+    with pytest.raises(ValueError, match="mixed=True"):
+        state.convert_representation("g")
+
+
 def test_convert_representation_stabilizer_to_graph_mixed_arm():
     path3 = nx.path_graph(3)
     star3 = nx.star_graph(2)

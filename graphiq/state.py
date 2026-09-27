@@ -63,6 +63,23 @@ def _reject_unrepresentable_i_phase(tableau):
         )
 
 
+def _adjacency_to_graph(adjacency):
+    """
+    Build a plain networkx graph from a 0/1 adjacency matrix, keeping isolated nodes.
+
+    nx.from_numpy_array alone would put a weight attribute on every edge.
+
+    :param adjacency: the adjacency matrix
+    :type adjacency: numpy.ndarray
+    :return: the graph
+    :rtype: networkx.Graph
+    """
+    graph = nx.Graph()
+    graph.add_nodes_from(range(adjacency.shape[0]))
+    graph.add_edges_from(nx.from_numpy_array(np.real(adjacency)).edges())
+    return graph
+
+
 class QuantumState:
     """
     The QuantumState class is the unified API for accessing state representation backends.
@@ -339,14 +356,32 @@ class QuantumState:
 
         :param rep: density matrix representation
         :type rep: DensityMatrix
+        :raises ValueError: if the state is mixed, or its trace is not close to 1, but self.mixed is False
+        :raises AssertionError: if the density matrix is not a graph state
         :return: graph representation
         :rtype: Graph or MixedGraph
         """
         new_data = rc.density_to_graph(rep.data)
         if isinstance(new_data, list):
-            new_rep = MixedGraph(new_data)
+            if not self.mixed:
+                raise ValueError(
+                    "Cannot convert a mixed density matrix, or one whose trace is not close "
+                    "to 1, to a graph state with mixed=False; create the QuantumState with "
+                    "mixed=True"
+                )
+            # a zero-weight eigenvector is an arbitrary null-space vector, not part of
+            # the mixture
+            new_rep = MixedGraph(
+                [
+                    (p_i, Graph(_adjacency_to_graph(adj_i)))
+                    for p_i, adj_i in new_data
+                    if p_i > 1e-9
+                ]
+            )
         else:
-            new_rep = Graph(new_data)
+            graph = Graph(_adjacency_to_graph(new_data))
+            # a mixed state holds a MixedGraph, as _stabilizer_to_graph gives it
+            new_rep = MixedGraph(graph) if self.mixed else graph
         return new_rep
 
     def _density_to_stabilizer(self, rep):

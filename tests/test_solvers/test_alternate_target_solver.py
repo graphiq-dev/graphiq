@@ -14,6 +14,8 @@
 # limitations under the License.
 import pytest as pytest
 
+from graphiq.backends.stabilizer.clifford_tableau import CliffordTableau
+from graphiq.backends.stabilizer.functions.transformation import run_circuit
 from graphiq.benchmarks.graph_states import linear_cluster_state
 from graphiq.solvers.alternate_target_solver import *
 from graphiq.utils.relabel_module import _label_finder, automorph_check
@@ -320,3 +322,15 @@ def test_graph_to_circ_solves_a_disconnected_graph_without_an_isolated_vertex(ou
     n_photon = graph.number_of_nodes()
     state.partial_trace(list(range(n_photon)), [2] * circuit.n_quantum)
     assert np.isclose(Infidelity(target).evaluate(state, circuit), 0.0)
+
+
+def test_a_stabilizer_target_not_in_standard_form_is_accepted():
+    # the star graph state (centre 0) as a circuit leaves it: generators XZZ, ZXI, IXX
+    tableau = run_circuit(
+        CliffordTableau(3),
+        [("H", 0), ("CNOT", 0, 1), ("CNOT", 1, 2), ("H", 1), ("H", 2)],
+    )
+
+    solver = AlternateTargetSolver(target=QuantumState(tableau, rep_type="s"))
+
+    assert sorted(solver.target_graph.edges) == [(0, 1), (0, 2)]

@@ -21,6 +21,8 @@ import pytest
 import graphiq.backends.density_matrix.functions as dmf
 import graphiq.backends.stabilizer.functions.linalg as sla
 import graphiq.backends.state_rep_conversion as rc
+from graphiq.backends.stabilizer.clifford_tableau import CliffordTableau
+from graphiq.backends.stabilizer.functions.transformation import run_circuit
 from graphiq.backends.stabilizer.state import MixedStabilizer
 from graphiq.backends.stabilizer.tableau import StabilizerTableau
 from graphiq.state import QuantumState
@@ -109,6 +111,76 @@ def test_stabilizer_to_graph():
 
     assert len(graph2_list) == 1
     assert nx.is_isomorphic(graph1, graph2_list[0][1])
+
+
+# the 3-qubit star graph state (centre 0), prepared by a circuit: its generators are
+# XZZ, ZXI, IXX rather than the rows of [I | A]
+_STAR_CIRCUIT = [("H", 0), ("CNOT", 0, 1), ("CNOT", 1, 2), ("H", 1), ("H", 2)]
+
+
+def _star_tableau():
+    return run_circuit(CliffordTableau(3), _STAR_CIRCUIT).to_stabilizer()
+
+
+def _row_swapped_path3_tableau():
+    tableau = StabilizerTableau([np.eye(3), nx.to_numpy_array(nx.path_graph(3))])
+    return StabilizerTableau(tableau.table[[1, 0, 2]])
+
+
+def test_stabilizer_to_graph_accepts_a_graph_state_not_in_standard_form():
+    tableau = _star_tableau()
+    assert np.allclose(
+        rc.stabilizer_to_density(tableau), rc.graph_to_density(nx.star_graph(2))
+    )
+
+    graph_list = rc.stabilizer_to_graph(tableau)
+
+    assert len(graph_list) == 1
+    assert sorted(graph_list[0][1].edges) == [(0, 1), (0, 2)]
+
+
+def test_stabilizer_to_graph_accepts_row_permuted_generators():
+    graph_list = rc.stabilizer_to_graph(_row_swapped_path3_tableau())
+
+    assert sorted(graph_list[0][1].edges) == [(0, 1), (1, 2)]
+
+
+def test_stabilizer_to_graph_accepts_a_list_of_graph_states_not_in_standard_form():
+    graph_list = rc.stabilizer_to_graph(
+        [(0.3, _star_tableau()), (0.7, _row_swapped_path3_tableau())]
+    )
+
+    assert [p_i for p_i, _ in graph_list] == [0.3, 0.7]
+    assert sorted(graph_list[0][1].edges) == [(0, 1), (0, 2)]
+    assert sorted(graph_list[1][1].edges) == [(0, 1), (1, 2)]
+
+
+def test_stabilizer_to_graph_still_rejects_a_state_that_is_not_a_graph_state():
+    # |0>|+>, and the star state with Z applied to qubit 1
+    product = run_circuit(CliffordTableau(2), [("H", 1)]).to_stabilizer()
+    signed_star = run_circuit(
+        CliffordTableau(3), _STAR_CIRCUIT + [("Z", 1)]
+    ).to_stabilizer()
+
+    for tableau in (product, signed_star):
+        with pytest.raises(AssertionError, match="not a graph state"):
+            rc.stabilizer_to_graph(tableau)
+
+
+def test_stabilizer_to_graph_leaves_its_input_unchanged():
+    # the validation compares canonical forms, which are computed in place
+    tableau = _star_tableau()
+    mixture = [(0.3, _star_tableau()), (0.7, _row_swapped_path3_tableau())]
+    expected = [
+        (t.table.copy(), t.phase.copy()) for t in [tableau] + [t for _, t in mixture]
+    ]
+
+    rc.stabilizer_to_graph(tableau)
+    rc.stabilizer_to_graph(mixture)
+
+    for t, (table, phase) in zip([tableau] + [t for _, t in mixture], expected):
+        assert np.array_equal(t.table, table)
+        assert np.array_equal(t.phase, phase)
 
 
 def test_stabilizer_and_density_conversion():

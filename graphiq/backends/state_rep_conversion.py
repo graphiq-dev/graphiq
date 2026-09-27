@@ -249,8 +249,20 @@ def stabilizer_to_graph(input_stabilizer, validate=True):
         )
 
     if validate:
+        # the same state has many generator sets, so compare canonical forms;
+        # canonical_form works in place, hence the copies
+        if isinstance(input_stabilizer, list):
+            input_canonical = [
+                (p_i, canonical_form(s_i.copy())) for p_i, s_i in input_stabilizer
+            ]
+        else:
+            input_canonical = canonical_form(input_stabilizer.copy())
+        graph_canonical = [
+            (p_i, canonical_form(s_i.copy()))
+            for p_i, s_i in graph_to_stabilizer(graph_list)
+        ]
         assert mixed_stabilizer_equivalency(
-            input_stabilizer, graph_to_stabilizer(graph_list)
+            input_canonical, graph_canonical
         ), "Input stabilizer is not a graph state."
 
     return graph_list

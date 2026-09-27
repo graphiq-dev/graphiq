@@ -24,6 +24,7 @@ import graphiq.backends.state_rep_conversion as rc
 from graphiq.backends.graph.state import Graph, MixedGraph
 from graphiq.backends.stabilizer.clifford_tableau import CliffordTableau
 from graphiq.backends.stabilizer.functions.clifford import create_n_ket0_state
+from graphiq.backends.stabilizer.functions.transformation import run_circuit
 from graphiq.state import DENSITY_MATRIX_QUBIT_THRESH, QuantumState
 
 
@@ -70,6 +71,19 @@ def test_convert_representation_graph_stabilizer_graph_round_trip_pure_arm():
     state.convert_representation("g")
 
     assert nx.is_isomorphic(state.rep_data.data, graph)
+
+
+def test_convert_representation_stabilizer_to_graph_of_a_circuit_prepared_graph_state():
+    # the star graph state (centre 0) as a circuit leaves it: generators XZZ, ZXI, IXX
+    tableau = run_circuit(
+        CliffordTableau(3),
+        [("H", 0), ("CNOT", 0, 1), ("CNOT", 1, 2), ("H", 1), ("H", 2)],
+    )
+    state = QuantumState(tableau, rep_type="s")
+
+    state.convert_representation("g")
+
+    assert sorted(state.rep_data.data.edges) == [(0, 1), (0, 2)]
 
 
 def test_convert_representation_stabilizer_to_graph_mixed_arm():

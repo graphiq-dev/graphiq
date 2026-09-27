@@ -107,7 +107,12 @@ class CompilerBase(ABC):
             assert (
                 initial_state.n_qubits == circuit.n_quantum
             ), "the number of qubits in initial state must match the circuit"
+            # copy the data so evolving the compiled state does not change the
+            # tableau of a caller's pure stabilizer initial_state (a mixed
+            # stabilizer's list of tableaux is copied only shallowly)
             state_data = initial_state.rep_data.data
+            if hasattr(state_data, "copy"):
+                state_data = state_data.copy()
         else:
             state_data = circuit.n_quantum
 

@@ -20,6 +20,8 @@ import graphiq.backends.state_rep_conversion as rc
 import graphiq.circuit.ops as ops
 from graphiq.backends.stabilizer.compiler import StabilizerCompiler
 from graphiq.backends.stabilizer.tableau import *
+from graphiq.backends.stabilizer.clifford_tableau import CliffordTableau
+from graphiq.state import QuantumState
 from graphiq.benchmarks.circuits import (
     linear_cluster_4qubit_circuit,
     linear_cluster_3qubit_circuit,
@@ -112,3 +114,17 @@ def test_compile_circuit2():
     compiler.measurement_determinism = 1
     output_stabilizer = compiler.compile(dag)
     print(output_stabilizer.rep_data)
+
+
+def test_compile_leaves_the_initial_state_unchanged():
+    circuit = CircuitDAG(n_emitter=0, n_photon=2, n_classical=0)
+    circuit.add(ops.Hadamard(register=0, reg_type="p"))
+    initial_state = QuantumState(CliffordTableau(2), rep_type="s")
+    initial_tableau = initial_state.rep_data.data
+    before = initial_tableau.copy()
+
+    compiled_state = StabilizerCompiler().compile(circuit, initial_state=initial_state)
+
+    assert initial_state.rep_data.data == before
+    assert compiled_state.rep_data.data is not initial_tableau
+    assert compiled_state.rep_data.data != before

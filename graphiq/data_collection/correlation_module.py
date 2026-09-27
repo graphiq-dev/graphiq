@@ -115,6 +115,7 @@ class GraphCorr:
             raise ValueError("The circuit metric should be a valid string")
 
         if initial_graph is None:
+            self._initial_graph = None
             self._graph_list = graph_list
             if graph_list:
                 assert isinstance(
@@ -164,7 +165,8 @@ class GraphCorr:
     def num_isomorph(self, num):
         assert isinstance(num, int)
         self._num_isomorph = num
-        self.graph_list = self._graph_list_maker(self._initial_graph, count=num)
+        if self._initial_graph is not None:
+            self.graph_list = self._graph_list_maker(self._initial_graph, count=num)
 
     @property
     def relabel_trials(self):

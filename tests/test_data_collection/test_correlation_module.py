@@ -20,9 +20,39 @@ from graphiq.backends.stabilizer.compiler import StabilizerCompiler
 from graphiq.backends.stabilizer.functions.rep_conversion import (
     get_clifford_tableau_from_graph,
 )
-from graphiq.data_collection.correlation_module import graph_to_circ, rnd_graph
+from graphiq.data_collection.correlation_module import (
+    GraphCorr,
+    graph_to_circ,
+    rnd_graph,
+)
 from graphiq.metrics import Infidelity
 from graphiq.state import QuantumState
+
+
+def test_graph_corr_initial_graph_is_none_without_an_initial_graph():
+    assert GraphCorr(graph_list=[nx.path_graph(3)]).initial_graph is None
+    assert GraphCorr().initial_graph is None
+
+
+def test_num_isomorph_setter_without_an_initial_graph_sets_the_relabel_count(
+    monkeypatch,
+):
+    graph = nx.cycle_graph(6)
+    corr = GraphCorr(circ_metric="num_emit", graph_list=[graph], relabel_trials=1)
+    corr.num_isomorph = 3
+    assert corr.num_isomorph == 3
+    assert corr.graph_list == [graph]
+
+    counts = []
+
+    def record(g, count):
+        counts.append(count)
+        return [g]
+
+    monkeypatch.setattr(GraphCorr, "_graph_list_maker", staticmethod(record))
+    corr._min_circ_met_over_relabel(graph)
+    assert counts == [3]
+
 
 _p3_plus_k1 = nx.disjoint_union(nx.path_graph(3), nx.empty_graph(1))
 

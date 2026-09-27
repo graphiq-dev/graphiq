@@ -12,6 +12,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import numpy as np
+
+from graphiq.benchmarks.circuits import linear_cluster_3qubit_circuit
 from graphiq.solvers.solver_base import *
 
 
@@ -80,3 +83,20 @@ def test_tournament_selection_k_one_with_a_single_element_population_copies_that
     for entry in new_population:
         assert entry == element
         assert entry is not element
+
+
+def test_an_inf_scored_candidate_fills_an_unfilled_hall_of_fame_slot():
+    # the hall of fame starts as (np.inf, None) placeholders; a candidate scored inf ties
+    # with the first one and must take its place rather than compare against its None circuit
+    solver = RandomSearchSolver(
+        None, None, None, solver_setting=RandomSearchSolverSetting(n_hof=3)
+    )
+    circuit, _ = linear_cluster_3qubit_circuit()
+
+    solver.update_hof([(np.inf, circuit)])
+
+    score, kept = solver.hof[0]
+    assert score == np.inf
+    assert kept is not None and kept is not circuit
+    assert len(kept.dag.nodes) == len(circuit.dag.nodes)
+    assert solver.hof[1:] == [(np.inf, None), (np.inf, None)]

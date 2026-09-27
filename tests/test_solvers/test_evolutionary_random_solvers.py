@@ -699,3 +699,32 @@ def test_saving_the_hall_of_fame_skips_unfilled_slots(tmp_path, save_openqasm):
         else set()
     )
     assert _saved_files(tmp_path / "pop") == expected_pop
+
+
+def _solver_with_two_filled_hall_of_fame_slots():
+    # n_pop = 2 < n_hof = 5: after one iteration, three slots are still (np.inf, None)
+    _, target = linear_cluster_3qubit_circuit()
+    solver = EvolutionarySolver(
+        target=target,
+        metric=Infidelity(target),
+        compiler=DensityMatrixCompiler(),
+        n_emitter=1,
+        n_photon=3,
+        solver_setting=EvolutionarySolverSetting(n_pop=2, n_hof=5),
+    )
+    shallow, _ = linear_cluster_3qubit_circuit()  # depth 7
+    deep, _ = linear_cluster_4qubit_circuit()  # depth 9
+    population = [(0.25, shallow), (0.5, deep)]
+    solver.update_hof(population)
+    assert [c is None for _, c in solver.hof] == [False, False, True, True, True]
+    return solver, population
+
+
+def test_update_logs_leaves_unfilled_hall_of_fame_slots_out_of_depth_statistics():
+    solver, population = _solver_with_two_filled_hall_of_fame_slots()
+
+    solver.update_logs(population=population, iteration=0)
+
+    log = solver.logs["hof"][0]
+    assert (log["depth_mean"], log["depth_variance"]) == (8.0, 1.0)
+    assert (log["depth_min"], log["depth_max"]) == (7, 9)

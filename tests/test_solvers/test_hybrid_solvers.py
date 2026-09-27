@@ -14,6 +14,7 @@
 # limitations under the License.
 import numpy as np
 import networkx as nx
+import pytest
 from graphiq.benchmarks.circuits import (
     linear_cluster_4qubit_circuit,
     linear_cluster_3qubit_circuit,
@@ -22,7 +23,9 @@ from graphiq.benchmarks.circuits import (
 )
 from graphiq.state import QuantumState
 from graphiq.metrics import Infidelity
+from graphiq.backends.density_matrix.compiler import DensityMatrixCompiler
 from graphiq.backends.stabilizer.compiler import StabilizerCompiler
+from graphiq.backends.state_rep_conversion import graph_to_density
 from graphiq.backends.stabilizer.functions.rep_conversion import (
     get_clifford_tableau_from_graph,
 )
@@ -156,3 +159,53 @@ def test_alternate_circuits_w_noise3():
     graph = nx.star_graph(3)
     noise_model = noise_model_loss_and_depolarizing(error_rate, loss_rate)
     exemplary_test(graph, noise_model, None, 1000)
+
+
+def _solve_path3(target, compiler):
+    metric = Infidelity(target)
+    solver = HybridEvolutionarySolver(
+        target=target,
+        metric=metric,
+        compiler=compiler,
+        solver_setting=EvolutionarySolverSetting(n_stop=3, n_pop=5),
+    )
+    HybridEvolutionarySolver.seed(3)
+    solver.solve()
+    return solver, metric
+
+
+def test_a_density_matrix_target_with_the_density_matrix_compiler_is_solved():
+    # the deterministic solver seeding the population converts its target to "s" in
+    # place; the metric sharing this target must keep scoring density matrices
+    target = QuantumState(graph_to_density(nx.path_graph(3)), rep_type="dm")
+
+    solver, metric = _solve_path3(target, DensityMatrixCompiler())
+
+    assert target.rep_type == "dm"
+    assert metric.target is target
+    assert all(0 <= score <= 1 for score, _ in solver.hof)
+    # the first evaluation is the deterministic circuit, which prepares the target
+    assert metric.log[0] == pytest.approx(0, abs=1e-9)
+
+
+def test_a_density_matrix_target_with_the_stabilizer_compiler_is_unchanged():
+    target = QuantumState(graph_to_density(nx.path_graph(3)), rep_type="dm")
+
+    solver, _ = _solve_path3(target, StabilizerCompiler())
+
+    assert [score for score, _ in solver.hof] == pytest.approx(
+        [0.5, 0.5, 0.75, 0.75, 0.75]
+    )
+    # the stabilizer compiler's states are still scored against the converted target;
+    # this assertion, not the scores, is what tells the two metric arms apart
+    assert target.rep_type == "s"
+
+
+def test_a_graph_target_with_the_stabilizer_compiler_still_solves():
+    target = QuantumState(nx.path_graph(3), rep_type="g")
+
+    solver, _ = _solve_path3(target, StabilizerCompiler())
+
+    assert [score for score, _ in solver.hof] == pytest.approx(
+        [0.5, 0.5, 0.75, 0.75, 0.75]
+    )

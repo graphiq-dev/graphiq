@@ -147,8 +147,15 @@ class HybridEvolutionarySolver(EvolutionarySolver):
         :return: an initial population
         :rtype: list
         """
+        # TimeReversedSolver converts its target to "s" in place, which would move a
+        # metric sharing a "dm" target onto its stabilizer arm, unable to score the
+        # non-graph-state density matrices this compiler produces during the search
+        target = self.target
+        if target.rep_type == "dm" and self.compiler.name == "dm":
+            target = target.copy()
+            target.convert_representation("s")
         deterministic_solver = TimeReversedSolver(
-            target=self.target,
+            target=target,
             metric=self.metric,
             compiler=self.compiler,
             noise_model_mapping=self.noise_model_mapping,

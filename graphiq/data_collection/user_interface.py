@@ -780,6 +780,7 @@ def rgs_analysis(res_rgsn, dir_path: str, filename: str):
         for i, g in enumerate(res_rgsn["g"]):
             res_rgsn["graph_metric"][i][met] = graph_met_value(met, g)
     full_filename = os.path.join(os.path.join(dir_path, "RGS"), filename)
+    os.makedirs(full_filename, exist_ok=True)
     res_rgsn.save2json(full_filename, f"{filename}")
     correlation_checker(res_rgsn, ["n_cnots"], graph_met_list)
     plot_figs(

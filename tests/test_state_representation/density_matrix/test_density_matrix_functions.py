@@ -14,6 +14,7 @@
 # limitations under the License.
 import pytest
 
+import graphiq.backends.density_matrix.functions as dmf
 from graphiq.backends.density_matrix.functions import *
 
 
@@ -180,3 +181,50 @@ def test_partial_trace_matches_an_explicit_sum_over_traced_basis_states(keep):
         expected += iso.T @ rho @ iso
 
     assert np.allclose(partial_trace(rho, keep, [2, 2, 2]), expected)
+
+
+# two non-commuting mixed qubit states, both complex
+_RHO = np.array([[0.5, -0.2j], [0.2j, 0.5]])
+_SIGMA = np.array([[0.6, 0.1 - 0.1j], [0.1 + 0.1j, 0.4]])
+# for qubits, F = tr(rho sigma) + 2 sqrt(det rho det sigma)
+_F_RHO_SIGMA = 0.54 + 2 * np.sqrt(0.21 * 0.22)
+
+
+def test_fidelity_of_two_different_real_mixed_states():
+    p, q = np.array([0.7, 0.3]), np.array([0.5, 0.5])
+    # commuting states: F = (sum_i sqrt(p_i q_i))^2
+    expected = np.sum(np.sqrt(p * q)) ** 2
+
+    assert fidelity(np.diag(p), np.diag(q)) == pytest.approx(expected)
+
+
+def test_fidelity_of_a_complex_mixed_state_with_itself_is_one():
+    assert fidelity(_RHO, _RHO.copy()) == pytest.approx(1.0)
+
+
+def test_fidelity_of_two_complex_mixed_states():
+    assert fidelity(_RHO, _SIGMA) == pytest.approx(_F_RHO_SIGMA)
+
+
+def test_sqrtm_psd_of_a_complex_matrix_squares_back_to_it():
+    root = sqrtm_psd(_RHO)
+
+    assert np.allclose(root @ root, _RHO)
+
+
+def test_sqrtm_psd_of_a_real_valued_matrix_is_unchanged():
+    # complex dtype with zero imaginary parts, as the compiler's states carry
+    matrix = np.array([[0.6, 0.2], [0.2, 0.4]], dtype=complex)
+    eig_vals, eig_vecs = eigh(matrix)
+
+    expected = (eig_vecs * np.sqrt(np.maximum(eig_vals, 0))) @ eig_vecs.T
+
+    assert np.array_equal(sqrtm_psd(matrix), expected)
+
+
+def test_fidelity_still_raises_above_one(monkeypatch):
+    # fidelity looks sqrtm_psd up in its own module, so patch it there
+    monkeypatch.setattr(dmf, "sqrtm_psd", lambda m: 1.1 * np.eye(2))
+
+    with pytest.raises(Warning):
+        fidelity(np.diag([0.7, 0.3]), np.diag([0.5, 0.5]))

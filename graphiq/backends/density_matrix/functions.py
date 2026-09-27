@@ -612,7 +612,7 @@ def sqrtm_psd(input_matrix):
     assert is_psd(input_matrix)
     eig_vals, eig_vecs = eigh(input_matrix)
     eig_vals = np.maximum(eig_vals, 0)
-    return (eig_vecs * np.sqrt(eig_vals)) @ eig_vecs.T
+    return (eig_vecs * np.sqrt(eig_vals)) @ np.conjugate(eig_vecs).T
 
 
 def hermitianize(input_matrix):
@@ -659,7 +659,8 @@ def fidelity(rho, sigma):
 
         rho_final = sqrtm_psd(rho_sigma)
         f = np.real(np.trace(rho_final)) ** 2
-        if not np.isclose(f, 1.0):
+        # f is a square, so only the upper bound can fail
+        if f > 1 and not np.isclose(f, 1.0):
             raise Warning(f"Fidelity should be between 0 and 1. Value if {f}.")
         f = np.maximum(np.minimum(f, 1.0), 0.0)
         return f

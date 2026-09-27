@@ -593,3 +593,22 @@ def test_density_matrix_infidelity_with_a_loss_after_the_last_measurement(determ
 
     assert stab == pytest.approx(0.19)
     assert dm == pytest.approx(stab)
+
+
+_MIXED_RHO = np.array([[0.5, -0.2j], [0.2j, 0.5]])
+_MIXED_SIGMA = np.array([[0.6, 0.1 - 0.1j], [0.1 + 0.1j, 0.4]])
+# for qubits, F = tr(rho sigma) + 2 sqrt(det rho det sigma)
+_F_MIXED = 0.54 + 2 * np.sqrt(0.21 * 0.22)
+
+
+@pytest.mark.parametrize("loss", [0.0, 0.1])
+def test_infidelity_of_a_mixed_density_matrix_against_a_mixed_target(loss):
+    target = QuantumState(_MIXED_RHO, rep_type="dm")
+    state = QuantumState(_MIXED_SIGMA, rep_type="dm")
+    if loss:
+        # in place; building the state from (1 - loss) * sigma would renormalise it
+        state.rep_data.apply_channel([np.sqrt(1 - loss) * np.eye(2)])
+
+    infidelity = Infidelity(target=target).evaluate(state, None)
+
+    assert infidelity == pytest.approx(1 - (1 - loss) * _F_MIXED)

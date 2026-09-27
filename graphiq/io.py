@@ -48,11 +48,19 @@ class IO:
         io.load_txt(filename="filename.txt")
 
     or
-        io = IO.create_new_save_folder(folder="subfolder", include_date=True, include_uuid=True)
-        io.save_df(df, filename="dataframe.txt")
+        io = IO.new_directory(folder="subfolder", include_date=True, include_id=True)
+        io.save_dataframe(df, filename="dataframe.txt")
+
+    Without a path, IO and IO.new_directory save under IO.default_path, the folder
+    `data/` in the parent folder of the graphiq package. In a source checkout or an
+    editable install (pip install -e) that is the repository's `data/`; for a regular
+    install (pip install graphiq, or pip install . from a checkout) it is
+    `<site-packages>/data`. Pass path= to save somewhere else.
     """
 
-    # default save path always points to `data/` no matter where this repository is located
+    # default save path: `data/` in the parent folder of the graphiq package, i.e. the
+    # repository's `data/` in a source checkout or an editable install (pip install -e),
+    # and `<site-packages>/data` for a regular (non-editable) install
     default_path = pathlib.Path(__file__).parent.parent.joinpath("data")
 
     def __init__(self, path=None, verbose=True):

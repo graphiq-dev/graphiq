@@ -23,6 +23,7 @@ dependencies = [
     "pandas",
     "psutil",
     "py-cpuinfo",
+    "requests",
 #    "qiskit",
     "qiskit ~= 0.38.0",
     "pylatexenc"

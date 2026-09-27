@@ -170,10 +170,10 @@ def test_find_local_clifford_by_matrix_returns_each_candidate_itself():
 def test_op():
     u1 = dmf.phase() @ dmf.hadamard()
     u2 = dmf.hadamard() @ dmf.phase() @ dmf.hadamard() @ dmf.phase() @ dmf.sigmax()
-    print(f"is u1 equivalent to u2 = {dmf.check_equivalent_unitaries(u1, u2)}")
+    assert dmf.check_equivalent_unitaries(u1, u2)
     u3 = dmf.hadamard() @ dmf.phase() @ dmf.hadamard() @ dmf.phase()
     u4 = dmf.phase() @ dmf.hadamard() @ dmf.sigmax()
-    print(f"is u3 equivalent to u4 = {dmf.check_equivalent_unitaries(u3, u4)}")
+    assert dmf.check_equivalent_unitaries(u3, u4)
 
 
 def test_one_qubit_gate_wrapper_rejects_nested_wrapper():

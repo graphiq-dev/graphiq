@@ -18,6 +18,7 @@ from graphiq.circuit.circuit_dag import CircuitDAG
 import graphiq.backends.stabilizer.functions.stabilizer as sfs
 import graphiq.backends.state_rep_conversion as rc
 import graphiq.circuit.ops as ops
+from graphiq.backends.density_matrix.compiler import DensityMatrixCompiler
 from graphiq.backends.stabilizer.compiler import StabilizerCompiler
 from graphiq.backends.stabilizer.tableau import *
 from graphiq.backends.stabilizer.clifford_tableau import CliffordTableau
@@ -88,10 +89,19 @@ def test_compile_circuit():
     )
     dag.validate()
     dag.draw_circuit()
-    compiler = StabilizerCompiler()
-    compiler.measurement_determinism = 1
-    output_stabilizer = compiler.compile(dag)
-    print(output_stabilizer.rep_data)
+    # the measurement is random: check each outcome against the DM backend
+    for determinism in (0, 1):
+        compiler = StabilizerCompiler()
+        compiler.measurement_determinism = determinism
+        output_stabilizer = compiler.compile(dag)
+        dm_compiler = DensityMatrixCompiler()
+        dm_compiler.measurement_determinism = determinism
+        assert np.allclose(
+            rc.stabilizer_to_density(
+                output_stabilizer.rep_data.tableau.to_stabilizer()
+            ),
+            dm_compiler.compile(dag).rep_data.data,
+        )
 
 
 def test_compile_circuit2():
@@ -110,10 +120,19 @@ def test_compile_circuit2():
     )
     dag.validate()
     dag.draw_circuit()
-    compiler = StabilizerCompiler()
-    compiler.measurement_determinism = 1
-    output_stabilizer = compiler.compile(dag)
-    print(output_stabilizer.rep_data)
+    # the measurement is random: check each outcome against the DM backend
+    for determinism in (0, 1):
+        compiler = StabilizerCompiler()
+        compiler.measurement_determinism = determinism
+        output_stabilizer = compiler.compile(dag)
+        dm_compiler = DensityMatrixCompiler()
+        dm_compiler.measurement_determinism = determinism
+        assert np.allclose(
+            rc.stabilizer_to_density(
+                output_stabilizer.rep_data.tableau.to_stabilizer()
+            ),
+            dm_compiler.compile(dag).rep_data.data,
+        )
 
 
 def test_compile_leaves_the_initial_state_unchanged():

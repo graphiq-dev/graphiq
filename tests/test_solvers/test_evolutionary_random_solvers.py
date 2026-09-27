@@ -402,6 +402,9 @@ def test_solver_logging(seed):
 
     solver.solve()
     solver.logs_to_df()
+    # one row per iteration in each log
+    assert list(solver.logs["population"]["iteration"]) == [*range(5)]
+    assert list(solver.logs["hof"]["iteration"]) == [*range(5)]
 
 
 def test_stabilizer_linear3():

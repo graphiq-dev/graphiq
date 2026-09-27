@@ -43,9 +43,16 @@ def test_density_matrix_creation_graph():
 
 
 def test_density_matrix_get_single_qubit_gate():
-    # TODO: replace these prints by assert np.allclose( <>, expected)
-    print(dmf.get_one_qubit_gate(3, 0, dmf.sigmaz()))
-    print(dmf.get_two_qubit_controlled_gate(3, 0, 1, dmf.sigmax()))
+    # qubit 0 is the leftmost tensor factor
+    assert np.allclose(
+        dmf.get_one_qubit_gate(3, 0, dmf.sigmaz()),
+        np.diag([1, 1, 1, 1, -1, -1, -1, -1]),
+    )
+    assert np.allclose(
+        dmf.get_two_qubit_controlled_gate(3, 0, 1, dmf.sigmax()),
+        np.kron(np.kron(np.diag([1, 0]), np.eye(2)), np.eye(2))
+        + np.kron(np.kron(np.diag([0, 1]), dmf.sigmax()), np.eye(2)),
+    )
 
 
 def test_density_matrix_eq_against_a_non_density_matrix():

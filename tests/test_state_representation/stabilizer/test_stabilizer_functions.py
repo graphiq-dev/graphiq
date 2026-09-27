@@ -147,6 +147,13 @@ def test_echelon_form(n_nodes):
 def test_qubit_insertion():
     tableau = sfc.create_n_plus_state(4)
     tableau = sfc.insert_qubit(tableau, 1)
+    assert tableau == sfc.tensor(
+        [
+            sfc.create_n_plus_state(1),
+            sfc.create_n_ket0_state(1),
+            sfc.create_n_plus_state(3),
+        ]
+    )
 
 
 def test_qubit_insertion2():
@@ -158,12 +165,15 @@ def test_qubit_insertion2():
 def test_qubit_removal():
     tableau = sfc.create_n_plus_state(4)
     tableau = sfc.remove_qubit(tableau, 1)
+    # the measurement outcome is random, but every outcome leaves |+>^3
+    assert tableau == sfc.create_n_plus_state(3)
 
 
 def test_qubit_insertion_removal():
     tableau = sfc.create_n_plus_state(4)
     tableau = sfc.insert_qubit(tableau, 1)
-    sfc.remove_qubit(tableau, 1)
+    tableau = sfc.remove_qubit(tableau, 1)
+    assert tableau == sfc.create_n_plus_state(4)
 
 
 def test_stabilizer_inner_product():
@@ -200,16 +210,21 @@ def test_stabilizer_fidelity2():
     dag.draw_circuit()
     _, target_state = linear_cluster_3qubit_circuit()
     metric = Infidelity(target_state)
-    dm_compiler = DensityMatrixCompiler()
-    dm_compiler.measurement_determinism = 1
-    stab_compiler = StabilizerCompiler()
-    stab_compiler.measurement_determinism = 1
-    state1 = dm_compiler.compile(dag)
-    state1.partial_trace([*range(3)], 4 * [2])
-    print(metric.evaluate(state1, dag))
-    state2 = stab_compiler.compile(dag)
-    state2.partial_trace([*range(3)], 4 * [2])
-    print(metric.evaluate(state2, dag))
+    # the emitter measurement is random; both backends must agree on each outcome
+    for determinism, expected in ((0, 0.75), (1, 1.0)):
+        dm_compiler = DensityMatrixCompiler()
+        dm_compiler.measurement_determinism = determinism
+        stab_compiler = StabilizerCompiler()
+        stab_compiler.measurement_determinism = determinism
+        state1 = dm_compiler.compile(dag)
+        state1.partial_trace([*range(3)], 4 * [2])
+        infidelity1 = metric.evaluate(state1, dag)
+        state2 = stab_compiler.compile(dag)
+        state2.partial_trace([*range(3)], 4 * [2])
+        infidelity2 = metric.evaluate(state2, dag)
+        assert np.isclose(infidelity1, infidelity2)
+        # outcome 0 leaves the photons at infidelity 0.75, outcome 1 at 1.0
+        assert np.isclose(infidelity1, expected)
 
 
 def test_clifford_from_stabilizer():

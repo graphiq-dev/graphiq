@@ -19,8 +19,8 @@ from graphiq.backends.stabilizer.state import *
 
 def test_state1():
     state = Stabilizer(4)
-    print(state.tableau.destabilizer_to_labels())
-    print(state.tableau.stabilizer_to_labels())
+    assert state.tableau.destabilizer_to_labels() == ["XIII", "IXII", "IIXI", "IIIX"]
+    assert state.tableau.stabilizer_to_labels() == ["ZIII", "IZII", "IIZI", "IIIZ"]
     state.tableau.stabilizer_z = np.array(
         [[0, 1, 0, 0], [1, 0, 1, 0], [0, 1, 0, 1], [0, 0, 1, 0]]
     )
@@ -28,8 +28,20 @@ def test_state1():
         [[0, 1, 0, 0], [1, 0, 1, 0], [0, 1, 0, 1], [0, 0, 1, 0]]
     )
     state.apply_hadamard(1)
+    # H on qubit 1 swaps its X and Z columns
+    assert state.tableau.stabilizer_to_labels() == ["IXII", "ZIZI", "IXIZ", "IIZI"]
+    assert state.tableau.destabilizer_to_labels() == ["XXII", "ZZZI", "IXXZ", "IIZX"]
+    assert not state.tableau.phase.any()
     state.tableau.destabilizer_from_labels(["XYXI", "ZYZI", "YIII", "ZZZZ"])
-    print(state.tableau.destabilizer)
+    assert np.array_equal(
+        state.tableau.destabilizer,
+        [
+            [1, 1, 1, 0, 0, 1, 0, 0],
+            [0, 1, 0, 0, 1, 1, 1, 0],
+            [1, 0, 0, 0, 1, 0, 0, 0],
+            [0, 0, 0, 0, 1, 1, 1, 1],
+        ],
+    )
 
 
 def _plus_on_qubit_1(n_qubits):

@@ -15,6 +15,7 @@
 import networkx as nx
 import pytest
 
+import graphiq.backends.density_matrix.functions as dmf
 import graphiq.circuit.ops as ops
 from graphiq.backends.graph.state import Graph, MixedGraph
 
@@ -34,7 +35,10 @@ def test_graph_lc():
     lc_dict = {0: ["x"], 1: ["h"], 2: ["s"], 3: ["s", "h"]}
     graph = nx.Graph([(0, 1), (1, 2), (1, 3), (2, 3)])
     state = Graph(graph, lc_dict)
-    print(f"Local Clifford gate at node 1 is {state.find_lc(1)}")
+    assert state.find_lc(1) == [ops.Hadamard, ops.Identity]
+    assert dmf.check_equivalent_unitaries(
+        ops.local_clifford_to_matrix_map(state.find_lc(3)), dmf.phase() @ dmf.hadamard()
+    )
 
 
 def test_mixed_graph():

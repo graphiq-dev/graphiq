@@ -22,6 +22,7 @@ from graphiq.backends.stabilizer.functions.rep_conversion import (
 )
 from graphiq.data_collection.correlation_module import (
     GraphCorr,
+    NodeCorr,
     graph_to_circ,
     graph_to_cnot,
     rnd_graph,
@@ -73,6 +74,17 @@ def test_relabel_trials_work_after_graph_circ_dict(monkeypatch):
     assert relabeled not in corr._graph_circ_dictionary
 
     assert corr._min_circ_met_over_relabel(graph) == 2
+
+
+def test_node_corr_graph_setter_updates_the_adjacency_matrix():
+    corr = NodeCorr(nx.path_graph(4), relabel_trials=3, show_plot=False)
+    new_graph = nx.cycle_graph(5)
+    corr.graph = new_graph
+
+    assert np.array_equal(corr.adj, nx.to_numpy_array(new_graph))
+    assert corr.adj_list
+    for adj in corr.adj_list:
+        assert nx.is_isomorphic(nx.from_numpy_array(adj), new_graph)
 
 
 _p3_plus_k1 = nx.disjoint_union(nx.path_graph(3), nx.empty_graph(1))

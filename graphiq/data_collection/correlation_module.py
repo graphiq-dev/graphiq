@@ -762,6 +762,7 @@ class NodeCorr:
     def graph(self, g):
         assert isinstance(g, nx.Graph)
         self._graph = g
+        self._adj = nx.to_numpy_array(g)
         self._update_data()
 
     @property

@@ -139,9 +139,7 @@ class GraphCorr:
 
     @initial_graph.setter
     def initial_graph(self, g):
-        assert isinstance(g, nx.Graph) or (
-            g is None
-        ), "initial graph must be a networkx graph object"
+        assert isinstance(g, nx.Graph), "initial graph must be a networkx graph object"
         self._initial_graph = g
         self.graph_list = self._graph_list_maker(
             self._initial_graph, count=self._num_isomorph

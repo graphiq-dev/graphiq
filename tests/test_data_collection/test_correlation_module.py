@@ -39,6 +39,18 @@ def test_graph_corr_initial_graph_is_none_without_an_initial_graph():
     assert GraphCorr().initial_graph is None
 
 
+def test_initial_graph_setter_rejects_none_and_leaves_the_object_unchanged():
+    graph = nx.path_graph(3)
+    corr = GraphCorr(initial_graph=graph, num_isomorph=2)
+    before = corr.graph_list
+    with pytest.raises(
+        AssertionError, match="initial graph must be a networkx graph object"
+    ):
+        corr.initial_graph = None
+    assert corr.initial_graph is graph
+    assert corr.graph_list is before
+
+
 def test_num_isomorph_setter_without_an_initial_graph_sets_the_relabel_count(
     monkeypatch,
 ):

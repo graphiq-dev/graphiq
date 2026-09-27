@@ -314,3 +314,21 @@ def test_binary_symplectic_product_of_different_row_counts():
     # Z_i anticommutes with X_i only
     assert np.array_equal(product, np.array([[1, 0, 0, 0], [0, 1, 0, 0]]))
     assert sfu.is_symplectic_self_orthogonal(stabilizer)
+
+
+@pytest.mark.parametrize(
+    "z_rows",
+    [
+        # one identity generator: Z0, Z1, I
+        [[1, 0, 0], [0, 1, 0], [0, 0, 0]],
+        # dependent generators: Z0, Z1, Z0Z1 reduces to Z0, Z1, I
+        [[1, 0, 0], [0, 1, 0], [1, 1, 0]],
+        # the only generator on one qubit is the identity
+        [[0]],
+    ],
+)
+def test_rref_rejects_a_generator_that_reduces_to_the_identity(z_rows):
+    z_matrix = np.array(z_rows)
+    tableau = StabilizerTableau([np.zeros_like(z_matrix), z_matrix])
+    with pytest.raises(AssertionError):
+        rref(tableau)

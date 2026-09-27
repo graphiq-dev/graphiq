@@ -513,9 +513,9 @@ def rref(tableau):
     n_qubits = tableau.n_qubits
     while pivot[0] <= n_qubits - 1 and pivot[1] <= n_qubits - 1:
         tableau, pivot = one_step_rref(tableau, pivot)
-    # rank check
+    # rank check: every generator must have received a pivot
     assert (
-        pivot[0] >= n_qubits - 1
+        pivot[0] == n_qubits
     ), "Invalid input. One of the stabilizers is identity on all qubits!"
     return tableau
 

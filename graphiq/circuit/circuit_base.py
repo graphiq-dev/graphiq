@@ -423,8 +423,17 @@ class CircuitBase(ABC):
     def parameters(self, parameters: dict):
         self._parameters = parameters
 
-        for op in self.sequence(unwrapped=True):
-            op.params = self._parameters.get(self.map[id(op)], tuple())
+        sequence = self.sequence(unwrapped=True)
+        # the map is built when parameters are initialised; ops added (or copied)
+        # since then are not in it, so rebuild it the way initialize_parameters does
+        # (a OneQubitGateWrapper's sub-gates are new objects on every unwrap, so a
+        # circuit with a wrapper rebuilds the map on every call)
+        if any(id(op) not in self._map for op in sequence):
+            self._map = self._fmap()
+        for op in sequence:
+            # a wrapper's sub-gates are new objects on every unwrap and are never in
+            # the map; they carry no parameters
+            op.params = self._parameters.get(self._map.get(id(op)), tuple())
 
     @property
     def fmap(self):

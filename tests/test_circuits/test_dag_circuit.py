@@ -730,3 +730,105 @@ def test_initialize_parameters_of_the_variational_layer_is_unchanged():
         [0.8760444114976647, -2.984445443853267, -1.4135324813693264],
         [-1.7391182232484002, 1.48579245840624, 1.1102356231618007],
     ]
+
+
+def _rotation(register=0):
+    return ops.ParameterizedOneQubitRotation(
+        register=register, reg_type="e", params=(0.0, 1.0, 1.0)
+    )
+
+
+def _shared_weight_fmap(circuit):
+    return lambda: {
+        id(op): op.__class__.__name__ for op in circuit.sequence(unwrapped=True)
+    }
+
+
+def test_parameters_setter_accepts_ops_added_after_construction():
+    circuit = CircuitDAG(n_emitter=1, n_photon=0, n_classical=0)
+    rotation = _rotation()
+    circuit.add(rotation)
+
+    circuit.parameters = {id(rotation): [0.1, 0.2, 0.3]}
+
+    assert rotation.params == [0.1, 0.2, 0.3]
+
+
+def test_parameters_setter_accepts_ops_added_after_initialize_parameters():
+    circuit = CircuitDAG(n_emitter=1, n_photon=0, n_classical=0)
+    rotation1 = _rotation()
+    circuit.add(rotation1)
+    circuit.initialize_parameters(seed=0)
+    rotation2 = _rotation()
+    circuit.add(rotation2)
+
+    circuit.parameters = {
+        id(rotation1): [0.1, 0.2, 0.3],
+        id(rotation2): [0.4, 0.5, 0.6],
+    }
+
+    assert rotation1.params == [0.1, 0.2, 0.3]
+    assert rotation2.params == [0.4, 0.5, 0.6]
+
+
+def test_parameters_setter_with_a_one_qubit_gate_wrapper():
+    circuit = CircuitDAG(n_emitter=1, n_photon=0, n_classical=0)
+    rotation = _rotation()
+    circuit.add(rotation)
+    circuit.add(
+        ops.OneQubitGateWrapper([ops.Hadamard, ops.Phase], register=0, reg_type="e")
+    )
+    circuit.initialize_parameters(seed=0)
+
+    circuit.parameters = {id(rotation): [0.1, 0.2, 0.3]}
+
+    assert rotation.params == [0.1, 0.2, 0.3]
+
+
+def test_parameters_setter_with_a_shared_weight_fmap():
+    circuit = CircuitDAG(n_emitter=2, n_photon=0, n_classical=0)
+    rotation0 = _rotation(0)
+    rotation1 = _rotation(1)
+    circuit.add(rotation0)
+    circuit.add(rotation1)
+    circuit.fmap = _shared_weight_fmap(circuit)
+
+    circuit.parameters = {"ParameterizedOneQubitRotation": [0.1, 0.2, 0.3]}
+
+    assert rotation0.params == [0.1, 0.2, 0.3]
+    assert rotation1.params == [0.1, 0.2, 0.3]
+
+
+def test_parameters_setter_keeps_the_map_built_by_initialize_parameters():
+    # when every op is already in the map, the setter uses it as it is, even
+    # if fmap was changed after the parameters were initialised
+    circuit = CircuitDAG(n_emitter=2, n_photon=0, n_classical=0)
+    rotation0 = _rotation(0)
+    rotation1 = _rotation(1)
+    circuit.add(rotation0)
+    circuit.add(rotation1)
+    circuit.initialize_parameters(seed=0)
+    circuit.fmap = _shared_weight_fmap(circuit)
+
+    circuit.parameters = {
+        id(rotation0): [0.1, 0.2, 0.3],
+        id(rotation1): [0.4, 0.5, 0.6],
+    }
+
+    assert rotation0.params == [0.1, 0.2, 0.3]
+    assert rotation1.params == [0.4, 0.5, 0.6]
+
+
+def test_parameters_setter_after_initialize_parameters_assigns_given_values():
+    from graphiq.benchmarks.circuits import variational_entangling_layer_2qubit
+
+    circuit, _ = variational_entangling_layer_2qubit()
+    initial = circuit.initialize_parameters(seed=42)
+    shifted = {key: [value + 1 for value in values] for key, values in initial.items()}
+
+    circuit.parameters = shifted
+
+    parameterized = [op for op in circuit.sequence(unwrapped=True) if op.params]
+    assert parameterized
+    for op in parameterized:
+        assert list(op.params) == shifted[circuit.map[id(op)]]

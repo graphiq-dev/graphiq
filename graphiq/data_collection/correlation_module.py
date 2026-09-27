@@ -74,14 +74,17 @@ class GraphCorr:
         :param graph_list: a list of graphs; if provided the sample to study would be this set of given graphs
         :type graph_list: list[networkx.Graph]
         :param trials: the size of the random graph sample to analyze
-        :param relabel_trials: if provided, is used to evaluate the circuit metric over this number of different
-        relabeling of each graph in the sample, such that the final circuit metric value is the minimum or maximum over
-         all these relabeling trials. This is done to make the metric value somewhat labeling-agnostic, since the graph
-         metrics used here are independent of the labeling too.
+        :param relabel_trials: if truthy, the circuit metric of each graph in the sample is the minimum over at most
+            num_isomorph distinct labelings of it, the given labeling included (fewer if the graph has fewer distinct
+            relabelings or the search stops early). The value only switches this on; num_isomorph sets the count, and
+            at the default num_isomorph=1 no other labeling is used. This makes the metric value somewhat
+            labeling-agnostic, since the graph metrics used here are independent of the labeling too. If None or 0,
+            each graph is evaluated as given.
         :type relabel_trials: int
         :param num_isomorph: if an initial graph is provided to work with, this parameter determines the size of the
         sample that is acquired by relabeling of the initial graph. The actual sample size might be less than this
-        parameter if the maximum number of isomorphism is reached.
+        parameter if the maximum number of isomorphism is reached. When relabel_trials is set, it is also the most
+        distinct labelings, the given one included, over which each graph's circuit metric is minimised.
         :type num_isomorph: int
         """
         # if we have an initial graph, correlations are found based on the relabeling of that graph. Otherwise, if a

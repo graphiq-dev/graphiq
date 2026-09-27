@@ -582,8 +582,7 @@ class EvolutionarySolver(RandomSearchSolver):
     def _save_hof(self, hof, iteration):
         """
         Write every circuit of the hall of fame out as openQASM, one file per circuit under "hof/",
-        through the solver's IO. Every entry must hold a circuit: a still-unfilled (np.inf, None)
-        slot raises AttributeError.
+        through the solver's IO. A slot no candidate has filled yet, (np.inf, None), is skipped.
 
         :param hof: the hall of fame, as (score, circuit) pairs
         :type hof: list[tuple]
@@ -593,6 +592,9 @@ class EvolutionarySolver(RandomSearchSolver):
         :rtype: None
         """
         for i, (score, circuit) in enumerate(hof):
+            # a slot no candidate has filled yet holds (np.inf, None)
+            if circuit is None:
+                continue
             name = f"hof/iteration{iteration}_hof{i}.txt"
             self.io.save_json(circuit.to_openqasm(), name)
 

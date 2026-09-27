@@ -581,3 +581,42 @@ def test_replacing_an_unfixed_photon_gate_leaves_it_removable():
     assert "Fixed" not in circuit.dag.nodes[node]["op"].labels
     solver.remove_op(circuit, node)
     assert node not in circuit.dag.nodes
+
+
+def _saved_files(folder):
+    if not folder.exists():
+        return set()
+    return {path.name for path in folder.iterdir()}
+
+
+@pytest.mark.parametrize("save_openqasm", ["hof", "both"])
+def test_saving_the_hall_of_fame_skips_unfilled_slots(tmp_path, save_openqasm):
+    # two candidates per iteration fill 2, 4, then all 5 slots of the hall of fame;
+    # a slot no candidate has filled yet has no circuit to save
+    _, target = linear_cluster_3qubit_circuit()
+    setting = EvolutionarySolverSetting(
+        n_stop=3, n_pop=2, n_hof=5, save_openqasm=save_openqasm
+    )
+    solver = EvolutionarySolver(
+        target=target,
+        metric=Infidelity(target),
+        compiler=DensityMatrixCompiler(),
+        n_emitter=1,
+        n_photon=3,
+        solver_setting=setting,
+        io=IO(path=tmp_path, verbose=False),
+    )
+    EvolutionarySolver.seed(1)
+
+    solver.solve()
+
+    filled = {0: 2, 1: 4, 2: 5}
+    assert _saved_files(tmp_path / "hof") == {
+        f"iteration{k}_hof{i}.txt" for k, n in filled.items() for i in range(n)
+    }
+    expected_pop = (
+        {f"iteration{k}_pop{j}.txt" for k in range(3) for j in range(2)}
+        if save_openqasm == "both"
+        else set()
+    )
+    assert _saved_files(tmp_path / "pop") == expected_pop

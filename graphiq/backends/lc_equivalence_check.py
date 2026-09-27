@@ -701,12 +701,16 @@ def iso_graph_finder(input_graph):
 
     :param input_graph: input graph
     :type input_graph: networkx.Graph
-    :return: the list of graphs that are isomorphic to G
+    :return: the list of graphs that are isomorphic to G, one per permutation of its sorted labels: entry k is
+        G relabelled by the k-th permutation of its sorted labels, with each label then replaced by its rank in
+        sorted order
     :rtype: list[networkx.Graph]
     """
     iso_graphs = []
     list_nodes = sorted(input_graph)
     n_nodes = len(list_nodes)
+    # adjacency-matrix row/column of each label, so labels need not be 0..n-1
+    position = {node: i for i, node in enumerate(list_nodes)}
     all_permu = list(permutations(list_nodes, len(list_nodes)))
 
     for each_permu in all_permu:
@@ -715,7 +719,7 @@ def iso_graph_finder(input_graph):
         g_copy = nx.relabel_nodes(input_graph, map_dict, copy=True)
         for node_id1 in list_nodes:
             for node_id2 in list(g_copy.neighbors(node_id1)):
-                adj_matrix[node_id1, node_id2] = 1
+                adj_matrix[position[node_id1], position[node_id2]] = 1
 
         g_copy = nx.to_networkx_graph(adj_matrix)
         iso_graphs.append(g_copy)

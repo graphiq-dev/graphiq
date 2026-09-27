@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import time
-from itertools import combinations
+from itertools import combinations, permutations
 
 import matplotlib.pyplot as plt
 import pytest
@@ -630,3 +630,89 @@ def test_state_converter_circuit_on_disconnected_pair():
     two_isolated = nx.empty_graph(2)
     circuit2 = state_converter_circuit(two_isolated, two_isolated, validate=True)
     assert circuit2 is not None
+
+
+def _expected_iso_matrices(graph):
+    """
+    Adjacency matrices iso_graph_finder should return for graph, built without calling it:
+    entry k is graph relabelled by the k-th permutation of its sorted labels, with each
+    label then replaced by its rank in sorted order.
+    """
+    labels = sorted(graph)
+    rank = {label: i for i, label in enumerate(labels)}
+    n = len(labels)
+    expected = []
+    for perm in permutations(labels):
+        relabel = dict(zip(labels, perm))
+        matrix = np.zeros((n, n))
+        for u, v in graph.edges:
+            matrix[rank[relabel[u]], rank[relabel[v]]] = 1
+            matrix[rank[relabel[v]], rank[relabel[u]]] = 1
+        expected.append(matrix)
+    return expected
+
+
+@pytest.mark.parametrize(
+    "edges",
+    [
+        [(1, 2), (2, 3)],  # labels 1..n
+        [(3, 2), (2, 1), (1, 4)],  # labels 1..n, inserted out of sorted order
+        [("c", "b"), ("b", "a"), ("a", "d")],  # strings, inserted out of sorted order
+        [(0, 5), (5, 2), (2, 9)],  # gaps, inserted out of sorted order
+        [
+            (-2, -1),
+            (-1, 0),
+            (0, 3),
+        ],  # negative labels, -1 and 3 on the same row if unmapped
+        [(-5, 0), (0, 1)],  # a label below -n
+    ],
+)
+def test_iso_graph_finder_accepts_labels_other_than_0_to_n_minus_1(edges):
+    graph = nx.Graph(edges)
+    result = iso_graph_finder(graph)
+    expected = _expected_iso_matrices(graph)
+    assert len(result) == len(expected)
+    assert all(list(g.nodes) == list(range(len(graph))) for g in result)
+    assert all(
+        np.array_equal(nx.to_numpy_array(g), e) for g, e in zip(result, expected)
+    )
+
+
+def test_iso_equal_check_accepts_labels_other_than_0_to_n_minus_1():
+    k3 = nx.Graph([(1, 2), (2, 3), (1, 3)])
+    star = nx.Graph([(1, 2), (1, 3)])
+    assert iso_equal_check(k3, star)[0]
+
+
+def _path4_inserted_out_of_order():
+    graph = nx.Graph()
+    graph.add_nodes_from([2, 0, 3, 1])
+    graph.add_edges_from([(0, 1), (1, 2), (2, 3)])
+    return graph
+
+
+def _weighted_path4():
+    graph = nx.Graph()
+    graph.add_edge(0, 1, weight=5.0)
+    graph.add_edge(1, 2, weight=2.0)
+    graph.add_edge(2, 3, weight=0.5)
+    return graph
+
+
+@pytest.mark.parametrize(
+    "graph", [nx.path_graph(4), _path4_inserted_out_of_order(), _weighted_path4()]
+)
+def test_iso_graph_finder_output_for_labels_0_to_n_minus_1(graph):
+    # pins the output, its order and its 0/1 entries for graphs labelled 0..n-1
+    spec = [
+        nx.to_numpy_array(
+            nx.relabel_nodes(graph, dict(zip(range(4), perm))),
+            nodelist=range(4),
+            weight=None,
+        )
+        for perm in permutations(range(4))
+    ]
+    result = iso_graph_finder(graph)
+    assert len(result) == 24
+    assert all(list(g.nodes) == [0, 1, 2, 3] for g in result)
+    assert all(np.array_equal(nx.to_numpy_array(g), s) for g, s in zip(result, spec))

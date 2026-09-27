@@ -728,3 +728,38 @@ def test_update_logs_leaves_unfilled_hall_of_fame_slots_out_of_depth_statistics(
     log = solver.logs["hof"][0]
     assert (log["depth_mean"], log["depth_variance"]) == (8.0, 1.0)
     assert (log["depth_min"], log["depth_max"]) == (7, 9)
+
+
+def test_hall_of_fame_log_cost_statistics_leave_out_unfilled_slots():
+    solver, population = _solver_with_two_filled_hall_of_fame_slots()
+
+    solver.update_logs(population=population, iteration=0)
+
+    log = solver.logs["hof"][0]
+    assert log["cost_mean"] == pytest.approx(0.375)
+    assert log["cost_variance"] == pytest.approx(0.015625)
+    assert (log["cost_min"], log["cost_max"]) == (0.25, 0.5)
+
+
+def test_hall_of_fame_log_cost_statistics_keep_an_inf_scored_candidate():
+    # a real candidate scored inf fills a slot, unlike an unfilled (np.inf, None) slot
+    _, target = linear_cluster_3qubit_circuit()
+    solver = EvolutionarySolver(
+        target=target,
+        metric=Infidelity(target),
+        compiler=DensityMatrixCompiler(),
+        n_emitter=1,
+        n_photon=3,
+        solver_setting=EvolutionarySolverSetting(n_pop=2, n_hof=5),
+    )
+    finite, _ = linear_cluster_3qubit_circuit()
+    infinite, _ = linear_cluster_3qubit_circuit()
+    population = [(0.25, finite), (np.inf, infinite)]
+    solver.update_hof(population)
+    assert [c is None for _, c in solver.hof] == [False, False, True, True, True]
+
+    solver.update_logs(population=population, iteration=0)
+
+    log = solver.logs["hof"][0]
+    assert log["cost_mean"] == np.inf
+    assert log["cost_max"] == np.inf

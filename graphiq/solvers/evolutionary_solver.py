@@ -505,7 +505,9 @@ class EvolutionarySolver(RandomSearchSolver):
         """
         # get the scores from the population/hof as a list
         scores_pop = list(zip(*population))[0]
-        scores_hof = list(zip(*self.hof))[0]
+        # skip unfilled hall-of-fame slots here too; a real candidate scored inf
+        # still fills a slot and counts
+        scores_hof = [score for (score, circuit) in self.hof if circuit is not None]
 
         depth_pop = [circuit.depth for (_, circuit) in population]
         # self.hof can still contain unfilled (np.inf, None) placeholder

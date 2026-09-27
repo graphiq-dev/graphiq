@@ -912,6 +912,8 @@ def check_equivalent_unitaries(unitary_op1, unitary_op2):
     """
     Check if two input matrices are equivalent unitaries up to a global phase
 
+    The global phase is estimated from the largest-magnitude entry of unitary_op2.
+
     :param unitary_op1: the first input matrix
     :type unitary_op1: numpy.ndarray
     :param unitary_op2: the second input matrix
@@ -922,9 +924,11 @@ def check_equivalent_unitaries(unitary_op1, unitary_op2):
     if not (is_unitary(unitary_op1) and is_unitary(unitary_op2)):
         return False
 
-    nonzero = np.nonzero(unitary_op2)
-    row = nonzero[0][0]
-    column = nonzero[1][0]
+    # Read the phase from the largest entry of unitary_op2: an exact zero may
+    # carry round-off, and a ratio against a round-off value is not a phase.
+    # Each column of a unitary has unit norm, so its largest entry has magnitude
+    # at least 1/sqrt(n), well above round-off.
+    row, column = np.unravel_index(np.argmax(np.abs(unitary_op2)), unitary_op2.shape)
 
     # differ by a global phase
     global_phase = unitary_op1[row, column] / unitary_op2[row, column]

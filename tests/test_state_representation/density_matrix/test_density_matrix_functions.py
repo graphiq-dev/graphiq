@@ -291,3 +291,40 @@ def test_negativity_with_unequal_dimensions():
     phi = np.array([1, 0, 1j, 0]) / np.sqrt(2)
     product = np.kron(np.outer(plus, plus.conj()), np.outer(phi, phi.conj()))
     assert np.isclose(negativity(product, 2, 4), 0, atol=1e-12)
+
+
+def test_check_equivalent_unitaries_ignores_round_off_at_exact_zeros():
+    x = sigmax().astype(complex)
+
+    noisy_x = x.copy()
+    noisy_x[0, 0] = 1e-17
+
+    noisy_ix = (1j * x).copy()
+    noisy_ix[0, 0] = 1e-17
+
+    exact_ix = 1j * x
+
+    assert is_unitary(noisy_x)
+    assert is_unitary(noisy_ix)
+    assert is_unitary(exact_ix)
+
+    # both operands carry the same round-off at the exact-zero entry
+    assert check_equivalent_unitaries(noisy_ix, noisy_x)
+    # only the second operand carries it
+    assert check_equivalent_unitaries(exact_ix, noisy_x)
+
+    # pairs that differ must still be rejected
+    noisy_identity = np.eye(2, dtype=complex)
+    noisy_identity[0, 1] = 1e-17
+    assert not check_equivalent_unitaries(
+        np.diag([1, -1]).astype(complex), noisy_identity
+    )
+    assert not check_equivalent_unitaries(x, np.eye(2, dtype=complex))
+
+
+def test_check_equivalent_unitaries_of_a_gate_built_x():
+    # H S S H is X up to round-off, which sits at its exact-zero diagonal
+    x_from_gates = hadamard() @ phase() @ phase() @ hadamard()
+
+    assert check_equivalent_unitaries(sigmax(), x_from_gates)
+    assert check_equivalent_unitaries(1j * sigmax(), x_from_gates)

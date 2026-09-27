@@ -12,6 +12,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import itertools
+
 import numpy as np
 import pytest
 
@@ -155,6 +157,14 @@ def test_get_local_clifford_matrix_by_name():
     assert ops.simplify_local_clifford(
         [ops.Phase, ops.Phase, ops.Hadamard, ops.Hadamard]
     ) == [ops.Identity, ops.SigmaZ]
+
+
+def test_find_local_clifford_by_matrix_returns_each_candidate_itself():
+    gate_list1, gate_list2 = ops.local_clifford_composition()
+    for op1, op2 in itertools.product(gate_list1, gate_list2):
+        matrix1 = ops.local_clifford_to_matrix_map(op1)
+        matrix2 = ops.local_clifford_to_matrix_map(op2)
+        assert ops.find_local_clifford_by_matrix(matrix1 @ matrix2) == op1 + op2
 
 
 def test_op():

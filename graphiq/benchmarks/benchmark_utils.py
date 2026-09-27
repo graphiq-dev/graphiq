@@ -24,7 +24,7 @@ import copy
 
 from graphiq.backends.density_matrix.compiler import DensityMatrixCompiler
 from graphiq.solvers.evolutionary_solver import EvolutionarySolver
-from graphiq import benchmarks as circ
+from graphiq.benchmarks import circuits as circ
 from graphiq.metrics import Infidelity
 
 from graphiq.io import IO
@@ -167,7 +167,14 @@ def benchmark_data(
             solver.seed(i + seed_offset)
             solver_data = solver.solver_info
             if save_directory and i == 0 and j == 0:
-                io.save_json(solver_data, "solver_info.json")
+                # a solver setting object is not JSON serializable; save its description
+                io.save_json(
+                    {
+                        key: str(value) if key == "solver setting" else value
+                        for key, value in solver_data.items()
+                    },
+                    "solver_info.json",
+                )
 
             start_time = time.time()
             solver.solve()
@@ -195,7 +202,7 @@ def benchmark_data(
             }
             hof_circuits.append(circuit_data)
             if save_directory is not None:
-                io.save_json(solver_data, f"circuit_target{j}_retry{i}.json")
+                io.save_json(circuit_data, f"circuit_target{j}_retry{i}.json")
                 io.save_txt(
                     circuit_data["Circuit description"],
                     f"circuit_description_target{j}_retry{i}.txt",
@@ -217,13 +224,18 @@ def benchmark_data(
 
 
 if __name__ == "__main__":
+    circuit, state = circ.ghz3_state_circuit()
     target_list = [
-        circ.ghz3_state_circuit(),
-        circ.ghz4_state_circuit(),
-        circ.linear_cluster_3qubit_circuit(),
-        circ.linear_cluster_4qubit_circuit(),
+        (
+            circuit,
+            {
+                "name": "ghz3",
+                "dm": state,
+                "n_emitters": circuit.n_emitters,
+                "n_photons": circuit.n_photons,
+            },
+        )
     ]
-    target_list = [circ.ghz3_state_circuit()]
     compiler = DensityMatrixCompiler()
     compiler.measurement_determinism = 1
     df = benchmark_data(

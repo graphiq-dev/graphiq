@@ -360,9 +360,7 @@ class CircuitCnotCount(MetricBase):
         super().__init__(log_steps=log_steps, *args, **kwargs)
         self.differentiable = False
         if n_cnot_penalty is None:
-            self.n_cnot_penalty = (
-                lambda x: x
-            )  # by default, the number of CNOTs itself
+            self.n_cnot_penalty = lambda x: x  # by default, the number of CNOTs itself
         else:
             self.n_cnot_penalty = n_cnot_penalty
 

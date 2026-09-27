@@ -487,6 +487,85 @@ def test_adapt_probabilities_also_shrinks_the_cnot_key_with_multiple_emitters():
     assert solver.trans_probs[solver.add_emitter_cnot] < before[solver.add_emitter_cnot]
 
 
+def test_adapt_probabilities_adapts_only_the_allowed_transformations():
+    solver = EvolutionarySolver(None, None, None, n_emitter=1)
+    solver.set_allowed_transformations(
+        {solver.add_emitter_one_qubit_op: 0.5, solver.remove_op: 0.5}
+    )
+    before = dict(solver.trans_probs)
+
+    solver.adapt_probabilities()
+
+    assert set(solver.trans_probs) == set(before)
+    assert (
+        solver.trans_probs[solver.add_emitter_one_qubit_op]
+        < before[solver.add_emitter_one_qubit_op]
+    )
+    assert solver.trans_probs[solver.remove_op] > before[solver.remove_op]
+    assert np.isclose(sum(solver.trans_probs.values()), 1)
+
+
+def test_adapt_probabilities_without_the_cnot_transformation():
+    solver = EvolutionarySolver(None, None, None, n_emitter=2)
+    solver.set_allowed_transformations(
+        {
+            solver.add_emitter_one_qubit_op: 1 / 3,
+            solver.replace_photon_one_qubit_op: 1 / 3,
+            solver.remove_op: 1 / 3,
+        }
+    )
+    before = dict(solver.trans_probs)
+
+    solver.adapt_probabilities()
+
+    assert set(solver.trans_probs) == set(before)
+    for key in (solver.add_emitter_one_qubit_op, solver.replace_photon_one_qubit_op):
+        assert solver.trans_probs[key] < before[key]
+    assert solver.trans_probs[solver.remove_op] > before[solver.remove_op]
+    assert np.isclose(sum(solver.trans_probs.values()), 1)
+
+
+def test_adapt_probabilities_without_the_emitter_one_qubit_or_remove_transformations():
+    solver = EvolutionarySolver(None, None, None, n_emitter=1)
+    solver.set_allowed_transformations(
+        {solver.replace_photon_one_qubit_op: 0.5, solver.add_emitter_cnot: 0.5}
+    )
+    before = dict(solver.trans_probs)
+
+    solver.adapt_probabilities()
+
+    assert set(solver.trans_probs) == set(before)
+    assert (
+        solver.trans_probs[solver.replace_photon_one_qubit_op]
+        < before[solver.replace_photon_one_qubit_op]
+    )
+    assert np.isclose(sum(solver.trans_probs.values()), 1)
+
+
+def test_adapt_probabilities_leaves_the_cnot_key_on_a_single_emitter_solver():
+    # only the normalisation moves the cnot entry on a one-emitter solver, so its ratio
+    # to remove_op is the one remove_op's own update gives
+    solver = EvolutionarySolver(None, None, None, n_emitter=1)
+    solver.set_allowed_transformations(
+        {
+            solver.add_emitter_one_qubit_op: 0.25,
+            solver.replace_photon_one_qubit_op: 0.25,
+            solver.remove_op: 0.25,
+            solver.add_emitter_cnot: 0.25,
+        }
+    )
+    before = dict(solver.trans_probs)
+
+    solver.adapt_probabilities()
+
+    after = solver.trans_probs
+    new_remove = min(before[solver.remove_op] + 1 / solver.setting.n_stop, 0.99)
+    assert np.isclose(
+        after[solver.add_emitter_cnot] / after[solver.remove_op],
+        before[solver.add_emitter_cnot] / new_remove,
+    )
+
+
 def test_adapt_probabilities_stay_non_strict_monotone_over_many_calls():
     # The clamp to [0.01, 0.99] happens before normalisation, so it is not observable in the raw
     # values -- normalised, every decreasing key plateaus at a fixed point (0.0099 for one

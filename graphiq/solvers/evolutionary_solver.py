@@ -306,20 +306,24 @@ class EvolutionarySolver(RandomSearchSolver):
         :rtype: None
         """
         # TODO: check whether the input iteration is needed.
-        self.trans_probs[self.add_emitter_one_qubit_op] = max(
-            self.trans_probs[self.add_emitter_one_qubit_op]
-            - 1 / self.setting.n_stop / 3,
-            0.01,
-        )
-        self.trans_probs[self.replace_photon_one_qubit_op] = max(
-            self.trans_probs[self.replace_photon_one_qubit_op]
-            - 1 / self.setting.n_stop / 3,
-            0.01,
-        )
-        self.trans_probs[self.remove_op] = min(
-            self.trans_probs[self.remove_op] + 1 / self.setting.n_stop, 0.99
-        )
-        if self.n_emitter > 1:
+        # trans_probs may not contain every transformation; adapt only those present
+        if self.add_emitter_one_qubit_op in self.trans_probs:
+            self.trans_probs[self.add_emitter_one_qubit_op] = max(
+                self.trans_probs[self.add_emitter_one_qubit_op]
+                - 1 / self.setting.n_stop / 3,
+                0.01,
+            )
+        if self.replace_photon_one_qubit_op in self.trans_probs:
+            self.trans_probs[self.replace_photon_one_qubit_op] = max(
+                self.trans_probs[self.replace_photon_one_qubit_op]
+                - 1 / self.setting.n_stop / 3,
+                0.01,
+            )
+        if self.remove_op in self.trans_probs:
+            self.trans_probs[self.remove_op] = min(
+                self.trans_probs[self.remove_op] + 1 / self.setting.n_stop, 0.99
+            )
+        if self.n_emitter > 1 and self.add_emitter_cnot in self.trans_probs:
             self.trans_probs[self.add_emitter_cnot] = max(
                 self.trans_probs[self.add_emitter_cnot] - 1 / self.setting.n_stop / 3,
                 0.01,

@@ -19,9 +19,9 @@ from graphiq import DENSITY_MATRIX_ARRAY_LIBRARY
 
 # todo, reload numpy/jax if needed? possible package conflicts
 if DENSITY_MATRIX_ARRAY_LIBRARY == "jax":
-    from jax.config import config
+    import jax
 
-    config.update(
+    jax.config.update(
         "jax_enable_x64", True
     )  # 32-bit precision can lead to issues when comparing matrices
 

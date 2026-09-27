@@ -86,7 +86,8 @@ def density_matrix_bars(rho):
         deltaz = deltaz.flatten()
 
         colors = cmap_div(
-            deltaz.ravel() * 0.8, alpha=1 - 0.5 * (np.abs(deltaz.ravel()) / max_height)
+            0.5 + 0.5 * deltaz.ravel() / max_height,
+            alpha=1 - 0.5 * (np.abs(deltaz.ravel()) / max_height),
         )
         ax.bar3d(x, y, z, dx, dy, deltaz, color=colors)
         ax.set(zlim=zlim)

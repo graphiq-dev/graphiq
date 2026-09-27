@@ -98,13 +98,28 @@ def benchmark_data(
             d) Final circuit depth [not done]
             e) Runtime of solver iteration [not done]
 
-    :param solver_class: the solver being benchmarked
-    :type solver_class: SolverBase
-    :param targets: a list of (target_circuit, target_state) on which to evaluate
-    :type targets: list
+    :param solver_class: the solver being benchmarked: a class, or any callable returning a solver,
+        that is called with the keyword arguments target, metric, compiler, n_emitter and n_photon
+        (the last two from the target's "n_emitters" and "n_photons"). The solver must have a hall
+        of fame, hof, after solve(), whose first entry is the best (score, circuit) pair.
+        EvolutionarySolver qualifies (use functools.partial to give it a solver_setting). A class
+        that works out n_emitter and n_photon itself, such as HybridEvolutionarySolver, can be
+        passed through a callable that drops them, e.g.
+        lambda n_emitter, n_photon, **kwargs: HybridEvolutionarySolver(**kwargs); for
+        HybridEvolutionarySolver this works only for targets whose density matrix is itself a
+        graph state (not the GHZ targets in graphiq.benchmarks.circuits, for example).
+        TimeReversedSolver has no hof and cannot be benchmarked.
+    :type solver_class: type[SolverBase] or callable
+    :param targets: a list of (target_circuit, target) pairs on which to evaluate; target_circuit
+        is not read, and target is a dict holding "name", "n_emitters", "n_photons" and the target
+        state under the key target_type
+    :type targets: list[tuple]
     :param metric_class: the class of the cost function metric to use in benchmarking
     :type metric_class: MetricBase
-    :param compiler: the compiler which the solver should use
+    :param compiler: the compiler which the solver should use; it must be a density-matrix
+        compiler, since each best circuit is also checked with circuit_measurement_independent,
+        which compares density matrices (a StabilizerCompiler raises TypeError there)
+    :type compiler: DensityMatrixCompiler
     :param target_type: a string describing the target state representation
     :type target_type: str
     :param per_target_retries: the number of times we should reseed and run the same solver problem

@@ -279,8 +279,8 @@ class IO:
         :type filename: str
         :param complex_vals: True if we expect the numpy array to be complex, False otherwise
         :type complex_vals: bool
-        :return: the function returns nothing
-        :rtype: None
+        :return: the loaded numpy array
+        :rtype: numpy.ndarray
         """
         full_path = self.path.joinpath(filename)
         file = np.loadtxt(

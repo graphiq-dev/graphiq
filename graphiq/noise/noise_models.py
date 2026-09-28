@@ -267,7 +267,7 @@ class TwoQubitControlledGateReplacement(ReplacementNoiseBase):
         Construct a TwoQubitControlledGateReplacement noise model
 
         :param target_unitary: the target gate to be applied to the target qubit if the control qubit is
-            in :math:`|0\\rangle` state
+            in :math:`|1\\rangle` state
         :type target_unitary: numpy.ndarray
         :param pre_gate_ctr_noise: the noise (unitary) added to the control qubit before the gate
         :type pre_gate_ctr_noise:  numpy.ndarray

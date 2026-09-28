@@ -392,7 +392,7 @@ class CircuitCnotCount(MetricBase):
 
 class CircuitUnitaryCount(MetricBase):
     """
-    A metric which calculates the circuit depth
+    A metric which calculates the circuit's number of unitary gates
     """
 
     def __init__(self, log_steps=1, n_unitary_penalty=None, *args, **kwargs):
@@ -461,7 +461,7 @@ class CircuitMaxEmitDepth(MetricBase):
 
         :param log_steps: the metric values are computed at every log_steps optimization step
         :type log_steps: int
-        :param depth_penalty: a function which calculates a "cost"/penalty as a function of circuit depth
+        :param depth_penalty: a function which calculates a "cost"/penalty as a function of the maximum emitter depth
         :type depth_penalty: function
         :return: the function returns nothing
         :rtype: None
@@ -477,14 +477,15 @@ class CircuitMaxEmitDepth(MetricBase):
 
     def evaluate(self, state, circuit):
         """
-        Calculates a scalar function of the circuit depth
+        Calculates a scalar function of the circuit's maximum emitter depth
 
         :param state: state which was created by the circuit. This is not actually used by this metric object,
                       but is nonetheless provided to guarantee a uniform API between Metric-type objects
         :type state: QuantumState
         :param circuit: the circuit to evaluate
         :type circuit: CircuitBase (or a subclass of it)
-        :return: the scalar penalty resulting from circuit depth. By default, this is the circuit depth itself
+        :return: the scalar penalty resulting from the maximum emitter depth. By default, this is the maximum emitter
+            depth itself
         :rtype: float or int
         """
         c = circuit.copy()
@@ -513,7 +514,8 @@ class CircuitMaxEmitResetDepth(MetricBase):
 
         :param log_steps: the metric values are computed at every log_steps optimization step
         :type log_steps: int
-        :param depth_penalty: a function which calculates a "cost"/penalty as a function of circuit depth
+        :param depth_penalty: a function which calculates a "cost"/penalty as a function of the maximum emitter reset
+            depth
         :type depth_penalty: function
         :return: the function returns nothing
         :rtype: None
@@ -529,14 +531,15 @@ class CircuitMaxEmitResetDepth(MetricBase):
 
     def evaluate(self, state, circuit):
         """
-        Calculates a scalar function of the circuit depth
+        Calculates a scalar function of the circuit's maximum emitter reset depth
 
         :param state: state which was created by the circuit. This is not actually used by this metric object,
                       but is nonetheless provided to guarantee a uniform API between Metric-type objects
         :type state: QuantumState
         :param circuit: the circuit to evaluate
         :type circuit: CircuitBase (or a subclass of it)
-        :return: the scalar penalty resulting from circuit depth. By default, this is the circuit depth itself
+        :return: the scalar penalty resulting from the maximum emitter reset depth. By default, this is the maximum
+            emitter reset depth itself
         :rtype: float or int
         """
         c = circuit.copy()
@@ -577,7 +580,8 @@ class CircuitMaxEmitEffDepth(MetricBase):
 
         :param log_steps: the metric values are computed at every log_steps optimization step
         :type log_steps: int
-        :param depth_penalty: a function which calculates a "cost"/penalty as a function of circuit depth
+        :param depth_penalty: a function which calculates a "cost"/penalty as a function of the maximum emitter
+            effective depth
         :type depth_penalty: function
         :return: the function returns nothing
         :rtype: None
@@ -593,14 +597,15 @@ class CircuitMaxEmitEffDepth(MetricBase):
 
     def evaluate(self, state, circuit):
         """
-        Calculates a scalar function of the circuit depth
+        Calculates a scalar function of the circuit's maximum emitter effective depth
 
         :param state: state which was created by the circuit. This is not actually used by this metric object,
                       but is nonetheless provided to guarantee a uniform API between Metric-type objects
         :type state: QuantumState
         :param circuit: the circuit to evaluate
         :type circuit: CircuitBase (or a subclass of it)
-        :return: the scalar penalty resulting from circuit depth. By default, this is the circuit depth itself
+        :return: the scalar penalty resulting from the maximum emitter effective depth. By default, this is the maximum
+            emitter effective depth itself
         :rtype: float or int
         """
         c = circuit.copy()

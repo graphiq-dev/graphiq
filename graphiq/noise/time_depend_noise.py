@@ -152,8 +152,9 @@ class NoisyEnsemble:
         This method calculates all possible NoiseEvents that can be applied on the NoisyEnsemble object. It corresponds
         to the event tree that is resulted from adding noise to the circuit. An event tree is a list of branches, where
         each branch has a probability of happening and corresponds to a series of error gates happening at different
-        parts of the ideal circuit. The total probability of an event tree is between the cut-off probability, which
-        can be set in noise parameters, and unity.
+        parts of the ideal circuit. The total probability of each event tree built for a noisy register (one per noise
+        type) is between the cut-off probability, which can be set in noise parameters, and unity; the combined event
+        tree's total is their product and can be lower.
 
         :return: An event tree, which is a list of NoiseEvents
         :rtype: list[NoiseEvent]
@@ -398,7 +399,8 @@ def multi_reg_nodes(circ, node_list):
     :type circ: CircuitDAG
     :param node_list: a list of some operation nodes in the DAG
     :type node_list: list
-    :return: list of the nodes that have more than one input or output edges in the DAG.
+    :return: list of the nodes whose operation class directly subclasses ControlledPairOperationBase or
+        ClassicalControlledPairOperationBase
     :rtype: list
     """
     multi_reg_superclass = [

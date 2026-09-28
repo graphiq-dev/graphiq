@@ -180,8 +180,9 @@ class DensityMatrixCompiler(CompilerBase):
         """
         Compile one noisy gate
 
-        :param state: the density matrix representation of the state to be evolved
-        :type state: DensityMatrix
+        :param state: the QuantumState representation of the state to be evolved, where a density matrix representation
+            can be accessed
+        :type state: QuantumState
         :param op: the operation to be applied
         :type op: OperationBase
         :param n_quantum: the number of qubits

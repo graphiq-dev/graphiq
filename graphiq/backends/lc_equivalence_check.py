@@ -180,8 +180,8 @@ import graphiq.backends.stabilizer.functions.linalg as slinalg
 def is_lc_equivalent(adj_matrix1, adj_matrix2, mode="deterministic", seed=0):
     r"""
     Determines whether two graph states are local-Clifford equivalent or not, given the adjacency matrices of the two.
-    It takes two adjacency matrices as input and returns a numpy.ndarray containing $n$ ($2 \times 2$ arrays
-    = clifford operations on each qubit.
+    It takes two adjacency matrices as input and returns whether a local-Clifford solution was found, together with
+    an array of $n$ ($2 \times 2$) arrays = clifford operations on each qubit (None if none was found).
 
     The check is run once per connected component of the two graphs: Bouchet (4.3) bounds the codimension of
     the solution space's affine subspace of valid vectors by 2 only for a connected graph, so on a graph with
@@ -366,7 +366,8 @@ def _solution_basis_finder(reduced_coeff_matrix, col_list):
     :param col_list: list of the columns' indices in the coefficient matrix that are linearly dependent.
     :type col_list: list[int] or numpy.ndarray
     :raises AssertionError: if the solution basis found is wrong
-    :return: an array containing the elements of the total Clifford operation needed to convert one graph to another.
+    :return: the basis vectors of the solution space, as an array of shape (len(col_list), number of columns of
+        reduced_coeff_matrix, 1)
     :rtype: numpy.ndarray
     """
 
@@ -547,7 +548,7 @@ def _col_finder(row_reduced_coeff_matrix):
     :type row_reduced_coeff_matrix: numpy.ndarray
     :raises ValueError: if the input row_reduced_coeff_matrix is not a binary matrix
     :return: a list of the indices of the columns which are not linearly independent
-    :rtype: numpy.ndarray
+    :rtype: list[int]
     """
     dependent_columns = []
     pivot = [0, 0]
@@ -612,8 +613,8 @@ def lc_graph_operations(adj_matrix, solution):
     :type adj_matrix: numpy.ndarray
     :param solution: an array of single-qubit Clifford :math:`2 \\times 2` matrices in the symplectic formalism
     :type solution: numpy.ndarray
-    :return: a list of the names of the operations that need to be applied on each qubit in the correct order.
-    :rtype: list[str]
+    :return: the ordered list of node indices on which to apply local complementations
+    :rtype: list[int]
     """
     # takes an adjacency matrix and the solution (Clifford operation) and returns the list of local complementations
     # needed for graph transformation.

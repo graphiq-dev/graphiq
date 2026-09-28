@@ -492,7 +492,7 @@ def create_n_ket1_state(n_qubits):
 
     :param n_qubits: number of qubits
     :type n_qubits: int
-    :return: the state :math:`|0\\rangle^{\\otimes n}`
+    :return: the state :math:`|1\\rangle^{\\otimes n}`
     :rtype: CliffordTableau
     """
     tableau = CliffordTableau(n_qubits)

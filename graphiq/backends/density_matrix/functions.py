@@ -705,7 +705,7 @@ def bipartite_partial_transpose(rho, dim1, dim2, subsys):
     :type subsys: int
 
     :raises AssertionError: if the dimension of the subsystems and the matrix dimension do not match
-    :raises ValueError: if the input matrix is not bipartite
+    :raises ValueError: if subsys is neither 0 nor 1
     :return: the partial transpose matrix of rho
     :rtype: numpy.ndarray
     """
@@ -762,7 +762,7 @@ def project_and_remove(rho, locations):
     Return the density matrix after applying Z measurements on qubits specified by locations mask.
     It removes all these qubits under measurements.
 
-    :param rho: the density matrix to evaluate the negativity
+    :param rho: the density matrix to measure
     :type rho: numpy.ndarray
     :param locations: a list of zeros/ones
     :type locations: list or numpy.ndarray

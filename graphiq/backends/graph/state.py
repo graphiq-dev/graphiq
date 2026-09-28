@@ -161,7 +161,7 @@ class Graph(StateRepresentationBase):
 
     def add_edge(self, first_node, second_node):
         """
-        Add an edge between two nodes. If any of these two nodes does not exist, no edge is added.
+        Add an edge between two nodes. Any of these two nodes that does not exist is added first.
 
         :param first_node: the first node on which to add an edge
         :type first_node: int
@@ -196,9 +196,9 @@ class Graph(StateRepresentationBase):
 
     def lc_equivalent(self, other_graph, mode="deterministic"):
         r"""
-        Determines whether two graph states are local-Clifford equivalent or not, given the adjacency matrices of the two.
-        It takes two adjacency matrices as input and returns a numpy.ndarray containing $n (2 \times 2 array)s$
-        = clifford operations on each qubit.
+        Determines whether this graph state and other_graph are local-Clifford equivalent or not.
+        It returns whether a local-Clifford solution was found, together with an array of $n (2 \times 2 array)s$
+        = clifford operations on each qubit (None if none was found).
 
         :param other_graph: the other graph against which to check LC equivalence
         :type other_graph: Graph
@@ -211,7 +211,8 @@ class Graph(StateRepresentationBase):
             columns is not equal to $4n - rank$ (for $n$ being the number of nodes in the graph)
         :raises ValueError: if ``mode`` is neither ``"deterministic"`` nor ``"random"``
         :return: If a solution is found, returns True and an array of single-qubit Clifford $2 \times 2$ matrices
-            in the symplectic formalism. If not, graphs are not LC equivalent and returns False, None.
+            in the symplectic formalism. If not, returns False, None: in 'deterministic' mode the graphs are not LC
+            equivalent; in 'random' mode the search may only have failed to find a solution.
         :rtype: bool, numpy.ndarray or None
         """
         g1 = nx.to_numpy_array(self.data).astype(int)

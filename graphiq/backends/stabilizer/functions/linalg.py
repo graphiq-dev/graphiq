@@ -73,7 +73,7 @@ def column_swap(input_matrix, first_col, second_col):
 
 def add_columns(input_matrix, col_to_add, target_col):
     """
-    Add two rows together modulo 2 and put it in the row of the second input
+    Add two columns together modulo 2 and put it in the column of the second input
 
     :param input_matrix: a binary matrix
     :type input_matrix: numpy.ndarray

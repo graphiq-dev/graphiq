@@ -121,8 +121,8 @@ def graph_to_density(input_graph):
 
     :param input_graph: the graph from which we will build a density matrix
     :type input_graph: networkx.Graph or numpy.ndarray
-    :raise TypeError: if input_graph is not of the type of networkx.Graph or a graphiq.backends.graph.state.Graph
-        or an adjacency matrix given by a numpy array
+    :raise TypeError: if input_graph is not of the type of networkx.Graph, an adjacency matrix given by a numpy array,
+        or a list of (probability, graph) pairs
     :return: a density matrix as a numpy array
     :rtype: numpy.ndarray
     """

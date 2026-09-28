@@ -130,7 +130,7 @@ class OperationBase(ABC):
         (needed imports, how to define a gate, how to use a gate), packaged as a single object.
         This is used by the Circuit classes to generate openQASM scripts when needed
 
-        :return: the operation class's openqasm information (possibly None)
+        :return: the operation class's openqasm information
         """
         if cls._openqasm_info is None:
             raise ValueError("Operation does not have an openQASM translation")
@@ -169,15 +169,15 @@ class OperationBase(ABC):
     @q_registers.setter
     def q_registers(self, q_reg):
         """
-        Allows us to change the emitter_registers object on which an Operation acts
+        Allows us to change the q_registers object on which an Operation acts
         This should only be used by the circuit class!
         Subclass-specific implementations of this function also update other
         register-related fields (e.g. register, target, control) automatically
-        when photon_registers is updated
+        when q_registers is updated
 
-        :param q_reg: new emitter_register which the operation should target
+        :param q_reg: new q_registers tuple which the operation should target
         :type q_reg: tuple
-        :raises ValueError: if the new q_reg object does not match the length of self.emitter_registers (Operations
+        :raises ValueError: if the new q_reg object does not match the length of self.q_registers (Operations
                            should not have variable register numbers)
         :return: function returns nothing
         :rtype: None
@@ -195,7 +195,7 @@ class OperationBase(ABC):
 
         :param c_reg: new c_register which the operation should target
         :type c_reg: tuple
-        :raises ValueError: if the new q_reg object does not match the length of self.q_registers (Operations
+        :raises ValueError: if the new c_reg object does not match the length of self.c_registers (Operations
                            should not have variable register numbers)
         :return: function returns nothing
         :rtype: None
@@ -258,9 +258,9 @@ class OperationBase(ABC):
         This is broken into a separate function because subclasses will need to use this as well,
         and using the super() keyword gets messy with class properties
 
-        :param q_reg: new emitter_register which the operation should target
+        :param q_reg: new q_registers tuple which the operation should target
         :type q_reg: tuple
-        :raises ValueError: if the new q_reg object does not match the length of self.emitter_registers (Operations
+        :raises ValueError: if the new q_reg object does not match the length of self.q_registers (Operations
                            should not have variable register numbers)
         :return: function returns nothing
         :rtype: None
@@ -1254,7 +1254,7 @@ class MeasurementZ(OperationBase):
         :param c_register: the classical register to which the measurement result is saved
         :type c_register: int OR tuple (of ints, length 2)
         :param noise: Noise model
-        :type noise: src.noise.noise_models.NoiseBase
+        :type noise: graphiq.noise.noise_models.NoiseBase
         :return: this function returns nothing
         :rtype: None
         """
@@ -1445,7 +1445,6 @@ def find_local_clifford_by_matrix(matrix):
     :type matrix: numpy.ndarray
     :raises ValueError: if the matrix does not correspond to a valid one-qubit Clifford gate.
     :return: the local Clifford gate specified by a list of basic gates it consists of
-        or None if the input matrix is not a valid one-qubit Clifford gate
     :rtype: list
     """
     gate_list1, gate_list2 = local_clifford_composition()

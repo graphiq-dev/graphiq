@@ -88,8 +88,8 @@ class OpenQASMParser:
         Note: For faster data processing time, the yield syntax is used here, which will return the parse info
         immediately after each node parsed.
 
-        :return: parsed node info
-        :rtype: dict
+        :return: a generator yielding the parsed info of each node
+        :rtype: generator (of dict)
         """
         parser = Qasm(data=self.openqasm).parse()
         def_arr = ["qreg", "creg", "gate"]

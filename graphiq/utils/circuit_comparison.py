@@ -120,7 +120,8 @@ def ged_adaptive(circuit1, circuit2, threshold=30):
     :type circuit2: CircuitDAG
     :param threshold: threshold
     :type threshold: int
-    :return: exact/approximated GED between circuits(cost needed to transform self.dag to circuit_compare.dag)
+    :return: whether the (exact or approximate) GED between the two circuits is zero (exact when both have fewer than
+        threshold nodes)
     :rtype: bool
     """
 

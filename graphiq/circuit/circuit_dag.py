@@ -980,7 +980,7 @@ class CircuitDAG(CircuitBase):
         :param reg_type: str indicates register type. Can be "e", "p", or "c"
         :type reg_type: str
         :return: the array of register depth of all register in the register type
-        :rtype: numpy.array
+        :rtype: list[int]
         """
         if reg_type not in self._register_depth:
             raise ValueError(f"register type {reg_type} is not in this circuit")
@@ -1095,8 +1095,8 @@ class CircuitDAG(CircuitBase):
 
         :param data_dict: circuit json dict
         :type data_dict: dict
-        :return: nothing
-        :rtype: None
+        :return: the circuit built from data_dict
+        :rtype: CircuitDAG
         """
         circuit = CircuitDAG(
             n_photon=data_dict["n_photons"],

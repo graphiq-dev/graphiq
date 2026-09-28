@@ -107,14 +107,14 @@ class Columns:
 
     def set_all_col_element(self, index: int, value: int = -1):
         """
-        Set all the value in every column from the first column to the index column.
+        Set the value at position index (a register row) in every column, wherever it is still 0.
 
         This function is used when adding barriers,
         since after adding barriers, new operations will be added after the barriers.
 
-        :param index: The index of the column
+        :param index: the position (register row) within each column to set
         :type index: int
-        :param value: The value that all column value will be set to if current value is not 0
+        :param value: The value that each column's entry will be set to if its current value is 0
         :type value: int
         :return: nothing
         :rtype: None

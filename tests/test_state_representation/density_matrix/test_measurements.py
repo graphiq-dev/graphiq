@@ -161,12 +161,16 @@ def _forced_boundary_state(forced_index, forced_trace, other_trace):
 
 
 def test_a_rounding_error_probability_is_not_forced():
-    # Hadamard twice is the identity, so the state is |0>, but p(1) comes out as rounding
-    # error; the precondition makes the test fail loudly, rather than pass without
-    # testing anything, on a platform whose roundoff differs
+    # a rotation by 2e-17 leaves p(1) = sin^2(1e-17), about 1e-34: one product with
+    # nothing to cancel, so it is nonzero on every BLAS kernel. It is a real branch, but
+    # far below the floor, which cannot tell a probability that small from rounding
+    # error; the precondition checks that p(1) is nonzero and far below the floor
     circuit = CircuitDAG(n_emitter=1, n_classical=0)
-    circuit.add(ops.Hadamard(register=0, reg_type="e"))
-    circuit.add(ops.Hadamard(register=0, reg_type="e"))
+    circuit.add(
+        ops.ParameterizedOneQubitRotation(
+            register=0, reg_type="e", params=(2e-17, 0.0, 0.0)
+        )
+    )
     state = DensityMatrixCompiler().compile(circuit).rep_data
     projectors = dmf.projectors_zbasis(1, 0)
     assert 0 < np.real(np.trace(state.data @ projectors[1])) < 1e-20

@@ -503,6 +503,11 @@ def section_finder(circ, ordered_path, criteria, reg=0, reg_type="e"):
             slice_nodes = reg_as_control(circ, ordered_path, reg, reg_type)
         elif criteria == "all_gates":
             slice_nodes = ordered_path
+        else:
+            raise ValueError(
+                "criteria should be either a list of class types in graphiq.ops or one of the strings: measure, "
+                "emission, multi_reg_gates, reg_as_control, all_gates"
+            )
     elif isinstance(criteria, list):
         slice_nodes = [
             nod for nod in ordered_path if type(circ.dag.nodes[nod]["op"]) in criteria

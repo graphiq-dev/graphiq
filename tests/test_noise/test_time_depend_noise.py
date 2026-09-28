@@ -126,3 +126,37 @@ def test_noise_type_list_falls_back_to_default_noise_type_str_value():
         noise_parameters={"noise_type": "xz"},
     )
     assert noisy_ensemble.noise_type_list((1, "e")) == ["xz"]
+
+
+@pytest.mark.parametrize("criteria", ["reg_as_ctrl", "measurement", "all gates", ""])
+def test_section_finder_rejects_an_unknown_criteria_string(criteria):
+    circ, _ = linear_cluster_4qubit_circuit()
+    path = tdn.NoisyEnsemble.reg_history(circ, 0, "e")
+    with pytest.raises(ValueError, match="criteria should be"):
+        tdn.section_finder(circ, path, criteria)
+
+
+def test_noisy_ensemble_with_an_unknown_criteria_string_raises():
+    circ, _ = linear_cluster_4qubit_circuit()
+    noisy = tdn.NoisyEnsemble(
+        circ, [(0, "e")], noise_parameters={"criteria": "reg_as_ctrl"}
+    )
+    with pytest.raises(ValueError, match="criteria should be"):
+        noisy.all_branches()
+
+
+@pytest.mark.parametrize(
+    "criteria, section_lengths",
+    [
+        ("measure", [10, 1]),
+        ("reg_as_control", [3, 2, 2, 1, 2, 1]),
+        ("all_gates", [1] * 11),
+    ],
+)
+def test_section_finder_keeps_the_sections_of_a_valid_criteria(
+    criteria, section_lengths
+):
+    circ, _ = linear_cluster_4qubit_circuit()
+    path = tdn.NoisyEnsemble.reg_history(circ, 0, "e")
+    sections = tdn.section_finder(circ, path, criteria)
+    assert [len(s) for s in sections] == section_lengths

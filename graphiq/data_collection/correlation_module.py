@@ -208,7 +208,8 @@ class GraphCorr:
     @staticmethod
     def _graph_list_maker(g, count):
         """
-        makes a list of relabeled graphs out of the initial one. List size = count.
+        makes a list of relabeled graphs out of the initial one: the initial graph followed by up to count labelings of
+        it, the first of which is the initial labeling again.
 
         :param g: initial input graph
         :type g: nx.Graph
@@ -263,10 +264,10 @@ class GraphCorr:
         """
         finds and plots correlation between one graph and one circuit metric for a set of graphs. For all the graphs in
         the sample that have the same metric value, it takes the average of their graph metric value and returns the
-        average values alongside the standard deviation of corresponding to each bunch of graphs that share the same
-        circuit metric value. For instance, for all graph with the same number of emitters, take the average of their
-        graph metric, say connectivity, and plot this data point (num_emitter, avg_connect) on a diagram. The standard
-        deviation is taken for the graph metric of those graphs with the same circuit metric.
+        average values; the standard deviation of each bunch of graphs that share the same circuit metric value is only
+        drawn as error bars when show_plot is True. For instance, for all graph with the same number of emitters, take
+        the average of their graph metric, say connectivity, and plot this data point (num_emitter, avg_connect) on a
+        diagram. The standard deviation is taken for the graph metric of those graphs with the same circuit metric.
 
         For correlation between two graph or circuit metrics try the 'met_met' method instead. "
         :param show_plot: if True a plot of graph metric vs circuit metric will be shown
@@ -282,7 +283,7 @@ class GraphCorr:
         :type graph_type: str
         :return: pearson correlation between all graph metric vs circuit metric values, pearson correaltion for the
         average graph metric values vs unique circuit metric values, and a tuple of lists containing the x and y data
-         point of the plot, corresponding to the average graph metric values and unique circuit metric values.
+         point of the plot: the unique circuit metric values and the corresponding average graph metric values.
         :rtype: float, float, tuple:(list, list)
         """
         graph_met_list = []
@@ -379,10 +380,10 @@ class GraphCorr:
         :type p: float
         :param n_step: the step with which the n is changed, at least 10 steps will be considered.
         :type n_step: int
-        :param constant_np: if True, for each n, p is chosen such that the value of n*p remains constant, meaning that
-        the average degree of each node in the graph remains the same even if the sizes of the graphs in the sample
-        change
-        :type constant_np: bool
+        :param constant_np: if given, for each n, p is set to constant_np / n so that n*p stays equal to constant_np
+        (the intended average degree, larger than 1), meaning that the average degree of each node in the graph remains
+        the same even if the sizes of the graphs in the sample change
+        :type constant_np: float or None
         :return: nothing
         """
         # number of nodes starting from 5 and going up to at least 100, or possibly 10 times the chosen n_step
@@ -498,8 +499,8 @@ class GraphCorr:
         :param show_plot: if True a distribution diagram is shown
         :type show_plot: bool
         :return: all pairs of (fist, second) metric values of all graphs, in two separate lists and their respective
-        repetition count over the sample in a third list.
-        :rtype: list, list, list
+        repetition count over the sample in a numpy array.
+        :rtype: list, list, numpy.ndarray
         """
         met1_list = []
         met2_list = []
@@ -802,7 +803,7 @@ class NodeCorr:
     def order_corr(self):
         """
         Determines and plots the relation of average pearson correlation function ,between nodes' emission order and the
-         metric-value order, and the circuit metric value. The average of the graph metric is taken for all graphs that
+         metric-value order, and the circuit metric value. The average of that correlation is taken for all graphs that
          have the same circuit metric value.
 
         :return: three lists, the list of unique metric values, the list of average correlation, the list of standard
@@ -861,9 +862,9 @@ class NodeCorr:
         The larger the data point is plotted, the more the number of graphs in the sample that had the same
         metric and error values.
 
-        :return: three lists, the list of unique metric values, the list of sum squared errors, the list of repetition
-        count for each of the data points over the whole sample.
-        :rtype: list, list, list
+        :return: two lists and a numpy array: the list of unique metric values, the list of sum squared errors, the
+        array of repetition count for each of the data points over the whole sample.
+        :rtype: list, list, numpy.ndarray
         """
         adj_list, circ_met_list = self.adj_list, self.met_list
         n = self.adj.shape[0]
@@ -900,9 +901,9 @@ class NodeCorr:
         The larger the data point is plotted, the more the number of graphs in the sample that had the same
         metric and error values.
 
-        :return: three lists, the list of unique metric values, the list of sum squared errors, the list of repetition
-        count for each of the data points over the whole sample.
-        :rtype: list, list, list
+        :return: two lists and a numpy array: the list of unique metric values, the list of sum squared errors, the
+        array of repetition count for each of the data points over the whole sample.
+        :rtype: list, list, numpy.ndarray
         """
         # based on discarding the part of the graph state that has been emitted so far.
         adj_list, circ_met_list = self.adj_list, self.met_list
@@ -1249,7 +1250,7 @@ def _rep_counter(x_data, y_data):
     :type x_data: An iterable
     :param y_data: A set of numeric data the same size as the x_data
     :type y_data: An iterable
-    :return: Returns all respective x, y  value in two lists removing the redundancies and a third list containing the
+    :return: Returns all respective x, y value in two lists removing the redundancies and a numpy array containing the
     repetition count of each of the data points.
     """
     assert len(x_data) == len(y_data), "two data sets must be of same size"

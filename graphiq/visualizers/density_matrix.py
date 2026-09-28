@@ -34,7 +34,7 @@ def density_matrix_heatmap(rho, axs=None):
         when given, the returned figure is axs[0]'s root figure
     :type axs: sequence of two matplotlib.Axes
     :return: fig (figure handle), axs (the axes plotted on)
-    :rtype: matplotlib.Figure, matplotlib.Axes
+    :rtype: matplotlib.Figure, sequence of two matplotlib.Axes
     """
     if axs is None:
         fig, axs = plt.subplots(nrows=1, ncols=2, figsize=[10, 4])
@@ -59,7 +59,7 @@ def density_matrix_bars(rho):
     :param rho: a complex numpy array representing the density matrix
     :type rho: numpy.ndarray
     :return: fig (figure handle), axs (list of axes handles)
-    :rtype: matplotlib.Figure, matplotlib.Axes
+    :rtype: matplotlib.Figure, list[matplotlib.Axes]
     """
 
     def bar_plot(deltaz, ax):

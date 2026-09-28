@@ -270,7 +270,7 @@ def correlation_checker(result, list_mets1, list_mets2):
     :param result: result object
     :param list_mets1: list of circuit metrics
     :param list_mets2: list of grpah metrics
-    :return: all combination of graph and circuit metrics linear correlations will be calculated
+    :return: nothing; the Spearman and Pearson correlations of every combination of the two metric lists are printed
     """
     for met1 in list_mets1:
         for met2 in list_mets2:
@@ -297,7 +297,8 @@ def corr_with_mean(list1, list2, print_result=True):
 
     :param list1: to be used as reference
     :param list2: to be averaged over for each case
-    :return: pearson correlation coefficient
+    :return: pearson correlation coefficient, and a tuple of the unique list1 values, the mean list2 value for each and
+        their standard deviations
     """
     corr_dict = dict()
     for i, x in enumerate(list1):

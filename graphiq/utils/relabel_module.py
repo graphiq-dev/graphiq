@@ -211,16 +211,17 @@ def _label_finder(
     n_label, n_node, new_label_set=None, exhaustive=False, seed=None, thresh=None
 ):
     """
-    Finds n_label number of permutations for the sequence {0, 1, ..., n_node-1}. If exhaustive search is enabled the
-    process happens through sampling from the total set of all possible permutations (size = n_node factorial).
-    Otherwise, new permutations are generated randomly until the required number of distinct cases are found, or
-    the threshold for number of random trials is reached.
+    Finds n_label number of permutations for the sequence {0, 1, ..., n_node-1}. If exhaustive search is enabled, or
+    n_node is less than 8, the process happens through sampling from the total set of all possible permutations
+    (size = n_node factorial). Otherwise, new permutations are generated randomly until the required number of distinct
+    cases are found, or the threshold for number of random trials is reached.
 
     :param n_label: number of permutations needed
     :type n_label: int
     :param n_node: length of the initial sequence {0, 1, ..., n_node-1}
     :type n_node: int
-    :param new_label_set: a given set of permutations that the function will add the new cases to.
+    :param new_label_set: a given set of permutations that the function will add the new cases to; ignored when n_node
+        is less than 8 or exhaustive is True.
     :type new_label_set: set
     :param exhaustive: If true the permutation will be sampled from the set of all possible permutations. There might be
      a significant increase in runtime for large sequences.
@@ -333,7 +334,8 @@ def get_relabel_map(g1, g2):
     :type g1: nx.Graph or np.ndarray
     :param g2: networkx graph or adjacency matrix
     :type g2: nx.Graph or np.ndarray
-    :return: a dictionary mapping each node of g1 to a node of g2. The map may not be unique.
+    :return: a dictionary mapping each node of g1 to a node of g2. The map may not be unique. If g1 and g2 have the same
+        adjacency matrix, the dictionary also has the entry -1: "self".
     :rtype: dict
     """
     # g1 and g2 can be adj matrices or nx graphs.

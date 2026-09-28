@@ -73,6 +73,43 @@ def test_crazy(n_list):
     assert nx.is_isomorphic(graph, alternate_graph)
 
 
+@pytest.mark.parametrize("n_list", [[1, 2], [2, 3], [2, 3, 1], [3, 1, 2, 2], [3, 3, 3]])
+def test_crazy_alternate_order_positions_put_each_edge_between_adjacent_columns(
+    n_list,
+):
+    graph, pos = gs.crazy(n_list, pos=True, alternate_order=True)
+    assert sorted(pos) == list(range(sum(n_list)))
+    # no two nodes are drawn at the same place
+    assert len({tuple(xy) for xy in pos.values()}) == len(pos)
+    for x, n in enumerate(n_list):
+        assert sum(1 for xy in pos.values() if xy[0] == x) == n
+    # a crazy graph only has edges between consecutive columns
+    for u, v in graph.edges():
+        assert abs(pos[u][0] - pos[v][0]) == 1
+
+
+def test_crazy_alternate_order_keeps_its_graph_labelling():
+    # pins the existing labelling of the alternate-order graph, which positions
+    # must follow, not an intended emission order
+    def edges(graph):
+        return sorted(tuple(sorted(e)) for e in graph.edges())
+
+    graph, _ = gs.crazy([2, 3], pos=True, alternate_order=True)
+    assert edges(graph) == [(0, 2), (0, 3), (1, 2), (1, 3), (2, 4), (3, 4)]
+    graph, _ = gs.crazy([1, 2], pos=True, alternate_order=True)
+    assert edges(graph) == [(0, 1), (1, 2)]
+
+
+def test_crazy_alternate_order_positions_for_equal_column_pairs_are_unchanged():
+    _, pos = gs.crazy([2, 2], pos=True, alternate_order=True)
+    assert {k: tuple(v) for k, v in pos.items()} == {
+        0: (1, 0),
+        1: (1, -1),
+        2: (0, 0),
+        3: (0, -1),
+    }
+
+
 @pytest.mark.parametrize("row_col", [(2, 2), (2, 3), (3, 3), (3, 4)])
 def test_two_d_cluster(row_col):
     graph = gs.two_d_cluster(row_col)

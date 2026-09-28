@@ -274,7 +274,7 @@ def crazy(n_list: list, pos=False, alternate_order=False):
         g = nx.from_numpy_array(new_adj)
         pos_dict2 = {}
         for i, n in enumerate(range(len(pos_dict))):
-            pos_dict2[n] = pos_dict[nodes[i]]
+            pos_dict2[nodes[i]] = pos_dict[i]
         pos_dict = pos_dict2
     if pos:
         return g, pos_dict

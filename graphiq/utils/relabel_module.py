@@ -244,10 +244,20 @@ def _label_finder(
     ), f"The input number of permutations is more than the maximum possible"
     if n_node < 8 or exhaustive:
         perm = list(permutations([*range(n_node)]))
-        initial_perm = np.array([[*range(n_node)]])
-        labels_list = rng.choice(perm[1:], n_label - 1)
-        labels_list = np.concatenate((initial_perm, labels_list), axis=0)
-        return labels_list
+        # the draw is with replacement: keep the first occurrence of each permutation,
+        # then top up without replacement from the permutations not drawn
+        drawn = rng.choice(perm[1:], n_label - 1)
+        labels_list = [perm[0]]
+        seen = {perm[0]}
+        for label in map(tuple, drawn):
+            if label not in seen:
+                seen.add(label)
+                labels_list.append(label)
+        if len(labels_list) < n_label:
+            unused = [label for label in perm if label not in seen]
+            top_up = rng.choice(len(unused), n_label - len(labels_list), replace=False)
+            labels_list += [unused[i] for i in sorted(top_up)]
+        return np.array(labels_list)
     else:
         if new_label_set is None:
             new_label_set = set()

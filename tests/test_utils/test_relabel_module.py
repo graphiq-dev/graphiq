@@ -142,9 +142,9 @@ def test_label_map_applies_when_the_first_batch_is_enough():
 
 def test_label_map_has_one_map_per_returned_matrix_after_a_longer_search():
     adj = _linear_cluster_adj(4)
-    assert not _returns_on_first_batch(adj, 5, seed=5)
+    assert not _returns_on_first_batch(adj, 5, seed=0)
 
-    found = iso_finder(adj, 5, sort_emit=False, label_map=True, seed=5)
+    found = iso_finder(adj, 5, sort_emit=False, label_map=True, seed=0)
 
     _assert_maps_pair_with_matrices(adj, found)
     assert len(found[0]) == 5
@@ -269,3 +269,45 @@ def test_linear_partial_orbit_rejects_a_path_plus_a_cycle():
     g = nx.Graph([(0, 1), (1, 2), (2, 3), (4, 5), (5, 6), (6, 4)])
     with pytest.raises(AssertionError, match="not a linear graph"):
         linear_partial_orbit(g)
+
+
+@pytest.mark.parametrize("n_node", [3, 4, 5])
+@pytest.mark.parametrize("seed", range(5))
+def test_label_finder_returns_distinct_permutations_for_small_graphs(n_node, seed):
+    # below 8 nodes the permutations are drawn from all n_node! of them; asking for
+    # every one must return every one, with the identity first
+    n_label = math.factorial(n_node)
+    labels = _label_finder(n_label, n_node, seed=seed)
+    assert labels.shape == (n_label, n_node)
+    assert {tuple(label) for label in labels} == set(permutations(range(n_node)))
+    assert tuple(labels[0]) == tuple(range(n_node))
+
+
+@pytest.mark.parametrize("seed", range(10))
+def test_iso_finder_finds_every_labelling_of_a_four_node_path(seed):
+    # a path on 4 nodes has 4!/2 = 12 distinct labellings
+    adj = nx.to_numpy_array(nx.path_graph(4))
+    found = iso_finder(adj, 12, seed=seed)
+    assert len({tuple(a.astype(int).flatten()) for a in found}) == 12
+
+
+@pytest.mark.parametrize("n_node, n_label, seed", [(4, 5, 0), (5, 10, 4), (6, 20, 1)])
+def test_label_finder_keeps_a_draw_that_has_no_repeat(n_node, n_label, seed):
+    # a seeded draw without repeats gives the same permutations, in the same order, as
+    # drawing n_label - 1 of the non-identity permutations with replacement
+    perm = list(permutations(range(n_node)))
+    drawn = np.random.default_rng(seed).choice(perm[1:], n_label - 1)
+    assert len({tuple(d) for d in drawn}) == n_label - 1
+    expected = np.concatenate((np.array([perm[0]]), drawn), axis=0)
+    assert np.array_equal(_label_finder(n_label, n_node, seed=seed), expected)
+
+
+def test_label_finder_on_one_node_returns_the_identity():
+    assert _label_finder(1, 1, seed=0).tolist() == [[0]]
+
+
+def test_iso_finder_on_one_node_returns_the_graph():
+    adj = np.zeros((1, 1))
+    found = iso_finder(adj, 1, seed=0)
+    assert len(found) == 1
+    assert np.array_equal(found[0], adj)

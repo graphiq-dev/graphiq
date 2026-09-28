@@ -43,7 +43,7 @@ def linear_cluster_state(n_qubits):
 
 def lattice_cluster_state(dimension):
     """
-    Generates an n_side by n_side cluster state lattice
+    Generates a cluster state lattice with the number of qubits along each dimension given by dimension
 
     :param dimension: a tuple containing the number of qubits along each dimension
     :type dimension: tuple
@@ -288,7 +288,8 @@ def two_d_cluster(row_col: tuple, pos=False):
 
     :param row_col: a tuple of number of rows and columns in the cluster state
     :param pos: if True the function also returns the position dictionary for the graph
-    :return: a networkx graph that represents the crazy graph or a tuple including the graph and its node-position dict
+    :return: a networkx graph that represents the 2D cluster state or a tuple including the graph and its node-position
+        dict
     :rtype: networkx.Graph or (networkx.Graph, pos_dict)
     """
     g = nx.Graph()
@@ -333,7 +334,8 @@ def three_d_cluster(row_col_depth: tuple, pos=False):
 
     :param row_col_depth: a tuple of number of rows and columns and depth of the cluster state
     :param pos: if True the function also returns the position dictionary for the graph
-    :return: a networkx graph that represents the crazy graph or a tuple including the graph and its node-position dict
+    :return: a networkx graph that represents the 3D cluster state or a tuple including the graph and its node-position
+        dict
     :rtype: networkx.Graph or (networkx.Graph, pos_dict)
     """
     g = nx.Graph()

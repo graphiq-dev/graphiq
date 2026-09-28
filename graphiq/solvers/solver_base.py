@@ -173,8 +173,8 @@ class SolverBase(ABC):
             returned for both legs and a list of two is returned as it is
         :type noise_model_mapping: dict
         :raises ValueError: if a two-legged op's bare list value does not have length 2
-        :return: a noise model
-        :rtype: nm.NoiseBase
+        :return: a noise model, or a list of two (control, target) for a two-legged op
+        :rtype: nm.NoiseBase or list[nm.NoiseBase]
         """
         return noise_for_op(op, noise_model_mapping)
 

@@ -89,7 +89,7 @@ class AlternateTargetSolver:
         seed=None,
     ):
         """
-        Constructor for AlternateGraphSolver
+        Constructor for AlternateTargetSolver
 
         :param target: target graph state
         :type target: QuantumState or nx.Graph

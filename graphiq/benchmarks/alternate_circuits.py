@@ -45,7 +45,7 @@ def search_for_alternative_circuits(
     :param metric_class: a metric class
     :type metric_class: MetricBase or its subclass
     :param solver_setting: specifies the setting of a chosen solver
-    :type solver_setting: RandomSearchSolverSetting or EvolutionarySolverSetting
+    :type solver_setting: EvolutionarySolverSetting
     :param random_seed: a random seed
     :type random_seed: int
     :return: results are stored in terms of (score, survival probability, circuit)
@@ -120,7 +120,7 @@ def report_alternate_circuits(results):
     A way to print out results
 
     :param results: results are stored in terms of (score, survival probability, circuit)
-    :type results: tuple
+    :type results: list[tuple(float, float, CircuitDAG)]
     :return: nothing
     :rtype: None
     """
@@ -230,7 +230,7 @@ def exemplary_run(graph, noise_model_mapping, solver_setting=None, random_seed=1
     :param noise_model_mapping: a way to map noises to gates
     :type noise_model_mapping: dict
     :param solver_setting: specifies the setting of the chosen solver
-    :type solver_setting: RandomSearchSolverSetting or EvolutionarySolverSetting
+    :type solver_setting: EvolutionarySolverSetting or None
     :param random_seed: a random seed
     :type random_seed: int
     :return: results are stored in terms of (score, survival probability, circuit)
@@ -253,7 +253,7 @@ def exemplary_test(graph, noise_model_mapping, solver_setting=None, random_seed=
     :param noise_model_mapping: a way to map noises to gates
     :type noise_model_mapping: dict
     :param solver_setting: specifies the setting of the chosen solver
-    :type solver_setting: RandomSearchSolverSetting or EvolutionarySolverSetting
+    :type solver_setting: EvolutionarySolverSetting or None
     :param random_seed: a random seed
     :type random_seed: int
     :return: nothing
@@ -276,7 +276,7 @@ def exemplary_multiple_test(
     :param random_numbers: a list of random numbers
     :type random_numbers: list[int]
     :param solver_setting: specifies the setting of the chosen solver
-    :type solver_setting: RandomSearchSolverSetting or EvolutionarySolverSetting
+    :type solver_setting: EvolutionarySolverSetting or None
     :return: nothing
     :rtype: None
     """

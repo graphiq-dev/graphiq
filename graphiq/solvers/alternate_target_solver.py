@@ -400,9 +400,8 @@ class AlternateTargetSolver:
         """
         graph = self.target_graph
         old_adj = nx.to_numpy_array(graph)
-        n = graph.number_of_nodes()
         # relabel the target graph
-        new_labels = np.array([relabel_map[i] for i in range(n)])
+        new_labels = np.array([relabel_map[v] for v in graph.nodes()])
         new_adj = relabel(old_adj, new_labels)
         graph = nx.from_numpy_array(new_adj)
 

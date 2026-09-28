@@ -353,3 +353,42 @@ def test_a_stabilizer_target_not_in_standard_form_is_accepted():
     solver = AlternateTargetSolver(target=QuantumState(tableau, rep_type="s"))
 
     assert sorted(solver.target_graph.edges) == [(0, 1), (0, 2)]
+
+
+def _noisy_scores(target):
+    """Scores of a seeded depolarizing solve (density-matrix noise compiler, two candidates)."""
+    setting = AlternateTargetSolverSetting(n_iso_graphs=2, n_lc_graphs=1)
+    solver = AlternateTargetSolver(
+        target=target,
+        solver_setting=setting,
+        noise_model_mapping="depolarizing",
+        seed=1,
+    )
+    return [properties["score"] for _, properties in solver.solve()]
+
+
+@pytest.mark.parametrize(
+    "target",
+    [
+        linear_cluster_state(3).data,
+        QuantumState(linear_cluster_state(3).data, rep_type="g"),
+        nx.relabel_nodes(nx.path_graph(3), {0: "a", 1: "b", 2: "c"}),
+    ],
+    ids=["nodes 1..3", "graph QuantumState", "string nodes"],
+)
+def test_noisy_solve_accepts_a_target_not_labelled_0_to_n_minus_1(target):
+    assert _noisy_scores(target) == pytest.approx(_noisy_scores(nx.path_graph(3)))
+
+
+def test_noisy_solve_scores_a_target_inserted_out_of_label_order_as_its_relabelling():
+    # the path 2-0-1 with its nodes inserted as [2, 0, 1]; solve reads the target in
+    # insertion order, so it must score as the same graph relabelled 0..n-1 in that order
+    out_of_order = nx.Graph([(2, 0), (0, 1)])
+    in_order = nx.convert_node_labels_to_integers(out_of_order)
+    assert _noisy_scores(out_of_order) == pytest.approx(_noisy_scores(in_order))
+
+
+def test_noisy_solve_keeps_the_score_of_a_target_labelled_in_order():
+    assert _noisy_scores(nx.path_graph(3)) == pytest.approx(
+        [0.0766238732123441, 0.08587445241234315]
+    )

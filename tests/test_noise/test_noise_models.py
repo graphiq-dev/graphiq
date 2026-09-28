@@ -13,11 +13,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import numpy as np
+import pytest
 
 import graphiq.backends.density_matrix.functions as dmf
 import graphiq.backends.stabilizer.functions.clifford as sfc
 import graphiq.noise.noise_models as nm
-from graphiq.backends.stabilizer.state import MixedStabilizer
+from graphiq.backends.stabilizer.state import MixedStabilizer, Stabilizer
 from graphiq.state import QuantumState
 
 
@@ -32,6 +33,17 @@ def _state_initialization_stabilizer(n_quantum):
     return QuantumState(
         sfc.create_n_ket0_state(n_quantum),
         rep_type="s",
+    )
+
+
+def _two_branch_mixture(n_quantum):
+    return QuantumState(
+        [
+            (0.25, sfc.create_n_ket0_state(n_quantum)),
+            (0.75, sfc.create_n_ket0_state(n_quantum)),
+        ],
+        rep_type="s",
+        mixed=True,
     )
 
 
@@ -145,3 +157,168 @@ def test_photon_loss_dm():
     noise.apply(state, n_quantum, 1)
     assert state.rep_data.trace == 0.9
     assert not state.rep_data.normalized
+
+
+@pytest.mark.parametrize(
+    "state_factory",
+    [_state_initialization_stabilizer, _two_branch_mixture],
+    ids=["pure", "mixture"],
+)
+def test_two_qubit_replacement_refuses_the_stabilizer_backend(state_factory):
+    # MixedStabilizer is a sibling of Stabilizer, not a subclass, so a mixture
+    # must be named explicitly to get the same NotImplementedError as a pure
+    # tableau instead of the generic "Backend type is not supported." TypeError.
+    n_quantum = 2
+    state = state_factory(n_quantum)
+    noise = nm.TwoQubitControlledGateReplacement(np.eye(2))
+
+    with pytest.raises(NotImplementedError):
+        noise.apply(state, n_quantum, 0, 1)
+
+
+@pytest.mark.parametrize(
+    "state_factory",
+    [_state_initialization_stabilizer, _two_branch_mixture],
+    ids=["pure", "mixture"],
+)
+@pytest.mark.parametrize(
+    "noise",
+    [
+        nm.OneQubitGateReplacement(np.eye(2)),
+        nm.LocalCliffordError(["sigmax"]),
+        nm.AmplitudeDampingNoise(0.1),
+        nm.MixedUnitaryError([np.eye(2)], [1.0]),
+        nm.CoherentUnitaryError(np.eye(2)),
+        nm.GeneralKrausError([np.eye(2)]),
+        nm.MeasurementError(np.eye(2)),
+        nm.ResetError(),
+    ],
+    ids=[
+        "one_qubit_replacement",
+        "local_clifford",
+        "amplitude_damping",
+        "mixed_unitary",
+        "coherent_unitary",
+        "general_kraus",
+        "measurement",
+        "reset",
+    ],
+)
+def test_one_register_noise_refuses_the_stabilizer_backend(noise, state_factory):
+    # None of these is representable on the stabilizer backend; each must
+    # refuse a mixture the same way it refuses a pure tableau.
+    n_quantum = 2
+    state = state_factory(n_quantum)
+
+    with pytest.raises(NotImplementedError):
+        noise.apply(state, n_quantum, [0])
+
+
+@pytest.mark.parametrize("depolarizing_prob", [0.0, 0.2, 0.75])
+def test_depolarizing_noise_on_a_pure_stabilizer(depolarizing_prob):
+    # A pure Stabilizer (what Monte Carlo noise simulation compiles to) must be
+    # converted to a mixture before it can branch. The result should match the
+    # equivalent one-branch mixture, which reaches the same code with the
+    # conversion already done.
+    n_quantum = 2
+    reg_list = [0]
+    pure = _state_initialization_stabilizer(n_quantum)
+    assert isinstance(pure.rep_data, Stabilizer)
+    one_branch = QuantumState(
+        [(1.0, sfc.create_n_ket0_state(n_quantum))], rep_type="s", mixed=True
+    )
+
+    noise = nm.DepolarizingNoise(depolarizing_prob)
+    noise.apply(pure, n_quantum, reg_list)
+    noise.apply(one_branch, n_quantum, reg_list)
+
+    assert pure.mixed
+    assert isinstance(pure.rep_data, MixedStabilizer)
+    assert np.isclose(pure.rep_data.probability, 1.0)
+    got = pure.rep_data.mixture
+    expected = one_branch.rep_data.mixture
+    assert len(got) == len(expected)
+    for (p_got, t_got), (p_expected, t_expected) in zip(got, expected):
+        assert np.isclose(p_got, p_expected)
+        assert t_got == t_expected
+    if depolarizing_prob > 0:
+        assert len(got) > 1
+
+
+def test_general_kraus_error_single_qubit():
+    # A bit flip with probability p on a one-qubit |0> state.
+    n_quantum = 1
+    p = 0.3
+    kraus_ops = [np.sqrt(1 - p) * np.eye(2), np.sqrt(p) * dmf.sigmax()]
+    state = _state_initialization_dm(n_quantum)
+    noise = nm.GeneralKrausError(kraus_ops)
+
+    noise.apply(state, n_quantum, [0])
+
+    assert np.allclose(state.rep_data.data, np.diag([1 - p, p]))
+
+
+def test_general_kraus_error_applies_independently_to_every_register():
+    # The same single-qubit channel on both qubits of |00> factorizes.
+    n_quantum = 2
+    p = 0.3
+    kraus_ops = [np.sqrt(1 - p) * np.eye(2), np.sqrt(p) * dmf.sigmax()]
+    state = _state_initialization_dm(n_quantum)
+    noise = nm.GeneralKrausError(kraus_ops)
+
+    noise.apply(state, n_quantum, [0, 1])
+
+    single_qubit_result = np.diag([1 - p, p])
+    expected = np.kron(single_qubit_result, single_qubit_result)
+    assert np.allclose(state.rep_data.data, expected)
+
+
+def test_general_kraus_error_refuses_operators_wider_than_one_qubit():
+    n_quantum = 1
+    state = _state_initialization_dm(n_quantum)
+    noise = nm.GeneralKrausError([np.eye(4)])
+
+    with pytest.raises(ValueError, match="single-qubit"):
+        noise.apply(state, n_quantum, [0])
+
+
+def test_reset_error_default_noise_parameters_are_not_shared_between_instances():
+    a = nm.ResetError()
+    b = nm.ResetError()
+
+    assert a.noise_parameters is not b.noise_parameters
+
+
+@pytest.mark.parametrize("pauli", ["X", "Y", "Z", "I"])
+def test_pauli_error_on_a_mixed_stabilizer(pauli):
+    # A noisy stabilizer compile works on a MixedStabilizer; the Pauli must be
+    # applied to every branch, matching the pure-Stabilizer result per branch.
+    n_quantum = 2
+    mixed = _two_branch_mixture(n_quantum)
+    pure = _state_initialization_stabilizer(n_quantum)
+
+    nm.PauliError(pauli).apply(mixed, n_quantum, [0])
+    nm.PauliError(pauli).apply(pure, n_quantum, [0])
+
+    assert [p_i for p_i, _ in mixed.rep_data.mixture] == [0.25, 0.75]
+    for _, tableau in mixed.rep_data.mixture:
+        assert tableau == pure.rep_data.tableau
+
+
+def test_hadamard_perturbed_error_at_zero_perturbation_is_a_hadamard():
+    noise = nm.HadamardPerturbedError(0, 0, 0)
+
+    unitary = noise.noise_parameters["One-qubit unitary"]
+
+    assert np.allclose(unitary, dmf.hadamard())
+    assert noise.noise_parameters["Perturbation"] == (0, 0, 0)
+    assert noise.noise_parameters["Original parameters"] == (np.pi / 2, 0, np.pi)
+
+
+def test_hadamard_perturbed_error_with_a_nonzero_perturbation_is_still_unitary():
+    noise = nm.HadamardPerturbedError(0.1, 0.2, 0.3)
+
+    unitary = noise.noise_parameters["One-qubit unitary"]
+
+    assert np.allclose(unitary @ unitary.conj().T, np.eye(2))
+    assert noise.noise_parameters["Perturbation"] == (0.1, 0.2, 0.3)

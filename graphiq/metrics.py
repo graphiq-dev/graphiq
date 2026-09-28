@@ -68,6 +68,16 @@ class MetricBase(ABC):
 
 
 class Infidelity(MetricBase):
+    """
+    Infidelity of a state with respect to a fixed target state, 1 - F.
+
+    Zero means the state matches the target. With a stabilizer target and a MixedStabilizer state, the value is
+    1 - sum_i p_i F_i over the mixture's tableaux. The weights p_i need not sum to 1 (photon loss lowers them), so
+    missing probability counts as infidelity. Likewise, a density matrix state with trace t below 1 (photon loss)
+    is scored as t F(rho / t), so its missing trace counts as infidelity. The target must be in the stabilizer
+    ("s") or density matrix ("dm") representation.
+    """
+
     def __init__(self, target, log_steps=1, *args, **kwargs):
         """
         Creates an Infidelity Metric object, which computes 1-fidelity with respect to the ideal_state
@@ -76,7 +86,6 @@ class Infidelity(MetricBase):
         :type target: QuantumState
         :param log_steps: the metric values are computed at every log_steps optimization step
         :type log_steps: int
-        :raises AssertionError: if targe is not a valid density matrix
         :return: nothing
         :rtype: None
         """
@@ -110,7 +119,10 @@ class Infidelity(MetricBase):
         :param circuit: circuit which generated state
                         Not used for the fidelity evaluation, but argument is provided for API consistency
         :type circuit: CircuitBase (or subclass of it)
-        :raises AssertionError: if the state is not a valid density matrix
+        :raises AssertionError: if the target is a MixedStabilizer that is not one tableau with probability 1.0,
+            or, for a density matrix target, if the target is not a valid density matrix, or the state is not
+            positive semi-definite or has zero trace
+        :raises ValueError: if the target's rep_type is neither "s" nor "dm"
         :return: infidelity = 1 - fidelity
         :rtype: float
         """
@@ -131,18 +143,27 @@ class Infidelity(MetricBase):
 
             if isinstance(rep_data, Stabilizer):
                 fid = sfm.fidelity(tableau, rep_data.data)
-            elif isinstance(state.rep_data, MixedStabilizer):
+            elif isinstance(rep_data, MixedStabilizer):
                 fid = sum(
                     [p_i * sfm.fidelity(tableau, t_i) for p_i, t_i in rep_data.mixture]
                 )
 
         elif self.target.rep_type == "dm":
             if state.rep_type == "dm":
-                fid = dmf.fidelity(self.target.rep_data.data, state.rep_data.data)
+                rho = state.rep_data.data
             else:
                 tmp_state = state.copy()
                 tmp_state.convert_representation("dm")
-                fid = dmf.fidelity(self.target.rep_data.data, tmp_state.rep_data.data)
+                rho = tmp_state.rep_data.data
+            target = self.target.rep_data.data
+            trace = np.real(np.trace(rho))
+            if np.isclose(trace, 1.0):
+                fid = dmf.fidelity(target, rho)
+            else:
+                # photon loss leaves trace < 1; the fidelity scales with rho's
+                # trace, F(sigma, t rho') = t F(sigma, rho'), so the missing trace
+                # counts as infidelity, as the stabilizer arm's sum_i p_i F_i does
+                fid = trace * dmf.fidelity(target, rho / trace)
         else:
             raise ValueError("Cannot compute the infidelity.")
 
@@ -155,12 +176,21 @@ class Infidelity(MetricBase):
 
 
 class TraceDistance(MetricBase):
+    """
+    Trace distance between a state and a fixed target state.
+
+    Zero means the states are identical and one means they are perfectly distinguishable. The evaluated state is
+    converted to a density matrix if it is not one already, but the target is not: a target held in any other
+    representation is rejected.
+    """
+
     def __init__(self, target, log_steps=1, *args, **kwargs):
         """
         Creates a TraceDistance Metric object, which computes the trace distance between the current state and the
         target state.
 
-        :param target: the ideal state against which we compute fidelity
+        :param target: the ideal state against which we compute the trace distance; it must be in the
+            density matrix representation
         :type target: QuantumState
         :param log_steps: the metric values are computed at every log_steps optimization step
         :type log_steps: int
@@ -178,13 +208,15 @@ class TraceDistance(MetricBase):
         The trace distance is computed between two density matrices $\rho$ and $\sigma$ as:
         $$
         T(\rho, \sigma) = \frac{1}{2} \text{Tr}\left( \sqrt{ (\rho - \sigma)^2 } \right)
-         = \\frac{1}{2} \sum_i | \lambda_i |
+         = \frac{1}{2} \sum_i | \lambda_i |
          $$
+
         :param state: the state to evaluate
         :type state: QuantumState
         :param circuit: circuit which generated state
                         Not used for the trace distance evaluation, but argument is provided for API consistency
         :type circuit: CircuitBase (or subclass of it)
+        :raises ValueError: if the target state is not in the density matrix representation
         :return: the trace distance
         :rtype: float
         """
@@ -258,111 +290,6 @@ class CircuitDepth(MetricBase):
         return val
 
 
-class Metrics(MetricBase):
-    """
-    Wraps around one or more metric functions, evaluating each and logging the values
-    """
-
-    _all = {  # metrics that can be used, which can be specified by the dictionary keys or as a class instance
-        "Infidelity": Infidelity,
-        "TraceDistance": TraceDistance,
-        "CircuitDepth": CircuitDepth,
-    }
-
-    def __init__(
-        self, metrics_list: list, metric_weight=None, log_steps=1, *args, **kwargs
-    ):
-        """
-        Create a Metrics object which acts as a wrapper around Metric functions
-
-        :param metrics_list: metrics to evaluate
-        :type metrics_list: list of strings (strings should be metric names) OR MetricBase objects
-                            MetricBase objects may be preferable, since we cannot set initial parameters via the list of strings.
-        :param metric_weight: some representation of how to weigh the different metric results against one another
-                              if None, all metrics provided are weighted equally (by 1)
-                              if a list or ndarray, the metrics are a linear combination weighted by the list/ndarray values
-                              Otherwise, metric_weight is a function, that can make any mathematical function of the individual
-                              metric values.
-        :type metric_weight: None, numpy.ndarray, list, or Function
-        :param log_steps: the metric values are computed at every log_steps optimization step
-        :type log_steps: int
-        :return: function returns nothing
-        :rtype: None
-        """
-        super().__init__(log_steps=log_steps, *args, **kwargs)
-        # pass in either list of either strings or of specific Metric instance (must be an accepted Metric)
-        _metrics = []
-        for metric in metrics_list:
-            if metric.__class__ in self._all.values():
-                _metrics.append(metric)
-            elif metric in self._all.keys():
-                _metrics.append(self._all[metric]())
-            else:
-                raise UserWarning(
-                    f"{metric} is not a recognized metric - it will not be evaluated."
-                )
-        self._metrics = _metrics
-
-        if (
-            metric_weight is None
-            or isinstance(metric_weight, list)
-            or isinstance(metric_weight, np.ndarray)
-        ):
-            if metric_weight is None:
-                metric_weight = np.ones(len(metrics_list)).flatten()
-
-            elif isinstance(metric_weight, list):
-                metric_weight = np.array([metric_weight]).flatten()
-
-            else:
-                metric_weight = metric_weight.flatten()
-
-            def weighting_func(state, circuit):
-                return np.dot(
-                    metric_weight,
-                    np.array(
-                        [met.evaluate(state, circuit) for met in self._metrics]
-                    ).flatten(),
-                )
-
-            self.weighting_func = weighting_func
-        elif callable(metric_weight):
-            self.weighting_func = metric_weight
-
-    def evaluate(self, state, circuit):
-        """
-        Evaluate each metric function contained by the Metrics object
-
-        :param state: the state on which to evaluate the metrics
-        :type state: QuantumState
-        :param circuit: the circuit on which to evaluate the metrics
-        :type circuit: CircuitBase (or a subclass of it)
-        :return: this function returns nothing
-        :rtype: None
-        """
-        val = self.weighting_func(state, circuit)
-        self.increment()
-
-        if self._inc % self.log_steps == 0:
-            self.log.append(val)
-
-        return val
-
-    @property
-    def per_metric_log(self):
-        """
-        The joint log of all metric functions
-
-        :return: the log itself
-        :rtype: dict (keys are metric class names, values are the logs)
-        """
-        m = {}
-        for i, metric in enumerate(self._metrics):
-            m[metric.__class__.__name__] = metric.log
-
-        return m
-
-
 # circuit metrics
 
 
@@ -433,9 +360,7 @@ class CircuitCnotCount(MetricBase):
         super().__init__(log_steps=log_steps, *args, **kwargs)
         self.differentiable = False
         if n_cnot_penalty is None:
-            self.n_emitter_penalty = (
-                lambda x: x
-            )  # by default, the number emitters itself
+            self.n_cnot_penalty = lambda x: x  # by default, the number of CNOTs itself
         else:
             self.n_cnot_penalty = n_cnot_penalty
 
@@ -467,7 +392,7 @@ class CircuitCnotCount(MetricBase):
 
 class CircuitUnitaryCount(MetricBase):
     """
-    A metric which calculates the circuit depth
+    A metric which calculates the circuit's number of unitary gates
     """
 
     def __init__(self, log_steps=1, n_unitary_penalty=None, *args, **kwargs):
@@ -486,7 +411,7 @@ class CircuitUnitaryCount(MetricBase):
         if n_unitary_penalty is None:
             self.n_unitary_penalty = (
                 lambda x: x
-            )  # by default, the number emitters itself
+            )  # by default, the number of unitaries itself
         else:
             self.n_unitary_penalty = n_unitary_penalty
 
@@ -508,8 +433,8 @@ class CircuitUnitaryCount(MetricBase):
         n_u = 0
         for label in [
             "SigmaX",
-            "SigmaX",
-            "SigmaX",
+            "SigmaY",
+            "SigmaZ",
             "Phase",
             "PhaseDagger",
             "Hadamard",
@@ -536,7 +461,7 @@ class CircuitMaxEmitDepth(MetricBase):
 
         :param log_steps: the metric values are computed at every log_steps optimization step
         :type log_steps: int
-        :param depth_penalty: a function which calculates a "cost"/penalty as a function of circuit depth
+        :param depth_penalty: a function which calculates a "cost"/penalty as a function of the maximum emitter depth
         :type depth_penalty: function
         :return: the function returns nothing
         :rtype: None
@@ -552,14 +477,15 @@ class CircuitMaxEmitDepth(MetricBase):
 
     def evaluate(self, state, circuit):
         """
-        Calculates a scalar function of the circuit depth
+        Calculates a scalar function of the circuit's maximum emitter depth
 
         :param state: state which was created by the circuit. This is not actually used by this metric object,
                       but is nonetheless provided to guarantee a uniform API between Metric-type objects
         :type state: QuantumState
         :param circuit: the circuit to evaluate
         :type circuit: CircuitBase (or a subclass of it)
-        :return: the scalar penalty resulting from circuit depth. By default, this is the circuit depth itself
+        :return: the scalar penalty resulting from the maximum emitter depth. By default, this is the maximum emitter
+            depth itself
         :rtype: float or int
         """
         c = circuit.copy()
@@ -568,7 +494,7 @@ class CircuitMaxEmitDepth(MetricBase):
         e_depth = {}
         for e_i in range(c.n_emitters):
             e_depth[e_i] = len(c.reg_gate_history(reg=e_i)[1]) - 2
-        depth = max(e_depth.values())
+        depth = max(e_depth.values(), default=0)
         val = self.depth_penalty(depth)
         self.increment()
 
@@ -588,7 +514,8 @@ class CircuitMaxEmitResetDepth(MetricBase):
 
         :param log_steps: the metric values are computed at every log_steps optimization step
         :type log_steps: int
-        :param depth_penalty: a function which calculates a "cost"/penalty as a function of circuit depth
+        :param depth_penalty: a function which calculates a "cost"/penalty as a function of the maximum emitter reset
+            depth
         :type depth_penalty: function
         :return: the function returns nothing
         :rtype: None
@@ -604,14 +531,15 @@ class CircuitMaxEmitResetDepth(MetricBase):
 
     def evaluate(self, state, circuit):
         """
-        Calculates a scalar function of the circuit depth
+        Calculates a scalar function of the circuit's maximum emitter reset depth
 
         :param state: state which was created by the circuit. This is not actually used by this metric object,
                       but is nonetheless provided to guarantee a uniform API between Metric-type objects
         :type state: QuantumState
         :param circuit: the circuit to evaluate
         :type circuit: CircuitBase (or a subclass of it)
-        :return: the scalar penalty resulting from circuit depth. By default, this is the circuit depth itself
+        :return: the scalar penalty resulting from the maximum emitter reset depth. By default, this is the maximum
+            emitter reset depth itself
         :rtype: float or int
         """
         c = circuit.copy()
@@ -632,7 +560,7 @@ class CircuitMaxEmitResetDepth(MetricBase):
                 m_list[j + 1] - m_list[j] for j in range(len(m_list) - 1)
             ]
             reset_depths[e_i] = max(reset_intervals)
-        depth = max(reset_depths.values())
+        depth = max(reset_depths.values(), default=0)
         val = self.depth_penalty(depth)
         self.increment()
 
@@ -652,7 +580,8 @@ class CircuitMaxEmitEffDepth(MetricBase):
 
         :param log_steps: the metric values are computed at every log_steps optimization step
         :type log_steps: int
-        :param depth_penalty: a function which calculates a "cost"/penalty as a function of circuit depth
+        :param depth_penalty: a function which calculates a "cost"/penalty as a function of the maximum emitter
+            effective depth
         :type depth_penalty: function
         :return: the function returns nothing
         :rtype: None
@@ -668,14 +597,15 @@ class CircuitMaxEmitEffDepth(MetricBase):
 
     def evaluate(self, state, circuit):
         """
-        Calculates a scalar function of the circuit depth
+        Calculates a scalar function of the circuit's maximum emitter effective depth
 
         :param state: state which was created by the circuit. This is not actually used by this metric object,
                       but is nonetheless provided to guarantee a uniform API between Metric-type objects
         :type state: QuantumState
         :param circuit: the circuit to evaluate
         :type circuit: CircuitBase (or a subclass of it)
-        :return: the scalar penalty resulting from circuit depth. By default, this is the circuit depth itself
+        :return: the scalar penalty resulting from the maximum emitter effective depth. By default, this is the maximum
+            emitter effective depth itself
         :rtype: float or int
         """
         c = circuit.copy()
@@ -698,7 +628,7 @@ class CircuitMaxEmitEffDepth(MetricBase):
                 for j in range(len(node_list) - 1)
             ]
             eff_depth[e_i] = max(depth_diff)
-        depth = max(eff_depth.values())
+        depth = max(eff_depth.values(), default=0)
         val = self.depth_penalty(depth)
         self.increment()
 
@@ -728,7 +658,7 @@ class CircuitMeasureCount(MetricBase):
         if m_penalty is None:
             self.m_penalty = (
                 lambda x: x
-            )  # by default, the penalty for depth is the depth itself
+            )  # by default, the penalty for measurement count is the count itself
         else:
             self.m_penalty = m_penalty
 
@@ -763,11 +693,16 @@ class GraphMetric(MetricBase):
 
     def __init__(self, graph: nx.Graph, log_steps=1, penalty=None, *args, **kwargs):
         """
+        Create a GraphMetric object
 
+        :param graph: the graph on which the metric is calculated
+        :type graph: nx.Graph
         :param log_steps: the metric values are computed at every log_steps optimization step
         :type log_steps: int
-        :param m_penalty: a function which calculates a "cost"/penalty as a function of number of measurement
-        :type m_penalty: function
+        :param penalty: a function which calculates a "cost"/penalty as a function of the graph metric value;
+            if None, the penalty is the metric value itself
+        :type penalty: function or None
+        :raises AssertionError: if graph is not an nx.Graph
         :return: the function returns nothing
         :rtype: None
         """
@@ -778,7 +713,7 @@ class GraphMetric(MetricBase):
         if penalty is None:
             self.penalty = (
                 lambda x: x
-            )  # by default, the penalty for depth is the depth itself
+            )  # by default, the penalty for the graph metric is the metric value itself
         else:
             self.penalty = penalty
 
@@ -819,6 +754,127 @@ class GraphMetric(MetricBase):
             self.log.append(val)
 
         return val
+
+
+class Metrics(MetricBase):
+    """
+    Wraps around one or more metric functions, evaluating each and logging the values
+    """
+
+    _all = {  # metrics that can be used, which can be specified by the dictionary keys or as a class instance
+        "Infidelity": Infidelity,
+        "TraceDistance": TraceDistance,
+        "CircuitDepth": CircuitDepth,
+        "CircuitEmitterCount": CircuitEmitterCount,
+        "CircuitCnotCount": CircuitCnotCount,
+        "CircuitUnitaryCount": CircuitUnitaryCount,
+        "CircuitMaxEmitDepth": CircuitMaxEmitDepth,
+        "CircuitMaxEmitResetDepth": CircuitMaxEmitResetDepth,
+        "CircuitMaxEmitEffDepth": CircuitMaxEmitEffDepth,
+        "CircuitMeasureCount": CircuitMeasureCount,
+        # GraphMetric is deliberately excluded: its evaluate(graph_metric: str)
+        # signature doesn't match the evaluate(state, circuit) contract every
+        # other metric here follows, so Metrics can't actually call it.
+    }
+
+    def __init__(
+        self, metrics_list: list, metric_weight=None, log_steps=1, *args, **kwargs
+    ):
+        """
+        Create a Metrics object which acts as a wrapper around Metric functions
+
+        :param metrics_list: metrics to evaluate
+        :type metrics_list: list of strings (strings should be metric names) OR MetricBase objects
+                            MetricBase objects may be preferable, since we cannot set initial parameters via the list of strings.
+        :param metric_weight: some representation of how to weigh the different metric results against one another
+                              if None, all metrics provided are weighted equally (by 1)
+                              if a list or ndarray, the metrics are a linear combination weighted by the list/ndarray values
+                              Otherwise, metric_weight is a function, that can make any mathematical function of the individual
+                              metric values.
+        :type metric_weight: None, numpy.ndarray, list, or Function
+        :param log_steps: the metric values are computed at every log_steps optimization step
+        :type log_steps: int
+        :raises TypeError: if metric_weight is not None, a list, a numpy.ndarray or a callable
+        :return: function returns nothing
+        :rtype: None
+        """
+        super().__init__(log_steps=log_steps, *args, **kwargs)
+        # pass in either list of either strings or of specific Metric instance (must be an accepted Metric)
+        _metrics = []
+        for metric in metrics_list:
+            if metric.__class__ in self._all.values():
+                _metrics.append(metric)
+            elif metric in self._all.keys():
+                _metrics.append(self._all[metric]())
+            else:
+                raise UserWarning(
+                    f"{metric} is not a recognized metric - it will not be evaluated."
+                )
+        self._metrics = _metrics
+
+        if (
+            metric_weight is None
+            or isinstance(metric_weight, list)
+            or isinstance(metric_weight, np.ndarray)
+        ):
+            if metric_weight is None:
+                metric_weight = np.ones(len(metrics_list)).flatten()
+
+            elif isinstance(metric_weight, list):
+                metric_weight = np.array([metric_weight]).flatten()
+
+            else:
+                metric_weight = metric_weight.flatten()
+
+            def weighting_func(state, circuit):
+                return np.dot(
+                    metric_weight,
+                    np.array(
+                        [met.evaluate(state, circuit) for met in self._metrics]
+                    ).flatten(),
+                )
+
+            self.weighting_func = weighting_func
+        elif callable(metric_weight):
+            self.weighting_func = metric_weight
+        else:
+            raise TypeError(
+                "metric_weight must be None, a list, a numpy.ndarray or a callable; "
+                f"got {type(metric_weight).__name__}."
+            )
+
+    def evaluate(self, state, circuit):
+        """
+        Evaluate each metric function contained by the Metrics object
+
+        :param state: the state on which to evaluate the metrics
+        :type state: QuantumState
+        :param circuit: the circuit on which to evaluate the metrics
+        :type circuit: CircuitBase (or a subclass of it)
+        :return: the weighted combination of the individual metric values
+        :rtype: float
+        """
+        val = self.weighting_func(state, circuit)
+        self.increment()
+
+        if self._inc % self.log_steps == 0:
+            self.log.append(val)
+
+        return val
+
+    @property
+    def per_metric_log(self):
+        """
+        The joint log of all metric functions
+
+        :return: the log itself
+        :rtype: dict (keys are metric class names, values are the logs)
+        """
+        m = {}
+        for i, metric in enumerate(self._metrics):
+            m[metric.__class__.__name__] = metric.log
+
+        return m
 
 
 def graph_met_value(graph_metric, g):

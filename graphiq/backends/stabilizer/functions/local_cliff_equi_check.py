@@ -12,6 +12,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""
+Local-Clifford equivalence between two stabilizer states, and the gate sequences and circuits
+that convert one into the other.
+
+``lc_check`` and ``state_converter_circuit`` take either state as a StabilizerTableau, a
+CliffordTableau, a networkx graph or an adjacency matrix, and put both through
+``state_to_graph`` first. ``converter_gate_list`` works on two graphs, and ``str_to_op`` turns
+the resulting gate tuples into operation objects.
+"""
 import networkx as nx
 import numpy as np
 

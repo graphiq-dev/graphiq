@@ -12,6 +12,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""
+The Clifford tableau: destabilizer and stabilizer generators with their phase exponents.
+"""
 import copy
 
 import numpy as np
@@ -22,14 +25,24 @@ from graphiq.backends.stabilizer.tableau import TableauBase, StabilizerTableau
 
 
 class CliffordTableau(TableauBase):
+    """
+    A full Clifford tableau: destabilizer generators stacked above stabilizer generators,
+    with a phase vector (exponents of :math:`-1`) and a separate i-phase exponent vector
+    that tracks residual factors of :math:`i`.
+    """
+
     def __init__(self, data, phase=None, *args, **kwargs):
         """
         Constructor for CliffordTableau
 
         :param data: input data used to initialize the tableau
         :type data: numpy.ndarray or int or CliffordTableau
-        :param phase: a phase vector
-        :type phase: numpy.ndarray
+        :param phase: a phase vector, or None for an all-zero default; must
+            be omitted when data is an existing tableau, since the phase is
+            copied from it instead
+        :type phase: numpy.ndarray or list[int] or None
+        :raises ValueError: if phase is not None and its shape is wrong, or
+            if phase is passed alongside an existing tableau to copy
         """
         if isinstance(data, int):
             self._table = np.eye(2 * data).astype(int)
@@ -41,6 +54,11 @@ class CliffordTableau(TableauBase):
             self.n_qubits = int(data.shape[1] / 2)
             self._initialize_phase(phase)
         elif isinstance(data, CliffordTableau) or isinstance(data, StabilizerTableau):
+            if phase is not None:
+                raise ValueError(
+                    "phase cannot be set when constructing from an existing "
+                    "tableau; the phase is copied from data instead"
+                )
             if isinstance(data, StabilizerTableau):
                 data = stab.clifford_from_stabilizer(data)
             self._table = np.copy(data.table)
@@ -56,18 +74,30 @@ class CliffordTableau(TableauBase):
         """
         Helper function to initialize the phase vectors
 
-        :param phase:
-        :type phase: numpy.ndarray
+        :param phase: the phase vector, or None for an all-zero default
+        :type phase: numpy.ndarray or list[int] or None
         :return: nothing
         :rtype: None
+        :raises ValueError: if phase is not None and its shape is not (2 * n_qubits,)
         """
-        if isinstance(phase, np.ndarray) and phase.shape[0] == 2 * self.n_qubits:
-            self._phase = phase.astype(int)
-        else:
+        if phase is None:
             self._phase = np.zeros(2 * self.n_qubits).astype(int)
+        else:
+            phase = np.asarray(phase)
+            if phase.shape != (2 * self.n_qubits,):
+                raise ValueError(
+                    f"phase must have shape ({2 * self.n_qubits},), got {phase.shape}"
+                )
+            self._phase = phase.astype(int)
         self._iphase = np.zeros(2 * self.n_qubits).astype(int)
 
     def copy(self):
+        """
+        A deep copy of the tableau, sharing no array with the original
+
+        :return: an independent copy
+        :rtype: CliffordTableau
+        """
         return copy.deepcopy(self)
 
     @property
@@ -281,8 +311,12 @@ class CliffordTableau(TableauBase):
         :type value: numpy.ndarray
         :return: nothing
         :rtype: None
+        :raises ValueError: if value's shape is not (2 * n_qubits,)
         """
-        assert value.shape[0] == 2 * self.n_qubits
+        if value.shape != (2 * self.n_qubits,):
+            raise ValueError(
+                f"iphase must have shape ({2 * self.n_qubits},), got {value.shape}"
+            )
         self._iphase = value.astype(int)
 
     def __str__(self):
@@ -295,8 +329,11 @@ class CliffordTableau(TableauBase):
         """
         Convert the stabilizers to generator strings
 
-        :return:
-        :rtype:
+        Each string carries only the letters I, X, Y and Z: the phase vector is not consulted,
+        so the sign of each generator is not included.
+
+        :return: one string per stabilizer generator
+        :rtype: list[str]
         """
         return sfu.symplectic_to_string(self.stabilizer_x, self.stabilizer_z)
 
@@ -304,8 +341,10 @@ class CliffordTableau(TableauBase):
         """
         Convert the destabilizers to the generator strings
 
-        :return:
-        :rtype:
+        As with stabilizer_to_labels, the sign of each generator is not included.
+
+        :return: one string per destabilizer generator
+        :rtype: list[str]
         """
         return sfu.symplectic_to_string(self.destabilizer_x, self.destabilizer_z)
 
@@ -335,8 +374,8 @@ class CliffordTableau(TableauBase):
         # check without converting to canonical form
         if isinstance(other, CliffordTableau):
             return (
-                np.all(self.phase == other.phase)
-                and np.all(self.iphase == other.iphase)
+                np.array_equal(self.phase, other.phase)
+                and np.array_equal(self.iphase, other.iphase)
                 and np.array_equal(self.table.astype(int), other.table.astype(int))
             )
 
@@ -352,8 +391,31 @@ class CliffordTableau(TableauBase):
         return StabilizerTableau(self.stabilizer, self.phase[self.n_qubits :])
 
     def _reset(self, new_table, new_phase, new_iphase):
+        """
+        Replace the table, phase and i-phase together, re-deriving the qubit count and shape
+
+        The table holds destabilizers and stabilizers stacked, so the qubit count is half its
+        row count.
+
+        :param new_table: the replacement table, whose row count is twice the new qubit count
+        :type new_table: numpy.ndarray
+        :param new_phase: the replacement phase vector, of length 2 * n_qubits
+        :type new_phase: numpy.ndarray
+        :param new_iphase: the replacement i-phase exponent vector, of length 2 * n_qubits
+        :type new_iphase: numpy.ndarray
+        :raises ValueError: if new_phase or new_iphase does not match the new qubit count
+        :return: nothing
+        :rtype: None
+        """
         new_n_qubits = int(new_table.shape[0] / 2)
-        assert len(new_phase) == 2 * new_n_qubits
+        if new_phase.shape != (2 * new_n_qubits,):
+            raise ValueError(
+                f"new_phase must have shape ({2 * new_n_qubits},), got {new_phase.shape}"
+            )
+        if new_iphase.shape != (2 * new_n_qubits,):
+            raise ValueError(
+                f"new_iphase must have shape ({2 * new_n_qubits},), got {new_iphase.shape}"
+            )
         self._table = new_table.astype(int)
         self._phase = new_phase.astype(int)
         self._iphase = new_iphase.astype(int)

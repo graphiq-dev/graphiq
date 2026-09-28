@@ -14,6 +14,7 @@
 # limitations under the License.
 import numpy as np
 import networkx as nx
+import pytest
 from graphiq.benchmarks.circuits import (
     linear_cluster_4qubit_circuit,
     linear_cluster_3qubit_circuit,
@@ -22,7 +23,9 @@ from graphiq.benchmarks.circuits import (
 )
 from graphiq.state import QuantumState
 from graphiq.metrics import Infidelity
+from graphiq.backends.density_matrix.compiler import DensityMatrixCompiler
 from graphiq.backends.stabilizer.compiler import StabilizerCompiler
+from graphiq.backends.state_rep_conversion import graph_to_density
 from graphiq.backends.stabilizer.functions.rep_conversion import (
     get_clifford_tableau_from_graph,
 )
@@ -140,7 +143,14 @@ def test_alternate_circuits_w_noise2():
     loss_rate = 0.01
     graph = repeater_graph_states(3)
     noise_model = noise_model_loss_and_depolarizing(error_rate, loss_rate)
-    exemplary_test(graph, noise_model, None, 1)
+    # The depolarizing noise on every emitter CNOT leg folds each noisy compile into a
+    # large mixed stabilizer, so the default 50x50 search is very slow. This is a smoke
+    # test that the noisy hybrid search completes, not a search-quality test, so it runs
+    # 50 candidates instead of 2,500.
+    solver_setting = EvolutionarySolverSetting()
+    solver_setting.n_pop = 10
+    solver_setting.n_stop = 5
+    exemplary_test(graph, noise_model, solver_setting, 1)
 
 
 def test_alternate_circuits_w_noise3():
@@ -149,3 +159,119 @@ def test_alternate_circuits_w_noise3():
     graph = nx.star_graph(3)
     noise_model = noise_model_loss_and_depolarizing(error_rate, loss_rate)
     exemplary_test(graph, noise_model, None, 1000)
+
+
+def _solve_path3(target, compiler):
+    metric = Infidelity(target)
+    solver = HybridEvolutionarySolver(
+        target=target,
+        metric=metric,
+        compiler=compiler,
+        solver_setting=EvolutionarySolverSetting(n_stop=3, n_pop=5),
+    )
+    HybridEvolutionarySolver.seed(3)
+    solver.solve()
+    return solver, metric
+
+
+def test_a_density_matrix_target_with_the_density_matrix_compiler_is_solved():
+    # the deterministic solver seeding the population converts its target to "s" in
+    # place; the metric sharing this target must keep scoring density matrices
+    target = QuantumState(graph_to_density(nx.path_graph(3)), rep_type="dm")
+
+    solver, metric = _solve_path3(target, DensityMatrixCompiler())
+
+    assert target.rep_type == "dm"
+    assert metric.target is target
+    assert all(0 <= score <= 1 for score, _ in solver.hof)
+    # the first evaluation is the deterministic circuit, which prepares the target
+    assert metric.log[0] == pytest.approx(0, abs=1e-9)
+
+
+def test_a_density_matrix_target_with_the_stabilizer_compiler_is_unchanged():
+    target = QuantumState(graph_to_density(nx.path_graph(3)), rep_type="dm")
+
+    solver, _ = _solve_path3(target, StabilizerCompiler())
+
+    assert [score for score, _ in solver.hof] == pytest.approx(
+        [0.5, 0.5, 0.75, 0.75, 0.75]
+    )
+    # the stabilizer compiler's states are still scored against the converted target;
+    # this assertion, not the scores, is what tells the two metric arms apart
+    assert target.rep_type == "s"
+
+
+def test_a_graph_target_with_the_stabilizer_compiler_still_solves():
+    target = QuantumState(nx.path_graph(3), rep_type="g")
+
+    solver, _ = _solve_path3(target, StabilizerCompiler())
+
+    assert [score for score, _ in solver.hof] == pytest.approx(
+        [0.5, 0.5, 0.75, 0.75, 0.75]
+    )
+
+
+def _path3_hybrid(noise_model_mapping=None):
+    target = QuantumState(
+        get_clifford_tableau_from_graph(nx.path_graph(3)), rep_type="s"
+    )
+    compiler = StabilizerCompiler()
+    solver = HybridEvolutionarySolver(
+        target=target,
+        metric=Infidelity(target),
+        compiler=compiler,
+        noise_model_mapping=noise_model_mapping,
+        solver_setting=EvolutionarySolverSetting(n_stop=2, n_pop=2),
+    )
+    return solver, compiler
+
+
+def _record_search_compiles(solver, compiler, monkeypatch):
+    # record the `mixed` flag of every state compiled after the population is
+    # initialised; the deterministic solve that seeds it compiles first
+    recorded = []
+    initialize = solver.population_initialization
+    compile_ = compiler.compile
+
+    def recording_compile(circuit, initial_state=None):
+        state = compile_(circuit, initial_state)
+        recorded.append(state.mixed)
+        return state
+
+    def initialize_then_record():
+        population = initialize()
+        monkeypatch.setattr(compiler, "compile", recording_compile)
+        return population
+
+    monkeypatch.setattr(solver, "population_initialization", initialize_then_record)
+    return recorded
+
+
+def test_hybrid_without_noise_leaves_the_compiler_noise_free():
+    solver, compiler = _path3_hybrid()
+    HybridEvolutionarySolver.seed(0)
+    solver.solve()
+    assert solver.noise_simulation is False
+    assert compiler.noise_simulation is False
+    assert compiler.compile(solver.result[1]).mixed is False
+
+
+def test_hybrid_without_noise_searches_with_noise_free_compiles(monkeypatch):
+    solver, compiler = _path3_hybrid()
+    recorded = _record_search_compiles(solver, compiler, monkeypatch)
+    HybridEvolutionarySolver.seed(0)
+    solver.solve()
+    assert recorded
+    assert not any(recorded)
+
+
+def test_hybrid_with_a_noise_mapping_still_simulates_noise(monkeypatch):
+    solver, compiler = _path3_hybrid(
+        noise_model_mapping={"e": {}, "p": {}, "ee": {}, "ep": {}}
+    )
+    recorded = _record_search_compiles(solver, compiler, monkeypatch)
+    HybridEvolutionarySolver.seed(0)
+    solver.solve()
+    assert solver.noise_simulation is True
+    assert recorded
+    assert all(recorded)

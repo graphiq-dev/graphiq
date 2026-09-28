@@ -43,6 +43,38 @@ def test_density_matrix_creation_graph():
 
 
 def test_density_matrix_get_single_qubit_gate():
-    # TODO: replace these prints by assert np.allclose( <>, expected)
-    print(dmf.get_one_qubit_gate(3, 0, dmf.sigmaz()))
-    print(dmf.get_two_qubit_controlled_gate(3, 0, 1, dmf.sigmax()))
+    # qubit 0 is the leftmost tensor factor
+    assert np.allclose(
+        dmf.get_one_qubit_gate(3, 0, dmf.sigmaz()),
+        np.diag([1, 1, 1, 1, -1, -1, -1, -1]),
+    )
+    assert np.allclose(
+        dmf.get_two_qubit_controlled_gate(3, 0, 1, dmf.sigmax()),
+        np.kron(np.kron(np.diag([1, 0]), np.eye(2)), np.eye(2))
+        + np.kron(np.kron(np.diag([0, 1]), dmf.sigmax()), np.eye(2)),
+    )
+
+
+def test_density_matrix_eq_against_a_non_density_matrix():
+    dm = DensityMatrix(np.array([[1.0, 0.0], [0.0, 0.0]]))
+    assert (dm == 3) is False
+    assert (dm == None) is False
+
+
+def test_density_matrix_eq_different_sizes():
+    # a (1, 1) matrix must not broadcast into equality with a (2, 2) one
+    assert (DensityMatrix(np.ones((1, 1))) == DensityMatrix(np.ones((2, 2)))) is False
+    assert (DensityMatrix(np.eye(2) / 2) == DensityMatrix(np.eye(4) / 4)) is False
+
+
+def test_forced_outcome_0_with_zero_probability_does_not_divide_by_zero():
+    # p(1) is 1 up to rounding and p(0) is exactly 0, so outcome 0 is impossible
+    state = DensityMatrix(
+        np.diag([0.0, 1.0 - 1e-16]).astype(complex), normalized=False
+    )
+    projectors = [np.diag([1.0, 0.0]), np.diag([0.0, 1.0])]
+
+    outcome = state.apply_measurement(projectors, measurement_determinism=0)
+
+    assert outcome == 1
+    assert not np.any(np.isnan(state.data))

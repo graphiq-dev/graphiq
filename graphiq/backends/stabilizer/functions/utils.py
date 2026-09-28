@@ -48,6 +48,27 @@ def symplectic_to_string(x_matrix, z_matrix):
     return generator_list
 
 
+_PAULI_CHARACTERS = frozenset("ixyzIXYZ")
+
+
+def _validate_pauli_label(label):
+    """
+    Raise ValueError if label contains a character other than I, X, Y, or Z
+    (case-insensitive).
+
+    :param label: a single stabilizer generator string
+    :type label: str
+    :return: nothing
+    :rtype: None
+    """
+    invalid = set(label) - _PAULI_CHARACTERS
+    if invalid:
+        raise ValueError(
+            f"Invalid stabilizer generator {label!r}: unexpected character(s) "
+            f"{''.join(sorted(invalid))!r}; expected one of I, X, Y, Z"
+        )
+
+
 def string_to_symplectic(generator_list):
     """
     Convert a string list representation of stabilizer generators to a symplectic representation
@@ -56,7 +77,36 @@ def string_to_symplectic(generator_list):
     :type generator_list: list[str]
     :return: two binary matrices, one for X part, the other for Z part
     :rtype: numpy.ndarray, numpy.ndarray
+    :raises ValueError: if generator_list is a bare string rather than a list of strings,
+        if it is empty, if any generator contains a character other than I, X, Y, Z
+        (case-insensitive), or if the generators are not all the same length
     """
+    if isinstance(generator_list, str):
+        raise ValueError(
+            "string_to_symplectic expects a list of generator strings, not a single "
+            f"string ({generator_list!r}); wrap it in a list"
+        )
+
+    # Materialise first: the validation below iterates twice, and an exhausted
+    # iterator would report an empty, actively misleading length set.
+    generator_list = list(generator_list)
+
+    if not generator_list:
+        raise ValueError(
+            "string_to_symplectic expects at least one generator; an empty list "
+            "gives no qubit count to build a tableau from"
+        )
+
+    for label in generator_list:
+        _validate_pauli_label(label)
+
+    lengths = {len(label) for label in generator_list}
+    if len(lengths) != 1:
+        raise ValueError(
+            f"Stabilizer generators have inconsistent lengths {sorted(lengths)}: "
+            f"{generator_list!r}"
+        )
+
     n_row = len(generator_list)
     n_column = len(generator_list[0])
     x_matrix = np.zeros((n_row, n_column))
@@ -82,7 +132,10 @@ def get_stabilizer_element_by_string(generator):
     :type generator: str
     :return: a matrix representation of the stabilizer element
     :rtype: numpy.ndarray
+    :raises ValueError: if generator contains a character other than I, X, Y, Z
+        (case-insensitive)
     """
+    _validate_pauli_label(generator)
     stabilizer_elem = 1
     for pauli in generator:
         if pauli.lower() == "x":
@@ -125,11 +178,44 @@ def is_symplectic_self_orthogonal(input_matrix):
     :return: True if the input matrix is self-orthogonal; False otherwise
     :rtype: bool
     """
-    dim = int(input_matrix.shape[1] / 2)
-
     return np.array_equal(
-        binary_symplectic_product(input_matrix, input_matrix), np.zeros((dim, dim))
+        binary_symplectic_product(input_matrix, input_matrix),
+        np.zeros((input_matrix.shape[0],) * 2),
     )
+
+
+def is_stabilizer(table):
+    """
+    Check if a given n x 2n binary symplectic table is a valid set of stabilizer generators,
+    i.e. its rows pairwise commute and are linearly independent over GF(2).
+
+    :param table: an n x 2n binary symplectic table
+    :type table: numpy.ndarray
+    :return: True if the rows pairwise commute and are linearly independent over GF(2); False
+        otherwise
+    :rtype: bool
+    """
+    n_rows, n_columns = table.shape
+    assert n_columns == 2 * n_rows
+    if not is_symplectic_self_orthogonal(table):
+        return False
+    # GF(2) rank by Gaussian elimination; a real-valued rank would not do, e.g.
+    # ZZI, IZZ, ZIZ has GF(2) rank 2 but real rank 3
+    reduced = np.array(table, dtype=int) % 2
+    rank = 0
+    for column in range(n_columns):
+        pivots = np.nonzero(reduced[rank:, column])[0]
+        if len(pivots) == 0:
+            continue
+        pivot = rank + pivots[0]
+        reduced[[rank, pivot]] = reduced[[pivot, rank]]
+        for row in range(n_rows):
+            if row != rank and reduced[row, column]:
+                reduced[row] = (reduced[row] + reduced[rank]) % 2
+        rank += 1
+        if rank == n_rows:
+            break
+    return rank == n_rows
 
 
 def binary_symplectic_product(matrix1, matrix2):
@@ -137,17 +223,20 @@ def binary_symplectic_product(matrix1, matrix2):
     Compute the binary symplectic product of two matrices matrix1 (:math:`M_1`) and matrix2 (:math:`M_2`)
 
     The symplectic inner product between :math:`M_1` and :math:`M_2` is :math:`M_1 P M_2^T`,
-    where :math:`P = \\begin{bmatrix} 0 & I \\\ I & 0 \\end{bmatrix}`.
+    where :math:`P = \\begin{bmatrix} 0 & I \\\\ I & 0 \\end{bmatrix}` is sized from the shared
+    number of columns (2n), not the row count -- the two matrices need not have the same number of
+    rows (e.g. a stabilizer's n rows against a Clifford tableau's 2n).
 
     :param matrix1: a binary symplectic matrix
     :type matrix1: numpy.ndarray
     :param matrix2: a binary symplectic matrix
     :type matrix2: numpy.ndarray
-    :return: the symplectic product of these two matrices
-    :rtype: int
+    :return: a (number of rows in matrix1, number of rows in matrix2) binary matrix, one
+        entry per row pair
+    :rtype: numpy.ndarray
     """
-    assert matrix1.shape[0] == matrix2.shape[0]
-    dim = matrix1.shape[0]
+    assert matrix1.shape[1] == matrix2.shape[1]
+    dim = matrix1.shape[1] // 2
     symplectic_p = np.block(
         [[np.zeros((dim, dim)), np.eye(dim)], [np.eye(dim), np.zeros((dim, dim))]]
     ).astype(int)

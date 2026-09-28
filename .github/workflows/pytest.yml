@@ -21,7 +21,9 @@ jobs:
           python -m pip install --upgrade pip
           pip install flake8 pytest
           pip install .
-          pip install .[all]
+          # optax needs jaxlib, which has no Python 3.8 wheels on PyPI any more,
+          # so on 3.8 only ray is installed from the "all" extra.
+          if [ "${{ matrix.python-version }}" = "3.8" ]; then pip install ray; else pip install .[all]; fi
 #          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
       - name: Lint with flake8
         run: |

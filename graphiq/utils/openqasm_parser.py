@@ -29,7 +29,7 @@ class OpenQASMParser:
         between strings and parse functions.
 
         :param openqasm_str: OpenQASM 2.0 script string
-        :type: str
+        :type openqasm_str: str
         """
         self.openqasm = openqasm_str
 
@@ -88,8 +88,8 @@ class OpenQASMParser:
         Note: For faster data processing time, the yield syntax is used here, which will return the parse info
         immediately after each node parsed.
 
-        :return: parsed node info
-        :rtype: dict
+        :return: a generator yielding the parsed info of each node
+        :rtype: generator (of dict)
         """
         parser = Qasm(data=self.openqasm).parse()
         def_arr = ["qreg", "creg", "gate"]
@@ -288,7 +288,7 @@ class OpenQASMParser:
             "name": creg_node.name,
         }
         if hasattr(creg_node, "index"):
-            measure_info["creg"]["index"] = qreg_node.index
+            measure_info["creg"]["index"] = creg_node.index
 
         return measure_info
 

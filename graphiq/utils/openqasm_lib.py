@@ -50,6 +50,10 @@ class OpenQASMInfo:
         :type definitions: str or list
         :param usage: A function which creates a gate string given q_reg, q_reg_type, c_reg
         :type usage: function
+        :param multi_comp: True if the operation is made of multiple components (visual blocks); when converting a
+                           circuit to openQASM, barriers are inserted to keep such an operation separate from its
+                           neighbours
+        :type multi_comp: bool
         :return: function returns nothing
         :rtype: None
         """
@@ -159,6 +163,12 @@ The Operation classes can then invoke these objects as a field
 
 
 def cnot_info():
+    """
+    OpenQASM info for the CNOT (CX) gate.
+
+    :return: the OpenQASM info object
+    :rtype: OpenQASMInfo
+    """
     imports = []
     definition = ""
 
@@ -169,6 +179,12 @@ def cnot_info():
 
 
 def sigma_x_info():
+    """
+    OpenQASM info for the Pauli X gate.
+
+    :return: the OpenQASM info object
+    :rtype: OpenQASMInfo
+    """
     imports = []
     definition = "gate x a { U(pi, 0, pi) a; }"
 
@@ -179,6 +195,12 @@ def sigma_x_info():
 
 
 def sigma_y_info():
+    """
+    OpenQASM info for the Pauli Y gate.
+
+    :return: the OpenQASM info object
+    :rtype: OpenQASMInfo
+    """
     imports = []
     definition = "gate y a { U(pi, pi / 2, pi / 2) a; }"
 
@@ -189,6 +211,12 @@ def sigma_y_info():
 
 
 def sigma_z_info():
+    """
+    OpenQASM info for the Pauli Z gate.
+
+    :return: the OpenQASM info object
+    :rtype: OpenQASMInfo
+    """
     imports = []
     definition = "gate z a { U(0, pi/2, pi/2) a; }"
 
@@ -199,6 +227,12 @@ def sigma_z_info():
 
 
 def hadamard_info():
+    """
+    OpenQASM info for the Hadamard gate.
+
+    :return: the OpenQASM info object
+    :rtype: OpenQASMInfo
+    """
     imports = []
     definition = "gate h a { U(pi/2, 0, pi) a; }"
 
@@ -209,6 +243,12 @@ def hadamard_info():
 
 
 def phase_info():
+    """
+    OpenQASM info for the phase (S) gate.
+
+    :return: the OpenQASM info object
+    :rtype: OpenQASMInfo
+    """
     # TODO: investigate why the code fails if we name this gate "p" instead...
     imports = []
     definition = "gate s a { U(0, pi/2, 0) a; }"
@@ -220,6 +260,13 @@ def phase_info():
 
 
 def phase_dagger_info():  # this is equal to applying P gate 3 times
+    """
+    OpenQASM info for the adjoint phase (S-dagger) gate, equal to applying the phase (S) gate
+    three times.
+
+    :return: the OpenQASM info object
+    :rtype: OpenQASMInfo
+    """
     imports = []
     definition = "gate sdg a { U(0, -pi/2, 0) a; }"
 
@@ -232,6 +279,13 @@ def phase_dagger_info():  # this is equal to applying P gate 3 times
 
 
 def parameterized_info():
+    """
+    OpenQASM info for the general single-qubit rotation gate U(theta, phi, lambda), applied
+    with three parameters supplied through the ``params`` keyword of ``use_gate``.
+
+    :return: the OpenQASM info object
+    :rtype: OpenQASMInfo
+    """
     # todo: update to the default rotation in Qiskit plotting
     imports = []
     definition = "gate u(theta, phi, lambda) a { U(theta, phi, lambda) a; }"
@@ -245,6 +299,14 @@ def parameterized_info():
 
 
 def cparameterized_info():
+    """
+    OpenQASM info for the controlled general single-qubit rotation gate CU3(theta, phi,
+    lambda), applied with three parameters supplied through the ``params`` keyword of
+    ``use_gate``.
+
+    :return: the OpenQASM info object
+    :rtype: OpenQASMInfo
+    """
     # todo: update to the default rotation in Qiskit plotting
     imports = []
     definition = """
@@ -266,6 +328,13 @@ def cparameterized_info():
 
 
 def ry_info():
+    """
+    OpenQASM info for the RY(theta) rotation gate, applied with the rotation angle supplied
+    through the ``params`` keyword of ``use_gate``.
+
+    :return: the OpenQASM info object
+    :rtype: OpenQASMInfo
+    """
     imports = []
     definition = "gate ry(theta) a { U(theta,0,0) a; }"
 
@@ -276,6 +345,13 @@ def ry_info():
 
 
 def rx_info():
+    """
+    OpenQASM info for the RX(theta) rotation gate, applied with the rotation angle supplied
+    through the ``params`` keyword of ``use_gate``.
+
+    :return: the OpenQASM info object
+    :rtype: OpenQASMInfo
+    """
     imports = []
     definition = "gate rx(theta) a { U(theta, -pi/2,pi/2) a; }"
 
@@ -286,8 +362,15 @@ def rx_info():
 
 
 def rz_info():
+    """
+    OpenQASM info for the RZ(phi) rotation gate, applied with the rotation angle supplied
+    through the ``params`` keyword of ``use_gate``.
+
+    :return: the OpenQASM info object
+    :rtype: OpenQASMInfo
+    """
     imports = []
-    definition = " gate rz(phi) a { U(phi) a; }"
+    definition = " gate rz(phi) a { U(0,0,phi) a; }"
 
     def usage(q_reg, q_reg_type, c_reg, params):
         return f"rz({params[0]}) {q_reg_type[0]}{q_reg[0]}[0];"
@@ -299,7 +382,8 @@ def single_qubit_wrapper_info(op_list):
     """
     This function combines the openqasm info from multiple base Operations,
     to create a composed block of multiple operations
-    :param op_list: list of operation classes which will be applied by the Operation block
+    :param op_list: list of operation classes which will be applied by the Operation block,
+        in OneQubitGateWrapper order: the last entry is applied first
     :type op_list: list
     :return: OpenQASMInfo object corresponding to the composed gate
     :rtype: OpenQASMInfo
@@ -323,7 +407,9 @@ def single_qubit_wrapper_info(op_list):
         definitions = definitions + oq_info.define_gate
         gate_name += oq_info.gate_name
         gate_symbol += oq_info.gate_symbol
-        def_usage += f"{oq_info.gate_name} a;\n"
+        # a OneQubitGateWrapper applies its operations last entry first, so the
+        # definition body lists them in reverse
+        def_usage = f"{oq_info.gate_name} a;\n" + def_usage
 
     if gate_name in gate_name_dict:  # i.e. gate is already somehow defined
         return gate_name_dict[gate_name]
@@ -339,6 +425,13 @@ def single_qubit_wrapper_info(op_list):
 
 
 def cz_info():
+    """
+    OpenQASM info for the controlled-Z (CZ) gate, implemented as a Hadamard on the target, a
+    CNOT, then a Hadamard on the target.
+
+    :return: the OpenQASM info object
+    :rtype: OpenQASMInfo
+    """
     imports = []
     definition = "gate cz a, b { U(pi/2, 0, pi) b; CX a, b; U(pi/2, 0, pi) b; }"  # H on target, CX, H on target
 
@@ -349,6 +442,14 @@ def cz_info():
 
 
 def classical_cnot_info():
+    """
+    OpenQASM info for a measurement-controlled CNOT: the control qubit is measured into a
+    classical register, and an X gate is applied to the target qubit conditioned on that
+    measurement outcome being 1.
+
+    :return: the OpenQASM info object
+    :rtype: OpenQASMInfo
+    """
     imports = []
     definition = sigma_x_info().definitions[0]
 
@@ -362,6 +463,14 @@ def classical_cnot_info():
 
 
 def classical_cz_info():
+    """
+    OpenQASM info for a measurement-controlled CZ: the control qubit is measured into a
+    classical register, and a Z gate is applied to the target qubit conditioned on that
+    measurement outcome being 1.
+
+    :return: the OpenQASM info object
+    :rtype: OpenQASMInfo
+    """
     imports = []
     definition = sigma_z_info().definitions[0]
 
@@ -375,6 +484,14 @@ def classical_cz_info():
 
 
 def measurement_cnot_and_reset():
+    """
+    OpenQASM info for a measurement-controlled CNOT followed by resetting the control qubit:
+    the control qubit is measured into a classical register, an X gate is applied to the
+    target qubit conditioned on that outcome being 1, then the control qubit is reset to 0.
+
+    :return: the OpenQASM info object
+    :rtype: OpenQASMInfo
+    """
     imports = []
     definition = sigma_x_info().definitions[0]
 
@@ -390,6 +507,12 @@ def measurement_cnot_and_reset():
 
 
 def z_measurement_info():
+    """
+    OpenQASM info for a Z-basis measurement, storing the outcome into a classical register.
+
+    :return: the OpenQASM info object
+    :rtype: OpenQASMInfo
+    """
     imports = []
     definition = ""
 
@@ -400,4 +523,11 @@ def z_measurement_info():
 
 
 def empty_info():
+    """
+    Empty OpenQASM info, shared by the identity gate and the input/output placeholder
+    operations: no imports, an empty definition string, and a usage string that is always empty.
+
+    :return: the OpenQASM info object
+    :rtype: OpenQASMInfo
+    """
     return OpenQASMInfo("", [], "", lambda x, y, z: "", False)

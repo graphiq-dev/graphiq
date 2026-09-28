@@ -12,6 +12,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""
+Tabular container for a solver's output circuits and their per-circuit properties.
+"""
+
 import json
 import warnings
 
@@ -29,6 +33,20 @@ class SolverResult:
     """
 
     def __init__(self, circuit_list, properties=None):
+        """
+        Create a SolverResult object
+
+        Each named property becomes a column of the same length as circuit_list, filled with
+        None until a value is assigned.
+
+        :param circuit_list: the circuits this result describes, one per row
+        :type circuit_list: list[CircuitBase]
+        :param properties: the names of the property columns to create, or None for none
+        :type properties: list[str] or None
+        :raises AssertionError: if properties is neither a list nor None
+        :return: nothing
+        :rtype: None
+        """
         self._data = {
             "circuit": circuit_list,
             "circuit_id": [f"c{i}" for i in range(len(circuit_list))],
@@ -86,7 +104,7 @@ class SolverResult:
         :return: nothing
         :rtype: None
         """
-        if isinstance(type, (list, np.ndarray)):
+        if not isinstance(value, (list, np.ndarray)):
             raise TypeError(f"Data should be a list or numpy array")
         else:
             if len(value) != len(self._data["circuit"]):
@@ -98,11 +116,13 @@ class SolverResult:
 
     def add_properties(self, new_property):
         """
+        Add an empty property column (filled with None), if it is not already present
 
-        :param new_property:
-        :type new_property:
-        :return:
-        :rtype:
+        :param new_property: the name of the property to add
+        :type new_property: str
+        :raises AssertionError: if new_property is not a str
+        :return: nothing
+        :rtype: None
         """
         assert isinstance(new_property, str)
         if new_property not in self._properties:
@@ -188,6 +208,20 @@ class SolverResult:
         return df
 
     def save2json(self, path, filename):
+        """
+        Write the result to a json file.
+
+        Circuits are serialized as openQASM and the "g" column as edge lists, since neither is
+        json-serializable as it stands.
+
+        :param path: the directory to write into
+        :type path: str
+        :param filename: the file name, without the .json suffix
+        :type filename: str
+        :raises KeyError: if the result has no "g" column
+        :return: nothing
+        :rtype: None
+        """
         data_dict = self._data.copy()
         data_dict["g"] = [list(nx.to_edgelist(g)) for g in self._data["g"]]
         data_dict["circuit"] = [c.to_openqasm() for c in self._data["circuit"]]
@@ -195,6 +229,21 @@ class SolverResult:
             json.dump(data_dict, f)
 
     def load_json(self, path, filename):
+        """
+        Load a json file's contents into this result, overwriting the columns the file
+        carries. Columns already held but absent from the file are left in place, so this
+        merges rather than replaces.
+
+        The "g" column is rebuilt from edge lists into graphs; every other column is loaded
+        as stored, so a circuit column arrives as openQASM strings rather than circuits.
+
+        :param path: the directory to read from
+        :type path: str
+        :param filename: the file name, without the .json suffix
+        :type filename: str
+        :return: nothing
+        :rtype: None
+        """
         with open(f"{path}/{filename}.json", "r") as f:
             loaded_dict = json.load(f)
         for properties in loaded_dict.keys():
@@ -206,7 +255,7 @@ class SolverResult:
             "The circuits in the loaded result object are now openqasm strings!"
         )
         diff = (
-            set(self.properties) - set(loaded_dict.keys()) - {"circuit", "circuit_id"}
+            set(self._properties) - set(loaded_dict.keys()) - {"circuit", "circuit_id"}
         )
         if diff:
             warnings.warn("")

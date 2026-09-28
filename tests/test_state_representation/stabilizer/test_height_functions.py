@@ -12,10 +12,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import networkx as nx
 import numpy as np
 import pytest
 
-from graphiq.backends.stabilizer.functions.height import height_func_list
+from graphiq.backends.stabilizer.functions.height import (
+    height_dict,
+    height_func_list,
+    height_function,
+)
 from graphiq.backends.stabilizer.functions.stabilizer import rref
 from graphiq.backends.stabilizer.tableau import StabilizerTableau
 
@@ -171,3 +176,34 @@ def test_paper_example():
     assert (height_list_2 == height_list_expected).all()
     assert (tableau.x_matrix == x_matrix_expected).all()
     assert (tableau.z_matrix == z_matrix_expected).all()
+
+
+@pytest.mark.parametrize("qubit_position, expected", [(0, 1), (1, 1), (2, 0)])
+def test_height_function_linear_cluster_3qubit(qubit_position, expected):
+    # the 3-qubit linear cluster state: x is the identity, z is path_graph(3)'s adjacency matrix
+    x_matrix = np.eye(3)
+    z_matrix = nx.to_numpy_array(nx.path_graph(3))
+    assert height_function(x_matrix, z_matrix, qubit_position) == expected
+
+
+def test_height_dict_graph_arg_must_be_networkx_graph():
+    # a truthy value that is not a networkx graph is rejected explicitly
+    with pytest.raises(ValueError, match="valid networkx graph"):
+        height_dict(graph="not a graph")
+
+
+def test_height_dict_needs_graph_or_matrices():
+    # an empty (falsy) graph argument falls through to the "neither" branch
+    with pytest.raises(ValueError, match="Either a graph or both"):
+        height_dict(graph=[])
+
+
+def test_height_dict_from_graph_orders_nodes_by_label():
+    # Nodes are added in the order 0, 2, 1, 3; height_dict(graph=...) must key its result by
+    # node label, not by the order the edges were inserted in.
+    graph = nx.Graph()
+    graph.add_edges_from([(0, 2), (1, 3)])
+
+    h_dict = height_dict(graph=graph)
+
+    assert [h_dict[0], h_dict[1], h_dict[2], h_dict[3]] == [1, 2, 1, 0]

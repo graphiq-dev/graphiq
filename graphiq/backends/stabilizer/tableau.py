@@ -12,6 +12,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""
+The tableau base class and the stabilizer tableau: a binary symplectic table plus its phase vector.
+"""
 import copy
 from abc import ABC
 
@@ -23,7 +26,6 @@ import graphiq.backends.stabilizer.functions.utils as sfu
 class TableauBase(ABC):
     """
     The base class for Stabilizer and Clifford Tableau
-
     """
 
     def __init__(self, table, phase, n_qubits, shape):
@@ -86,8 +88,17 @@ class TableauBase(ABC):
         :type value: numpy.ndarray
         :return: nothing
         :rtype: None
+        :raises ValueError: if value's shape is not (self.shape[0],)
         """
-        assert value.shape[0] == self._phase.shape[0]
+        # self.shape[0] is the canonical phase length for both subclasses:
+        # n for StabilizerTableau, whose shape is (n, 2n), and 2n for
+        # CliffordTableau, whose shape is (2n, 2n). Comparing against
+        # self._phase.shape instead would let a corrupted _phase relax this
+        # check to match the corruption rather than catch it.
+        if value.shape != (self.shape[0],):
+            raise ValueError(
+                f"phase must have shape ({self.shape[0]},), got {value.shape}"
+            )
         self._phase = value.astype(int)
 
 
@@ -102,8 +113,10 @@ class StabilizerTableau(TableauBase):
 
         :param data: the data used to initialize the stabilizer tableau
         :type data: int or numpy.ndarray or [numpy.ndarray, numpy.ndarray]
-        :param phase: the phase vector
-        :type phase: numpy.ndarray
+        :param phase: the phase vector, or None for an all-zero default
+        :type phase: numpy.ndarray or list[int] or None
+        :raises ValueError: if data is a list whose two matrices are not square 2-D arrays, or if phase is not None
+            and its shape is not (n_qubits,)
         """
         if isinstance(data, int):
             self._table = np.hstack([np.zeros((data, data)), np.eye(data)]).astype(int)
@@ -116,19 +129,37 @@ class StabilizerTableau(TableauBase):
             assert len(data) == 2
             assert isinstance(data[0], np.ndarray) and isinstance(data[1], np.ndarray)
             assert data[0].shape == data[1].shape
+            # n generators on n qubits: a non-square pair is not a stabilizer
+            # state and would otherwise produce a wrongly sized tableau
+            if data[0].ndim != 2 or data[0].shape[0] != data[0].shape[1]:
+                raise ValueError(
+                    "x_matrix and z_matrix must be square 2-D arrays, got shape "
+                    f"{data[0].shape}"
+                )
             self._table = np.hstack(data).astype(int)
-            self.n_qubits = data[0].shape[1]
+            self.n_qubits = data[0].shape[0]
         else:
             raise TypeError("Cannot support the input type")
 
-        if isinstance(phase, np.ndarray) and phase.shape[0] == self.n_qubits:
-            self._phase = np.copy(phase).astype(int)
-        else:
+        if phase is None:
             self._phase = np.zeros(self.n_qubits).astype(int)
+        else:
+            phase = np.asarray(phase)
+            if phase.shape != (self.n_qubits,):
+                raise ValueError(
+                    f"phase must have shape ({self.n_qubits},), got {phase.shape}"
+                )
+            self._phase = phase.astype(int)
 
         self.shape = (self.n_qubits, 2 * self.n_qubits)
 
     def copy(self):
+        """
+        A deep copy of the tableau, sharing no array with the original
+
+        :return: an independent copy
+        :rtype: StabilizerTableau
+        """
         return copy.deepcopy(self)
 
     @property
@@ -148,7 +179,9 @@ class StabilizerTableau(TableauBase):
 
         :param value: the X matrix part of the stabilizer tableau
         :type value: numpy.ndarray
-        :return:
+        :raises AssertionError: if value is not of shape (n_qubits, n_qubits)
+        :return: nothing
+        :rtype: None
         """
         assert value.shape == (self.n_qubits, self.n_qubits)
         self._table[:, 0 : self.n_qubits] = value.astype(int)
@@ -170,6 +203,7 @@ class StabilizerTableau(TableauBase):
 
         :param value: the Z matrix part of the stabilizer tableau
         :type value: numpy.ndarray
+        :raises AssertionError: if value is not of shape (n_qubits, n_qubits)
         :return: nothing
         :rtype: None
         """
@@ -197,7 +231,7 @@ class StabilizerTableau(TableauBase):
         :rtype: bool
         """
         if isinstance(other, StabilizerTableau):
-            return np.all(self.phase == other.phase) and np.array_equal(
+            return np.array_equal(self.phase, other.phase) and np.array_equal(
                 self.table.astype(int), other.table.astype(int)
             )
         return False
@@ -224,15 +258,31 @@ class StabilizerTableau(TableauBase):
 
     def validate(self):
         """
-        Validate that the tableau is a valid tableau
+        Validate that the tableau is a valid set of stabilizer generators, i.e. its rows
+        pairwise commute and are linearly independent over GF(2)
 
-        :return: True if the tableau is symplectic; False if it is not
+        :return: True if the tableau is valid; False if it is not
         :rtype: bool
         """
         return sfu.is_stabilizer(self._table)
 
     def _reset(self, new_table, new_phase):
+        """
+        Replace the table and phase together, re-deriving the qubit count and shape
+
+        :param new_table: the replacement table, whose row count gives the new qubit count
+        :type new_table: numpy.ndarray
+        :param new_phase: the replacement phase vector, of length n_qubits
+        :type new_phase: numpy.ndarray
+        :raises ValueError: if new_phase's shape does not match the new qubit count
+        :return: nothing
+        :rtype: None
+        """
         new_n_qubits = int(new_table.shape[0])
+        if new_phase.shape != (new_n_qubits,):
+            raise ValueError(
+                f"new_phase must have shape ({new_n_qubits},), got {new_phase.shape}"
+            )
         self._table = new_table.astype(int)
         self._phase = new_phase.astype(int)
         self.n_qubits = new_n_qubits

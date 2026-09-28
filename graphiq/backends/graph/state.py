@@ -33,8 +33,8 @@ def _compile_lc_gates(lc_gate):
 
     :param lc_gate: a list of local Clifford gates
     :type lc_gate: list[str]
-    :return: a one-qubit gate
-    :rtype: ops.OneQubitOperationBase
+    :return: a list of one-qubit gate classes representing the same local Clifford
+    :rtype: list
     """
     op_list = []
     for op in lc_gate:
@@ -57,7 +57,7 @@ class Graph(StateRepresentationBase):
         :param data: data used to construct the representation
         :type data: networkX.Graph
         :param clifford_dict: a dictionary that stores local Clifford for each node
-        :type clifford_dict: dict
+        :type clifford_dict: dict or None
         :return: nothing
         :rtype: None
         """
@@ -96,6 +96,12 @@ class Graph(StateRepresentationBase):
 
     @property
     def n_qubits(self):
+        """
+        The number of qubits in the state, which is the number of nodes of the graph
+
+        :return: the number of qubits
+        :rtype: int
+        """
         return self.n_nodes
 
     def find_lc(self, node_id):
@@ -104,8 +110,9 @@ class Graph(StateRepresentationBase):
 
         :param node_id: the node index
         :type node_id: int
-        :return: local Clifford gates
-        :rtype: ops.OneQubitOperationBase
+        :raises ValueError: if no node with node_id exists
+        :return: local Clifford gates, as a list of one-qubit gate classes
+        :rtype: list
         """
         if self._data.has_node(node_id):
             return self._data.nodes[node_id]["LC"]
@@ -114,14 +121,15 @@ class Graph(StateRepresentationBase):
 
     def update_lc(self, node_id, lc_gate):
         """
-        Find the local Clifford gates corresponding to a node
+        Replace the local Clifford gates recorded on a node
 
         :param node_id: the node index
         :type node_id: int
-        :param lc_gate: a list of local Clifford gates
-        :type lc_gate: list(str)
-        :return: local Clifford gates
-        :rtype: ops.OneQubitOperationBase
+        :param lc_gate: a list of local Clifford gates; None or an empty list records the identity
+        :type lc_gate: list(str) or None
+        :raises ValueError: if no node with node_id exists
+        :return: nothing
+        :rtype: None
         """
         if not self._data.has_node(node_id):
             raise ValueError(f"Node with node ID {node_id} does not exist.")
@@ -138,7 +146,8 @@ class Graph(StateRepresentationBase):
         :type node_to_add: int
         :param lc_gate: a list of local Clifford gates
         :type lc_gate: list(str)
-        :raises ValueError: if node_to_add is of an invalid datatype
+        :raises ValueError: if node_to_add is None, which networkx rejects as a node
+        :raises TypeError: if node_to_add is not hashable
         :return: nothing
         :rtype: None
         """
@@ -152,7 +161,7 @@ class Graph(StateRepresentationBase):
 
     def add_edge(self, first_node, second_node):
         """
-        Add an edge between two nodes. If any of these two nodes does not exist, no edge is added.
+        Add an edge between two nodes. Any of these two nodes that does not exist is added first.
 
         :param first_node: the first node on which to add an edge
         :type first_node: int
@@ -187,19 +196,23 @@ class Graph(StateRepresentationBase):
 
     def lc_equivalent(self, other_graph, mode="deterministic"):
         r"""
-        Determines whether two graph states are local-Clifford equivalent or not, given the adjacency matrices of the two.
-        It takes two adjacency matrices as input and returns a numpy.ndarray containing $n (2 \times 2 array)s$
-        = clifford operations on each qubit.
+        Determines whether this graph state and other_graph are local-Clifford equivalent or not.
+        It returns whether a local-Clifford solution was found, together with an array of $n (2 \times 2 array)s$
+        = clifford operations on each qubit (None if none was found).
 
         :param other_graph: the other graph against which to check LC equivalence
         :type other_graph: Graph
         :param mode: the chosen mode for finding solutions. It can be either 'deterministic' (default) or 'random'.
+            'deterministic' is exact: a returned False is conclusive. 'random' is a bounded random search that can
+            return False even for graphs that are in fact LC equivalent.
         :type mode: str
-        :raises AssertionError: if the number of rows in the row reduced matrix is less than the rank of coefficient
-            matrix or if the number of linearly dependent columns is not equal to $4n - rank$
-            (for $n$ being the number of nodes in the graph)
+        :raises AssertionError: if the two adjacency matrices differ in shape, if the number of rows in the row
+            reduced matrix is less than the rank of coefficient matrix, or if the number of linearly dependent
+            columns is not equal to $4n - rank$ (for $n$ being the number of nodes in the graph)
+        :raises ValueError: if ``mode`` is neither ``"deterministic"`` nor ``"random"``
         :return: If a solution is found, returns True and an array of single-qubit Clifford $2 \times 2$ matrices
-            in the symplectic formalism. If not, graphs are not LC equivalent and returns False, None.
+            in the symplectic formalism. If not, returns False, None: in 'deterministic' mode the graphs are not LC
+            equivalent; in 'random' mode the search may only have failed to find a solution.
         :rtype: bool, numpy.ndarray or None
         """
         g1 = nx.to_numpy_array(self.data).astype(int)
@@ -238,12 +251,12 @@ class Graph(StateRepresentationBase):
         :type show: bool
         :param ax: axis on which to draw the plot (optional)
         :type ax: matplotlib.Axis
-        :param with_labels:
-        :type with_labels:
-        :return: nothing
-        :rtype: None
+        :param with_labels: if True, node labels are drawn
+        :type with_labels: bool
+        :return: fig, axes on which the state is drawn
+        :rtype: matplotlib.Figure, matplotlib.Axes
         """
-        draw_graph(self, show=show, ax=ax, with_labels=with_labels)
+        return draw_graph(self, show=show, ax=ax, with_labels=with_labels)
 
     def local_complementation(self, node_id, copy=False):
         """
@@ -258,6 +271,11 @@ class Graph(StateRepresentationBase):
 
         :param node_id: the ID of the node around which local complementation should take place
         :type node_id: int
+        :param copy: if True, the local complementation is applied to a copy and this Graph is left unchanged;
+            if False, this Graph is modified in place
+        :type copy: bool
+        :raises NotImplementedError: if this Graph is not a graph state (i.e. carries non-identity local
+            Clifford gates)
         :return: the graph after the local complementation
         :rtype: Graph
         """
@@ -313,6 +331,20 @@ class MixedGraph(StateRepresentationBase):
     """
 
     def __init__(self, data, *args, **kwargs):
+        """
+        Create a MixedGraph representation object
+
+        A single Graph becomes a one-element mixture of probability 1.0. A bare
+        ``networkx.Graph`` is not accepted here; wrap it in a ``Graph`` first.
+
+        :param data: a Graph to hold as a one-element mixture, or a ready mixture as a list of
+            (probability_i, Graph_i)
+        :type data: Graph or list[tuple]
+        :raises TypeError: if data is neither a Graph nor a list
+        :raises AssertionError: if a list entry is not a (float, Graph) pair
+        :return: nothing
+        :rtype: None
+        """
         if isinstance(data, Graph):
             self._mixture = [
                 (1.0, data),
@@ -329,6 +361,16 @@ class MixedGraph(StateRepresentationBase):
 
     @classmethod
     def valid_datatype(cls, data):
+        """
+        Whether data is an accepted input for this representation
+
+        A list is accepted only if every entry is a (float, Graph) pair.
+
+        :param data: the candidate data
+        :type data: any
+        :return: True if data is a Graph or such a list
+        :rtype: bool
+        """
         valid = isinstance(data, (Graph, list))
         if isinstance(data, list):
             valid = valid and all(
@@ -361,10 +403,13 @@ class MixedGraph(StateRepresentationBase):
         """
         Sets the mixture of pure states, represented as a list of Graphs and associated probabilities.
 
-        :param value: a new mixture list, pure Graph
-        :type value: list[Graph]
-        :return: the mixture as a list of (probability_i, Graph_i)
-        :rtype: list
+        :param value: a new mixture list of (probability_i, Graph_i), or a pure Graph
+        :type value: list or Graph
+        :raises AssertionError: if a list entry is not a (float, Graph) pair, or if the graphs do not all have
+            the same number of qubits
+        :raises TypeError: if value is neither a list nor a Graph
+        :return: nothing
+        :rtype: None
         """
         if isinstance(value, list):
             assert all(

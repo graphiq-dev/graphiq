@@ -45,8 +45,10 @@ def z_measurement_gate(
     :param measurement_determinism: if the outcome is probabilistic from the simulation, we have the option to
         select a specific outcome
     :type measurement_determinism: str or int
-    :return: the resulting state after gate action, the measurement outcome, whether the measurement outcome is
-        probabilistic (zero means deterministic)
+    :raises ValueError: if the outcome is random and measurement_determinism is not "probabilistic", 0 or 1
+    :return: the resulting state after gate action, the measurement outcome, and x_p, which says whether the
+        measurement outcome is probabilistic: zero means deterministic; otherwise the outcome is random and x_p is
+        the index (at least n_qubits) of the stabilizer row that anticommutes with the measurement
     :rtype: CliffordTableau, int, int
     """
     n_qubits = tableau.n_qubits  # number of qubits
@@ -63,6 +65,20 @@ def z_measurement_gate(
             break
     if x_p != 0:
         # probabilistic outcome
+        # Pick the outcome before touching the tableau, so a rejected
+        # measurement_determinism leaves it as it was.
+        # We have the option to remove randomness and pick a specific outcome
+        # measurement_determinism is only used when we know random measurement outcome is possible
+        if measurement_determinism == "probabilistic":
+            outcome = np.random.randint(0, 2)
+        elif measurement_determinism == 1:
+            outcome = 1
+        elif measurement_determinism == 0:
+            outcome = 0
+        else:
+            raise ValueError(
+                f'measurement_determinism parameter must be "probabilistic", 0, or 1'
+            )
         x_matrix = tableau.table_x
         z_matrix = tableau.table_z
         r_vector = tableau.phase
@@ -78,23 +94,21 @@ def z_measurement_gate(
         tableau.iphase = iphase_vector
         table = tableau.table
 
-        # set x_p - n row equal to x_p row
+        # set x_p - n row equal to x_p row, phase and i phase included: the
+        # displaced generator becomes the new destabilizer partner for this
+        # qubit, so its whole row -- not just its symplectic bits -- moves.
         table[x_p - n_qubits] = table[x_p]
+        tableau.phase[x_p - n_qubits] = tableau.phase[x_p]
+        tableau.iphase[x_p - n_qubits] = tableau.iphase[x_p]
 
         # set x_p row equal to 0 except for z element of measured qubit which is 1.
         table[x_p] = np.zeros(2 * n_qubits)
         table[x_p, qubit_position + n_qubits] = 1
+        # this row is now a fresh +/-Z_a generator, which carries a bare sign
+        # and no factor of i.
+        tableau.iphase[x_p] = 0
 
-        # set that row of the phase vector to random measurement outcome 0 or 1 with an equal probability.
-        # We have the option to remove randomness and pick a specific outcome
-        # measurement_determinism is only used when we know random measurement outcome is possible
-        if measurement_determinism == "probabilistic":
-            outcome = np.random.randint(0, 2)
-        elif measurement_determinism == 1:
-            outcome = 1
-        else:
-            outcome = 0
-
+        # set that row of the phase vector to the measurement outcome
         tableau.phase[x_p] = outcome
         tableau.table = table
         return tableau, outcome, x_p
@@ -141,6 +155,10 @@ def measure_x(tableau, qubit_position, measurement_determinism="probabilistic"):
     _, outcome, _ = z_measurement_gate(
         stabilizer_state_new, qubit_position, measurement_determinism
     )
+    # Rotate back out of the Z frame the measurement was taken in. The gates
+    # mutate the caller's tableau in place, so this leaves the caller holding
+    # the X-basis state the qubit was measured into. H is its own inverse.
+    hadamard_gate(tableau, qubit_position)
     return outcome
 
 
@@ -168,6 +186,11 @@ def measure_y(tableau, qubit_position, measurement_determinism="probabilistic"):
     _, outcome, _ = z_measurement_gate(
         new_tableau, qubit_position, measurement_determinism
     )
+    # Rotate back out of the Z frame, leaving the caller holding the Y-basis
+    # state the qubit was measured into. The pre-rotation is P dagger then H,
+    # so its inverse is H then P: H first, then the phase gate.
+    hadamard_gate(tableau, qubit_position)
+    phase_gate(tableau, qubit_position)
     return outcome
 
 
@@ -212,19 +235,17 @@ def reset_z(
     n_qubits = tableau.n_qubits  # number of qubits
     assert qubit_position < n_qubits
     assert intended_state == 0 or intended_state == 1
-    tableau, outcome, probabilistic = z_measurement_gate(
+    tableau, outcome, _ = z_measurement_gate(
         tableau, qubit_position, measurement_determinism
     )
-    if probabilistic:
-        tableau.phase[probabilistic] = intended_state
-        tableau.iphase[probabilistic] = 0
+    # The measurement above has projected the qubit onto its outcome, so the
+    # only unitary left that moves it to the intended state is X, applied
+    # exactly when the two disagree. This holds on both branches: the sign of
+    # the measured row cannot be overwritten instead, because the surviving
+    # qubits' generators still reference it.
+    if outcome == intended_state:
         return tableau
-
-    else:
-        if outcome == intended_state:
-            return tableau
-        else:
-            return x_gate(tableau, qubit_position)
+    return x_gate(tableau, qubit_position)
 
 
 def reset_x(
@@ -242,7 +263,7 @@ def reset_x(
     :param measurement_determinism: if the outcome is probabilistic from the simulation, we have the option to
         select a specific outcome
     :type measurement_determinism: str or int
-    :return:
+    :return: the tableau after the reset
     :rtype: CliffordTableau
     """
     new_tableau = reset_z(
@@ -270,7 +291,7 @@ def reset_y(
     :param measurement_determinism: if the outcome is probabilistic from the simulation, we have the option to
         select a specific outcome
     :type measurement_determinism: str or int
-    :return:
+    :return: the tableau after the reset
     :rtype: CliffordTableau
     """
     new_tableau = reset_z(
@@ -329,10 +350,8 @@ def insert_qubit(tableau, new_position):
     tmp_sz = np.insert(tmp_sz, new_position, new_row, axis=0)
 
     # phase vector part
-    new_phase = np.insert(tableau.phase, [new_position, n_qubits + 1 + new_position], 0)
-    new_iphase = np.insert(
-        tableau.iphase, [new_position, n_qubits + 1 + new_position], 0
-    )
+    new_phase = np.insert(tableau.phase, [new_position, n_qubits + new_position], 0)
+    new_iphase = np.insert(tableau.iphase, [new_position, n_qubits + new_position], 0)
     new_table = np.block([[tmp_dex, tmp_dez], [tmp_sx, tmp_sz]])
     tableau.expand(new_table, new_phase, new_iphase)
 
@@ -365,6 +384,14 @@ def remove_qubit(tableau, qubit_position, measurement_determinism="probabilistic
     tableau, outcome, probabilistic = z_measurement_gate(
         tableau, qubit_position, measurement_determinism
     )
+    if outcome == 1:
+        # After z_measurement_gate every stabilizer row has x_q = 0, so +Z_q
+        # is already in the group but may carry the wrong sign. x_gate flips
+        # phase exactly where z_q = 1, which fixes that sign without touching
+        # the x/z bits -- so it is safe to apply before non_zero is computed
+        # below, and it is what makes deleting column q transfer the outcome's
+        # sign to the remaining generators in both branches.
+        tableau = x_gate(tableau, qubit_position)
     new_table = np.delete(
         tableau.table, [qubit_position, qubit_position + n_qubits], axis=1
     )
@@ -437,16 +464,13 @@ def swap_gate(tableau, qubit1, qubit2):
     """
     n_qubits = tableau.n_qubits  # number of qubits
     assert qubit1 < n_qubits and qubit2 < n_qubits
+    # Conjugating by SWAP permutes qubit labels within each row, so only the
+    # two symplectic columns move. A sign belongs to the row it is on, and
+    # rows -- and the destabilizer/stabilizer pairing between them -- are
+    # untouched by a swap, so the phase and i-phase vectors stay exactly
+    # where they are.
     tableau.table = column_swap(tableau.table, qubit1, qubit2)
     tableau.table = column_swap(tableau.table, qubit1 + n_qubits, qubit2 + n_qubits)
-    tableau.phase[[qubit1, qubit2]] = tableau.phase[[qubit2, qubit1]]
-    tableau.phase[[qubit1 + n_qubits, qubit2 + n_qubits]] = tableau.phase[
-        [qubit2 + n_qubits, qubit1 + n_qubits]
-    ]
-    tableau.iphase[[qubit1, qubit2]] = tableau.iphase[[qubit2, qubit1]]
-    tableau.iphase[[qubit1 + n_qubits, qubit2 + n_qubits]] = tableau.iphase[
-        [qubit2 + n_qubits, qubit1 + n_qubits]
-    ]
     return tableau
 
 
@@ -468,7 +492,7 @@ def create_n_ket1_state(n_qubits):
 
     :param n_qubits: number of qubits
     :type n_qubits: int
-    :return: the state :math:`|0\\rangle^{\\otimes n}`
+    :return: the state :math:`|1\\rangle^{\\otimes n}`
     :rtype: CliffordTableau
     """
     tableau = CliffordTableau(n_qubits)
@@ -505,29 +529,42 @@ def tensor(list_of_tables):
     :return: The resulting tableau
     :rtype: CliffordTableau
     """
-    tableau = list_of_tables[0]
-    list_of_tables = list_of_tables[1:]
-    for tab in list_of_tables:
-        tableau.n_qubits = tableau.n_qubits + tab.n_qubits
-        tableau.destabilizer_x = block_diag(tableau.destabilizer_x, tab.destabilizer_x)
-        tableau.destabilizer_z = block_diag(tableau.destabilizer_z, tab.destabilizer_z)
-        tableau.stabilizer_x = block_diag(tableau.stabilizer_x, tab.stabilizer_x)
-        tableau.stabilizer_z = block_diag(tableau.stabilizer_z, tab.stabilizer_z)
-        phase_list1 = np.split(tableau.phase, 2)
-        phase_list2 = np.split(tab.phase, 2)
-        phase_vector = np.hstack(
-            (phase_list1[0], phase_list2[0], phase_list1[1], phase_list2[1])
-        ).astype(int)
+    # The result is a fresh tableau, sized up front, filled once at the end.
+    # n_qubits and the table blocks live behind separate attributes with no
+    # shared resize path, so a tableau can only be built at its final size --
+    # widening n_qubits on an existing one leaves the block getters slicing a
+    # table that has not grown. Assembling off to the side also keeps every
+    # argument read-only.
+    n_qubits = sum(tab.n_qubits for tab in list_of_tables)
+    tableau = CliffordTableau(n_qubits)
 
-        tableau.phase = phase_vector
+    destabilizer_x = list_of_tables[0].destabilizer_x
+    destabilizer_z = list_of_tables[0].destabilizer_z
+    stabilizer_x = list_of_tables[0].stabilizer_x
+    stabilizer_z = list_of_tables[0].stabilizer_z
+    destabilizer_phase, stabilizer_phase = np.split(list_of_tables[0].phase, 2)
+    destabilizer_iphase, stabilizer_iphase = np.split(list_of_tables[0].iphase, 2)
 
-        iphase_list1 = np.split(tableau.iphase, 2)
-        iphase_list2 = np.split(tab.iphase, 2)
-        iphase_vector = np.hstack(
-            (iphase_list1[0], iphase_list2[0], iphase_list1[1], iphase_list2[1])
-        ).astype(int)
+    for tab in list_of_tables[1:]:
+        destabilizer_x = block_diag(destabilizer_x, tab.destabilizer_x)
+        destabilizer_z = block_diag(destabilizer_z, tab.destabilizer_z)
+        stabilizer_x = block_diag(stabilizer_x, tab.stabilizer_x)
+        stabilizer_z = block_diag(stabilizer_z, tab.stabilizer_z)
 
-        tableau.iphase = iphase_vector
+        tab_destabilizer_phase, tab_stabilizer_phase = np.split(tab.phase, 2)
+        destabilizer_phase = np.hstack((destabilizer_phase, tab_destabilizer_phase))
+        stabilizer_phase = np.hstack((stabilizer_phase, tab_stabilizer_phase))
+
+        tab_destabilizer_iphase, tab_stabilizer_iphase = np.split(tab.iphase, 2)
+        destabilizer_iphase = np.hstack((destabilizer_iphase, tab_destabilizer_iphase))
+        stabilizer_iphase = np.hstack((stabilizer_iphase, tab_stabilizer_iphase))
+
+    tableau.destabilizer_x = destabilizer_x
+    tableau.destabilizer_z = destabilizer_z
+    tableau.stabilizer_x = stabilizer_x
+    tableau.stabilizer_z = stabilizer_z
+    tableau.phase = np.hstack((destabilizer_phase, stabilizer_phase)).astype(int)
+    tableau.iphase = np.hstack((destabilizer_iphase, stabilizer_iphase)).astype(int)
 
     return tableau
 

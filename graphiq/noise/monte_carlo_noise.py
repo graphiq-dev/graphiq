@@ -66,12 +66,13 @@ class McNoiseMap:
         """
         A list of tuples containing noise models and their corresponding probability of happening is returned for a
         certain type of gate in circuit.
-        :param reg_type: the register type of the gate chosen from 'e', 'p', 'ep', 'pp'
+
+        :param reg_type: the register type of the gate, one of 'e', 'p', 'ee', 'ep'
         :type reg_type: str
         :param gate_name: the name of the gate
         :type gate_name: str
         :return: list of tuples (noise models, probabilities)
-        :rtype: list
+        :rtype: list[tuple[nm.NoiseBase, float]]
         """
         noise_prob = self.total_noise_prob(reg_type, gate_name)
         if noise_prob != 0:
@@ -83,8 +84,9 @@ class McNoiseMap:
 
     def add_gate_noise(self, reg_type, gate_name, noise_list):
         """
-        adds (or replaces if existing before) a noise model to a certain type of gate in the circuit.
-        :param reg_type: the register type of the gate chosen from 'e', 'p', 'ep', 'pp'
+        Adds (or replaces if existing before) a noise model to a certain type of gate in the circuit.
+
+        :param reg_type: the register type of the gate, one of 'e', 'p', 'ee', 'ep'
         :type reg_type: str
         :param gate_name: the name of the gate
         :type gate_name: str
@@ -92,7 +94,6 @@ class McNoiseMap:
         :type noise_list: list
         :return: nothing
         :rtype: None
-        :return:
         """
         if gate_name in self.mapping[reg_type]:
             self._mapping[reg_type][gate_name] = []
@@ -101,13 +102,14 @@ class McNoiseMap:
 
     def add_noise_tuple(self, reg_type, gate_name, noise_tuple):
         """
-        adds a noise model to a certain type of gate in the circuit.
-        :param reg_type: the register type of the gate chosen from 'e', 'p', 'ep', 'pp'
+        Adds a noise model to a certain type of gate in the circuit.
+
+        :param reg_type: the register type of the gate, one of 'e', 'p', 'ee', 'ep'
         :type reg_type: str
         :param gate_name: the name of the gate
         :type gate_name: str
         :param noise_tuple: a tuple with first element being a noise model object and the second element a float < 1.
-        :type noise_tuple: tuple(NoiseBase, float)
+        :type noise_tuple: tuple[nm.NoiseBase, float]
         :return: nothing
         :rtype: None
         """
@@ -135,7 +137,8 @@ class McNoiseMap:
     def total_noise_prob(self, reg_type, gate_name):
         """
         Calculates the total probability of the gate not being perfect.
-        :param reg_type: the register type of the gate chosen from 'e', 'p', 'ep', 'pp'
+
+        :param reg_type: the register type of the gate, one of 'e', 'p', 'ee', 'ep'
         :type reg_type: str
         :param gate_name: the name of the gate
         :type gate_name: str
@@ -151,8 +154,8 @@ class McNoiseMap:
 
 class MonteCarloNoise:
     """
-    A class to compile a given noise model, possibly tailored specifically for monte-carlo run, for an input circuit and
-     saving the results.
+    Compiles a circuit under Monte Carlo noise, drawn from a per-gate noise model, and scores
+    each noisy sample against the noiseless compilation.
     """
 
     # TODO: implement save circuits option
@@ -160,7 +163,7 @@ class MonteCarloNoise:
         self,
         circuit,
         n_sample: int = 1,
-        mc_noise_model: dict = None,
+        mc_noise_model: McNoiseMap = None,
         compiler=None,
         seed=None,
     ):
@@ -238,7 +241,9 @@ class MonteCarloNoise:
     def run(self):
         """
         Calculates the average infidelity for the noisy circuits when n_sample trials are performed.
+
         :return: average score (infidelity)
+        :rtype: float
         """
         self.all_scores = []
         for i in range(self.n_sample):
@@ -282,12 +287,18 @@ class MonteCarloNoise:
     def _noisy_gates(self):
         noise_model_map = self.mc_noise_model.mapping
         circ = self.circuit
-        seq = circ._slim_seq()
+        # copy first: the noise is set on the ops in place, and these must not
+        # be the source circuit's own ops
+        seq = circ.copy()._slim_seq()
         noisy_ops = []
         for op in seq:
             is_controlled = False
             if isinstance(op, ops.OneQubitGateWrapper):
-                op_type_seq = [type(gate) for gate in op.unwrap()]
+                if not isinstance(op.noise, list):
+                    # a single model for the whole wrapper is left as it is
+                    noisy_ops.append(op)
+                    continue
+                op_type_seq = list(op.operations)
                 noise_list = self._find_wrapped_noise(op_type_seq, op.reg_type)
                 op.noise = noise_list
                 noisy_ops.append(op)
@@ -359,6 +370,22 @@ class MonteCarloNoise:
 
 
 def parallel_monte_carlo(mc: MonteCarloNoise, n_parallel, n_single):
+    """
+    Run a MonteCarloNoise simulation as n_parallel ray tasks of n_single samples each
+
+    The first task uses ``mc.seed`` (0 if it is None) and the others use n_parallel - 1 distinct seeds drawn from
+    ``mc.rng`` in [0, 100 * n_parallel). ``mc.n_sample`` is restored afterwards, and ``mc.all_scores`` is set to
+    every task's scores, pooled in task order. Requires the optional ``ray`` dependency.
+
+    :param mc: the Monte Carlo simulation to run
+    :type mc: MonteCarloNoise
+    :param n_parallel: the number of ray tasks
+    :type n_parallel: int
+    :param n_single: the number of samples in each task
+    :type n_single: int
+    :return: the average infidelity over all n_parallel * n_single samples
+    :rtype: float
+    """
     import ray
 
     rnd_array = mc.rng.choice(n_parallel * 100, n_parallel - 1, replace=False)

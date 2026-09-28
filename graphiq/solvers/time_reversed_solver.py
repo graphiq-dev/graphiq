@@ -329,11 +329,18 @@ class TimeReversedSolver(SolverBase):
         :type row: int
         :param column: the qubit index in the tableau
         :type column: int
-        :param result: the Pauli type to be transformed to
+        :param result: which Pauli to transform to: "x", "y" or "z", case-insensitively
         :type result: str
+        :raises ValueError: if result is not one of "x", "y" or "z"
         :return: a list of one-qubit gates to be added to the circuit
         :rtype: list[ops.OperationBase]
         """
+        if result.lower() not in ("x", "y", "z"):
+            raise ValueError(
+                f"result must be one of 'x', 'y' or 'z' (case-insensitive), got {result!r}"
+            )
+        # An identity entry (x=0, z=0) falls through every block below and
+        # returns no gates; callers rely on that for registers holding identity.
 
         gate_list = []
         if tableau.x_matrix[row, column] == 1 and tableau.z_matrix[row, column] == 0:
@@ -540,6 +547,10 @@ class TimeReversedSolver(SolverBase):
 
         :param circuit: a quantum circuit
         :type circuit: CircuitDAG
+        :param emitter_index: the emitter's index relative to the emitter block
+        :type emitter_index: int
+        :param photon_index: the photon's index
+        :type photon_index: int
         :return: nothing
         :rtype: None
         """
@@ -614,11 +625,15 @@ class TimeReversedSolver(SolverBase):
 
     def _add_measurement_cnot_and_reset(self, circuit, emitter_index, photon_index):
         """
-        Add a MeasurementCNOTandReset operation from an emitter qubit to a photonic qubit such that no consecutive
-        MeasurementCNOTReset is allowed. This operation cannot be added before the photonic qubit is initialized.
+        Add a MeasurementCNOTandReset operation from an emitter qubit to a photonic qubit. The operation is inserted
+        right after the input nodes of both qubits, i.e. at the start of the circuit; no ordering rules are checked.
 
         :param circuit: a quantum circuit
         :type circuit: CircuitDAG
+        :param emitter_index: the emitter's index relative to the emitter block
+        :type emitter_index: int
+        :param photon_index: the photon's index
+        :type photon_index: int
         :return: nothing
         :rtype: None
         """

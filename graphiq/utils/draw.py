@@ -12,6 +12,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""
+Circuit visualization data for an external web app: Painter builds per-operation drawing
+information, through its own drawing API or from an OpenQASM 2.0 string, with Columns
+managing the column layout, and posts the result as json to a web app on localhost.
+"""
+
 import json
 
 import requests
@@ -74,7 +80,7 @@ class Columns:
         :param index: index of the column that need to update the width
         :type index: int
         :param new_width: new width of the column
-        :type: new_width: int
+        :type new_width: int
         :return: nothing
         :rtype: None
         """
@@ -101,14 +107,14 @@ class Columns:
 
     def set_all_col_element(self, index: int, value: int = -1):
         """
-        Set all the value in every column from the first column to the index column.
+        Set the value at position index (a register row) in every column, wherever it is still 0.
 
         This function is used when adding barriers,
         since after adding barriers, new operations will be added after the barriers.
 
-        :param index: The index of the column
+        :param index: the position (register row) within each column to set
         :type index: int
-        :param value: The value that all column value will be set to if current value is not 0
+        :param value: The value that each column's entry will be set to if its current value is 0
         :type value: int
         :return: nothing
         :rtype: None
@@ -235,7 +241,7 @@ class Painter:
         the html figure, with a position mapping to that label.
 
         :param reg_name: register name
-        :type reg_type: str
+        :type reg_name: str
         :param size: size of the register
         :type size: int
         :param reg_type: type of the register (can only be "qreg" or "creg")
@@ -272,13 +278,15 @@ class Painter:
 
         :param gate_name: gate name
         :type gate_name: str
-        :param qargs: qargs of thge gate
+        :param qargs: qargs of the gate
         :type qargs: list
         :param params: params of the gate
         :type params: dict
         :param controls: gate controls for gate like CX, it will specify where the control at
+        :type controls: list
+        :raises ValueError: if qargs contains more than one entry
         :return: visualization info of the gate
-        rtype: dict
+        :rtype: dict
         """
         if len(qargs) > 1:
             raise ValueError("Gate that act on multi-qargs is not supported yet.")
@@ -518,7 +526,7 @@ class Painter:
                 self.add_gate(gate_name="CX", qargs=[qargs], controls=[controls])
             if node["type"] == "measure":
                 creg_size = parser.get_register_size(node["creg"]["name"], "creg")
-                if hasattr(node, "index"):
+                if "index" in node["qreg"]:
                     qreg = self.to_reg_label(
                         node["qreg"]["name"], node["qreg"]["index"]
                     )
@@ -534,7 +542,7 @@ class Painter:
                         creg = self.to_reg_label(node["creg"]["name"], creg_size)
                         self.add_measurement(qreg=qreg, creg=creg, cbit=i)
             if node["type"] == "reset":
-                if hasattr(node, "index"):
+                if "index" in node:
                     qreg = self.to_reg_label(node["name"], node["index"])
                     self.add_reset(qreg)
                 else:

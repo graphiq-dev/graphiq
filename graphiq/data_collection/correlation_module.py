@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import random
-from math import ceil
+from math import ceil, factorial
 
 import graphiq.backends.state_rep_conversion as converter
 import networkx as nx
@@ -74,14 +74,17 @@ class GraphCorr:
         :param graph_list: a list of graphs; if provided the sample to study would be this set of given graphs
         :type graph_list: list[networkx.Graph]
         :param trials: the size of the random graph sample to analyze
-        :param relabel_trials: if provided, is used to evaluate the circuit metric over this number of different
-        relabeling of each graph in the sample, such that the final circuit metric value is the minimum or maximum over
-         all these relabeling trials. This is done to make the metric value somewhat labeling-agnostic, since the graph
-         metrics used here are independent of the labeling too.
+        :param relabel_trials: if truthy, the circuit metric of each graph in the sample is the minimum over at most
+            num_isomorph distinct labelings of it, the given labeling included (fewer if the graph has fewer distinct
+            relabelings or the search stops early). The value only switches this on; num_isomorph sets the count, and
+            at the default num_isomorph=1 no other labeling is used. This makes the metric value somewhat
+            labeling-agnostic, since the graph metrics used here are independent of the labeling too. If None or 0,
+            each graph is evaluated as given.
         :type relabel_trials: int
         :param num_isomorph: if an initial graph is provided to work with, this parameter determines the size of the
         sample that is acquired by relabeling of the initial graph. The actual sample size might be less than this
-        parameter if the maximum number of isomorphism is reached.
+        parameter if the maximum number of isomorphism is reached. When relabel_trials is set, it is also the most
+        distinct labelings, the given one included, over which each graph's circuit metric is minimised.
         :type num_isomorph: int
         """
         # if we have an initial graph, correlations are found based on the relabeling of that graph. Otherwise, if a
@@ -115,6 +118,7 @@ class GraphCorr:
             raise ValueError("The circuit metric should be a valid string")
 
         if initial_graph is None:
+            self._initial_graph = None
             self._graph_list = graph_list
             if graph_list:
                 assert isinstance(
@@ -135,9 +139,7 @@ class GraphCorr:
 
     @initial_graph.setter
     def initial_graph(self, g):
-        assert isinstance(g, nx.Graph) or (
-            g is None
-        ), "initial graph must be a networkx graph object"
+        assert isinstance(g, nx.Graph), "initial graph must be a networkx graph object"
         self._initial_graph = g
         self.graph_list = self._graph_list_maker(
             self._initial_graph, count=self._num_isomorph
@@ -164,7 +166,8 @@ class GraphCorr:
     def num_isomorph(self, num):
         assert isinstance(num, int)
         self._num_isomorph = num
-        self.graph_list = self._graph_list_maker(self._initial_graph, count=num)
+        if self._initial_graph is not None:
+            self.graph_list = self._graph_list_maker(self._initial_graph, count=num)
 
     @property
     def relabel_trials(self):
@@ -205,7 +208,8 @@ class GraphCorr:
     @staticmethod
     def _graph_list_maker(g, count):
         """
-        makes a list of relabeled graphs out of the initial one. List size = count.
+        makes a list of relabeled graphs out of the initial one: the initial graph followed by up to count labelings of
+        it, the first of which is the initial labeling again.
 
         :param g: initial input graph
         :type g: nx.Graph
@@ -216,7 +220,7 @@ class GraphCorr:
         """
         adj = nx.to_numpy_array(g)
         nod = g.number_of_nodes()
-        iso_count = min(np.math.factorial(nod), count)
+        iso_count = min(factorial(nod), count)
         adj_arr = iso_finder(adj, iso_count, allow_exhaustive=True)
         graph_list = [g]
         for adj_i in adj_arr:
@@ -260,10 +264,10 @@ class GraphCorr:
         """
         finds and plots correlation between one graph and one circuit metric for a set of graphs. For all the graphs in
         the sample that have the same metric value, it takes the average of their graph metric value and returns the
-        average values alongside the standard deviation of corresponding to each bunch of graphs that share the same
-        circuit metric value. For instance, for all graph with the same number of emitters, take the average of their
-        graph metric, say connectivity, and plot this data point (num_emitter, avg_connect) on a diagram. The standard
-        deviation is taken for the graph metric of those graphs with the same circuit metric.
+        average values; the standard deviation of each bunch of graphs that share the same circuit metric value is only
+        drawn as error bars when show_plot is True. For instance, for all graph with the same number of emitters, take
+        the average of their graph metric, say connectivity, and plot this data point (num_emitter, avg_connect) on a
+        diagram. The standard deviation is taken for the graph metric of those graphs with the same circuit metric.
 
         For correlation between two graph or circuit metrics try the 'met_met' method instead. "
         :param show_plot: if True a plot of graph metric vs circuit metric will be shown
@@ -279,7 +283,7 @@ class GraphCorr:
         :type graph_type: str
         :return: pearson correlation between all graph metric vs circuit metric values, pearson correaltion for the
         average graph metric values vs unique circuit metric values, and a tuple of lists containing the x and y data
-         point of the plot, corresponding to the average graph metric values and unique circuit metric values.
+         point of the plot: the unique circuit metric values and the corresponding average graph metric values.
         :rtype: float, float, tuple:(list, list)
         """
         graph_met_list = []
@@ -376,10 +380,10 @@ class GraphCorr:
         :type p: float
         :param n_step: the step with which the n is changed, at least 10 steps will be considered.
         :type n_step: int
-        :param constant_np: if True, for each n, p is chosen such that the value of n*p remains constant, meaning that
-        the average degree of each node in the graph remains the same even if the sizes of the graphs in the sample
-        change
-        :type constant_np: bool
+        :param constant_np: if given, for each n, p is set to constant_np / n so that n*p stays equal to constant_np
+        (the intended average degree, larger than 1), meaning that the average degree of each node in the graph remains
+        the same even if the sizes of the graphs in the sample change
+        :type constant_np: float or None
         :return: nothing
         """
         # number of nodes starting from 5 and going up to at least 100, or possibly 10 times the chosen n_step
@@ -495,8 +499,8 @@ class GraphCorr:
         :param show_plot: if True a distribution diagram is shown
         :type show_plot: bool
         :return: all pairs of (fist, second) metric values of all graphs, in two separate lists and their respective
-        repetition count over the sample in a third list.
-        :rtype: list, list, list
+        repetition count over the sample in a numpy array.
+        :rtype: list, list, numpy.ndarray
         """
         met1_list = []
         met2_list = []
@@ -651,7 +655,7 @@ class GraphCorr:
         if isinstance(g, nx.Graph):
             g_temp = g
         # use the circuit list instead of the graph if possible
-        g = self._graph_circ_dictionary[g] if self._graph_circ_dictionary else g
+        g = self._graph_circ_dictionary.get(g, g) if self._graph_circ_dictionary else g
         # if graph list is provided, g is now a circuit and g_temp is the corresponding graph
         if self.circ_metric == "num_emit":
             circ_value = height_max(graph=g_temp)
@@ -664,7 +668,7 @@ class GraphCorr:
         elif self.circ_metric == "cnot":
             circ_value = graph_to_cnot(graph=g)
         elif self.circ_metric == "cnot_per_photon":
-            circ_value = graph_to_cnot(graph=g) / len([g_temp])
+            circ_value = graph_to_cnot(graph=g) / g_temp.number_of_nodes()
         elif self.circ_metric == "cnot_per_emitter":
             circ_value = graph_to_cnot(graph=g) / height_max(graph=g_temp)
         else:
@@ -760,6 +764,7 @@ class NodeCorr:
     def graph(self, g):
         assert isinstance(g, nx.Graph)
         self._graph = g
+        self._adj = nx.to_numpy_array(g)
         self._update_data()
 
     @property
@@ -798,7 +803,7 @@ class NodeCorr:
     def order_corr(self):
         """
         Determines and plots the relation of average pearson correlation function ,between nodes' emission order and the
-         metric-value order, and the circuit metric value. The average of the graph metric is taken for all graphs that
+         metric-value order, and the circuit metric value. The average of that correlation is taken for all graphs that
          have the same circuit metric value.
 
         :return: three lists, the list of unique metric values, the list of average correlation, the list of standard
@@ -857,9 +862,9 @@ class NodeCorr:
         The larger the data point is plotted, the more the number of graphs in the sample that had the same
         metric and error values.
 
-        :return: three lists, the list of unique metric values, the list of sum squared errors, the list of repetition
-        count for each of the data points over the whole sample.
-        :rtype: list, list, list
+        :return: two lists and a numpy array: the list of unique metric values, the list of sum squared errors, the
+        array of repetition count for each of the data points over the whole sample.
+        :rtype: list, list, numpy.ndarray
         """
         adj_list, circ_met_list = self.adj_list, self.met_list
         n = self.adj.shape[0]
@@ -896,9 +901,9 @@ class NodeCorr:
         The larger the data point is plotted, the more the number of graphs in the sample that had the same
         metric and error values.
 
-        :return: three lists, the list of unique metric values, the list of sum squared errors, the list of repetition
-        count for each of the data points over the whole sample.
-        :rtype: list, list, list
+        :return: two lists and a numpy array: the list of unique metric values, the list of sum squared errors, the
+        array of repetition count for each of the data points over the whole sample.
+        :rtype: list, list, numpy.ndarray
         """
         # based on discarding the part of the graph state that has been emitted so far.
         adj_list, circ_met_list = self.adj_list, self.met_list
@@ -1017,6 +1022,9 @@ def rnd_graph(n, p=None, m=None, seed=None, model="erdos"):
     elif model == "albert":
         rnd_maker = nx.barabasi_albert_graph
         x = m
+    if isinstance(seed, int):
+        # one seeded stream for all draws, so a disconnected draw is not repeated forever
+        seed = random.Random(seed)
     g = nx.Graph()
     g.add_edges_from(((0, 1), (2, 3)))
     while not nx.is_connected(g):
@@ -1035,12 +1043,21 @@ def graph_to_circ(graph, show=False):
     :type show: bool
     :return: A circuit corresponding to the input graph
     :rtype: CircuitDAG
+    :raises ValueError: if the graph has an isolated vertex
     """
     if not isinstance(graph, nx.Graph):
         graph = nx.from_numpy_array(graph)
         assert isinstance(
             graph, nx.Graph
         ), "input must be a networkx graph object or a numpy adjacency matrix"
+    n_isolated = nx.number_of_isolates(graph)
+    if n_isolated:
+        raise ValueError(
+            f"graph has an isolated vertex ({n_isolated} in total); an isolated "
+            "vertex is a photon entangled with no other qubit, which "
+            "TimeReversedSolver cannot absorb into an emitter, so graph_to_circ "
+            "does not support it"
+        )
     tabs = converter.graph_to_stabilizer(graph)
     c_tableau = CliffordTableau(tabs[0][1])
     ideal_state = QuantumState(c_tableau, rep_type="stabilizer")
@@ -1106,7 +1123,7 @@ def graph_to_emit_depth(graph):
     circ.unwrap_nodes()
     circ.remove_identity()
     for e_i in range(circ.n_emitters):
-        depth[e_i] = len(circ.reg_gate_history(reg=e_i)[1])
+        depth[e_i] = len(circ.reg_gate_history(reg=e_i)[1]) - 2
     return max(depth.values())
 
 
@@ -1146,7 +1163,7 @@ def adj_emit_sorted_list(adj, count=1000):
     :rtype: list, list
     """
     n = adj.shape[0]
-    iso_count = min(np.math.factorial(n), count)
+    iso_count = min(factorial(n), count)
     arr = iso_finder(adj, iso_count, allow_exhaustive=True)
     li11 = emitter_sorted(arr)
     emit_list = [x[1] for x in li11]
@@ -1233,7 +1250,7 @@ def _rep_counter(x_data, y_data):
     :type x_data: An iterable
     :param y_data: A set of numeric data the same size as the x_data
     :type y_data: An iterable
-    :return: Returns all respective x, y  value in two lists removing the redundancies and a third list containing the
+    :return: Returns all respective x, y value in two lists removing the redundancies and a numpy array containing the
     repetition count of each of the data points.
     """
     assert len(x_data) == len(y_data), "two data sets must be of same size"

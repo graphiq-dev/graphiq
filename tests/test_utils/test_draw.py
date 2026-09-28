@@ -390,3 +390,23 @@ def test_load_openqasm_1():
         {"type": "measure", "col": 3, "qreg": "p[2]", "creg": "c[4]", "cbit": 2},
         {"type": "measure", "col": 4, "qreg": "p[3]", "creg": "c[4]", "cbit": 3},
     ]
+
+
+def test_load_openqasm_draws_an_indexed_measure_and_reset_on_one_qubit():
+    openqasm_str = """
+    OPENQASM 2.0;
+
+    qreg q[3];
+    creg c[3];
+
+    reset q[1];
+    measure q[2] -> c[0];
+    """
+
+    painter = Painter()
+    painter.load_openqasm_str(openqasm_str)
+
+    assert painter.ops == [
+        {"type": "reset", "col": 0, "qreg": "q[1]"},
+        {"type": "measure", "col": 0, "qreg": "q[2]", "creg": "c[3]", "cbit": 0},
+    ]

@@ -12,6 +12,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""
+GraphiQ: a design framework for photonic graph state generation circuits.
+
+The names re-exported here make up the minimal pipeline: describe a target `QuantumState`,
+search for a `CircuitDAG` that generates it with `TimeReversedSolver`, simulate that circuit
+with `StabilizerCompiler`, and score the result with `Infidelity`. Everything else is reached
+through the subpackages.
+"""
 DENSITY_MATRIX_ARRAY_LIBRARY = "numpy"
 
 from graphiq.backends.stabilizer.compiler import StabilizerCompiler

@@ -19,6 +19,7 @@ underlying quantum state.
 The Base class defines an API which all compiler implementations should follow
 """
 
+import copy
 import logging
 from abc import ABC, abstractmethod
 
@@ -66,7 +67,10 @@ class CompilerBase(ABC):
         Set the flag for running noise.
 
         :param value: True or False
-        :return:
+        :type value: bool
+        :raises ValueError: if value is not a bool
+        :return: nothing
+        :rtype: None
         """
         if isinstance(value, bool):
             self._noise_simulation = value
@@ -80,7 +84,18 @@ class CompilerBase(ABC):
 
         :param circuit: the circuit to compile
         :type circuit: CircuitBase
-        :raises ValueError: if there is a circuit Operation which is incompatible with this compiler
+        :param initial_state: the state to start from; if None (or otherwise falsy), every register
+            starts in |0>
+        :type initial_state: QuantumState or None
+        :raises AssertionError: if initial_state is not a QuantumState, or its qubit count does
+            not match the circuit's
+        :raises RuntimeError: if the circuit contains an Operation class this compiler does not
+            support
+        :raises ValueError: if a controlled gate's two legs are not both an AdditionNoiseBase, if
+            an operation's noise is neither an AdditionNoiseBase nor a ReplacementNoiseBase, or if a
+            MeasurementZ carries a (non-NoNoise) AdditionNoiseBase
+        :raises NotImplementedError: if a MeasurementZ carries a ReplacementNoiseBase, for which
+            the compiler has no noisy arm
         :return: the state produced by the circuit
         :rtype: QuantumState
         """
@@ -93,7 +108,10 @@ class CompilerBase(ABC):
             assert (
                 initial_state.n_qubits == circuit.n_quantum
             ), "the number of qubits in initial state must match the circuit"
-            state_data = initial_state.rep_data.data
+            # copy the data so evolving the compiled state does not change the
+            # caller's initial_state; deep, since a mixed stabilizer's data is a
+            # list of (probability, tableau) pairs
+            state_data = copy.deepcopy(initial_state.rep_data.data)
         else:
             state_data = circuit.n_quantum
 
@@ -142,59 +160,43 @@ class CompilerBase(ABC):
                     if isinstance(op.noise[0], nm.AdditionNoiseBase) and isinstance(
                         op.noise[1], nm.AdditionNoiseBase
                     ):
-                        after_control = op.noise[0].noise_parameters["After gate"]
-                        after_target = op.noise[1].noise_parameters["After gate"]
-                        if after_control and after_target:
-                            self.compile_one_gate(
-                                state,
-                                op,
-                                circuit.n_quantum,
-                                q_index,
-                                classical_registers,
+                        # Each leg of a controlled pair carries its own "After
+                        # gate" flag and the two may disagree, so split the
+                        # noise list into a pre-gate and a post-gate half and
+                        # apply each half on its own side. Every leg appears in
+                        # exactly one half; the other half holds NoNoise for it.
+                        # Reading the flag is safe only under the isinstance
+                        # guard above, which is what guarantees both legs carry
+                        # one.
+                        noise_copy = op.noise
+                        pre_noise = [
+                            (
+                                nm.NoNoise()
+                                if leg.noise_parameters["After gate"]
+                                else leg
                             )
-                            self._apply_additional_noise(
-                                state, op, circuit.n_quantum, q_index
+                            for leg in noise_copy
+                        ]
+                        post_noise = [
+                            (
+                                leg
+                                if leg.noise_parameters["After gate"]
+                                else nm.NoNoise()
                             )
-                        elif (not after_control) and (not after_target):
-                            self._apply_additional_noise(
-                                state, op, circuit.n_quantum, q_index
-                            )
-                            self.compile_one_gate(
-                                state,
-                                op,
-                                circuit.n_quantum,
-                                q_index,
-                                classical_registers,
-                            )
-                        elif after_control and (not after_target):
-                            noise_copy = op.noise
-                            tmp_noise = [nm.NoNoise, op.noise[1]]
-                            op.noise = tmp_noise
-                            self._apply_additional_noise(
-                                state, op, circuit.n_quantum, q_index
-                            )
-
-                            self.compile_one_gate(
-                                state,
-                                op,
-                                circuit.n_quantum,
-                                q_index,
-                                classical_registers,
-                            )
-                            tmp_noise = [op.noise[0], nm.NoNoise]
-
-                            op.noise = tmp_noise
+                            for leg in noise_copy
+                        ]
+                        # `op` belongs to the caller's circuit, so the rebinding
+                        # below has to be undone on every exit path. A half list
+                        # left behind would pass the isinstance guard on the next
+                        # compile (NoNoise is an AdditionNoiseBase), or read as no
+                        # noise at all, and the legs it left out would be
+                        # silently dropped.
+                        try:
+                            op.noise = pre_noise
                             self._apply_additional_noise(
                                 state, op, circuit.n_quantum, q_index
                             )
                             op.noise = noise_copy
-                        else:
-                            noise_copy = op.noise
-                            tmp_noise = [op.noise[0], nm.NoNoise]
-                            op.noise = tmp_noise
-                            self._apply_additional_noise(
-                                state, op, circuit.n_quantum, q_index
-                            )
                             self.compile_one_gate(
                                 state,
                                 op,
@@ -202,16 +204,16 @@ class CompilerBase(ABC):
                                 q_index,
                                 classical_registers,
                             )
-
-                            tmp_noise = [nm.NoNoise, op.noise[1]]
-                            op.noise = tmp_noise
+                            op.noise = post_noise
                             self._apply_additional_noise(
                                 state, op, circuit.n_quantum, q_index
                             )
+                        finally:
                             op.noise = noise_copy
                     else:
                         raise ValueError(
-                            "We currently do not support different noise positions for one controlled gate."
+                            "Both legs of a controlled gate must carry an AdditionNoiseBase; "
+                            f"got {type(op.noise[0]).__name__} and {type(op.noise[1]).__name__}."
                         )
 
                 else:
@@ -334,5 +336,5 @@ class CompilerBase(ABC):
         raise NotImplementedError("Please select a valid compiler")
 
     @abstractmethod
-    def _apply_additional_noise(self, op, n_quantum, q_index):
+    def _apply_additional_noise(self, state, op, n_quantum, q_index):
         raise NotImplementedError("Please select a valid compiler")

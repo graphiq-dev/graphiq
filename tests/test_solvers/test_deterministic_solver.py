@@ -20,6 +20,7 @@ from graphiq.benchmarks.graph_states import repeater_graph_states
 from graphiq.backends.density_matrix.compiler import DensityMatrixCompiler
 from graphiq.backends.density_matrix.functions import fidelity
 from graphiq.backends.stabilizer.compiler import StabilizerCompiler
+from graphiq.backends.stabilizer.tableau import StabilizerTableau
 from graphiq.backends.stabilizer.functions.rep_conversion import (
     get_clifford_tableau_from_graph,
 )
@@ -28,6 +29,7 @@ from graphiq.metrics import Infidelity
 from graphiq.solvers.time_reversed_solver import TimeReversedSolver
 from graphiq.state import QuantumState
 from graphiq.benchmarks.circuits import linear_cluster_4qubit_circuit
+from graphiq.circuit import ops
 
 
 def test_linear4():
@@ -152,3 +154,61 @@ def test_random_graph_states(n_nodes):
     final_state.partial_trace([*range(n_nodes)], n_total * [2])
     fid = fidelity(target_state, np.round(final_state.rep_data.data, 8))
     assert fid > 0.99
+
+
+def _one_qubit_tableau(pauli):
+    x = np.array([[1 if pauli in "XY" else 0]])
+    z = np.array([[1 if pauli in "YZ" else 0]])
+    return StabilizerTableau([x, z], np.array([0]))
+
+
+def _cell(tableau):
+    return {(1, 0): "X", (1, 1): "Y", (0, 1): "Z", (0, 0): "I"}[
+        (tableau.x_matrix[0, 0], tableau.z_matrix[0, 0])
+    ]
+
+
+@pytest.mark.parametrize(
+    "current, result, expected_gates, expected_final",
+    [
+        ("X", "x", [], "X"),
+        ("X", "y", [ops.SigmaZ, ops.Phase], "Y"),
+        ("X", "z", [ops.Hadamard], "Z"),
+        ("Y", "x", [ops.Phase], "X"),
+        ("Y", "y", [], "Y"),
+        ("Y", "z", [ops.Phase, ops.Hadamard], "Z"),
+        ("Z", "x", [ops.Hadamard], "X"),
+        ("Z", "y", [ops.Hadamard, ops.SigmaZ, ops.Phase], "Y"),
+        ("Z", "z", [], "Z"),
+        ("X", "Z", [ops.Hadamard], "Z"),
+        ("Z", "X", [ops.Hadamard], "X"),
+    ],
+)
+def test_change_pauli_type_rotates_between_the_three_bases(
+    current, result, expected_gates, expected_final
+):
+    solver = TimeReversedSolver.__new__(TimeReversedSolver)
+    tableau = _one_qubit_tableau(current)
+
+    gates = solver._change_pauli_type(tableau, 0, 0, result)
+
+    assert gates == expected_gates
+    assert _cell(tableau) == expected_final
+
+
+def test_change_pauli_type_leaves_an_identity_entry_alone():
+    solver = TimeReversedSolver.__new__(TimeReversedSolver)
+    tableau = _one_qubit_tableau("I")
+
+    assert solver._change_pauli_type(tableau, 0, 0, "z") == []
+    assert _cell(tableau) == "I"
+
+
+@pytest.mark.parametrize("pauli", ["X", "I"])
+@pytest.mark.parametrize("result", ["q", "", "zz", "i"])
+def test_change_pauli_type_rejects_an_unrecognised_basis(result, pauli):
+    solver = TimeReversedSolver.__new__(TimeReversedSolver)
+    tableau = _one_qubit_tableau(pauli)
+
+    with pytest.raises(ValueError, match=repr(result)):
+        solver._change_pauli_type(tableau, 0, 0, result)

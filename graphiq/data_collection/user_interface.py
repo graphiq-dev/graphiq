@@ -20,7 +20,7 @@ from math import factorial
 import pandas as pd
 from scipy.stats import spearmanr
 
-from correlation_module import *
+from graphiq.data_collection.correlation_module import *
 from graphiq.data_collection.ui_functions import *
 from graphiq.metrics import graph_met_value
 
@@ -173,19 +173,27 @@ def result_maker(result, graph_met_list=None, circ_met_list=None):
                 ]
                 eff_depth[e_i] = max(depth_diff)
         if "max_emit_depth" in circ_met_list:
-            max_emit_depth.append(max(e_depth.values()))
+            max_emit_depth.append(max(e_depth.values(), default=0))
         if "max_emit_reset_depth" in circ_met_list:
-            max_emit_reset_depth.append(max(reset_depths.values()))
+            max_emit_reset_depth.append(max(reset_depths.values(), default=0))
         if "max_emit_eff_depth" in circ_met_list:
-            max_emit_eff_depth.append(max(eff_depth.values()))
+            max_emit_eff_depth.append(max(eff_depth.values(), default=0))
         if "depth" in circ_met_list:
-            depth.append(max(c.register_depth["e"]))
+            depth.append(max(c.register_depth["e"], default=0))
         # calculate n_emitter and n_cnots
         if "n_emitters" in circ_met_list:
             n_emitters.append(c.n_emitters)
         if "n_unitary" in circ_met_list:
             n_u = 0
-            for label in ["SigmaX", "SigmaX", "SigmaX", "Phase", "Hadamard", "CNOT"]:
+            for label in [
+                "SigmaX",
+                "SigmaY",
+                "SigmaZ",
+                "Phase",
+                "PhaseDagger",
+                "Hadamard",
+                "CNOT",
+            ]:
                 if label in c.node_dict:
                     n_u += len(c.get_node_by_labels([label]))
             n_unitary.append(n_u)
@@ -262,7 +270,7 @@ def correlation_checker(result, list_mets1, list_mets2):
     :param result: result object
     :param list_mets1: list of circuit metrics
     :param list_mets2: list of grpah metrics
-    :return: all combination of graph and circuit metrics linear correlations will be calculated
+    :return: nothing; the Spearman and Pearson correlations of every combination of the two metric lists are printed
     """
     for met1 in list_mets1:
         for met2 in list_mets2:
@@ -289,7 +297,8 @@ def corr_with_mean(list1, list2, print_result=True):
 
     :param list1: to be used as reference
     :param list2: to be averaged over for each case
-    :return: pearson correlation coefficient
+    :return: pearson correlation coefficient, and a tuple of the unique list1 values, the mean list2 value for each and
+        their standard deviations
     """
     corr_dict = dict()
     for i, x in enumerate(list1):
@@ -318,9 +327,12 @@ for i in range(len(result)):
     index_map_dict[tuple(result["map"][i].items())].append(i)
 
 
-def plot_map_based():
+def plot_map_based(result):
+    index_map_dict = {}
+    for i in range(len(result)):
+        index_map_dict.setdefault(tuple(result["map"][i].items()), []).append(i)
     for i, index_list in enumerate(index_map_dict.values()):
-        plot_figs(indices=index_list, dir_name=f"map_{i}_len{len(index_list)}")
+        plot_figs(result, indices=index_list, dir_name=f"map_{i}_len{len(index_list)}")
 
 
 def plot_graphs(result):
@@ -438,11 +450,12 @@ def find_best(
     # del out_dict['std of score']
     del out_dict["graph_metric"]
     df = pd.DataFrame(out_dict)
-    if not os.path.exists(dir_path):
-        os.makedirs(dir_path)
-    filename = dir_path + f"/{file_name}.csv"
-    df.to_csv(filename, index=False)
-    result.save2json(dir_path, f"res_{file_name}")
+    if dir_path is not None:
+        if not os.path.exists(dir_path):
+            os.makedirs(dir_path)
+        filename = dir_path + f"/{file_name}.csv"
+        df.to_csv(filename, index=False)
+        result.save2json(dir_path, f"res_{file_name}")
     cost = []
     for i in range(len(result)):
         cost.append(
@@ -531,7 +544,7 @@ def graph_analyzer(
             if fidelity:
                 if out_dict["fidelity"][j] > best_fid[1]:
                     best_fid = (f"LC: {i} iso: {j}", out_dict["fidelity"][j], edge_list)
-                if out_dict["fidelity"][j] < best_fid[1]:
+                if out_dict["fidelity"][j] < worst_fid[1]:
                     worst_fid = (
                         f"LC: {i} iso: {j}",
                         out_dict["fidelity"][j],
@@ -729,6 +742,7 @@ def LC_scaling_known(result, dir_path: str, graph_class: str, n_lc_list=None):
     df_cnot = pd.DataFrame((c_means, c_stds))
     df_depth = pd.DataFrame((d_means, d_stds))
 
+    os.makedirs(os.path.join(dir_path, graph_class), exist_ok=True)
     output_path1 = os.path.join(os.path.join(dir_path, graph_class), "bwCNOT.csv")
     df_cnot.to_csv(output_path1, index=False, header=False)
     output_path2 = os.path.join(os.path.join(dir_path, graph_class), "bwDepth.csv")
@@ -743,7 +757,7 @@ def rgs_analysis(res_rgsn, dir_path: str, filename: str):
             n_cnots.append(len(c.get_node_by_labels(["Emitter-Emitter", "CNOT"])))
         else:
             n_cnots.append(0)
-    res_rgsn.add_properties("n_cnot")
+    res_rgsn.add_properties("n_cnots")
     res_rgsn["n_cnots"] = n_cnots
     graph_met_list = [
         "node_connect",
@@ -771,6 +785,7 @@ def rgs_analysis(res_rgsn, dir_path: str, filename: str):
         for i, g in enumerate(res_rgsn["g"]):
             res_rgsn["graph_metric"][i][met] = graph_met_value(met, g)
     full_filename = os.path.join(os.path.join(dir_path, "RGS"), filename)
+    os.makedirs(full_filename, exist_ok=True)
     res_rgsn.save2json(full_filename, f"{filename}")
     correlation_checker(res_rgsn, ["n_cnots"], graph_met_list)
     plot_figs(

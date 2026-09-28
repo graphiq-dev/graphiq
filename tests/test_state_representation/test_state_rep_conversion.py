@@ -16,10 +16,53 @@ from functools import reduce
 
 import networkx as nx
 import numpy as np
+import pytest
 
 import graphiq.backends.density_matrix.functions as dmf
+import graphiq.backends.stabilizer.functions.linalg as sla
 import graphiq.backends.state_rep_conversion as rc
+from graphiq.backends.stabilizer.clifford_tableau import CliffordTableau
+from graphiq.backends.stabilizer.functions.transformation import run_circuit
+from graphiq.backends.stabilizer.state import MixedStabilizer
 from graphiq.backends.stabilizer.tableau import StabilizerTableau
+from graphiq.state import QuantumState
+
+
+def test_position_finder_single_z_stabilized_qubit_needs_hadamard():
+    # a Z-stabilized qubit (e.g. |0>) has an all-zero X column; _position_finder must
+    # report it as needing a Hadamard, or downstream _graph_finder can't invert X at all.
+    assert rc._position_finder(np.array([[0]])) == [0]
+
+
+def test_position_finder_two_z_stabilized_qubits_both_need_hadamard():
+    # both qubits of |00> are Z-stabilized; _position_finder must not silently drop the
+    # first pivot it starts on.
+    x, _z, _rank = sla.row_reduction(
+        np.array([[0, 0], [0, 0]]), np.array([[1, 0], [0, 1]])
+    )
+    assert rc._position_finder(x) == [0, 1]
+
+
+def test_position_finder_only_the_pivotless_qubit_needs_hadamard():
+    # qubit 0 is Z-stabilized (needs Hadamard); qubits 1, 2 are already X-stabilized.
+    x, _z, _rank = sla.row_reduction(
+        np.array([[0, 0, 0], [0, 1, 0], [0, 0, 1]]),
+        np.array([[1, 0, 0], [0, 0, 0], [0, 0, 0]]),
+    )
+    assert rc._position_finder(x) == [0]
+
+
+def test_state_to_graph_two_qubit_z_stabilized_tableau_no_longer_crashes():
+    # |00>: both qubits Z-stabilized, x_matrix all-zero. Used to raise
+    # "AssertionError: Stabilizer generators are not independent." in _graph_finder.
+    x_matrix = np.zeros((2, 2))
+    z_matrix = np.eye(2)
+    tableau = StabilizerTableau([x_matrix, z_matrix])
+
+    graph, tab, gate_list = rc.state_to_graph(tableau)
+
+    assert graph.number_of_nodes() == 2
+    assert gate_list == [("H", 0), ("H", 1)]
 
 
 def test_negativity():
@@ -68,6 +111,76 @@ def test_stabilizer_to_graph():
 
     assert len(graph2_list) == 1
     assert nx.is_isomorphic(graph1, graph2_list[0][1])
+
+
+# the 3-qubit star graph state (centre 0), prepared by a circuit: its generators are
+# XZZ, ZXI, IXX rather than the rows of [I | A]
+_STAR_CIRCUIT = [("H", 0), ("CNOT", 0, 1), ("CNOT", 1, 2), ("H", 1), ("H", 2)]
+
+
+def _star_tableau():
+    return run_circuit(CliffordTableau(3), _STAR_CIRCUIT).to_stabilizer()
+
+
+def _row_swapped_path3_tableau():
+    tableau = StabilizerTableau([np.eye(3), nx.to_numpy_array(nx.path_graph(3))])
+    return StabilizerTableau(tableau.table[[1, 0, 2]])
+
+
+def test_stabilizer_to_graph_accepts_a_graph_state_not_in_standard_form():
+    tableau = _star_tableau()
+    assert np.allclose(
+        rc.stabilizer_to_density(tableau), rc.graph_to_density(nx.star_graph(2))
+    )
+
+    graph_list = rc.stabilizer_to_graph(tableau)
+
+    assert len(graph_list) == 1
+    assert sorted(graph_list[0][1].edges) == [(0, 1), (0, 2)]
+
+
+def test_stabilizer_to_graph_accepts_row_permuted_generators():
+    graph_list = rc.stabilizer_to_graph(_row_swapped_path3_tableau())
+
+    assert sorted(graph_list[0][1].edges) == [(0, 1), (1, 2)]
+
+
+def test_stabilizer_to_graph_accepts_a_list_of_graph_states_not_in_standard_form():
+    graph_list = rc.stabilizer_to_graph(
+        [(0.3, _star_tableau()), (0.7, _row_swapped_path3_tableau())]
+    )
+
+    assert [p_i for p_i, _ in graph_list] == [0.3, 0.7]
+    assert sorted(graph_list[0][1].edges) == [(0, 1), (0, 2)]
+    assert sorted(graph_list[1][1].edges) == [(0, 1), (1, 2)]
+
+
+def test_stabilizer_to_graph_still_rejects_a_state_that_is_not_a_graph_state():
+    # |0>|+>, and the star state with Z applied to qubit 1
+    product = run_circuit(CliffordTableau(2), [("H", 1)]).to_stabilizer()
+    signed_star = run_circuit(
+        CliffordTableau(3), _STAR_CIRCUIT + [("Z", 1)]
+    ).to_stabilizer()
+
+    for tableau in (product, signed_star):
+        with pytest.raises(AssertionError, match="not a graph state"):
+            rc.stabilizer_to_graph(tableau)
+
+
+def test_stabilizer_to_graph_leaves_its_input_unchanged():
+    # the validation compares canonical forms, which are computed in place
+    tableau = _star_tableau()
+    mixture = [(0.3, _star_tableau()), (0.7, _row_swapped_path3_tableau())]
+    expected = [
+        (t.table.copy(), t.phase.copy()) for t in [tableau] + [t for _, t in mixture]
+    ]
+
+    rc.stabilizer_to_graph(tableau)
+    rc.stabilizer_to_graph(mixture)
+
+    for t, (table, phase) in zip([tableau] + [t for _, t in mixture], expected):
+        assert np.array_equal(t.table, table)
+        assert np.array_equal(t.phase, phase)
 
 
 def test_stabilizer_and_density_conversion():
@@ -207,3 +320,148 @@ def test_graph_to_density_3_linear_cluster():
     assert np.size(rho) == 8**2
     # Test Hermiticity
     assert (np.conjugate(rho.transpose()) == rho).all()
+
+
+def test_stabilizer_to_density_mixture():
+    # A mixture of |0> (real density matrix) followed by |+i> (stabilized by Y,
+    # so complex) must return the weighted sum.
+    ket0 = StabilizerTableau([np.array([[0]]), np.array([[1]])])
+    ket_plus_i = StabilizerTableau([np.array([[1]]), np.array([[1]])])
+    rho = rc.stabilizer_to_density([(0.25, ket0), (0.75, ket_plus_i)])
+
+    rho_0 = np.array([[1, 0], [0, 0]])
+    rho_plus_i = np.array([[1, -1j], [1j, 1]]) / 2
+    assert rho is not None
+    assert np.allclose(rho, 0.25 * rho_0 + 0.75 * rho_plus_i)
+
+
+def test_density_to_graph_mixed_state_decomposes_into_eigenstates():
+    # 0.7 |+><+| + 0.3 |-><-|: each branch must be built from one eigenvector
+    # (a column of eigh's output) and carry its own eigenvalue as the weight.
+    plus = np.array([1, 1]) / np.sqrt(2)
+    minus = np.array([1, -1]) / np.sqrt(2)
+    rho = 0.7 * np.outer(plus, plus) + 0.3 * np.outer(minus, minus)
+
+    graph_list = rc.density_to_graph(rho, validate=False)
+
+    weights = sorted(float(p_i) for p_i, _ in graph_list)
+    assert np.allclose(weights, [0.3, 0.7])
+    for _, adj in graph_list:
+        assert np.array_equal(adj, np.zeros((1, 1)))
+
+
+def test_density_to_graph_reads_each_branch_from_an_eigenvector_column():
+    # 0.7 |empty> + 0.3 |triangle> on 3 qubits: the two graph states are orthogonal, so they
+    # are the eigenvectors of rho with nonzero weight. The 1-qubit test above cannot see which
+    # vectors are read: every 1-qubit branch has the adjacency zeros((1, 1)). Here the branches
+    # differ, and eigh's eigenvector matrix is not symmetric, so reading a row instead of a
+    # column builds a different projector.
+    rho = 0.7 * rc.graph_to_density(nx.empty_graph(3)) + 0.3 * rc.graph_to_density(
+        nx.complete_graph(3)
+    )
+    eigenvalues, eigenvectors = np.linalg.eigh(rho)
+    weighted = [i for i in range(len(eigenvalues)) if eigenvalues[i] > 1e-9]
+    assert not np.allclose(eigenvectors, eigenvectors.T)
+    for i in weighted:
+        column, row = eigenvectors[:, i], eigenvectors[i]
+        assert not np.allclose(
+            np.outer(column, column.conj()), np.outer(row, row.conj())
+        )
+
+    graph_list = rc.density_to_graph(rho)
+
+    # every eigenvalue gets an entry; the zero-weight ones come from an arbitrary basis of the
+    # null space, so only the weighted entries are checked
+    branches = sorted(
+        (round(float(p_i), 9), adj.tolist()) for p_i, adj in graph_list if p_i > 1e-9
+    )
+    assert branches == [
+        (0.3, nx.to_numpy_array(nx.complete_graph(3)).tolist()),
+        (0.7, np.zeros((3, 3)).tolist()),
+    ]
+
+
+def _empty_plus_triangle_mixture():
+    # 0.7 |empty> + 0.3 |triangle> on 3 qubits: two orthogonal graph states with distinct
+    # weights, so they are the eigenvectors of rho with nonzero eigenvalue. The other six
+    # eigenvalues are zero, and their eigenvectors are not graph states.
+    return 0.7 * rc.graph_to_density(nx.empty_graph(3)) + 0.3 * rc.graph_to_density(
+        nx.complete_graph(3)
+    )
+
+
+def test_density_to_stabilizer_converts_an_orthogonal_graph_state_mixture():
+    rho = _empty_plus_triangle_mixture()
+
+    stabilizer = rc.density_to_stabilizer(rho)
+
+    assert len(stabilizer) == 2
+    assert sorted(float(p_i) for p_i, _ in stabilizer) == pytest.approx([0.3, 0.7])
+    assert np.allclose(rc.stabilizer_to_density(stabilizer), rho)
+
+
+def test_mixed_density_matrix_state_converts_to_a_mixed_stabilizer():
+    rho = _empty_plus_triangle_mixture()
+    state = QuantumState(rho, rep_type="dm", mixed=True)
+
+    state.convert_representation("s")
+
+    assert isinstance(state.rep_data, MixedStabilizer)
+    state.convert_representation("dm")
+    assert np.allclose(state.rep_data.data, rho)
+
+
+def test_mixed_density_matrix_state_not_marked_mixed_is_not_converted_to_one_branch():
+    # With mixed=False a stabilizer conversion can hold one tableau only; keeping one branch
+    # of a mixture would silently change the state.
+    state = QuantumState(_empty_plus_triangle_mixture(), rep_type="dm")
+
+    with pytest.raises(ValueError, match="mixed=True"):
+        state.convert_representation("s")
+
+
+def _lossy_path3_state(mixed):
+    state = QuantumState(
+        rc.graph_to_density(nx.path_graph(3)), rep_type="dm", mixed=mixed
+    )
+    # lose 0.1 in place; building the state from 0.9 * rho would renormalise it
+    state.rep_data.apply_channel([np.sqrt(0.9) * np.eye(8)])
+    assert np.real(np.trace(state.rep_data.data)) == pytest.approx(0.9)
+    return state
+
+
+def test_subnormalised_density_matrix_state_not_marked_mixed_is_not_converted():
+    # A Stabilizer holds one tableau and no weight, so converting would drop the 0.9 and
+    # leave the lossless state.
+    state = _lossy_path3_state(mixed=False)
+
+    with pytest.raises(ValueError, match="mixed=True"):
+        state.convert_representation("s")
+
+
+def test_subnormalised_density_matrix_state_marked_mixed_keeps_its_weight():
+    state = _lossy_path3_state(mixed=True)
+
+    state.convert_representation("s")
+
+    assert isinstance(state.rep_data, MixedStabilizer)
+    assert len(state.rep_data.mixture) == 1
+    assert state.rep_data.mixture[0][0] == pytest.approx(0.9)
+
+
+def test_density_to_stabilizer_rejects_a_mixture_of_non_orthogonal_graph_states():
+    # The empty and edge graphs are the only 2-qubit graph states, and they are not
+    # orthogonal, so no eigenvector of their mixture is a graph state.
+    rho = 0.6 * rc.graph_to_density(nx.empty_graph(2)) + 0.4 * rc.graph_to_density(
+        nx.complete_graph(2)
+    )
+
+    with pytest.raises(AssertionError, match="not a graph state"):
+        rc.density_to_stabilizer(rho)
+
+
+def test_state_to_graph_rejects_an_unrepresentable_input():
+    # Neither an adjacency matrix, a graph, nor a stabilizer/Clifford tableau: falls through
+    # every isinstance check to the final else arm.
+    with pytest.raises(ValueError, match="input data should either be"):
+        rc.state_to_graph("x")

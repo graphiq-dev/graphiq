@@ -29,6 +29,7 @@ from graphiq.backends.compiler_base import CompilerBase
 from graphiq.circuit.circuit_base import CircuitBase, ops
 from graphiq.io import IO
 from graphiq.metrics import MetricBase
+from graphiq.noise.noise_mapping import noise_for_op
 
 
 class SolverBase(ABC):
@@ -47,6 +48,10 @@ class SolverBase(ABC):
         ops.CNOT,
     ]
 
+    # the last seed passed to seed(); a class attribute because seed() sets the
+    # process-global numpy/random seeds and records it on SolverBase itself
+    last_seed = None
+
     def __init__(
         self,
         target,
@@ -56,6 +61,24 @@ class SolverBase(ABC):
         io: IO = None,
         solver_setting=None,
     ):
+        """
+        Create a SolverBase object
+
+        :param target: the target state the solver searches for a circuit to generate
+        :type target: QuantumState
+        :param metric: the objective the solver minimizes
+        :type metric: MetricBase
+        :param compiler: the compiler used to simulate each candidate circuit
+        :type compiler: CompilerBase
+        :param circuit: an initial circuit to start from, or None
+        :type circuit: CircuitBase or None
+        :param io: an IO object used to save results, or None for no saving
+        :type io: IO or None
+        :param solver_setting: the solver's own settings object, or None
+        :type solver_setting: object or None
+        :return: nothing
+        :rtype: None
+        """
         self.target = target
         self.metric = metric
         self.compiler = compiler
@@ -63,12 +86,18 @@ class SolverBase(ABC):
 
         self.circuit = circuit
         self.solver_setting = solver_setting
-        self.last_seed = None
         self.logs = {}
         self.result = None
 
     @abstractmethod
     def solve(self, *args):
+        """
+        Run the search. Each concrete solver implements its own.
+
+        :raises NotImplementedError: always, on this base class
+        :return: nothing
+        :rtype: None
+        """
         raise NotImplementedError(
             "Base Solver class, solver method is not implemented."
         )
@@ -78,6 +107,15 @@ class SolverBase(ABC):
         """
         Sets the seed for both the numpy.random and random packages.
         Accessible by any Solver subclass
+
+        The seed is recorded in last_seed, a class-level attribute on SolverBase (reported as
+        solver_info["seed"] by the solvers that log it). Like the numpy.random and random seeds it
+        sets, it is shared by the whole process: a solver reports the seed most recently set by any
+        solver, not necessarily its own. Measurement outcomes in the stabilizer and density matrix
+        backends are drawn from the global numpy.random state, so this seed does govern them.
+        It does not reach components that build their own unseeded np.random.default_rng()
+        (for example, AlternateTargetSolver's Monte Carlo seeding when a seed is missing, and the
+        random graph generators in benchmarks/graph_states.py when no np_rng is given).
 
         :param seed: a random number seed
         :type seed: int or None
@@ -89,6 +127,14 @@ class SolverBase(ABC):
 
     @property
     def solver_info(self):
+        """
+        Solver-specific information to record alongside a result.
+
+        Empty on the base class; a subclass overrides it with whatever describes its own search.
+
+        :return: a dictionary of solver information
+        :rtype: dict
+        """
         return {}
 
     def _wrap_noise(self, op, noise_model_mapping):
@@ -114,55 +160,49 @@ class SolverBase(ABC):
 
     def _identify_noise(self, op, noise_model_mapping):
         """
-        A helper function to identify the noise model for an operation
+        A helper function to identify the noise model for an operation. Delegates to
+        ``graphiq.noise.noise_mapping.noise_for_op``, which also backs
+        ``CircuitDAG._noisy_gates``, so both callers read a noise-model mapping the same way.
 
         :param op: an operation
         :type op: ops.OperationBase
         :param noise_model_mapping: a dictionary that stores the mapping between an operation
-            and its associated noise model
+            and its associated noise model. A two-legged op is looked up by its per-leg keys,
+            ``<Op>_control`` and ``<Op>_target``, first; the bare ``<Op>`` key is only used as a
+            fallback when neither per-leg key is present, in which case a single model is
+            returned for both legs and a list of two is returned as it is
         :type noise_model_mapping: dict
-        :return: a noise model
-        :rtype: nm.NoiseBase
+        :raises ValueError: if a two-legged op's bare list value does not have length 2
+        :return: a noise model, or a list of two (control, target) for a two-legged op
+        :rtype: nm.NoiseBase or list[nm.NoiseBase]
         """
-        # first make sure whether the passed operations are instances (of a class) or classes.
-        if isinstance(op, ops.OperationBase):
-            # if op is an instance, turn it into the class itself.
-            op = type(op)
-        if isinstance(op, ops.ControlledPairOperationBase) or isinstance(
-            op, ops.ClassicalControlledPairOperationBase
-        ):
-            op_name = op.__name__
-            op_control = op.__name__ + "_control"
-            op_target = op.__name__ + "_target"
-            if op_control in noise_model_mapping.keys():
-                control_noise = noise_model_mapping[op_control]
-            else:
-                control_noise = nm.NoNoise()
-            if op_target in noise_model_mapping.keys():
-                target_noise = noise_model_mapping[op_target]
-            else:
-                target_noise = nm.NoNoise()
-            if op_name in noise_model_mapping.keys() and type(
-                target_noise
-            ) == nm.NoNoise == type(control_noise):
-                return [noise_model_mapping[op_name], noise_model_mapping[op_name]]
-            else:
-                return [control_noise, target_noise]
-        else:
-            op_name = op.__name__
-            if op_name in noise_model_mapping.keys():
-                return noise_model_mapping[op_name]
-            else:
-                return nm.NoNoise()
+        return noise_for_op(op, noise_model_mapping)
 
 
 class RandomSearchSolverSetting(ABC):
+    """
+    The settings every random-search-style solver shares: hall-of-fame size, how long to run,
+    and how many candidates to hold per iteration.
+    """
+
     def __init__(
         self,
         n_hof=5,
         n_stop=50,
         n_pop=50,
     ):
+        """
+        Create a RandomSearchSolverSetting object
+
+        :param n_hof: the number of best circuits kept in the hall of fame
+        :type n_hof: int
+        :param n_stop: the number of iterations to run before stopping
+        :type n_stop: int
+        :param n_pop: the number of candidate circuits held per iteration
+        :type n_pop: int
+        :return: nothing
+        :rtype: None
+        """
         self._n_hof = n_hof
         self._n_stop = n_stop
         self._n_pop = n_pop
@@ -216,11 +256,35 @@ class RandomSearchSolver(SolverBase):
         compiler: CompilerBase,
         circuit: CircuitBase = None,
         io: IO = None,
-        solver_setting=RandomSearchSolverSetting(),
+        solver_setting=None,
         *args,
         **kwargs,
     ):
+        """
+        Create a RandomSearchSolver object
+
+        :param target: the target state the solver searches for a circuit to generate
+        :type target: QuantumState
+        :param metric: the objective the solver minimizes
+        :type metric: MetricBase
+        :param compiler: the compiler used to simulate each candidate circuit
+        :type compiler: CompilerBase
+        :param circuit: an initial circuit to start from, or None
+        :type circuit: CircuitBase or None
+        :param io: an IO object used to save results, or None for no saving
+        :type io: IO or None
+        :param solver_setting: the hall-of-fame size, stopping point and population size, stored as
+            self.setting; a fresh default is built when None
+        :type solver_setting: RandomSearchSolverSetting or None
+        :return: nothing
+        :rtype: None
+        """
         super().__init__(target, metric, compiler, circuit, io)
+
+        # built per instance: a default instance in the signature would be
+        # shared (and mutated) by every solver constructed without one
+        if solver_setting is None:
+            solver_setting = RandomSearchSolverSetting()
 
         # hof stores the best circuits and their scores in the form of: (scores, circuits)
         self.setting = solver_setting
@@ -240,7 +304,12 @@ class RandomSearchSolver(SolverBase):
         for score, circuit in population:
             for i in range(self.setting.n_hof):
                 if np.isclose(score, self.hof[i][0]):
-                    if len(circuit.dag.nodes) < len(self.hof[i][1].dag.nodes):
+                    # self.hof[i][1] is None for a still-unfilled placeholder
+                    # slot (initialized to (np.inf, None)); any real circuit
+                    # is preferred over an empty slot.
+                    if self.hof[i][1] is None or len(circuit.dag.nodes) < len(
+                        self.hof[i][1].dag.nodes
+                    ):
                         self.hof.insert(i, (score, circuit.copy()))
                         self.hof.pop()
                         break
@@ -278,6 +347,14 @@ class RandomSearchSolver(SolverBase):
         return population_new
 
     def solve(self, *args):
+        """
+        Run the search. Not implemented on RandomSearchSolver; a subclass such as
+        EvolutionarySolver overrides it.
+
+        :raises NotImplementedError: always, on this class
+        :return: nothing
+        :rtype: None
+        """
         raise NotImplementedError(
             "Base Solver class, solver method is not implemented."
         )

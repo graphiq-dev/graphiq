@@ -16,6 +16,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 from qiskit import QuantumCircuit
+from qiskit.quantum_info import Operator
 
 import graphiq.circuit.ops as ops
 import graphiq.utils.openqasm_lib as oq_lib
@@ -166,6 +167,47 @@ def test_gates_wrapper_1(gate_list):
         raise e
 
 
+@pytest.mark.parametrize(
+    "gate_list",
+    [
+        [ops.Hadamard, ops.Phase],
+        [ops.Phase, ops.Hadamard],
+        [ops.Hadamard, ops.SigmaX],
+        [ops.Hadamard, ops.SigmaY, ops.Phase],
+        [ops.Hadamard, ops.PhaseDagger, ops.SigmaY],
+        [ops.Hadamard, ops.Phase, ops.Hadamard, ops.Phase],
+        [ops.Phase, ops.Identity, ops.Hadamard],
+        [ops.Identity, ops.SigmaX],
+        [ops.Hadamard],
+    ],
+)
+def test_wrapper_openqasm_applies_the_last_gate_first(gate_list):
+    # the compilers apply a wrapper through unwrap(), so its openQASM must match
+    wrapper = ops.OneQubitGateWrapper(gate_list, register=0, reg_type="e")
+    wrapped = CircuitDAG(n_emitter=1)
+    wrapped.add(wrapper)
+    unwrapped = CircuitDAG(n_emitter=1)
+    for op in wrapper.unwrap():
+        unwrapped.add(op)
+    u_wrapped = Operator(QuantumCircuit.from_qasm_str(wrapped.to_openqasm()))
+    u_unwrapped = Operator(QuantumCircuit.from_qasm_str(unwrapped.to_openqasm()))
+    assert u_wrapped.equiv(u_unwrapped)
+
+
+def test_wrapper_openqasm_name_and_symbol_unchanged():
+    gate_list = [ops.Hadamard, ops.Phase, ops.SigmaY]
+    circuit = CircuitDAG(n_emitter=1)
+    circuit.add(ops.OneQubitGateWrapper(gate_list, register=0, reg_type="e"))
+    assert "hsy e0[0];" in circuit.to_openqasm()
+    assert circuit.openqasm_symbols["hsy"] == "U=HPY"
+    (wrapper,) = [
+        op
+        for op in CircuitDAG.from_openqasm(circuit.to_openqasm()).sequence()
+        if isinstance(op, ops.OneQubitGateWrapper)
+    ]
+    assert wrapper.operations == gate_list
+
+
 @visualization
 def test_load_circuit_1(initialization_circuit):
     """
@@ -228,6 +270,60 @@ def test_load_circuit_3(initialization_circuit):
     str += "hshk e0[0];"
     with pytest.raises(AssertionError):
         circuit = CircuitDAG.from_openqasm(str)
+
+
+@pytest.mark.parametrize("name", ["hs", "hsdgy", "hk"])
+def test_name_to_class_map_returns_none_outside_its_mapping(name):
+    # composite wrapper names are decoded by from_openqasm, not by name_to_class_map
+    assert ops.name_to_class_map(name) is None
+
+
+def test_load_circuit_wrapped_gate_written_with_p_for_phase():
+    circuit = CircuitDAG.from_openqasm(
+        CircuitDAG(n_emitter=1, n_photon=0, n_classical=0).to_openqasm() + "hp e0[0];"
+    )
+    (wrapper,) = [
+        op for op in circuit.sequence() if isinstance(op, ops.OneQubitGateWrapper)
+    ]
+    assert wrapper.operations == [ops.Hadamard, ops.Phase]
+
+
+def test_load_circuit_multichar_wrapped_gate():
+    """
+    Regression test for round-tripping one-qubit gates whose openqasm name is
+    multi-character (e.g. PhaseDagger -> "sdg"), both wrapped inside a
+    OneQubitGateWrapper and standalone. Guards against the parser assuming every
+    single-qubit gate name is a single character.
+    """
+    circuit1 = CircuitDAG(n_emitter=1, n_photon=1, n_classical=0)
+    circuit1.add(
+        ops.OneQubitGateWrapper(
+            [ops.Hadamard, ops.PhaseDagger, ops.SigmaY], register=0, reg_type="e"
+        )
+    )
+    circuit1.add(ops.PhaseDagger(register=0, reg_type="p"))
+
+    circuit2 = CircuitDAG.from_openqasm(circuit1.to_openqasm())
+
+    def signatures(circuit):
+        sigs = []
+        for op in circuit.sequence():
+            if isinstance(op, (ops.Input, ops.Output)):
+                continue
+            if isinstance(op, ops.OneQubitGateWrapper):
+                sigs.append(
+                    (
+                        "wrapper",
+                        op.reg_type,
+                        op.register,
+                        tuple(o.__name__ for o in op.operations),
+                    )
+                )
+            else:
+                sigs.append((type(op).__name__, op.reg_type, op.register))
+        return sorted(sigs, key=str)
+
+    assert signatures(circuit1) == signatures(circuit2)
 
 
 def test_load_circuit_4(initialization_circuit):

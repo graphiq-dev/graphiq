@@ -12,6 +12,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""
+Renders an openqasm 2 circuit description as a circuit diagram via Qiskit's circuit drawer.
+:meth:`graphiq.circuit.circuit_base.CircuitBase.draw_circuit` uses :func:`draw_openqasm` to draw circuits.
+"""
+
 import matplotlib.pyplot as plt
 from qiskit import QuantumCircuit
 

@@ -54,6 +54,29 @@ from graphiq.utils.relabel_module import (
 
 
 class AlternateTargetSolver:
+    """
+    Searches for circuits generating the target graph by way of alternative target graphs.
+
+    Rather than one fixed target, the solver also tries isomorphic relabellings of the target and
+    local-Clifford-equivalent graphs of each relabelling, since these can be far cheaper to
+    generate. Each candidate's circuit comes from TimeReversedSolver, followed by the
+    local-Clifford gates that convert it to the relabelled target.
+
+    How candidates are scored depends on noise_model_mapping and the setting's monte_carlo flag,
+    and every path writes to the same ``score`` column of the result:
+
+    - noise simulation off (noise_model_mapping None): no noisy simulation is scored, and every
+      candidate gets the placeholder score 0.0001.
+    - noise simulation on, Monte Carlo off: the noisy circuit is compiled on ``noise_compiler``
+      and scored with Infidelity against the relabelled target (see noise_score).
+    - noise simulation on, Monte Carlo on: the circuit is run on the compiler in
+      ``monte_carlo_params`` (a StabilizerCompiler when that entry is None) and scored against a
+      noiseless compile of that candidate's own circuit, so it reports sensitivity to noise
+      rather than agreement with the target, and is not comparable with the other path.
+
+    ``compiler`` and ``metric`` are stored, but no path of solve() uses them.
+    """
+
     def __init__(
         self,
         target: nx.Graph or QuantumState = None,
@@ -66,7 +89,7 @@ class AlternateTargetSolver:
         seed=None,
     ):
         """
-        Constructor for AlternateGraphSolver
+        Constructor for AlternateTargetSolver
 
         :param target: target graph state
         :type target: QuantumState or nx.Graph
@@ -78,12 +101,18 @@ class AlternateTargetSolver:
         :type noise_compiler: CompilerBase
         :param io: input/output
         :type io: IO
-        :param noise_model_mapping:
-        :type noise_model_mapping: dict
-        :param solver_setting:
-        :type solver_setting:
+        :param noise_model_mapping: a noise model mapping keyed by register-type section ("e", "p", "ee", "ep");
+            the string "depolarizing" uses depolarizing noise at the solver setting's depolarizing_rate, and None
+            turns noise simulation off
+        :type noise_model_mapping: dict or str or None
+        :param solver_setting: the solver setting; if None, a default setting is created
+        :type solver_setting: AlternateTargetSolverSetting or None
         :param seed: a random seed
         :type seed: int
+        :raises TypeError: if noise_model_mapping is not exactly a dict (subclasses are rejected), the string
+            "depolarizing", or None
+        :raises ValueError: if target is a mixed QuantumState, or a QuantumState whose rep_type is not
+            "s", "dm", or "g"
         """
         if solver_setting is None:
             solver_setting = AlternateTargetSolverSetting(
@@ -154,26 +183,36 @@ class AlternateTargetSolver:
         alternative isomorphic and LC-equivalent graphs. Notice that the returned circuits generate the target state
         up to relabeling if this feature is enabled in the setting. Otherwise, user's exact target graph is produced.
 
-        :return: a dictionary where keys are the circuits and values are themselves dictionaries containing the LC graph
-         used as the intermediate states and relabeling map between the actual target and the graph the circuit
-         generates. {circuit: {'g':graph, 'map': relabel_map}}
-        :rtype: dict
+        :return: a list of (circuit, properties) tuples, where properties is a dictionary containing the LC graph
+         used as the intermediate state, the circuit's score, and the relabeling map between the actual target and
+         the graph the circuit generates: [(circuit, {'g': graph, 'score': score, 'map': relabel_map}), ...].
+         The same data is also stored in self.result as a SolverResult
+        :rtype: list[tuple]
         """
         setting = self.solver_setting
         n_iso = setting.n_iso_graphs
         n_lc = setting.n_lc_graphs
         adj_matrix = nx.to_numpy_array(self.target_graph)
 
-        iso_adjs = iso_finder(
-            adj_matrix,
-            n_iso,
-            rel_inc_thresh=setting.rel_inc_thresh,
-            allow_exhaustive=setting.allow_exhaustive,
-            sort_emit=setting.sort_emitter,
-            label_map=setting.label_map,
-            thresh=setting.iso_thresh,
-            seed=self.seed,
-        )
+        if setting.allow_relabel:
+            iso_adjs = iso_finder(
+                adj_matrix,
+                n_iso,
+                rel_inc_thresh=setting.rel_inc_thresh,
+                allow_exhaustive=setting.allow_exhaustive,
+                sort_emit=setting.sort_emitter,
+                label_map=setting.label_map,
+                thresh=setting.iso_thresh,
+                seed=self.seed,
+            )
+            # with label_map set, iso_finder returns (adjacency matrices, label maps); the
+            # maps are not needed here, since each graph's relabel map is computed below
+            # with get_relabel_map
+            if isinstance(iso_adjs, tuple):
+                iso_adjs = iso_adjs[0]
+        else:
+            # only the labelling given
+            iso_adjs = [adj_matrix]
         results_list = []
         mc_list = []
         # repeater graph state check
@@ -184,7 +223,10 @@ class AlternateTargetSolver:
         # list of tuples [(circuit, dict={'g': graph used to find circuit, 'map': relabel map with target})]
         iso_graphs = [nx.from_numpy_array(adj) for adj in iso_adjs]
         for iso_graph in iso_graphs:
-            if setting.lc_method == "rgs":
+            if not setting.allow_lc:
+                # each isomorphic graph is its own only candidate
+                lc_graphs = [iso_graph]
+            elif setting.lc_method == "rgs":
                 lc_graphs = rgs_orbit_finder(iso_graph)[:n_lc]
             elif setting.lc_method == "linear":
                 lc_graphs = linear_partial_orbit(iso_graph)[:n_lc]
@@ -345,20 +387,21 @@ class AlternateTargetSolver:
 
     def noise_score(self, circuit, relabel_map):
         """
+        Score a circuit on the noise compiler against the target graph relabeled by relabel_map.
+        Emitter qubits are traced out before scoring, and a score that is close to, but not exactly, 0 is
+        replaced by 1e-05.
 
-
-        :param circuit:
-        :type circuit:
-        :param relabel_map:
-        :type relabel_map:
-        :return:
-        :rtype:
+        :param circuit: the circuit to score
+        :type circuit: CircuitDAG
+        :param relabel_map: the relabeling map from the target graph's node labels to the new labels
+        :type relabel_map: dict
+        :return: the infidelity of the compiled state with respect to the relabeled target
+        :rtype: float
         """
         graph = self.target_graph
         old_adj = nx.to_numpy_array(graph)
-        n = graph.number_of_nodes()
         # relabel the target graph
-        new_labels = np.array([relabel_map[i] for i in range(n)])
+        new_labels = np.array([relabel_map[v] for v in graph.nodes()])
         new_adj = relabel(old_adj, new_labels)
         graph = nx.from_numpy_array(new_adj)
 
@@ -384,10 +427,12 @@ class AlternateTargetSolver:
 
     def depol_noise_map(self):
         """
+        Returns a noise model mapping with depolarizing noise at the rate depolarizing_rate on the one-qubit
+        emitter gates and on the emitter-emitter and emitter-photon CNOT gates. One-qubit photonic gates are
+        noiseless.
 
-
-        :return:
-        :rtype:
+        :return: the noise model mapping, keyed by register-type section
+        :rtype: dict
         """
 
         rate = self.depolarizing_rate
@@ -461,18 +506,27 @@ def graph_to_circ(graph, noise_model_mapping=None, show=False):
 
     :param graph: The graph to generate
     :type graph: networkx.Graph
-    :param noise_model_mapping:
-    :type noise_model_mapping: dict
+    :param noise_model_mapping: a noise model mapping passed to TimeReversedSolver, or None for no noise
+    :type noise_model_mapping: dict or None
     :param show: If true draws the corresponding circuit
     :type show: bool
     :return: A circuit corresponding to the input graph
     :rtype: CircuitDAG
+    :raises ValueError: if the graph has an isolated vertex
     """
     if not isinstance(graph, nx.Graph):
         graph = nx.from_numpy_array(graph)
         assert isinstance(
             graph, nx.Graph
         ), "input must be a networkx graph object or a numpy adjacency matrix"
+    n_isolated = nx.number_of_isolates(graph)
+    if n_isolated:
+        raise ValueError(
+            f"graph has an isolated vertex ({n_isolated} in total); an isolated "
+            "vertex is a photon entangled with no other qubit, which "
+            "TimeReversedSolver cannot absorb into an emitter, so graph_to_circ "
+            "does not support it"
+        )
     n = graph.number_of_nodes()
     c_tableau = get_clifford_tableau_from_graph(graph)
     ideal_state = QuantumState(c_tableau, rep_type="s")
@@ -517,11 +571,75 @@ class AlternateTargetSolverSetting:
         monte_carlo=False,
         monte_carlo_params=None,
         graph_metric=pre.graph_metric_lists[0],
-        lc_method="max edge",
+        lc_method=None,
         verbose=False,
         save_openqasm: str = "none",
-        callback_func: dict = {},
+        callback_func: dict = None,
     ):
+        """
+        Create an AlternateTargetSolverSetting object
+
+        :param allow_relabel: whether isomorphic relabellings of the target are searched.
+            When False, only the labelling given is used, and n_iso_graphs is ignored
+        :type allow_relabel: bool
+        :param n_iso_graphs: the number of isomorphic relabellings to look for, including the
+            original graph
+        :type n_iso_graphs: int
+        :param rel_inc_thresh: threshold between 0 and 1 on the relative increase in how many
+            distinct isomorphic graphs are found as the label pool grows; the search stops once
+            that ratio falls below it, so a value closer to 0 searches closer to exhaustively
+        :type rel_inc_thresh: float
+        :param allow_exhaustive: whether the relabelling search may enumerate every permutation
+            rather than sampling; the runtime can be very long if it does
+        :type allow_exhaustive: bool
+        :param sort_emit: whether the graphs found are sorted, after the search, by the number
+            of emitters needed to generate each
+        :type sort_emit: bool
+        :param label_map: passed to iso_finder, which then also returns a label map per graph.
+            solve() keeps only the adjacency matrices from that tuple and computes each relabel
+            map itself, so this does not change the result
+        :type label_map: bool
+        :param iso_thresh: how many random label trials to attempt while looking for new
+            permutations; None uses five times the number of labellings sought
+        :type iso_thresh: int or None
+        :param allow_lc: whether local-Clifford-equivalent graphs are tried at all. When
+            False, each isomorphic graph is its own only candidate and lc_method is not
+            consulted
+        :type allow_lc: bool
+        :param n_lc_graphs: the number of local-Clifford-equivalent graphs to try, or None for
+            no cap
+        :type n_lc_graphs: int or None
+        :param lc_orbit_depth: how far into the local-complementation orbit to search, or None
+            to continue until enough graphs are found or no new ones appear; the "rgs", "linear"
+            and "depth_first" methods ignore it
+        :type lc_orbit_depth: int or None
+        :param depolarizing_rate: the depolarizing rate used to build the noise map when the
+            solver's noise_model_mapping is "depolarizing"
+        :type depolarizing_rate: float
+        :param monte_carlo: whether candidates are scored with Monte Carlo noise; only consulted
+            when noise simulation is on
+        :type monte_carlo: bool
+        :param monte_carlo_params: overrides merged over the Monte Carlo defaults (n_sample,
+            map, compiler, seed, n_parallel, n_single); None takes the defaults unchanged
+        :type monte_carlo_params: dict or None
+        :param graph_metric: a function scoring a graph, called as graph_metric(graph). Stored
+            for callers; nothing in the solver reads it
+        :type graph_metric: function
+        :param lc_method: which local-complementation search to use -- one of "rgs", "linear",
+            "depth_first", "lc_with_iso", "random", "random_with_iso", "random_with_rep", or
+            None, the default, which searches the orbit without a specialised strategy. Any
+            other value makes solve() raise ValueError when allow_lc is True
+        :type lc_method: str or None
+        :param verbose: stored for callers; AlternateTargetSolver never prints progress
+        :type verbose: bool
+        :param save_openqasm: stored for callers; AlternateTargetSolver never writes openQASM
+        :type save_openqasm: str
+        :param callback_func: stored for callers, no callback is ever invoked; an empty dict
+            is built when None
+        :type callback_func: dict or None
+        :return: nothing
+        :rtype: None
+        """
         self.allow_relabel = allow_relabel
         self.allow_lc = allow_lc
         self._n_iso_graphs = n_iso_graphs
@@ -535,7 +653,8 @@ class AlternateTargetSolverSetting:
         self.sort_emitter = sort_emit
         self.label_map = label_map
         self.iso_thresh = iso_thresh
-        self.callback_func = callback_func
+        # built per instance rather than shared through a mutable default
+        self.callback_func = {} if callback_func is None else callback_func
         self.lc_orbit_depth = lc_orbit_depth
         self.depolarizing_rate = depolarizing_rate
         self.monte_carlo = monte_carlo

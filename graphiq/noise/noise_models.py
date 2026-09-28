@@ -59,8 +59,9 @@ class NoiseBase(ABC):
         """
         Initialize a base class for noise model
 
-        :param noise_parameters: a dictionary of parameters to describe the noise model
-        :type noise_parameters: dict
+        :param noise_parameters: a dictionary of parameters to describe the noise model, or
+            None for an empty dictionary
+        :type noise_parameters: dict or None
         :return: nothing
         :rtype: None
         """
@@ -88,10 +89,22 @@ class NoiseBase(ABC):
 
 class AdditionNoiseBase(NoiseBase):
     """
-    Base class for noise added before the operation
+    Base class for noise added to the operation: after it by default, or before it if
+    noise_parameters["After gate"] is False
     """
 
     def __init__(self, noise_parameters=None):
+        """
+        Initialize a base class for noise added before or after a gate
+
+        If ``noise_parameters`` is None or not a dict, it is replaced with ``{"After gate": True}``. Otherwise, an
+        ``"After gate"`` key set to True is added to it when not already present.
+
+        :param noise_parameters: a dictionary of parameters to describe the noise model
+        :type noise_parameters: dict or None
+        :return: nothing
+        :rtype: None
+        """
         if noise_parameters is None or type(noise_parameters) is not dict:
             noise_parameters = {"After gate": True}
         else:
@@ -123,6 +136,15 @@ class ReplacementNoiseBase(NoiseBase):
     """
 
     def __init__(self, noise_parameters=None):
+        """
+        Initialize a base class for noisy gate that replaces the original gate
+
+        :param noise_parameters: a dictionary of parameters to describe the noise model, or None for an empty
+            dictionary
+        :type noise_parameters: dict or None
+        :return: nothing
+        :rtype: None
+        """
         super().__init__(noise_parameters)
 
     def apply(self, state: QuantumState, n_quantum, reg_list):
@@ -155,6 +177,8 @@ class NoNoise(AdditionNoiseBase):
         """
         Construct a NoNoise object
 
+        :return: nothing
+        :rtype: None
         """
         super().__init__()
 
@@ -190,6 +214,7 @@ class OneQubitGateReplacement(ReplacementNoiseBase):
 
     def apply(self, state: QuantumState, n_quantum, reg_list):
         """
+        Apply the noise to the state
 
         :param state: a quantum state to which the noise is applied
         :type state: QuantumState
@@ -208,15 +233,13 @@ class OneQubitGateReplacement(ReplacementNoiseBase):
                 n_quantum, reg_list[0], self.noise_parameters["One-qubit unitary"]
             )
             state_rep.apply_unitary(noisy_gate)
-        elif isinstance(state_rep, Stabilizer):
-            gate_list = []
-            if isinstance(state_rep, MixedStabilizer):
-                mixture = state_rep.mixture
-                for p_i, tableau_i in mixture:
-                    tableau_i.apply_circuit(gate_list)
-            else:
-                state_rep.apply_circuit(gate_list)
-
+        elif isinstance(state_rep, (Stabilizer, MixedStabilizer)):
+            # TODO: Implement this for the Stabilizer backend. A general
+            # one-qubit unitary is not generally Clifford, so it can't always
+            # be represented exactly in the stabilizer formalism.
+            raise NotImplementedError(
+                "OneQubitGateReplacement has not been implemented for stabilizer backend"
+            )
         elif isinstance(state_rep, Graph):
             # TODO: Implement this for Graph backend
             raise TypeError(
@@ -244,7 +267,7 @@ class TwoQubitControlledGateReplacement(ReplacementNoiseBase):
         Construct a TwoQubitControlledGateReplacement noise model
 
         :param target_unitary: the target gate to be applied to the target qubit if the control qubit is
-            in :math:`|0\\rangle` state
+            in :math:`|1\\rangle` state
         :type target_unitary: numpy.ndarray
         :param pre_gate_ctr_noise: the noise (unitary) added to the control qubit before the gate
         :type pre_gate_ctr_noise:  numpy.ndarray
@@ -303,7 +326,7 @@ class TwoQubitControlledGateReplacement(ReplacementNoiseBase):
 
             unitary = post_gate_noise @ cu_gate @ pre_gate_noise
             state_rep.apply_unitary(unitary)
-        elif isinstance(state_rep, Stabilizer):
+        elif isinstance(state_rep, (Stabilizer, MixedStabilizer)):
             # TODO: Implement this for Stabilizer backend
             raise NotImplementedError(
                 "TwoQubitControlledGateReplacement error not implemented for stabilizer representation"
@@ -311,7 +334,7 @@ class TwoQubitControlledGateReplacement(ReplacementNoiseBase):
         elif isinstance(state_rep, Graph):
             # TODO: Implement this for Graph backend
             raise NotImplementedError(
-                "TwoQubitControlledGateReplacement error not implemented for stabilizer representation"
+                "TwoQubitControlledGateReplacement error not implemented for graph representation"
             )
         else:
             raise TypeError("Backend type is not supported.")
@@ -378,6 +401,22 @@ class PauliError(AdditionNoiseBase):
             else:
                 raise ValueError("Wrong description of a Pauli matrix.")
             state_rep.apply_circuit(gate_list)
+
+        elif isinstance(state_rep, MixedStabilizer):
+            # MixedStabilizer is a sibling of Stabilizer, not a subclass, and it
+            # is what a noisy (non-Monte-Carlo) stabilizer compile produces. A
+            # Pauli is a unitary, so it is applied to every branch; the
+            # MixedStabilizer gate methods do exactly that.
+            if pauli_error == "X":
+                state_rep.apply_sigmax(reg_list[0])
+            elif pauli_error == "Y":
+                state_rep.apply_sigmay(reg_list[0])
+            elif pauli_error == "Z":
+                state_rep.apply_sigmaz(reg_list[0])
+            elif pauli_error == "I":
+                pass
+            else:
+                raise ValueError("Wrong description of a Pauli matrix.")
 
         elif isinstance(state_rep, Graph):
             # TODO: Implement this for Graph backend
@@ -456,7 +495,7 @@ class LocalCliffordError(AdditionNoiseBase):
                 else:
                     raise ValueError("Wrong description of a local Clifford gate.")
             state_rep.apply_unitary(unitary)
-        elif isinstance(state_rep, Stabilizer):
+        elif isinstance(state_rep, (Stabilizer, MixedStabilizer)):
             # TODO: Implement this for the Stabilizer backend
             raise NotImplementedError(
                 "Local Clifford error has not been implemented for stabilizer backend"
@@ -464,7 +503,7 @@ class LocalCliffordError(AdditionNoiseBase):
         elif isinstance(state_rep, Graph):
             # TODO: Implement this for the Graph backend
             raise NotImplementedError(
-                "Local Clifford error has not been implemented for stabilizer backend"
+                "Local Clifford error has not been implemented for graph backend"
             )
         else:
             raise TypeError("Backend type is not supported.")
@@ -472,7 +511,7 @@ class LocalCliffordError(AdditionNoiseBase):
 
 class AmplitudeDampingNoise(AdditionNoiseBase):
     """
-    Amplitude damping noise described by a depolarizing probability
+    Amplitude damping noise described by a damping probability
 
     """
 
@@ -482,6 +521,8 @@ class AmplitudeDampingNoise(AdditionNoiseBase):
 
         :param damping_probability: the dampening probability between 0 and 1
         :type damping_probability: float
+        :return: nothing
+        :rtype: None
         """
         noise_parameters = {"damping_probability": damping_probability}
         super().__init__(noise_parameters)
@@ -505,7 +546,7 @@ class AmplitudeDampingNoise(AdditionNoiseBase):
             if damping_prob == 0.0:
                 return
             single_qubit_kraus = dmf.amplitude_damping_operators(damping_prob)
-            kraus_ops_iter = itertools.combinations(single_qubit_kraus, len(reg_list))
+            kraus_ops_iter = itertools.product(single_qubit_kraus, repeat=len(reg_list))
             kraus_ops = []
             for kraus_op in kraus_ops_iter:
                 kraus_ops.append(
@@ -514,7 +555,7 @@ class AmplitudeDampingNoise(AdditionNoiseBase):
 
             state_rep.apply_channel(kraus_ops)
 
-        elif isinstance(state_rep, Stabilizer):
+        elif isinstance(state_rep, (Stabilizer, MixedStabilizer)):
             # TODO: Find the correct representation for Stabilizer backend
             raise NotImplementedError(
                 "AmplitudeDamping not implemented for stabilizer representation"
@@ -540,6 +581,8 @@ class DepolarizingNoise(AdditionNoiseBase):
 
         :param depolarizing_prob: the depolarizing probability
         :type depolarizing_prob: float
+        :return: nothing
+        :rtype: None
         """
         noise_parameters = {"Depolarizing probability": depolarizing_prob}
         super().__init__(noise_parameters)
@@ -592,8 +635,13 @@ class DepolarizingNoise(AdditionNoiseBase):
             state_rep, MixedStabilizer
         ):
             if not isinstance(state_rep, MixedStabilizer):
-                rep_data = MixedStabilizer([(1.0, state_rep.data)])
-                state.rep_data = rep_data
+                # Rebind the local as well as the state, since everything below
+                # branches over the mixture. The mixed flag has to be set
+                # before the assignment, which the state otherwise rejects as
+                # the wrong datatype.
+                state_rep = MixedStabilizer([(1.0, state_rep.data)])
+                state.mixed = True
+                state.rep_data = state_rep
 
             original_prob = state_rep.probability
             mixture = []
@@ -674,7 +722,7 @@ class PhasePerturbedError(OneQubitGateReplacement):
 
     def __init__(self, theta_pert, phi_pert, lam_pert):
         """
-        Construct a HadamardPerturbedError object
+        Construct a PhasePerturbedError object
 
         :param theta_pert: the perturbation added to the theta angle
         :type theta_pert: float
@@ -703,7 +751,7 @@ class SigmaXPerturbedError(OneQubitGateReplacement):
 
     def __init__(self, theta_pert, phi_pert, lam_pert):
         """
-        Construct a HadamardPerturbedError object
+        Construct a SigmaXPerturbedError object
 
         :param theta_pert: the perturbation added to the theta angle
         :type theta_pert: float
@@ -739,6 +787,14 @@ class PhotonLoss(AdditionNoiseBase):
     """
 
     def __init__(self, loss_rate):
+        """
+        Construct a PhotonLoss object
+
+        :param loss_rate: the probability that a photon is lost while undergoing this gate
+        :type loss_rate: float
+        :return: nothing
+        :rtype: None
+        """
         noise_parameters = {"loss rate": loss_rate}
         super().__init__(noise_parameters)
 
@@ -803,6 +859,8 @@ class MixedUnitaryError(AdditionNoiseBase):
         :type unitaries_list: list[numpy.ndarray]
         :param prob_list: the corresponding probability distribution for the unitaries
         :type prob_list: list[float]
+        :return: nothing
+        :rtype: None
         """
         noise_parameters = {"Unitaries": unitaries_list, "Probabilities": prob_list}
         super().__init__(noise_parameters)
@@ -826,7 +884,7 @@ class MixedUnitaryError(AdditionNoiseBase):
             raise NotImplementedError(
                 "MixedUnitary not implemented for DensityMatrix representation"
             )
-        elif isinstance(state_rep, Stabilizer):
+        elif isinstance(state_rep, (Stabilizer, MixedStabilizer)):
             # TODO: Find the correct representation for Stabilizer backend
             raise NotImplementedError(
                 "MixedUnitary not implemented for Stabilizer representation"
@@ -852,7 +910,7 @@ class CoherentUnitaryError(AdditionNoiseBase):
         Construct a coherent unitary error described by a single unitary
 
         :param unitary: a unitary that specified the error
-        :type unitary: numpy.nadrray or str
+        :type unitary: numpy.ndarray or str
         :return: nothing
         :rtype: None
         """
@@ -878,7 +936,7 @@ class CoherentUnitaryError(AdditionNoiseBase):
             raise NotImplementedError(
                 "CoherentUnitaryError not implemented for density matrix representation"
             )
-        elif isinstance(state_rep, Stabilizer):
+        elif isinstance(state_rep, (Stabilizer, MixedStabilizer)):
             # TODO: Find the correct representation for Stabilizer backend
             raise NotImplementedError(
                 "CoherentUnitaryError not implemented for stabilizer representation"
@@ -894,7 +952,7 @@ class CoherentUnitaryError(AdditionNoiseBase):
 
 class MeasurementError(NoiseBase):
     """
-    a measurement error described by a conditional probability distribution
+    A measurement error described by a conditional probability distribution
 
      # TODO: implement this error model
     """
@@ -931,7 +989,7 @@ class MeasurementError(NoiseBase):
             raise NotImplementedError(
                 "MeasurementError not implemented for density matrix representation"
             )
-        elif isinstance(state_rep, Stabilizer):
+        elif isinstance(state_rep, (Stabilizer, MixedStabilizer)):
             # TODO: Find the correct representation for Stabilizer backend
             raise NotImplementedError(
                 "MeasurementError not implemented for stabilizer representation"
@@ -951,7 +1009,8 @@ class GeneralKrausError(AdditionNoiseBase):
 
     This error may only work for the DensityMatrix backend.
 
-    # TODO: Implement this noise model by figuring out how to pass parameters
+    The stored operators are single-qubit; each is applied independently on
+    every register in ``reg_list``.
     """
 
     def __init__(self, kraus_ops):
@@ -977,12 +1036,25 @@ class GeneralKrausError(AdditionNoiseBase):
         :param reg_list: a list of registers where non-identity gates are applied
         :type reg_list: list[int]
         :return: nothing
+        :rtype: None
         """
         state_rep = state.rep_data
         if isinstance(state_rep, DensityMatrix):
-            kraus_ops = self.get_backend_dependent_noise(state_rep, n_quantum, reg_list)
+            single_qubit_kraus = self.noise_parameters["Kraus"]
+            for kraus_op in single_qubit_kraus:
+                if np.array(kraus_op).shape != (2, 2):
+                    raise ValueError(
+                        "GeneralKrausError only supports single-qubit Kraus "
+                        "operators (shape (2, 2)), applied independently on "
+                        "every register in reg_list."
+                    )
+            kraus_ops_iter = itertools.product(single_qubit_kraus, repeat=len(reg_list))
+            kraus_ops = [
+                dmf.get_multi_qubit_gate(n_quantum, reg_list, kraus_op)
+                for kraus_op in kraus_ops_iter
+            ]
             state_rep.apply_channel(kraus_ops)
-        elif isinstance(state_rep, Stabilizer):
+        elif isinstance(state_rep, (Stabilizer, MixedStabilizer)):
             raise NotImplementedError(
                 "GeneralKrausError not implemented (and not compatible) for stabilizer representation"
             )
@@ -1001,7 +1073,16 @@ class ResetError(NoiseBase):
     # TODO: implement this error model
     """
 
-    def __init__(self, noise_parameters={}):
+    def __init__(self, noise_parameters=None):
+        """
+        Construct a ResetError object
+
+        :param noise_parameters: a dictionary of parameters to describe the noise model, or None for an empty
+            dictionary
+        :type noise_parameters: dict or None
+        :return: nothing
+        :rtype: None
+        """
         super().__init__(noise_parameters)
 
     def apply(self, state: QuantumState, n_quantum, reg_list):
@@ -1023,7 +1104,7 @@ class ResetError(NoiseBase):
             raise NotImplementedError(
                 "ResetError not implemented for density matrix representation"
             )
-        elif isinstance(state_rep, Stabilizer):
+        elif isinstance(state_rep, (Stabilizer, MixedStabilizer)):
             # TODO: Find the correct representation for Stabilizer backend
             raise NotImplementedError(
                 "ResetError not implemented for stabilizer representation"

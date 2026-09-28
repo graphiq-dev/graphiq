@@ -12,6 +12,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""
+Plots a density matrix's real and imaginary parts side by side, either as 2D heatmaps or as 3D bar plots.
+"""
+
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
@@ -26,15 +30,17 @@ def density_matrix_heatmap(rho, axs=None):
 
     :param rho: a complex numpy array representing the density matrix
     :type rho: numpy.ndarray
-    :param axs: axis to plot on
-    :type axs: plt.Axis
-    :return: fig (figure handle), axs (list of axes handles)
-    :rtype: matplotlib.Figure, matplotlib.Axes
+    :param axs: two axes to plot on, the real part on axs[0] and the imaginary part on axs[1] (optional);
+        when given, the returned figure is axs[0]'s root figure
+    :type axs: sequence of two matplotlib.Axes
+    :return: fig (figure handle), axs (the axes plotted on)
+    :rtype: matplotlib.Figure, sequence of two matplotlib.Axes
     """
     if axs is None:
         fig, axs = plt.subplots(nrows=1, ncols=2, figsize=[10, 4])
     else:
-        fig = None
+        # axs[0].figure is a SubFigure when the axes sit in one; its .figure is the root Figure.
+        fig = axs[0].figure.figure
 
     kwargs = dict(vmin=-1, vmax=1, cmap=cmap_div, linewidths=0.5, square=True)
     axs[0].set(title="Real")
@@ -53,7 +59,7 @@ def density_matrix_bars(rho):
     :param rho: a complex numpy array representing the density matrix
     :type rho: numpy.ndarray
     :return: fig (figure handle), axs (list of axes handles)
-    :rtype: matplotlib.Figure, matplotlib.Axes
+    :rtype: matplotlib.Figure, list[matplotlib.Axes]
     """
 
     def bar_plot(deltaz, ax):
@@ -82,7 +88,8 @@ def density_matrix_bars(rho):
         deltaz = deltaz.flatten()
 
         colors = cmap_div(
-            deltaz.ravel() * 0.8, alpha=1 - 0.5 * (np.abs(deltaz.ravel()) / max_height)
+            0.5 + 0.5 * deltaz.ravel() / max_height,
+            alpha=1 - 0.5 * (np.abs(deltaz.ravel()) / max_height),
         )
         ax.bar3d(x, y, z, dx, dy, deltaz, color=colors)
         ax.set(zlim=zlim)

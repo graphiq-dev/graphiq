@@ -30,6 +30,24 @@ from graphiq.visualizers.density_matrix import (
     density_matrix_bars,
 )
 
+# the backend is double precision; the tolerance below assumes it
+_PROB_EPS = numpy.finfo(numpy.float64).eps
+
+
+def _forced_measurement_tolerance(shape0, raw_probs):
+    """
+    The resolution floor below which a measured probability is rounding error left by the
+    arithmetic that built the state, rather than a reachable outcome
+
+    :param shape0: the density matrix's first dimension
+    :type shape0: int
+    :param raw_probs: the unclamped probability of each outcome, Tr(rho m)
+    :type raw_probs: numpy.ndarray
+    :return: the tolerance
+    :rtype: float
+    """
+    return shape0 * _PROB_EPS * np.sum(np.abs(raw_probs))
+
 
 class DensityMatrix(StateRepresentationBase):
     """
@@ -82,7 +100,26 @@ class DensityMatrix(StateRepresentationBase):
 
     @classmethod
     def valid_datatype(cls, data):
+        """
+        Whether data is an accepted input for this representation
+
+        :param data: the candidate data
+        :type data: any
+        :return: True if data is an int or a numpy.ndarray
+        :rtype: bool
+        """
         return isinstance(data, (int, np.ndarray))
+
+    @property
+    def n_qubits(self):
+        """
+        Number of qubits represented by this density matrix, derived from
+        the matrix dimension, assuming qubits (dimension 2 per subsystem)
+
+        :return: the number of qubits
+        :rtype: int
+        """
+        return int(np.log2(self.data.shape[0]))
 
     @property
     def trace(self):
@@ -152,37 +189,42 @@ class DensityMatrix(StateRepresentationBase):
         """
         Apply a measurement, either deterministically (with a certain outcome) or probabilistically
 
+        The post-measurement state keeps the pre-measurement trace, so a subnormalised state (photon loss)
+        stays subnormalised. A trace within 1e-12 of 1 counts as 1, so a loss below 1e-12 is not kept.
+
         :param projectors: a list of projective measurements in the computational basis
         :type projectors: list[numpy.ndarray]
         :param measurement_determinism: if "probabilistic", measurement results are probabilistically selected
-                                    if 1, measurement results default to 1 unless the probability of measuring p(1) = 0
-                                    if 0, measurement results default to 0 unless the probability of measuring p(0) = 0
+                                    if 1, measurement results default to 1 unless p(1) is at or below the
+                                    numerical noise floor
+                                    if 0, measurement results default to 0 unless p(0) is at or below the
+                                    numerical noise floor
+                                    In modes 0 and 1, a forced outcome the state does not allow returns
+                                    the other outcome
         :type measurement_determinism: str/int
+        :raises ValueError: if the density matrix of the state has a different size from the POVM elements,
+            or if measurement_determinism is not "probabilistic", 0, or 1
         :return: the measurement outcome
         :rtype: int
         """
 
         if self._data.shape == projectors[0].shape:
-            probs = []
-            for m in projectors:
-                prob = np.real(np.trace(self._data @ m))
-                if prob < 0:
-                    prob = 0
-                probs.append(prob)
-            probs = np.array(probs)
+            trace = np.real(np.trace(self._data))
+            raw_probs = np.array(
+                [np.real(np.trace(self._data @ m)) for m in projectors]
+            )
+            # the error on a diagonal entry is O(eps * trace), accumulated across the
+            # matrix width, so the floor scales with the total, not with probs[i]; at
+            # or below it a probability counts as 0, and so does any negative value,
+            # as before
+            tol = _forced_measurement_tolerance(self._data.shape[0], raw_probs)
+            probs = np.array([prob if prob > tol else 0.0 for prob in raw_probs])
             if measurement_determinism == "probabilistic":
                 outcome = numpy.random.choice([0, 1], p=probs / np.sum(probs))
             elif measurement_determinism == 1:
-                if probs[1] > 0:
-                    outcome = 1
-                else:
-                    outcome = 0
-
+                outcome = 1 if probs[1] > tol else 0
             elif measurement_determinism == 0:
-                if probs[1] < 1:
-                    outcome = 0
-                else:
-                    outcome = 1
+                outcome = 0 if probs[0] > tol else 1
             else:
                 raise ValueError(
                     f'measurement_determinism parameter must be "probabilistic", 0, or 1'
@@ -192,6 +234,11 @@ class DensityMatrix(StateRepresentationBase):
 
             # this assumes that the projector, m, has the properties: m = sqrt(m) and m = m.dag()
             self._data = (m @ self._data @ np.transpose(np.conjugate(m))) / norm
+            # divide by probs[outcome] / trace instead, the outcome's probability
+            # relative to the state's trace, so photon loss is not renormalised
+            # away; a trace of 1 up to rounding drift keeps the old result exactly
+            if abs(trace - 1.0) > 1e-12:
+                self._data = self._data * trace
 
         else:
             raise ValueError(
@@ -211,9 +258,15 @@ class DensityMatrix(StateRepresentationBase):
         :param target_gate: the gate to be applied if the measurement outcome is 1
         :type target_gate: numpy.ndarray
         :param measurement_determinism: if "probabilistic", measurement results are probabilistically selected
-                                    if 1, measurement results default to 1 unless the probability of measuring p(1) = 0
-                                    if 0, measurement results default to 0 unless the probability of measuring p(0) = 0
+                                    if 1, measurement results default to 1 unless p(1) is at or below the
+                                    numerical noise floor
+                                    if 0, measurement results default to 0 unless p(0) is at or below the
+                                    numerical noise floor
+                                    In modes 0 and 1, a forced outcome the state does not allow returns
+                                    the other outcome
         :type measurement_determinism: str/int
+        :raises ValueError: if the density matrix of the state has a different size from the POVM elements,
+            or if measurement_determinism is not "probabilistic", 0, or 1
         :raises AssertionError: if target_gate has different dimensions from the density matrix of the state
         :return: the measurement outcome
         :rtype: int
@@ -235,8 +288,8 @@ class DensityMatrix(StateRepresentationBase):
                     if the space is :math:`A \\times B \\times C \\times D`,
                     dims = [dim_A, dim_B, dim_C, dim_D]
         :type dims: list OR numpy.ndarray
-        :return:
-        :rtype:
+        :return: nothing
+        :rtype: None
         """
         self.data = dmf.partial_trace(self.data, keep, dims)
 
@@ -270,7 +323,13 @@ class DensityMatrix(StateRepresentationBase):
 
         :param other: another DensityMatrix object
         :type other: DensityMatrix
-        :return: True if they are equal; False otherwise
-        :rtype: bool
+        :return: True if they are equal; False otherwise (including when their
+            sizes differ); NotImplemented if other is not a DensityMatrix
+        :rtype: bool or NotImplementedType
         """
+        if not isinstance(other, DensityMatrix):
+            return NotImplemented
+        # np.allclose would broadcast e.g. a (1, 1) matrix against a (2, 2) one
+        if self._data.shape != other.data.shape:
+            return False
         return np.allclose(self._data, other.data)

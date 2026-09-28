@@ -212,6 +212,54 @@ def test_circuit_is_isomorphic_8():
     assert not circuit_is_isomorphic(circuit_1, circuit_2)
 
 
+def _classical_pair_circuit(op_class, control, target):
+    # e0 gets a Hadamard first, so e0 and e1 are distinguishable up to relabelling
+    circuit = CircuitDAG(n_emitter=2, n_photon=0, n_classical=1)
+    circuit.add(Hadamard(register=0, reg_type="e"))
+    circuit.add(
+        op_class(
+            control=control,
+            control_type="e",
+            target=target,
+            target_type="e",
+            c_register=0,
+        )
+    )
+    return circuit
+
+
+@pytest.mark.parametrize(
+    "op_class", [ClassicalCNOT, ClassicalCZ, MeasurementCNOTandReset]
+)
+def test_circuit_is_isomorphic_distinguishes_classical_pair_op_roles(op_class):
+    # the control is measured and the target is acted on, so swapping them
+    # gives a different circuit
+    circuit_1 = _classical_pair_circuit(op_class, control=0, target=1)
+    circuit_2 = _classical_pair_circuit(op_class, control=1, target=0)
+
+    assert not circuit_is_isomorphic(circuit_1, circuit_2)
+
+
+@pytest.mark.parametrize(
+    "op_class", [ClassicalCNOT, ClassicalCZ, MeasurementCNOTandReset]
+)
+def test_circuit_is_isomorphic_classical_pair_op_under_register_relabelling(
+    op_class,
+):
+    circuit = _classical_pair_circuit(op_class, control=0, target=1)
+    assert circuit_is_isomorphic(
+        circuit, _classical_pair_circuit(op_class, control=0, target=1)
+    )
+
+    # the same circuit with e0 and e1 exchanged
+    relabelled = CircuitDAG(n_emitter=2, n_photon=0, n_classical=1)
+    relabelled.add(Hadamard(register=1, reg_type="e"))
+    relabelled.add(
+        op_class(control=1, control_type="e", target=0, target_type="e", c_register=0)
+    )
+    assert circuit_is_isomorphic(circuit, relabelled)
+
+
 # Test remove_redundant_circuits()
 def test_remove_redundant_circuits_1():
     circuit_1 = CircuitDAG(n_emitter=2, n_photon=1, n_classical=0)
@@ -233,6 +281,15 @@ def test_remove_redundant_circuits_1():
     new_list = remove_redundant_circuits(circuit_list)
 
     assert len(new_list) == 1
+
+
+def test_remove_redundant_circuits_keeps_classical_pair_ops_with_swapped_roles():
+    circuit_list = [
+        _classical_pair_circuit(ClassicalCNOT, control=0, target=1),
+        _classical_pair_circuit(ClassicalCNOT, control=1, target=0),
+    ]
+
+    assert len(remove_redundant_circuits(circuit_list)) == 2
 
 
 # Test outside the pipeline

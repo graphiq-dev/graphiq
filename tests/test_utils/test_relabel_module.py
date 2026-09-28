@@ -12,11 +12,22 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import math
+
+import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
 import pytest
 
+from graphiq.backends.lc_equivalence_check import local_comp_graph
+from graphiq.backends.stabilizer.functions.height import height_max
+from graphiq.benchmarks.graph_states import linear_cluster_state
 from graphiq.utils.relabel_module import *
+from graphiq.utils.relabel_module import (
+    _compare_graphs_visual,
+    _label_finder,
+    _partial_orbit,
+)
 
 
 def random_connected_graph(n, p, seed=None):
@@ -31,7 +42,7 @@ def random_connected_graph(n, p, seed=None):
 
 @pytest.mark.parametrize("n_node", [5, 6, 7, 8])
 def test_random_graph(n_node):
-    n_iso = np.math.factorial(n_node - 2)
+    n_iso = math.factorial(n_node - 2)
     for p in range(4, 7):
         found = []
         for i in range(3):
@@ -75,3 +86,228 @@ def test_emitter_sort():
                 for i in range(len(n_emit_list) - 1)
             )
             assert isinstance(sorted_list[0][0], np.ndarray)
+
+
+def _linear_cluster_adj(n):
+    return nx.to_numpy_array(linear_cluster_state(n).data)
+
+
+def _returns_on_first_batch(adj, n_iso, seed):
+    # iso_finder returns straight after its first batch of labellings when that
+    # batch already holds n_iso distinct graphs
+    labels = _label_finder(n_iso, adj.shape[0], seed=seed)
+    return len(automorph_check(adj, labels)) >= n_iso
+
+
+def _emitter_counts(adj_arr):
+    return [height_max(graph=nx.from_numpy_array(adj)) for adj in adj_arr]
+
+
+def _assert_maps_pair_with_matrices(adj, found):
+    assert isinstance(found, tuple)
+    adj_arr, maps = found
+    assert len(maps) == len(adj_arr)
+    g = nx.from_numpy_array(adj)
+    for new_adj, mapping in zip(adj_arr, maps):
+        new_g = nx.from_numpy_array(new_adj)
+        mapped_edges = {frozenset((mapping[u], mapping[v])) for u, v in g.edges}
+        assert mapped_edges == {frozenset(e) for e in new_g.edges}
+
+
+def test_sort_emit_and_label_map_apply_when_the_first_batch_is_enough():
+    adj = _linear_cluster_adj(6)
+    kwargs = dict(rel_inc_thresh=0.1, allow_exhaustive=False, sort_emit=True, seed=1)
+    assert _returns_on_first_batch(adj, 10, seed=1)
+
+    adj_arr = iso_finder(adj, 10, **kwargs)
+    n_emit = _emitter_counts(adj_arr)
+    assert n_emit == sorted(n_emit)
+    assert n_emit != _emitter_counts(
+        iso_finder(adj, 10, **{**kwargs, "sort_emit": False})
+    )
+
+    # the maps must pair with the sorted matrices, not the order they were found in
+    _assert_maps_pair_with_matrices(adj, iso_finder(adj, 10, label_map=True, **kwargs))
+
+
+def test_label_map_applies_when_the_first_batch_is_enough():
+    adj = _linear_cluster_adj(4)
+    assert _returns_on_first_batch(adj, 3, seed=1)
+
+    found = iso_finder(adj, 3, label_map=True, seed=1)
+
+    _assert_maps_pair_with_matrices(adj, found)
+    assert len(found[0]) == 3
+
+
+def test_label_map_has_one_map_per_returned_matrix_after_a_longer_search():
+    adj = _linear_cluster_adj(4)
+    assert not _returns_on_first_batch(adj, 5, seed=0)
+
+    found = iso_finder(adj, 5, sort_emit=False, label_map=True, seed=0)
+
+    _assert_maps_pair_with_matrices(adj, found)
+    assert len(found[0]) == 5
+
+
+def test_sort_emit_and_label_map_apply_at_the_high_symmetry_stop():
+    adj = nx.to_numpy_array(nx.cycle_graph(4))
+    with pytest.warns(UserWarning, match="high symmetry"):
+        found = iso_finder(
+            adj, 5, allow_exhaustive=False, sort_emit=True, label_map=True, seed=1
+        )
+
+    _assert_maps_pair_with_matrices(adj, found)
+    n_emit = _emitter_counts(found[0])
+    assert n_emit == sorted(n_emit)
+    assert len(set(n_emit)) > 1  # mixed counts, so the sort is actually exercised
+
+
+def test_compare_graphs_visual_draws_the_three_panels(monkeypatch):
+    monkeypatch.setattr(plt, "show", lambda: None)
+    g = nx.path_graph(4)
+    new_labels = [2, 0, 3, 1]
+    new_g = nx.relabel_nodes(g, dict(enumerate(new_labels)))
+    plt.close("all")
+    try:
+        _compare_graphs_visual(g, new_g, new_labels)
+        panels = [
+            plt.figure(n) for n in plt.get_fignums() if len(plt.figure(n).axes) == 3
+        ]
+        assert len(panels) == 1
+        assert all(ax.collections for ax in panels[0].axes)
+    finally:
+        plt.close("all")
+
+
+def test_compare_graphs_visual_rejects_repeated_labels(monkeypatch):
+    # relabel_nodes merges nodes that share a label, so the relabeled graph
+    # does not have exactly new_labels as its nodes
+    monkeypatch.setattr(plt, "show", lambda: None)
+    g = nx.path_graph(4)
+    new_labels = [0, 0, 1, 2]
+    new_g = nx.relabel_nodes(g, dict(enumerate(new_labels)))
+    try:
+        with pytest.raises(AssertionError):
+            _compare_graphs_visual(g, new_g, new_labels)
+    finally:
+        plt.close("all")
+
+
+def _edge_set(g):
+    return {frozenset(e) for e in g.edges}
+
+
+def _path_in_order(order, nodes=None):
+    # nodes are inserted in sorted order (or as given), then the edges run along order
+    g = nx.Graph()
+    g.add_nodes_from(sorted(order) if nodes is None else nodes)
+    g.add_edges_from(zip(order, order[1:]))
+    return g
+
+
+@pytest.mark.parametrize(
+    "order", [[1, 0, 2, 3], [0, 2, 1, 4, 3], [2, 0, 4, 1, 5, 3], [3, 6, 0, 5, 1, 4, 2]]
+)
+def test_linear_partial_orbit_follows_a_path_not_in_iteration_order(order):
+    g = _path_in_order(order)
+    orbit = linear_partial_orbit(g)
+    assert len(orbit) == len(_partial_orbit(len(g)))
+    assert _edge_set(orbit[0]) == _edge_set(g)
+    assert len({frozenset(_edge_set(h)) for h in orbit}) == len(orbit)
+    for i, a in enumerate(orbit):
+        for b in orbit[:i]:
+            assert not nx.is_isomorphic(a, b)
+
+
+@pytest.mark.parametrize(
+    "order", [[1, 0, 2, 3], [2, 0, 4, 1, 5, 3], [3, 6, 0, 5, 1, 4, 2]]
+)
+def test_linear_partial_orbit_matches_the_in_order_orbit_carried_along_the_path(order):
+    # the reference applies _partial_orbit's sequences to the path 0-1-...-(n-1) and
+    # carries the result onto the path walked from the end that comes first in
+    # iteration order
+    n = len(order)
+    reference = []
+    for lc_ops in _partial_orbit(n):
+        r = nx.path_graph(n)
+        for x in lc_ops:
+            r = local_comp_graph(r, x)
+        reference.append(r)
+    walk = order if order[0] < order[-1] else order[::-1]
+    orbit = linear_partial_orbit(_path_in_order(order))
+    assert [_edge_set(h) for h in orbit] == [
+        _edge_set(nx.relabel_nodes(r, dict(enumerate(walk)))) for r in reference
+    ]
+
+
+def test_linear_partial_orbit_labels_by_position_for_other_labels():
+    nodes = ["c", "a", "d", "b"]
+    # the path a-c-d-b runs through positions 1-0-2-3
+    g = _path_in_order(["a", "c", "d", "b"], nodes)
+    orbit = linear_partial_orbit(g)
+    assert list(orbit[0].nodes) == [0, 1, 2, 3]
+    assert _edge_set(orbit[0]) == _edge_set(
+        nx.relabel_nodes(g, {v: i for i, v in enumerate(nodes)})
+    )
+
+
+def test_linear_partial_orbit_in_order_path_is_unchanged():
+    orbit = linear_partial_orbit(nx.path_graph(5))
+    assert [sorted(tuple(sorted(e)) for e in h.edges) for h in orbit] == [
+        [(0, 1), (1, 2), (2, 3), (3, 4)],
+        [(0, 1), (0, 2), (1, 2), (2, 3), (3, 4)],
+        [(0, 2), (0, 3), (1, 2), (1, 3), (2, 3), (3, 4)],
+        [(0, 2), (0, 3), (1, 2), (1, 3), (3, 4)],
+        [(0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (3, 4)],
+        [(0, 1), (0, 2), (0, 3), (2, 3), (3, 4)],
+    ]
+
+
+def test_linear_partial_orbit_rejects_a_path_plus_a_cycle():
+    # n - 1 edges and maximum degree 2, but not connected
+    g = nx.Graph([(0, 1), (1, 2), (2, 3), (4, 5), (5, 6), (6, 4)])
+    with pytest.raises(AssertionError, match="not a linear graph"):
+        linear_partial_orbit(g)
+
+
+@pytest.mark.parametrize("n_node", [3, 4, 5])
+@pytest.mark.parametrize("seed", range(5))
+def test_label_finder_returns_distinct_permutations_for_small_graphs(n_node, seed):
+    # below 8 nodes the permutations are drawn from all n_node! of them; asking for
+    # every one must return every one, with the identity first
+    n_label = math.factorial(n_node)
+    labels = _label_finder(n_label, n_node, seed=seed)
+    assert labels.shape == (n_label, n_node)
+    assert {tuple(label) for label in labels} == set(permutations(range(n_node)))
+    assert tuple(labels[0]) == tuple(range(n_node))
+
+
+@pytest.mark.parametrize("seed", range(10))
+def test_iso_finder_finds_every_labelling_of_a_four_node_path(seed):
+    # a path on 4 nodes has 4!/2 = 12 distinct labellings
+    adj = nx.to_numpy_array(nx.path_graph(4))
+    found = iso_finder(adj, 12, seed=seed)
+    assert len({tuple(a.astype(int).flatten()) for a in found}) == 12
+
+
+@pytest.mark.parametrize("n_node, n_label, seed", [(4, 5, 0), (5, 10, 4), (6, 20, 1)])
+def test_label_finder_keeps_a_draw_that_has_no_repeat(n_node, n_label, seed):
+    # a seeded draw without repeats gives the same permutations, in the same order, as
+    # drawing n_label - 1 of the non-identity permutations with replacement
+    perm = list(permutations(range(n_node)))
+    drawn = np.random.default_rng(seed).choice(perm[1:], n_label - 1)
+    assert len({tuple(d) for d in drawn}) == n_label - 1
+    expected = np.concatenate((np.array([perm[0]]), drawn), axis=0)
+    assert np.array_equal(_label_finder(n_label, n_node, seed=seed), expected)
+
+
+def test_label_finder_on_one_node_returns_the_identity():
+    assert _label_finder(1, 1, seed=0).tolist() == [[0]]
+
+
+def test_iso_finder_on_one_node_returns_the_graph():
+    adj = np.zeros((1, 1))
+    found = iso_finder(adj, 1, seed=0)
+    assert len(found) == 1
+    assert np.array_equal(found[0], adj)

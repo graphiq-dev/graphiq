@@ -12,6 +12,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""
+Base class (interface) that every circuit representation implements.
+"""
+
 import copy
 import random
 import warnings
@@ -62,6 +66,12 @@ class CircuitBase(ABC):
 
     @property
     def register(self):
+        """
+        The register dictionary of the circuit, keyed by register type
+
+        :return: a shallow copy of the register dictionary
+        :rtype: dict
+        """
         return self._registers.register
 
     @property
@@ -295,7 +305,7 @@ class CircuitBase(ABC):
         :return: the index number of the added register
         :rtype: int
         """
-        self._registers.add_register(reg_type, size)
+        return self._registers.add_register(reg_type, size)
 
     def expand_emitter_register(self, register, new_size):
         """
@@ -413,8 +423,17 @@ class CircuitBase(ABC):
     def parameters(self, parameters: dict):
         self._parameters = parameters
 
-        for op in self.sequence(unwrapped=True):
-            op.params = self._parameters.get(self.map[id(op)], tuple())
+        sequence = self.sequence(unwrapped=True)
+        # the map is built when parameters are initialised; ops added (or copied)
+        # since then are not in it, so rebuild it the way initialize_parameters does
+        # (a OneQubitGateWrapper's sub-gates are new objects on every unwrap, so a
+        # circuit with a wrapper rebuilds the map on every call)
+        if any(id(op) not in self._map for op in sequence):
+            self._map = self._fmap()
+        for op in sequence:
+            # a wrapper's sub-gates are new objects on every unwrap and are never in
+            # the map; they carry no parameters
+            op.params = self._parameters.get(self._map.get(id(op)), tuple())
 
     @property
     def fmap(self):
@@ -444,7 +463,12 @@ class CircuitBase(ABC):
         return self._map
 
     def _default_map(self):
-        """Default map, in which each op is mapped to itself (no parameter sharing, except for copied ops)"""
+        """
+        Default map, in which each op is mapped to itself (no parameter sharing, except for copied ops)
+
+        :return: a mapping from the id of each op in the unwrapped sequence to itself
+        :rtype: dict
+        """
         _map = {id(op): id(op) for op in self.sequence(unwrapped=True)}
         return _map
 

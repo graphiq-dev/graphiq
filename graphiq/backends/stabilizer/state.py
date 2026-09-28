@@ -26,7 +26,26 @@ from graphiq.backends.state_base import StateRepresentationBase
 
 
 class Stabilizer(StateRepresentationBase):
+    """
+    A pure state representation using the stabilizer formalism, backed by a single
+    CliffordTableau.
+
+    General unitaries are not supported; the state evolves by Clifford gates, Z and X
+    measurements, reset to |0>, and the qubit-removing operations (remove, trace out). For a
+    probability-weighted mixture of tableaus, see MixedStabilizer.
+    """
+
     def __init__(self, data, *args, **kwargs):
+        """
+        Create a Stabilizer representation object
+
+        :param data: the number of qubits to initialize in the all-zero state, or an existing
+            tableau to adopt (not copied)
+        :type data: int or CliffordTableau
+        :raises TypeError: if data is neither an int nor a CliffordTableau
+        :return: nothing
+        :rtype: None
+        """
         super().__init__(data, *args, **kwargs)
         if isinstance(data, int):
             self._tableau = CliffordTableau(data)
@@ -39,6 +58,14 @@ class Stabilizer(StateRepresentationBase):
 
     @classmethod
     def valid_datatype(cls, data):
+        """
+        Whether data is an accepted input for this representation
+
+        :param data: the candidate data
+        :type data: any
+        :return: True if data is an int or a CliffordTableau
+        :rtype: bool
+        """
         return isinstance(data, (int, CliffordTableau))
 
     @property
@@ -101,6 +128,17 @@ class Stabilizer(StateRepresentationBase):
         self.tableau = value
 
     def apply_unitary(self, qubit_position, unitary):
+        """
+        Not supported: the stabilizer formalism represents Clifford operations only.
+
+        :param qubit_position: the qubit the unitary would act on
+        :type qubit_position: int
+        :param unitary: the unitary that would be applied
+        :type unitary: numpy.ndarray
+        :raises NotImplementedError: always
+        :return: nothing
+        :rtype: None
+        """
         raise NotImplementedError(
             "Stabilizer backend does not support general unitary operation."
         )
@@ -146,7 +184,7 @@ class Stabilizer(StateRepresentationBase):
         self, qubit_position, measurement_determinism="probabilistic"
     ):
         """
-        Apply the measurement in the computational basis to a given qubit
+        Apply the measurement in the X basis to a given qubit
 
         :param qubit_position: the qubit position where the measurement is applied
         :type qubit_position: int
@@ -157,13 +195,7 @@ class Stabilizer(StateRepresentationBase):
         :return: the measurement outcome
         :rtype: int
         """
-        (
-            self._tableau,
-            outcome,
-            _,
-        ) = sfc.x_measurement_gate(
-            self._tableau, qubit_position, measurement_determinism
-        )
+        outcome = sfc.measure_x(self._tableau, qubit_position, measurement_determinism)
         return outcome
 
     def apply_hadamard(self, qubit_position):
@@ -307,9 +339,11 @@ class Stabilizer(StateRepresentationBase):
         :return: nothing
         :rtype: None
         """
+        # partial_trace takes the qubits to keep, not the ones to trace out
+        keep = [q for q in range(self.n_qubits) if q not in set(qubit_positions)]
         self._tableau = sfc.partial_trace(
             self._tableau,
-            keep=qubit_positions,
+            keep=keep,
             dims=self.n_qubits * [2],
             measurement_determinism=measurement_determinism,
         )
@@ -318,10 +352,10 @@ class Stabilizer(StateRepresentationBase):
         """
         Trace out qubits after disentangling them from the rest
 
-        :param keep:
+        :param keep: the qubit positions to be kept
         :type keep: list[int] or numpy.ndarray
-        :param dims:
-        :type dims:
+        :param dims: dimension of each subsystem
+        :type dims: list[int] or numpy.ndarray
         :return: nothing
         :rtype: None
         """
@@ -342,9 +376,12 @@ class Stabilizer(StateRepresentationBase):
 
         :param other: the other Stabilizer to be compared
         :type other: Stabilizer
-        :return: True if the stabilizer tableaux of two Stabilizer objects are the same
-        :rtype: bool
+        :return: True if the stabilizer tableaux of two Stabilizer objects are
+            the same; NotImplemented if other is not a Stabilizer
+        :rtype: bool or NotImplementedType
         """
+        if not isinstance(other, Stabilizer):
+            return NotImplemented
         tableau1 = canonical_form(self.data.to_stabilizer())
         tableau2 = canonical_form(other.data.to_stabilizer())
         return tableau1 == tableau2
@@ -357,6 +394,19 @@ class MixedStabilizer(StateRepresentationBase):
     """
 
     def __init__(self, data, *args, **kwargs):
+        """
+        Create a MixedStabilizer representation object
+
+        An int or a single tableau becomes a one-element mixture of probability 1.0.
+
+        :param data: the number of qubits to initialize in the all-zero state, a single tableau,
+            or a ready mixture as a list of (probability_i, tableau_i)
+        :type data: int or CliffordTableau or list[tuple]
+        :raises TypeError: if data is none of those
+        :raises AssertionError: if a list entry is not a (float, CliffordTableau) pair
+        :return: nothing
+        :rtype: None
+        """
         if isinstance(data, int):
             self._mixture = [
                 (1.0, CliffordTableau(data)),
@@ -378,6 +428,16 @@ class MixedStabilizer(StateRepresentationBase):
 
     @classmethod
     def valid_datatype(cls, data):
+        """
+        Whether data is an accepted input for this representation
+
+        A list is accepted only if every entry is a (float, CliffordTableau) pair.
+
+        :param data: the candidate data
+        :type data: any
+        :return: True if data is an int, a CliffordTableau, or such a list
+        :rtype: bool
+        """
         valid = isinstance(data, (int, CliffordTableau, list))
         if isinstance(data, list):
             valid = valid and all(
@@ -413,8 +473,11 @@ class MixedStabilizer(StateRepresentationBase):
 
         :param value: a new mixture list, pure tableau, or a parameter to initialize a new tableau
         :type value: list or int or CliffordTableau
-        :return: the mixture as a list of (probability_i, tableau_i)
-        :rtype: list
+        :raises AssertionError: if a list entry is not a (float, CliffordTableau) pair, or if the tableaux
+            do not all have the same number of qubits
+        :raises TypeError: if value is not a list, a CliffordTableau or an int
+        :return: nothing
+        :rtype: None
         """
         if isinstance(value, list):
             assert all(
@@ -452,8 +515,8 @@ class MixedStabilizer(StateRepresentationBase):
         """
         Set the data that represents the state given by the MixedStabilizer representation
 
-        :param value: a new tableau or a parameter to initialize a new tableau
-        :type value: CliffordTableau or int
+        :param value: a new mixture list, pure tableau, or a parameter to initialize a new tableau
+        :type value: list or CliffordTableau or int
         :return: nothing
         :rtype: None
         """
@@ -472,33 +535,121 @@ class MixedStabilizer(StateRepresentationBase):
 
     @property
     def tableau(self):
-        return TypeError(
+        """
+        A mixture has one tableau per branch, not one overall; read
+        :attr:`mixture` instead.
+
+        :raises TypeError: always
+        """
+        raise TypeError(
             "Simulating using a mixed state representation, no tableau defined."
         )
 
+    @staticmethod
+    def _state_key(tableau):
+        """
+        A hashable key identifying the STATE a branch's tableau represents,
+        as opposed to the raw tableau data.
+
+        Two CliffordTableau that represent the same state can differ in their
+        destabilizer rows (a free choice of completion) and in the order/linear
+        combination of their stabilizer generators, so raw data equality
+        (``CliffordTableau.__eq__``) is too strict for grouping branches of a
+        mixture. The key is instead built from the stabilizer half only, put
+        into canonical form, together with its phase -- phase is included
+        because two branches whose stabilizer groups agree up to canonical
+        form but differ in sign (e.g. |0> vs |1>) are physically distinct
+        states and must not be folded together.
+
+        ``canonical_form`` mutates the StabilizerTableau it is given in place,
+        and both halves of that tableau are views into the CliffordTableau
+        until ``StabilizerTableau.__init__`` copies them:
+        ``CliffordTableau.stabilizer`` is a view into the table, and
+        ``to_stabilizer`` slices the phase vector rather than copying it. Two
+        separate copies therefore stand between this and the branch being
+        reduced -- ``np.copy`` for the table, and ``phase.astype(int)`` for the
+        phase. The phase one is the easier to lose in a refactor and the more
+        damaging: ``tab_row_swap`` assigns ``tableau.phase = row_swap(...)``,
+        and ``row_swap`` mutates its argument in place before the setter runs,
+        so without that copy an ordinary canonical-form row swap would corrupt
+        the parent CliffordTableau's phase vector directly.
+
+        Internally, the row operations ``canonical_form`` performs discard
+        the i-phase of each row (only the +-1 phase is tracked). This is
+        harmless specifically inside canonical form reduction of a
+        stabilizer's own generators: since stabilizer generators mutually
+        commute, the sum of any two rows' g-function terms is always even, so
+        no residual factor of i is ever dropped on the floor.
+
+        Separately from that, the key ignores the CliffordTableau's whole
+        i-phase vector, destabilizer and stabilizer rows alike, because
+        ``to_stabilizer`` keeps only the +-1 phase and a StabilizerTableau has
+        no i-phase at all. ``reduce`` does not check the i-phase either, so a
+        branch with a non-zero i-phase is folded into the first branch of the
+        same state and disappears; the i-phase check made when converting to
+        a density matrix sees it only if it is the branch kept. No
+        correct gate produces such a tableau.
+
+        :param tableau: a branch's tableau
+        :type tableau: CliffordTableau
+        :return: a hashable key identifying the state
+        :rtype: tuple[bytes, bytes]
+        """
+        canonical = canonical_form(tableau.to_stabilizer())
+        table_bytes = np.ascontiguousarray(canonical.table.astype(np.int8)).tobytes()
+        phase_bytes = np.ascontiguousarray(canonical.phase.astype(np.int8)).tobytes()
+        return table_bytes, phase_bytes
+
     def reduce(self):
         """
-        Reduce the number of tableaux store in the mixture by comparing the Hamming distance between them.
-        Probabilities are summed and one tableau removed if they are the same.
+        Fold branches that represent the same state into a single entry,
+        summing their probabilities.
+
+        Branches are grouped by state identity (see ``_state_key``) rather
+        than by raw tableau equality, so two branches that reach the same
+        state by different routes -- e.g. different destabilizer completions,
+        or stabilizer generators produced in a different order -- fold
+        together even though ``CliffordTableau.__eq__`` would call them
+        unequal.
+
+        ``reduce`` itself costs more per call than a raw-equality scan, since
+        ``canonical_form`` is O(n^3) Python-level row operations paid once per
+        branch. The simulation as a whole is faster, because it merges
+        branches that raw equality misses (on a noisy compile at
+        n_emitters=3, a mixture of 64 branches reduces to 8), and every later
+        operation on the mixture iterates all of it.
 
         :return: nothing
         :rtype: None
         """
-        # TODO: explore other ways of reduction and further simplification using a standard form.
-        mixture_temp = self._mixture
-        mixture_reduce = []
-        while len(mixture_temp) != 0:
-            p0, t0 = mixture_temp[0]
-            mixture_temp.pop(0)
-            for i, (p_i, t_i) in enumerate(mixture_temp):
-                if np.count_nonzero(t0 != t_i) == 0:
-                    p0 += p_i
-                    mixture_temp.pop(i)
-
-            mixture_reduce.append((p0, t0))
-        self._mixture = mixture_reduce
+        # Grouping builds a new list rather than mutating in place: the
+        # mixture setter stores the caller's list by reference, so rewriting
+        # it here would change it out from under the caller. `order` records
+        # the first-seen order of the groups, which the result follows.
+        groups = {}
+        order = []
+        for p_i, t_i in self._mixture:
+            key = self._state_key(t_i)
+            if key in groups:
+                p0, t0 = groups[key]
+                groups[key] = (p0 + p_i, t0)
+            else:
+                groups[key] = (p_i, t_i)
+                order.append(key)
+        self._mixture = [groups[key] for key in order]
 
     def apply_unitary(self, qubit_position, unitary):
+        """
+        Not supported: the stabilizer formalism represents Clifford operations only.
+
+        :param qubit_position: the qubit the unitary would act on
+        :type qubit_position: int
+        :param unitary: the unitary that would be applied
+        :type unitary: numpy.ndarray
+        :raises NotImplementedError: always
+        :return: nothing
+        :rtype: None
+        """
         raise NotImplementedError(
             "Stabilizer backend does not support general unitary operation."
         )
@@ -507,10 +658,17 @@ class MixedStabilizer(StateRepresentationBase):
         """
         Apply a single-qubit gate, conditioned on a classical measurement outcome.
 
-        :param qubit_position: int
-        :param outcomes: list of measurement outcomes for each tableau in the mixture
-        :param gate: str, one of 'x', 'y', 'z', or 'h'
-        :return:
+        :param qubit_position: the qubit position where the gate is applied
+        :type qubit_position: int
+        :param outcomes: list of measurement outcomes for each tableau in the mixture; the gate is applied to
+            the tableaux whose outcome is 1
+        :type outcomes: list[int]
+        :param gate: one of 'x', 'y', 'z', or 'h'
+        :type gate: str
+        :raises AssertionError: if outcomes is not a list with one entry per tableau in the mixture
+        :raises NotImplementedError: if gate is not one of 'x', 'y', 'z', or 'h'
+        :return: nothing
+        :rtype: None
         """
         assert isinstance(outcomes, list)
         assert len(outcomes) == len(self._mixture)
@@ -724,13 +882,17 @@ class MixedStabilizer(StateRepresentationBase):
         :return: nothing
         :rtype: None
         """
+        # partial_trace takes the qubits to keep, not the ones to trace out.
+        # keep is computed once, before the comprehension, for every term.
+        n_qubits = self.n_qubits
+        keep = [q for q in range(n_qubits) if q not in set(qubit_positions)]
         self._mixture = [
             (
                 p_i,
                 sfc.partial_trace(
                     t_i,
-                    keep=qubit_positions,
-                    dims=self.n_qubits * [2],
+                    keep=keep,
+                    dims=n_qubits * [2],
                     measurement_determinism=measurement_determinism,
                 ),
             )
@@ -785,21 +947,26 @@ class MixedStabilizer(StateRepresentationBase):
 
         :param other: the other MixedStabilizer to be compared
         :type other: MixedStabilizer
-        :return: True if the stabilizer tableaux of two MixedStabilizer objects are the same
-        :rtype: bool
+        :return: True if the two mixtures have the same length and, after each is sorted by
+            probability, every pair of entries has the same probability (up to np.isclose) and
+            the same stabilizer tableau; NotImplemented if other is not a MixedStabilizer
+        :rtype: bool or NotImplementedType
         """
+        if not isinstance(other, MixedStabilizer):
+            return NotImplemented
         # Treat two objects the same if and only if they have the same probability distribution
         # and same set of tableaux with the same probability
         if len(self._mixture) != len(other.mixture):
             return False
-        # sort first
-        self.sort()
-        other.sort()
-        for i in range(len(self._mixture)):
-            if not np.isclose(self._mixture[i][0], other.mixture[i][0]):
+        # Compare sorted copies so the comparison does not reorder either
+        # object's mixture as a side effect.
+        mixture1 = sorted(self._mixture, key=lambda item: item[0], reverse=True)
+        mixture2 = sorted(other.mixture, key=lambda item: item[0], reverse=True)
+        for i in range(len(mixture1)):
+            if not np.isclose(mixture1[i][0], mixture2[i][0]):
                 return False
             else:
-                if self._mixture[i][1] != other.mixture[i][1]:
+                if mixture1[i][1] != mixture2[i][1]:
                     return False
 
         return True

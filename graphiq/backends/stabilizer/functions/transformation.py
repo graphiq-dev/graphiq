@@ -251,7 +251,7 @@ def run_circuit(tableau, circuit_list, reverse=False):
     :rtype: CliffordTableau or StabilizerTableau
     """
     if reverse:
-        circuit_list.reverse()
+        circuit_list = circuit_list[::-1]
     for ops in circuit_list:
         if ops[0] == "H":
             tableau = hadamard_gate(tableau, ops[1])

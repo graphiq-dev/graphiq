@@ -44,7 +44,7 @@ class HybridEvolutionarySolver(EvolutionarySolver):
         metric: MetricBase,
         compiler: CompilerBase,
         io: IO = None,
-        solver_setting=EvolutionarySolverSetting(),
+        solver_setting=None,
         noise_model_mapping=None,
         *args,
         **kwargs,
@@ -60,17 +60,13 @@ class HybridEvolutionarySolver(EvolutionarySolver):
         :type compiler: CompilerBase
         :param io: input/output object for saving logs, intermediate results, circuits, etc.
         :type io: IO
-        :param n_hof: the size of the hall of fame (hof)
-        :type n_hof: int
-        :param selection_active: use selection in the evolutionary algorithm
-        :type selection_active: bool
-        :param use_adapt_probability: use adapted probability in the evolutionary algorithm
-        :type use_adapt_probability: bool
-        :param save_openqasm: save population, hof, or both to openQASM strings (options: None, "hof", "pop", "both")
-        :type save_openqasm: str, None
+        :param solver_setting: the solver's settings; a fresh default is built when None
+        :type solver_setting: EvolutionarySolverSetting or None
         :param noise_model_mapping: a dictionary that associates each operation type to a noise model
-        :type noise_model_mapping: dict
+        :type noise_model_mapping: dict or None
         """
+        if solver_setting is None:
+            solver_setting = EvolutionarySolverSetting()
         if target.rep_type != "s":
             tmp_target = target.copy()
             tmp_target.convert_representation("s")
@@ -151,15 +147,24 @@ class HybridEvolutionarySolver(EvolutionarySolver):
         :return: an initial population
         :rtype: list
         """
+        # TimeReversedSolver converts its target to "s" in place, which would move a
+        # metric sharing a "dm" target onto its stabilizer arm, unable to score the
+        # non-graph-state density matrices this compiler produces during the search
+        target = self.target
+        if target.rep_type == "dm" and self.compiler.name == "dm":
+            target = target.copy()
+            target.convert_representation("s")
         deterministic_solver = TimeReversedSolver(
-            target=self.target,
+            target=target,
             metric=self.metric,
             compiler=self.compiler,
             noise_model_mapping=self.noise_model_mapping,
         )
         deterministic_solver.noise_simulation = False
         deterministic_solver.solve()
-        self.compiler.noise_simulation = True
+        # the deterministic solve set the shared compiler's flag to False; restore
+        # the one solve() chose from noise_model_mapping for the search
+        self.compiler.noise_simulation = self.noise_simulation
         _, ideal_circuit = deterministic_solver.result
         population = []
         for j in range(self.setting.n_pop):

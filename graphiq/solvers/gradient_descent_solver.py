@@ -37,6 +37,14 @@ class GradientDescentSolver(SolverBase):
     A solver class based on gradient descent algorithms.
     Requires the use of `jax` as the numerical backend.
     The optimizer routine is provided by the `optax` package.
+
+    Not supported in this version: setting `graphiq.DENSITY_MATRIX_ARRAY_LIBRARY` to `jax` after
+    `import graphiq` only lifts this class's own check; the density-matrix backend keeps numpy. With
+    `jax` selected (by editing `DENSITY_MATRIX_ARRAY_LIBRARY` in `graphiq/__init__.py`), no
+    density-matrix QuantumState can be built from a matrix (QuantumState rejects jax arrays and
+    DensityMatrix rejects numpy arrays), and the density-matrix arm of Infidelity cannot be
+    differentiated. With `jax` selected that way, GradientDescentSolver runs with states built from a
+    number of qubits and a jax-differentiable metric of the user's own.
     """
 
     name = "gradient-descent-solver"
@@ -92,7 +100,7 @@ class GradientDescentSolver(SolverBase):
 
     def solve(self, initial_params=None):
         """
-        Main gradient descent algorithm, performing `n_steps` updates with the provided optimizer.
+        Main gradient descent algorithm, performing `n_step` updates with the provided optimizer.
 
         :param initial_params: initial parameter dictionary
         :type initial_params: dict

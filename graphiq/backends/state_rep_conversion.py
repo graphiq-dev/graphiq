@@ -46,6 +46,8 @@ def density_to_graph(input_matrix, threshold=0.1, validate=True):
     Converts a density matrix state representation to a graph representation via an adjacency matrix.
     It assumes qubit systems.
 
+    A mixed input is decomposed spectrally, and each eigenvector is converted to a graph weighted by its eigenvalue.
+
     :param input_matrix: a density matrix to be converted to a graph
     :type input_matrix: numpy.ndarray
     :param threshold: a minimum threshold value of negativity for the state to assume entangled
@@ -53,7 +55,8 @@ def density_to_graph(input_matrix, threshold=0.1, validate=True):
     :param validate: validate the input density is a graph state if True
     :type validate: bool
     :raise AssertionError: if input_matrix is not a valid graph state when validate is True
-    :return: an adjacency matrix representation for a pure state or a list of adjacency matrices for a mixed state
+    :return: an adjacency matrix representation for a pure state or a list of (weight, adjacency matrix) pairs
+        for a mixed state
     :rtype: numpy.ndarray or list[(float, numpy.ndarray)]
     """
     if dmf.is_pure(input_matrix):
@@ -62,9 +65,11 @@ def density_to_graph(input_matrix, threshold=0.1, validate=True):
         # eigen-decomposition
         eigenvalues, eigenvectors = linalg.eigh(input_matrix)
         graph_adj = []
-        for i in range(len(eigenvectors)):
-            rho_i = eigenvectors[i] @ np.conjugate(eigenvectors[i].T)
-            graph_adj.append((eigenvalues, _density_to_graph_pure(rho_i, threshold)))
+        for i in range(len(eigenvalues)):
+            # eigh returns the eigenvectors as columns
+            v = eigenvectors[:, i]
+            rho_i = np.outer(v, np.conjugate(v))
+            graph_adj.append((eigenvalues[i], _density_to_graph_pure(rho_i, threshold)))
 
     if validate:
         assert np.allclose(
@@ -116,8 +121,8 @@ def graph_to_density(input_graph):
 
     :param input_graph: the graph from which we will build a density matrix
     :type input_graph: networkx.Graph or numpy.ndarray
-    :raise TypeError: if input_graph is not of the type of networkx.Graph or a graphiq.backends.graph.state.Graph
-        or an adjacency matrix given by a numpy array
+    :raise TypeError: if input_graph is not of the type of networkx.Graph, an adjacency matrix given by a numpy array,
+        or a list of (probability, graph) pairs
     :return: a density matrix as a numpy array
     :rtype: numpy.ndarray
     """
@@ -144,6 +149,7 @@ def _graph_to_density_pure(graph_data):
 
     :param graph_data: the graph from which we will build a density matrix
     :type graph_data: networkX.Graph or numpy.ndarray
+    :raises TypeError: if graph_data is neither a networkx.Graph nor a numpy.ndarray
     :return: a density matrix as a numpy array
     :rtype: numpy.ndarray
     """
@@ -176,7 +182,7 @@ def graph_to_stabilizer(input_graph):
     :type input_graph: networkX.Graph or numpy.ndarray
     :raise TypeError: if input_graph is not of the type of networkx.Graph or
             an adjacency matrix given by a numpy array or a list
-    :return: two binary matrices representing the stabilizer generators
+    :return: the stabilizer representation, as (probability, StabilizerTableau) pairs
     :rtype: list[(float, StabilizerTableau)]
     """
     if isinstance(input_graph, list):
@@ -197,8 +203,8 @@ def _graph_to_stabilizer_pure(input_graph):
     :param input_graph: the input graph to be converted to the stabilizer
     :type input_graph: networkX.Graph or numpy.ndarray
     :raise TypeError: if input_graph is not of the type of networkx.Graph or an adjacency matrix given by a numpy array
-    :return: two binary matrices representing the stabilizer generators
-    :rtype: numpy.ndarray, numpy.ndarray
+    :return: the stabilizer tableau
+    :rtype: StabilizerTableau
     """
     if isinstance(input_graph, nx.Graph):
         adj_matrix = nx.to_numpy_array(input_graph)
@@ -223,8 +229,9 @@ def stabilizer_to_graph(input_stabilizer, validate=True):
     :param validate: validate if input_stabilizer is a graph state when enabled
     :type validate: bool
     :raises AssertionError: if input stabilizer is not a graph state when validate is True
+    :raises ValueError: if input_stabilizer is neither a list nor a StabilizerTableau
     :return: a graph representation
-    :rtype: [(float, numpy.ndarray)]
+    :rtype: list[(float, networkx.Graph)]
     """
     graph_list = []
     if isinstance(input_stabilizer, list):
@@ -242,8 +249,20 @@ def stabilizer_to_graph(input_stabilizer, validate=True):
         )
 
     if validate:
+        # the same state has many generator sets, so compare canonical forms;
+        # canonical_form works in place, hence the copies
+        if isinstance(input_stabilizer, list):
+            input_canonical = [
+                (p_i, canonical_form(s_i.copy())) for p_i, s_i in input_stabilizer
+            ]
+        else:
+            input_canonical = canonical_form(input_stabilizer.copy())
+        graph_canonical = [
+            (p_i, canonical_form(s_i.copy()))
+            for p_i, s_i in graph_to_stabilizer(graph_list)
+        ]
         assert mixed_stabilizer_equivalency(
-            input_stabilizer, graph_to_stabilizer(graph_list)
+            input_canonical, graph_canonical
         ), "Input stabilizer is not a graph state."
 
     return graph_list
@@ -253,8 +272,16 @@ def stabilizer_to_density(input_stabilizer):
     """
     Convert a stabilizer to a density matrix
 
+    A list[str] input carries no signs: every generator is read with a +1 phase, and a sign character
+    such as "-" is rejected. Only a StabilizerTableau input keeps its phase vector.
+
     :param input_stabilizer: the stabilizer representation
-    :type input_stabilizer: list[(float, StabilizerTableau)] or StabilizerTableau
+    :type input_stabilizer: list[(float, StabilizerTableau)] or StabilizerTableau or list[str]
+    :raises ValueError: if input_stabilizer is a list[str] with a character other than I, X, Y, Z
+        (case-insensitive), with generators of inconsistent lengths, or whose number of generators differs from
+        the number of qubits
+    :raises ValueError: if input_stabilizer is a list whose first element is neither str nor tuple, or if it is
+        itself neither a list nor a StabilizerTableau
     :return: a density matrix
     :rtype: numpy.ndarray
     """
@@ -264,10 +291,14 @@ def stabilizer_to_density(input_stabilizer):
             stab = StabilizerTableau([x_matrix, z_matrix])
             return _stabilizer_to_density_pure(stab)
         elif isinstance(input_stabilizer[0], tuple):
-            rho = 0
+            # complex accumulator: a branch containing Y is complex, and adding
+            # it in place to a real array (from an earlier real branch) raises
+            n_qubits = input_stabilizer[0][1].n_qubits
+            rho = np.zeros((2**n_qubits, 2**n_qubits), dtype=complex)
 
             for p_i, tableau_i in input_stabilizer:
                 rho += p_i * _stabilizer_to_density_pure(tableau_i)
+            return rho
         else:
             raise ValueError(
                 "Invalid stabilizer input: use either StabilizerTableau or a mixed state representation."
@@ -291,10 +322,13 @@ def _stabilizer_to_density_pure(input_stabilizer):
     """
     n_qubits = input_stabilizer.n_qubits
     generator_string = input_stabilizer.to_labels()
-    rho = np.eye(2**n_qubits)
-    for generator in generator_string:
+    # to_labels() carries no sign, so read it from the phase vector
+    phase = input_stabilizer.phase
+    identity = np.eye(2**n_qubits)
+    rho = identity
+    for i, generator in enumerate(generator_string):
         stabilizer_elem = sfu.get_stabilizer_element_by_string(generator)
-        rho = np.matmul(rho, (stabilizer_elem + np.eye(2**n_qubits)) / 2)
+        rho = np.matmul(rho, (identity + (-1) ** int(phase[i]) * stabilizer_elem) / 2)
 
     return rho
 
@@ -305,22 +339,37 @@ def density_to_stabilizer(input_matrix):
 
     This works only for graph states, not for general stabilizer states that are not graph states
 
+    A mixed input is decomposed spectrally and each eigenvector with an eigenvalue above 1e-9 is
+    converted. This is guaranteed to succeed for a mixture of mutually orthogonal graph states
+    (with an all-zero phase vector) with distinct weights; the eigenvectors of any other mixture
+    generally are not such graph states, and it is then rejected.
+
     :param input_matrix: a density matrix
     :type input_matrix: numpy.ndarray
+    :raise AssertionError: if input_matrix, or an eigenvector of a mixed input, is not a graph state
     :return: a stabilizer representation
     :rtype: list[(float, StabilizerTableau)]
     """
     # first check if the state is pure
     if dmf.is_pure(input_matrix):
-        graph = _density_to_graph_pure(input_matrix)
+        # density_to_graph (rather than the unvalidated _density_to_graph_pure)
+        # so a state that isn't actually a graph state raises instead of
+        # silently producing the wrong stabilizer - see this function's
+        # docstring on the graph-state-only restriction
+        graph = density_to_graph(input_matrix)
         stabilizer = _graph_to_stabilizer_pure(graph)
         return [(1.0, stabilizer)]
     else:
         # eigen-decomposition
         eigenvalues, eigenvectors = linalg.eigh(input_matrix)
         stabilizer = []
-        for i in range(len(eigenvectors)):
-            rho_i = eigenvectors[i] @ np.conjugate(eigenvectors[i].T)
+        for i in range(len(eigenvalues)):
+            # a zero-weight eigenvector is an arbitrary null-space vector, not a
+            # graph state, and does not contribute to the mixture
+            if eigenvalues[i] <= 1e-9:
+                continue
+            v = eigenvectors[:, i]
+            rho_i = np.outer(v, np.conjugate(v))
             graph = density_to_graph(rho_i)
             tmp_stabilizer = graph_to_stabilizer(graph)
             stabilizer.append((eigenvalues[i], tmp_stabilizer[0][1]))
@@ -413,7 +462,7 @@ def state_to_graph(state):
         try:
             graph = nx.from_numpy_array(state)
             tab = get_stabilizer_tableau_from_graph(graph)
-            return graph, [], tab
+            return graph, tab, []
         except:
             raise ValueError(
                 "the input numpy array is not a valid adjacency matrix, try fixing it or using other valid input types"
@@ -452,22 +501,13 @@ def _position_finder(x_matrix):
     :return: list of qubit positions to apply the Hadamard on
     :rtype: list
     """
-    pivot = [0, 0]
-    n = x_matrix.shape[0]
-    pos_list = []
-    while pivot[0] < n and pivot[1] < n:
-        try:
-            if x_matrix[pivot[0] + 1, pivot[1]] == 1:
-                pivot = [pivot[0] + 1, pivot[1]]
-            if x_matrix[pivot[0] + 1, pivot[1] + 1] == 1:
-                pivot = [pivot[0] + 1, pivot[1] + 1]
-            else:
-                pivot = [pivot[0], pivot[1] + 1]
-                pos_list.append(pivot[1])
-        except:
-            break
-
-    return pos_list
+    n_row, n_column = x_matrix.shape
+    pivot_columns = set()
+    for row in range(n_row):
+        nonzero_cols = np.nonzero(x_matrix[row])[0]
+        if len(nonzero_cols):
+            pivot_columns.add(int(nonzero_cols[0]))
+    return [col for col in range(n_column) if col not in pivot_columns]
 
 
 def _graph_finder(x_matrix, z_matrix, get_ops_data=False):

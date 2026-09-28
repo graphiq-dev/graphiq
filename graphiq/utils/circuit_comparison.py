@@ -120,7 +120,8 @@ def ged_adaptive(circuit1, circuit2, threshold=30):
     :type circuit2: CircuitDAG
     :param threshold: threshold
     :type threshold: int
-    :return: exact/approximated GED between circuits(cost needed to transform self.dag to circuit_compare.dag)
+    :return: whether the (exact or approximate) GED between the two circuits is zero (exact when both have fewer than
+        threshold nodes)
     :rtype: bool
     """
 
@@ -249,7 +250,8 @@ def circuit_is_isomorphic(circuit1, circuit2):
 def _create_edge_control_target_attr(operation, reg_type, reg):
     """
     Helper function that return the correct control_target attribute for the edge, base on reg_type, reg, and operation.
-    If the operation is ControlledPairOperationBase return either 'c' or 't' else return None.
+    If the operation is a ControlledPairOperationBase or a ClassicalControlledPairOperationBase, return 'c' or 't'
+    for its control and target registers, else None.
 
     :param operation: operation
     :type operation: OperationBase
@@ -260,7 +262,9 @@ def _create_edge_control_target_attr(operation, reg_type, reg):
     :return: control_target attribute. Can be 'c', 't' or None
     :rtype: str or nothing
     """
-    if isinstance(operation, ControlledPairOperationBase):
+    if isinstance(
+        operation, (ControlledPairOperationBase, ClassicalControlledPairOperationBase)
+    ):
         if reg_type == operation.control_type and reg == operation.control:
             return "c"
         if reg_type == operation.target_type and reg == operation.target:
@@ -339,6 +343,17 @@ def remove_redundant_circuits(circuit_list):
 
 
 def check_redundant_circuit(circuit1, circuit2):
+    """
+    Check whether two circuits are redundant (the same) using the direct comparison method,
+    after unwrapping wrapped nodes and removing identity operations on copies of both.
+
+    :param circuit1: circuit that to be compared
+    :type circuit1: CircuitDAG
+    :param circuit2: circuit that to be compared
+    :type circuit2: CircuitDAG
+    :return: whether the two circuits are the same
+    :rtype: bool
+    """
     circuit1_copy = circuit1.copy()
     circuit2_copy = circuit2.copy()
 
@@ -357,6 +372,18 @@ class CircuitStorage:
     """
 
     def __init__(self, check_function=None, disable_circuit_comparison=False):
+        """
+        Construct a CircuitStorage.
+
+        :param check_function: function used to check whether a new circuit is redundant with
+            one already stored; defaults to check_redundant_circuit when not given
+        :type check_function: function or None
+        :param disable_circuit_comparison: if True, skip the redundancy check and always add
+            new circuits
+        :type disable_circuit_comparison: bool
+        :return: nothing
+        :rtype: None
+        """
         self.circuit_list = []
         self.disable_circuit_comparison = disable_circuit_comparison
 

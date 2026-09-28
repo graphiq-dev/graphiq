@@ -2,13 +2,10 @@ numpy~=1.24.4
 matplotlib~=3.7.5
 scipy~=1.10.1
 networkx~=3.1
-autograd
 pytest~=7.1.3
-genbadge
 coverage
 pandas~=1.5.0
 seaborn~=0.12.0
-defusedxml
 qiskit~=0.38.0
 pylatexenc
 ray[default]
@@ -17,5 +14,3 @@ psutil
 jax
 optax
 tqdm
-networkx
-matplotlib

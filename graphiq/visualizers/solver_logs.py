@@ -12,6 +12,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""
+Plots a solver's per-iteration logs (cost value and circuit depth) as a 2x2 grid of subplots.
+"""
+
 import matplotlib.pyplot as plt
 
 
@@ -21,7 +25,9 @@ def plot_solver_logs(logs: dict):
     solver iteration.
 
     :param logs: dictionary containing a log (pd.DataFrame) for population and hof
-    :return:
+    :type logs: dict
+    :return: fig (figure handle), axs (2x2 array of axes handles)
+    :rtype: matplotlib.Figure, numpy.ndarray
     """
     fig, axs = plt.subplots(nrows=2, ncols=2, sharey="row", sharex="col")
     colors = ["teal", "orange"]

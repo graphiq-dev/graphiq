@@ -19,6 +19,7 @@ import networkx as nx
 import numpy as np
 import graphiq.backends.stabilizer.functions.clifford as sfc
 import graphiq.backends.stabilizer.functions.metric as sfm
+import graphiq.backends.stabilizer.functions.stabilizer as sfs
 import graphiq.backends.stabilizer.functions.rep_conversion as conversion
 import graphiq.backends.stabilizer.functions.utils as sfu
 from graphiq.circuit import ops
@@ -31,6 +32,7 @@ from graphiq.backends.density_matrix.compiler import DensityMatrixCompiler
 from graphiq.backends.stabilizer.compiler import StabilizerCompiler
 from graphiq.backends.stabilizer.functions.stabilizer import rref
 from graphiq.backends.stabilizer.tableau import StabilizerTableau
+from graphiq.backends.state_rep_conversion import stabilizer_to_density
 from graphiq.metrics import Infidelity
 
 
@@ -86,8 +88,8 @@ def test_symplectic_product():
 def test_echelon_form(n_nodes):
     g1 = nx.complete_graph(n_nodes)
     g2 = nx.gnp_random_graph(n_nodes, 0.5)
-    r_vector1 = np.zeros([n_nodes, 1])
-    r_vector2 = np.zeros([n_nodes, 1])
+    r_vector1 = np.zeros(n_nodes)
+    r_vector2 = np.zeros(n_nodes)
     z1 = nx.to_numpy_array(g1).astype(int)
     z2 = nx.to_numpy_array(g2).astype(int)
     x1 = np.eye(n_nodes)
@@ -145,6 +147,13 @@ def test_echelon_form(n_nodes):
 def test_qubit_insertion():
     tableau = sfc.create_n_plus_state(4)
     tableau = sfc.insert_qubit(tableau, 1)
+    assert tableau == sfc.tensor(
+        [
+            sfc.create_n_plus_state(1),
+            sfc.create_n_ket0_state(1),
+            sfc.create_n_plus_state(3),
+        ]
+    )
 
 
 def test_qubit_insertion2():
@@ -156,12 +165,15 @@ def test_qubit_insertion2():
 def test_qubit_removal():
     tableau = sfc.create_n_plus_state(4)
     tableau = sfc.remove_qubit(tableau, 1)
+    # the measurement outcome is random, but every outcome leaves |+>^3
+    assert tableau == sfc.create_n_plus_state(3)
 
 
 def test_qubit_insertion_removal():
     tableau = sfc.create_n_plus_state(4)
     tableau = sfc.insert_qubit(tableau, 1)
-    sfc.remove_qubit(tableau, 1)
+    tableau = sfc.remove_qubit(tableau, 1)
+    assert tableau == sfc.create_n_plus_state(4)
 
 
 def test_stabilizer_inner_product():
@@ -198,16 +210,21 @@ def test_stabilizer_fidelity2():
     dag.draw_circuit()
     _, target_state = linear_cluster_3qubit_circuit()
     metric = Infidelity(target_state)
-    dm_compiler = DensityMatrixCompiler()
-    dm_compiler.measurement_determinism = 1
-    stab_compiler = StabilizerCompiler()
-    stab_compiler.measurement_determinism = 1
-    state1 = dm_compiler.compile(dag)
-    state1.partial_trace([*range(3)], 4 * [2])
-    print(metric.evaluate(state1, dag))
-    state2 = stab_compiler.compile(dag)
-    state2.partial_trace([*range(3)], 4 * [2])
-    print(metric.evaluate(state2, dag))
+    # the emitter measurement is random; both backends must agree on each outcome
+    for determinism, expected in ((0, 0.75), (1, 1.0)):
+        dm_compiler = DensityMatrixCompiler()
+        dm_compiler.measurement_determinism = determinism
+        stab_compiler = StabilizerCompiler()
+        stab_compiler.measurement_determinism = determinism
+        state1 = dm_compiler.compile(dag)
+        state1.partial_trace([*range(3)], 4 * [2])
+        infidelity1 = metric.evaluate(state1, dag)
+        state2 = stab_compiler.compile(dag)
+        state2.partial_trace([*range(3)], 4 * [2])
+        infidelity2 = metric.evaluate(state2, dag)
+        assert np.isclose(infidelity1, infidelity2)
+        # outcome 0 leaves the photons at infidelity 0.75, outcome 1 at 1.0
+        assert np.isclose(infidelity1, expected)
 
 
 def test_clifford_from_stabilizer():
@@ -216,3 +233,102 @@ def test_clifford_from_stabilizer():
     assert tableau1 == tableau2
     print(tableau1)
     print(tableau2)
+
+
+def _mixed_pauli_column():
+    # first column holds X, Y, Z and I, one per row
+    x_matrix = np.array([[1, 0, 0, 0], [1, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]])
+    z_matrix = np.array([[0, 0, 0, 0], [1, 0, 0, 0], [1, 0, 0, 0], [0, 0, 0, 0]])
+    return x_matrix, z_matrix
+
+
+@pytest.mark.parametrize(
+    "pauli_type, expected",
+    [("x", [0]), ("y", [1]), ("z", [2]), ("X", [0]), ("Y", [1]), ("Z", [2])],
+)
+def test_one_pauli_type_finder_selects_the_rows_of_that_type(pauli_type, expected):
+    x_matrix, z_matrix = _mixed_pauli_column()
+
+    assert sfs.one_pauli_type_finder(x_matrix, z_matrix, [0, 0], pauli_type) == expected
+
+
+@pytest.mark.parametrize("pauli_type", ["zz", "q", "i", "I", ""])
+def test_one_pauli_type_finder_rejects_a_non_pauli_type(pauli_type):
+    x_matrix, z_matrix = _mixed_pauli_column()
+
+    with pytest.raises(ValueError, match=repr(pauli_type)):
+        sfs.one_pauli_type_finder(x_matrix, z_matrix, [0, 0], pauli_type)
+
+
+def test_the_row_scanners_are_bounded_by_the_row_count():
+    # Four rows, two columns: a column-count bound stops after two rows and
+    # never sees the Z in row 2.
+    tall_x = np.array([[1, 0], [1, 0], [0, 0], [0, 0]])
+    tall_z = np.array([[0, 0], [1, 0], [1, 0], [0, 0]])
+
+    assert sfs.one_pauli_type_finder(tall_x, tall_z, [0, 0], "z") == [2]
+    assert sfs.pauli_type_finder(tall_x, tall_z, [0, 0]) == ([0], [1], [2])
+
+    # Two rows, four columns: a column-count bound indexes past the end.
+    wide_x = np.array([[1, 0, 0, 0], [0, 0, 0, 0]])
+    wide_z = np.array([[0, 0, 0, 0], [1, 0, 0, 0]])
+
+    assert sfs.one_pauli_type_finder(wide_x, wide_z, [0, 0], "x") == [0]
+    assert sfs.pauli_type_finder(wide_x, wide_z, [0, 0]) == ([0], [], [1])
+
+
+@pytest.mark.parametrize(
+    "shape", [(4, 2), (2, 4), (2,), (2, 2, 2)], ids=["tall", "wide", "1d", "3d"]
+)
+def test_stabilizer_tableau_rejects_a_non_square_pair(shape):
+    with pytest.raises(ValueError, match="square 2-D"):
+        StabilizerTableau([np.zeros(shape, dtype=int), np.zeros(shape, dtype=int)])
+
+
+def test_stabilizer_to_density_rejects_too_few_generators():
+    # two generators on three qubits used to give an (8, 8) matrix of trace 2
+    with pytest.raises(ValueError, match="square 2-D"):
+        stabilizer_to_density(["XZI", "ZXI"])
+
+
+def test_stabilizer_tableau_accepts_a_square_pair():
+    tableau = StabilizerTableau([np.eye(3, dtype=int), np.zeros((3, 3), dtype=int)])
+    assert tableau.n_qubits == 3
+    assert tableau.table.shape == (3, 6)
+
+
+def test_is_symplectic_on_a_clifford_tableau():
+    # a 2n x 2n Clifford table: P must be sized from the columns, not the rows
+    n = 3
+    assert sfu.is_symplectic(np.eye(2 * n, dtype=int))
+    table = np.eye(2 * n, dtype=int)
+    table[0, 1] = 1  # X_0 -> X_0 X_1, which anticommutes with Z_1: not symplectic
+    assert not sfu.is_symplectic(table)
+
+
+def test_binary_symplectic_product_of_different_row_counts():
+    stabilizer = np.hstack([np.zeros((2, 2), dtype=int), np.eye(2, dtype=int)])  # ZI, IZ
+    clifford = np.eye(4, dtype=int)  # XI, IX, ZI, IZ
+    product = sfu.binary_symplectic_product(stabilizer, clifford)
+    assert product.shape == (2, 4)
+    # Z_i anticommutes with X_i only
+    assert np.array_equal(product, np.array([[1, 0, 0, 0], [0, 1, 0, 0]]))
+    assert sfu.is_symplectic_self_orthogonal(stabilizer)
+
+
+@pytest.mark.parametrize(
+    "z_rows",
+    [
+        # one identity generator: Z0, Z1, I
+        [[1, 0, 0], [0, 1, 0], [0, 0, 0]],
+        # dependent generators: Z0, Z1, Z0Z1 reduces to Z0, Z1, I
+        [[1, 0, 0], [0, 1, 0], [1, 1, 0]],
+        # the only generator on one qubit is the identity
+        [[0]],
+    ],
+)
+def test_rref_rejects_a_generator_that_reduces_to_the_identity(z_rows):
+    z_matrix = np.array(z_rows)
+    tableau = StabilizerTableau([np.zeros_like(z_matrix), z_matrix])
+    with pytest.raises(AssertionError):
+        rref(tableau)

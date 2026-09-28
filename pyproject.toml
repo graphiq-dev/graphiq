@@ -2,15 +2,13 @@
 requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
-[tool.setuptools]
-py-modules = ["graphiq"]
-
 [tool.setuptools.packages.find]
 where = ["."]
+include = ["graphiq*"]
 
 [project]
 name = "graphiq"
-version = "0.1.1"
+version = "0.1.2"
 
 requires-python = ">3.8, <4"
 dependencies = [
@@ -25,6 +23,7 @@ dependencies = [
     "pandas",
     "psutil",
     "py-cpuinfo",
+    "requests",
 #    "qiskit",
     "qiskit ~= 0.38.0",
     "pylatexenc"
@@ -46,7 +45,7 @@ classifiers = [
   "Development Status :: 4 - Beta",
 
   # Indicate who your project is intended for
-  "Intended Audience :: Science/Research ",
+  "Intended Audience :: Science/Research",
   "Topic :: Scientific/Engineering :: Physics",
   "Topic :: Security :: Cryptography",
   "Topic :: Scientific/Engineering :: Information Analysis",

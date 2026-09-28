@@ -12,6 +12,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""
+Saving and loading of data, figures and dataframes, with consistent file types and folder naming.
+"""
+
 import datetime
 import json
 import os
@@ -44,11 +48,19 @@ class IO:
         io.load_txt(filename="filename.txt")
 
     or
-        io = IO.create_new_save_folder(folder="subfolder", include_date=True, include_uuid=True)
-        io.save_df(df, filename="dataframe.txt")
+        io = IO.new_directory(folder="subfolder", include_date=True, include_id=True)
+        io.save_dataframe(df, filename="dataframe.txt")
+
+    Without a path, IO and IO.new_directory save under IO.default_path, the folder
+    `data/` in the parent folder of the graphiq package. In a source checkout or an
+    editable install (pip install -e) that is the repository's `data/`; for a regular
+    install (pip install graphiq, or pip install . from a checkout) it is
+    `<site-packages>/data`. Pass path= to save somewhere else.
     """
 
-    # default save path always points to `data/` no matter where this repository is located
+    # default save path: `data/` in the parent folder of the graphiq package, i.e. the
+    # repository's `data/` in a source checkout or an editable install (pip install -e),
+    # and `<site-packages>/data` for a regular (non-editable) install
     default_path = pathlib.Path(__file__).parent.parent.joinpath("data")
 
     def __init__(self, path=None, verbose=True):
@@ -111,7 +123,7 @@ class IO:
             warnings.warn(
                 "No folder entered. Saving to a folder with a unique identifier"
             )
-            include_data, include_id, verbose = True, True, True
+            include_date, include_id, verbose = True, True, True
 
         # build the full folder name with date, time, and uuid, if selected
         _str = ""
@@ -267,12 +279,12 @@ class IO:
         :type filename: str
         :param complex_vals: True if we expect the numpy array to be complex, False otherwise
         :type complex_vals: bool
-        :return: the function returns nothing
-        :rtype: None
+        :return: the loaded numpy array
+        :rtype: numpy.ndarray
         """
         full_path = self.path.joinpath(filename)
         file = np.loadtxt(
-            str(full_path), dtype=np.complex if complex_vals else np.float
+            str(full_path), dtype=np.complex128 if complex_vals else np.float64
         )
         if self.verbose:
             print(f"{current_time()} | Loaded from {full_path} successfully.")
@@ -282,6 +294,13 @@ class IO:
     def _save_json(variable, path):
         """
         Helper method for saving to json files
+
+        :param variable: the object to save
+        :type variable: JSON-serializable object
+        :param path: path of the file to which variable should be saved
+        :type path: str or pathlib.Path
+        :return: the function returns nothing
+        :rtype: None
         """
         with open(path, "w+") as json_file:
             json.dump(variable, json_file, indent=4)
@@ -290,6 +309,11 @@ class IO:
     def _load_json(path):
         """
         Helper method for loading from json files
+
+        :param path: path of the file from which we are loading the object
+        :type path: str or pathlib.Path
+        :return: the object decoded from the file by json.load
+        :rtype: may vary
         """
         with open(path) as json_file:
             data = json.load(json_file)
@@ -299,6 +323,13 @@ class IO:
     def _save_txt(variable, path):
         """
         Helper method for saving to text files
+
+        :param variable: the text to save
+        :type variable: str
+        :param path: path of the file to which variable should be saved
+        :type path: str or pathlib.Path
+        :return: the function returns nothing
+        :rtype: None
         """
         with open(path, "w") as txt_file:
             txt_file.write(variable)
@@ -307,7 +338,12 @@ class IO:
     def _load_txt(path):
         """
         Helper method for loading from text files
+
+        :param path: path of the file from which we are loading the text
+        :type path: str or pathlib.Path
+        :return: the contents of the file
+        :rtype: str
         """
-        f = open(path, "r")
-        data = f.read()
+        with open(path, "r") as f:
+            data = f.read()
         return data

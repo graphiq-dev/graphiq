@@ -21,6 +21,7 @@ from graphiq.benchmarks.circuits import (
     linear_cluster_4qubit_circuit,
     ghz3_state_circuit,
 )
+import graphiq.circuit.ops as ops
 import graphiq.noise.noise_models as nm
 from graphiq.backends.density_matrix.compiler import DensityMatrixCompiler
 import graphiq.backends.density_matrix.functions as dmf
@@ -325,7 +326,7 @@ def linear3_noise_model_2():
     noise_model_mapping["ee"] = {"CNOT": nm.DepolarizingNoise(dp)}
     noise_model_mapping["ep"] = {
         "CNOT": nm.DepolarizingNoise(dp),
-        "MeasurementCNOTandRest": nm.DepolarizingNoise(dp),
+        "MeasurementCNOTandReset": nm.DepolarizingNoise(dp),
     }
     noise_model_mapping["p"] = {
         "Identity": nm.DepolarizingNoise(dp),
@@ -354,7 +355,7 @@ def linear4_noise_model():
     noise_model_mapping["ee"] = {"CNOT": nm.DepolarizingNoise(dp)}
     noise_model_mapping["ep"] = {
         "CNOT": nm.DepolarizingNoise(dp),
-        "MeasurementCNOTandRest": nm.DepolarizingNoise(dp),
+        "MeasurementCNOTandReset": nm.DepolarizingNoise(dp),
     }
     noise_model_mapping["p"] = {
         "Identity": nm.DepolarizingNoise(dp),
@@ -403,3 +404,41 @@ def ghz3_noise_model():
 @visualization
 def test_solver_ghz3_visualized(ghz3_run_no_noise, ghz3_run_noise, ghz3_expected):
     check_run_noise_visual(ghz3_run_no_noise, ghz3_run_noise, ghz3_expected)
+
+
+@pytest.mark.parametrize(
+    "noise_model_fixture_name",
+    [
+        "linear3_noise_model",
+        "linear3_noise_model_2",
+        "linear4_noise_model",
+        "ghz3_noise_model",
+    ],
+)
+def test_noise_model_fixture_keys_name_real_operations(
+    noise_model_fixture_name, request
+):
+    """Every key in a noise-model fixture (with an optional ``_control``/``_target``
+    suffix stripped) must name a real class in ``graphiq.circuit.ops``, or be the
+    literal ``"OneQubitGateWrapper"`` that ``SolverBase._wrap_noise`` reads. A
+    misspelled key silently matches nothing and the operation it was meant to name
+    keeps its default of no noise.
+    """
+    noise_model_mapping = request.getfixturevalue(noise_model_fixture_name)
+    op_names = {
+        name
+        for name, obj in vars(ops).items()
+        if isinstance(obj, type) and issubclass(obj, ops.OperationBase)
+    }
+
+    for register_type, mapping in noise_model_mapping.items():
+        for key in mapping:
+            base_key = key
+            for suffix in ("_control", "_target"):
+                if base_key.endswith(suffix):
+                    base_key = base_key[: -len(suffix)]
+                    break
+            assert base_key == "OneQubitGateWrapper" or base_key in op_names, (
+                f"{noise_model_fixture_name}[{register_type!r}] has key {key!r}, "
+                f"which names no class in graphiq.circuit.ops"
+            )

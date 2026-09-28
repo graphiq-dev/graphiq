@@ -12,6 +12,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""
+Graph-level metrics and local-complementation search helpers used to rank candidate graph
+states -- e.g. for greedy selection among the graphs reachable by local complementation.
+"""
+
+import heapq
+
 import networkx as nx
 import numpy as np
 
@@ -27,12 +34,13 @@ from graphiq.state import QuantumState
 
 def graph_circuit_depth(graph):
     """
-    Return max of depth of emitter registers.
+    Find a circuit that generates the graph state with TimeReversedSolver, and return the maximum depth of
+    its emitter registers.
 
-    :param graph:
-    :type graph:
-    :return:
-    :rtype:
+    :param graph: the graph representing the target graph state
+    :type graph: nx.Graph
+    :return: the maximum emitter register depth of the circuit
+    :rtype: int
     """
     target_tableau = get_clifford_tableau_from_graph(graph)
     target_state = QuantumState(target_tableau, rep_type="s")
@@ -49,12 +57,14 @@ def graph_circuit_depth(graph):
 
 def graph_max_eccentricity(graph):
     """
-    Return the maximum value of node eccentricity
+    Return the negated maximum value of node eccentricity, so that a lower value corresponds to a larger
+    eccentricity
 
-    :param graph:
-    :type graph:
-    :return:
-    :rtype:
+    :param graph: the graph to score
+    :type graph: nx.Graph
+    :raises ValueError: if the graph has no nodes
+    :return: the negative of the maximum node eccentricity
+    :rtype: int
     """
 
     node_eccentricity = nx.eccentricity(graph)
@@ -71,10 +81,11 @@ def graph_max_centrality(graph):
     """
     Return the maximum of node degree centrality
 
-    :param graph:
-    :type graph:
-    :return:
-    :rtype:
+    :param graph: the graph to score
+    :type graph: nx.Graph
+    :raises ValueError: if the graph has no nodes
+    :return: the maximum degree centrality over all nodes
+    :rtype: float
     """
     degree_centrality = nx.degree_centrality(graph)
     degree_centrality_list = degree_centrality.values()
@@ -88,11 +99,13 @@ def graph_max_centrality(graph):
 
 def graph_betweenness_centrality(graph):
     """
+    Return the maximum of node betweenness centrality
 
-    :param graph:
-    :type graph:
-    :return:
-    :rtype:
+    :param graph: the graph to score
+    :type graph: nx.Graph
+    :raises ValueError: if the graph has no nodes
+    :return: the maximum betweenness centrality over all nodes
+    :rtype: float
     """
     betweenness_centrality = nx.betweenness_centrality(graph)
     betweenness_centrality_list = betweenness_centrality.values()
@@ -106,11 +119,13 @@ def graph_betweenness_centrality(graph):
 
 def graph_closeness_centrality(graph):
     """
+    Return the maximum of node closeness centrality
 
-    :param graph:
-    :type graph:
-    :return:
-    :rtype:
+    :param graph: the graph to score
+    :type graph: nx.Graph
+    :raises ValueError: if the graph has no nodes
+    :return: the maximum closeness centrality over all nodes
+    :rtype: float
     """
     closeness_centrality = nx.closeness_centrality(graph)
     closeness_centrality_list = closeness_centrality.values()
@@ -124,43 +139,48 @@ def graph_closeness_centrality(graph):
 
 def _select_graphs(candidate_graphs, new_graph, limit, metric_value):
     """
-    Helper function to select graphs
+    Helper function to select graphs: add new_graph to the candidates and keep
+    the `limit` entries with the lowest metric value
 
-    :param candidate_graphs:
-    :type candidate_graphs:
-    :param new_graph:
-    :type new_graph:
-    :param limit:
-    :type limit:
-    :param metric_value:
-    :type metric_value:
-    :return:
-    :rtype:
+    :param candidate_graphs: the current candidates, as (metric value, graph) pairs
+    :type candidate_graphs: list[(float, networkx.Graph)]
+    :param new_graph: the graph to consider adding
+    :type new_graph: networkx.Graph
+    :param limit: the maximum number of candidates to keep
+    :type limit: int
+    :param metric_value: the metric value of new_graph
+    :type metric_value: float
+    :return: the updated candidates, sorted by ascending metric value
+    :rtype: list[(float, networkx.Graph)]
     """
-    if len(candidate_graphs) < limit:
-        candidate_graphs.append((metric_value, new_graph))
-    else:
-        for i in range(len(candidate_graphs)):
-            if metric_value < candidate_graphs[i][0]:
-                candidate_graphs.insert(i, (metric_value, new_graph))
-                candidate_graphs.pop()
-                break
-    return candidate_graphs
+    # keep the `limit` lowest-metric entries; the list was previously only
+    # sorted once full, so the best candidate could be evicted. key= avoids
+    # comparing the graphs themselves on ties.
+    return heapq.nsmallest(
+        limit,
+        candidate_graphs + [(metric_value, new_graph)],
+        key=lambda pair: pair[0],
+    )
 
 
 def get_lc_graph_by_max_edge(graph, n_graphs, graph_metric, n_trial=5):
     """
+    Search the local-complementation orbit of a graph: for n_trial rounds, locally complement each candidate
+    graph at every node with the maximum number of edges (degree), score each resulting graph with graph_metric,
+    and keep the n_graphs candidates with the lowest score.
 
-    :param graph:
-    :type graph:
-    :param n_graphs:
-    :type n_graphs:
-    :param graph_metric:
-    :type graph_metric:
-    :param n_trial:
-    :type n_trial:
-    :return:
-    :rtype:
+    :param graph: the graph to search from
+    :type graph: nx.Graph or numpy.ndarray
+    :param n_graphs: the maximum number of candidate graphs to keep
+    :type n_graphs: int
+    :param graph_metric: a function scoring a graph, called as graph_metric(graph)
+    :type graph_metric: function
+    :param n_trial: the number of local-complementation rounds; defaults to 5
+    :type n_trial: int
+    :raises TypeError: if the type of graph is not exactly nx.Graph or numpy.ndarray (subclasses such as
+        nx.DiGraph or nx.MultiGraph are rejected)
+    :return: at most n_graphs (score, graph) tuples, sorted by ascending score
+    :rtype: list[(float, nx.Graph)]
     """
     if type(graph) == np.ndarray:
         graph = nx.from_numpy_array(graph)
@@ -189,6 +209,14 @@ def get_lc_graph_by_max_edge(graph, n_graphs, graph_metric, n_trial=5):
 
 
 def _count_n_neighbor_edges(adj_matrix):
+    """
+    Count, for each node, the number of edges among that node's neighbors.
+
+    :param adj_matrix: adjacency matrix of the graph
+    :type adj_matrix: numpy.ndarray
+    :return: array giving, per node, the number of edges among its neighbors
+    :rtype: numpy.ndarray
+    """
     n_node = adj_matrix.shape[0]
     edges_count_list = np.zeros(n_node)
     for index in range(n_node):
@@ -199,6 +227,14 @@ def _count_n_neighbor_edges(adj_matrix):
 
 
 def _count_n_neighbor(adj_matrix):
+    """
+    Count, for each node, its number of neighbors (degree).
+
+    :param adj_matrix: adjacency matrix of the graph
+    :type adj_matrix: numpy.ndarray
+    :return: array giving, per node, its number of neighbors
+    :rtype: numpy.ndarray
+    """
     n_node = adj_matrix.shape[0]
     neighbor_count_list = np.zeros(n_node)
     for index in range(n_node):
@@ -209,17 +245,22 @@ def _count_n_neighbor(adj_matrix):
 
 def get_lc_graph_by_max_neighbor_edge(graph, n_graphs, graph_metric, n_trial=5):
     """
+    Search the local-complementation orbit of a graph: for n_trial rounds, locally complement each candidate
+    graph at every node whose neighbors have the maximum number of edges among themselves, score each resulting
+    graph with graph_metric, and keep the n_graphs candidates with the lowest score.
 
-    :param graph:
-    :type graph:
-    :param n_graphs:
-    :type n_graphs:
-    :param graph_metric:
-    :type graph_metric:
-    :param n_trial:
-    :type n_trial:
-    :return:
-    :rtype:
+    :param graph: the graph to search from
+    :type graph: nx.Graph or numpy.ndarray
+    :param n_graphs: the maximum number of candidate graphs to keep
+    :type n_graphs: int
+    :param graph_metric: a function scoring a graph, called as graph_metric(graph)
+    :type graph_metric: function
+    :param n_trial: the number of local-complementation rounds; defaults to 5
+    :type n_trial: int
+    :raises TypeError: if the type of graph is not exactly nx.Graph or numpy.ndarray (subclasses such as
+        nx.DiGraph or nx.MultiGraph are rejected)
+    :return: at most n_graphs (score, graph) tuples, sorted by ascending score
+    :rtype: list[(float, nx.Graph)]
     """
 
     if type(graph) == np.ndarray:

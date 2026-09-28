@@ -56,7 +56,9 @@ def t_graph(gtype, n, seed=None, show=False):
     if gtype == "draw":
         g = graph_gui()
     elif gtype == "tree":
-        g = nx.random_tree(n, seed=seed)
+        # nx.random_tree was removed in networkx 3.4 in favour of random_labeled_tree
+        random_tree = getattr(nx, "random_tree", None) or nx.random_labeled_tree
+        g = random_tree(n, seed=seed)
     elif gtype == "rnd":
         rng = np.random.default_rng(seed=seed)
         p = rng.integers(low=15, high=95, size=1)[0] / 100

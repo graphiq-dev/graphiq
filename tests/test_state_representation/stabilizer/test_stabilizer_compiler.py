@@ -18,8 +18,11 @@ from graphiq.circuit.circuit_dag import CircuitDAG
 import graphiq.backends.stabilizer.functions.stabilizer as sfs
 import graphiq.backends.state_rep_conversion as rc
 import graphiq.circuit.ops as ops
+from graphiq.backends.density_matrix.compiler import DensityMatrixCompiler
 from graphiq.backends.stabilizer.compiler import StabilizerCompiler
 from graphiq.backends.stabilizer.tableau import *
+from graphiq.backends.stabilizer.clifford_tableau import CliffordTableau
+from graphiq.state import QuantumState
 from graphiq.benchmarks.circuits import (
     linear_cluster_4qubit_circuit,
     linear_cluster_3qubit_circuit,
@@ -42,7 +45,7 @@ def test_linear_cluster_state(expected):
         dims=n_photons * [2],
     )
     tableau = output_stabilizer.tableau.to_stabilizer()
-    output_state = rc.stabilizer_to_density(tableau.to_labels())
+    output_state = rc.stabilizer_to_density(tableau)
 
     assert np.allclose(output_state, target_state.rep_data.data)
     output_tableau = sfs.canonical_form(tableau)
@@ -64,7 +67,7 @@ def test_ghz3():
         dims=n_photons * [2],
     )
     output_s_tableau = output_state.rep_data.tableau.to_stabilizer()
-    output_dm = rc.stabilizer_to_density(output_s_tableau.to_labels())
+    output_dm = rc.stabilizer_to_density(output_s_tableau)
     # use representation conversion module to convert to density matrix
     assert np.allclose(output_dm, target_state.rep_data.data)
 
@@ -86,10 +89,19 @@ def test_compile_circuit():
     )
     dag.validate()
     dag.draw_circuit()
-    compiler = StabilizerCompiler()
-    compiler.measurement_determinism = 1
-    output_stabilizer = compiler.compile(dag)
-    print(output_stabilizer.rep_data)
+    # the measurement is random: check each outcome against the DM backend
+    for determinism in (0, 1):
+        compiler = StabilizerCompiler()
+        compiler.measurement_determinism = determinism
+        output_stabilizer = compiler.compile(dag)
+        dm_compiler = DensityMatrixCompiler()
+        dm_compiler.measurement_determinism = determinism
+        assert np.allclose(
+            rc.stabilizer_to_density(
+                output_stabilizer.rep_data.tableau.to_stabilizer()
+            ),
+            dm_compiler.compile(dag).rep_data.data,
+        )
 
 
 def test_compile_circuit2():
@@ -108,7 +120,47 @@ def test_compile_circuit2():
     )
     dag.validate()
     dag.draw_circuit()
+    # the measurement is random: check each outcome against the DM backend
+    for determinism in (0, 1):
+        compiler = StabilizerCompiler()
+        compiler.measurement_determinism = determinism
+        output_stabilizer = compiler.compile(dag)
+        dm_compiler = DensityMatrixCompiler()
+        dm_compiler.measurement_determinism = determinism
+        assert np.allclose(
+            rc.stabilizer_to_density(
+                output_stabilizer.rep_data.tableau.to_stabilizer()
+            ),
+            dm_compiler.compile(dag).rep_data.data,
+        )
+
+
+def test_compile_leaves_the_initial_state_unchanged():
+    circuit = CircuitDAG(n_emitter=0, n_photon=2, n_classical=0)
+    circuit.add(ops.Hadamard(register=0, reg_type="p"))
+    initial_state = QuantumState(CliffordTableau(2), rep_type="s")
+    initial_tableau = initial_state.rep_data.data
+    before = initial_tableau.copy()
+
+    compiled_state = StabilizerCompiler().compile(circuit, initial_state=initial_state)
+
+    assert initial_state.rep_data.data == before
+    assert compiled_state.rep_data.data is not initial_tableau
+    assert compiled_state.rep_data.data != before
+
+
+def test_compile_leaves_a_mixed_initial_state_unchanged():
+    circuit = CircuitDAG(n_emitter=0, n_photon=2, n_classical=0)
+    circuit.add(ops.Hadamard(register=0, reg_type="p"))
+    initial_state = QuantumState(
+        [(0.5, CliffordTableau(2)), (0.5, CliffordTableau(2))], rep_type="s", mixed=True
+    )
+    before = [(p, tableau.copy()) for p, tableau in initial_state.rep_data.mixture]
     compiler = StabilizerCompiler()
-    compiler.measurement_determinism = 1
-    output_stabilizer = compiler.compile(dag)
-    print(output_stabilizer.rep_data)
+    # a noisy compile evolves a mixed stabilizer state
+    compiler.noise_simulation = True
+
+    compiled_state = compiler.compile(circuit, initial_state=initial_state)
+
+    assert initial_state.rep_data.mixture == before
+    assert compiled_state.rep_data.mixture != before

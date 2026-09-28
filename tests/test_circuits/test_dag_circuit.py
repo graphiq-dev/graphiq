@@ -14,6 +14,8 @@
 # limitations under the License.
 import random
 
+import matplotlib.pyplot as plt
+import numpy as np
 import pytest
 
 import graphiq.circuit.ops as ops
@@ -652,3 +654,250 @@ def test_circuit_comparison_8():
     match = circuit1.compare(circuit2)
     assert ged
     assert match
+
+
+def test_initialize_parameters_same_seed_gives_identical_parameter_values():
+    # Keys are id(op)-derived, so a fresh circuit's map compares unequal to another fresh
+    # circuit's map even with the same seed; comparing the parameter *values* is what actually
+    # checks reproducibility.
+    from graphiq.benchmarks.circuits import variational_entangling_layer_2qubit
+
+    circuit_a, _ = variational_entangling_layer_2qubit()
+    circuit_b, _ = variational_entangling_layer_2qubit()
+
+    parameters_a = circuit_a.initialize_parameters(seed=42)
+    parameters_b = circuit_b.initialize_parameters(seed=42)
+
+    assert list(parameters_a.values()) == list(parameters_b.values())
+
+
+def test_initialize_parameters_different_seed_gives_different_parameter_values():
+    from graphiq.benchmarks.circuits import variational_entangling_layer_2qubit
+
+    circuit_a, _ = variational_entangling_layer_2qubit()
+    circuit_b, _ = variational_entangling_layer_2qubit()
+
+    parameters_a = circuit_a.initialize_parameters(seed=42)
+    parameters_b = circuit_b.initialize_parameters(seed=43)
+
+    assert list(parameters_a.values()) != list(parameters_b.values())
+
+
+@pytest.mark.parametrize("gate", [ops.RX, ops.RY, ops.RZ])
+def test_initialize_parameters_samples_default_rotation_gate_bounds(gate):
+    circuit = CircuitDAG(n_emitter=1)
+    op = gate(register=0, reg_type="e")
+    circuit.add(op)
+
+    parameters = circuit.initialize_parameters(seed=0)
+
+    random.seed(0)
+    expected = [random.uniform(-np.pi, np.pi)]
+    assert list(parameters.values()) == [expected]
+    assert list(op.params) == expected
+
+
+@pytest.mark.parametrize("gate", [ops.RX, ops.RY, ops.RZ])
+def test_default_rotation_gate_param_info_is_accepted_back(gate):
+    assert ops.OperationBase._validate_param_info(gate().param_info, 1)
+    gate(param_info=gate().param_info)
+
+
+def test_initialize_parameters_draws_in_sequence_order_across_gate_kinds():
+    circuit = CircuitDAG(n_emitter=1)
+    gates = [
+        ops.ParameterizedOneQubitRotation(register=0, reg_type="e"),
+        ops.RX(register=0, reg_type="e"),
+        ops.ParameterizedOneQubitRotation(register=0, reg_type="e"),
+    ]
+    for op in gates:
+        circuit.add(op)
+
+    circuit.initialize_parameters(seed=7)
+
+    random.seed(7)
+    draws = [random.uniform(-np.pi, np.pi) for _ in range(7)]
+    assert [list(op.params) for op in gates] == [draws[0:3], draws[3:4], draws[4:7]]
+
+
+def test_initialize_parameters_of_the_variational_layer_is_unchanged():
+    from graphiq.benchmarks.circuits import variational_entangling_layer_2qubit
+
+    circuit, _ = variational_entangling_layer_2qubit()
+
+    parameters = circuit.initialize_parameters(seed=42)
+
+    assert list(parameters.values()) == [
+        [0.8760444114976647, -2.984445443853267, -1.4135324813693264],
+        [-1.7391182232484002, 1.48579245840624, 1.1102356231618007],
+    ]
+
+
+def _rotation(register=0):
+    return ops.ParameterizedOneQubitRotation(
+        register=register, reg_type="e", params=(0.0, 1.0, 1.0)
+    )
+
+
+def _shared_weight_fmap(circuit):
+    return lambda: {
+        id(op): op.__class__.__name__ for op in circuit.sequence(unwrapped=True)
+    }
+
+
+def test_parameters_setter_accepts_ops_added_after_construction():
+    circuit = CircuitDAG(n_emitter=1, n_photon=0, n_classical=0)
+    rotation = _rotation()
+    circuit.add(rotation)
+
+    circuit.parameters = {id(rotation): [0.1, 0.2, 0.3]}
+
+    assert rotation.params == [0.1, 0.2, 0.3]
+
+
+def test_parameters_setter_accepts_ops_added_after_initialize_parameters():
+    circuit = CircuitDAG(n_emitter=1, n_photon=0, n_classical=0)
+    rotation1 = _rotation()
+    circuit.add(rotation1)
+    circuit.initialize_parameters(seed=0)
+    rotation2 = _rotation()
+    circuit.add(rotation2)
+
+    circuit.parameters = {
+        id(rotation1): [0.1, 0.2, 0.3],
+        id(rotation2): [0.4, 0.5, 0.6],
+    }
+
+    assert rotation1.params == [0.1, 0.2, 0.3]
+    assert rotation2.params == [0.4, 0.5, 0.6]
+
+
+def test_parameters_setter_with_a_one_qubit_gate_wrapper():
+    circuit = CircuitDAG(n_emitter=1, n_photon=0, n_classical=0)
+    rotation = _rotation()
+    circuit.add(rotation)
+    circuit.add(
+        ops.OneQubitGateWrapper([ops.Hadamard, ops.Phase], register=0, reg_type="e")
+    )
+    circuit.initialize_parameters(seed=0)
+
+    circuit.parameters = {id(rotation): [0.1, 0.2, 0.3]}
+
+    assert rotation.params == [0.1, 0.2, 0.3]
+
+
+def test_parameters_setter_with_a_shared_weight_fmap():
+    circuit = CircuitDAG(n_emitter=2, n_photon=0, n_classical=0)
+    rotation0 = _rotation(0)
+    rotation1 = _rotation(1)
+    circuit.add(rotation0)
+    circuit.add(rotation1)
+    circuit.fmap = _shared_weight_fmap(circuit)
+
+    circuit.parameters = {"ParameterizedOneQubitRotation": [0.1, 0.2, 0.3]}
+
+    assert rotation0.params == [0.1, 0.2, 0.3]
+    assert rotation1.params == [0.1, 0.2, 0.3]
+
+
+def test_parameters_setter_keeps_the_map_built_by_initialize_parameters():
+    # when every op is already in the map, the setter uses it as it is, even
+    # if fmap was changed after the parameters were initialised
+    circuit = CircuitDAG(n_emitter=2, n_photon=0, n_classical=0)
+    rotation0 = _rotation(0)
+    rotation1 = _rotation(1)
+    circuit.add(rotation0)
+    circuit.add(rotation1)
+    circuit.initialize_parameters(seed=0)
+    circuit.fmap = _shared_weight_fmap(circuit)
+
+    circuit.parameters = {
+        id(rotation0): [0.1, 0.2, 0.3],
+        id(rotation1): [0.4, 0.5, 0.6],
+    }
+
+    assert rotation0.params == [0.1, 0.2, 0.3]
+    assert rotation1.params == [0.4, 0.5, 0.6]
+
+
+def test_parameters_setter_after_initialize_parameters_assigns_given_values():
+    from graphiq.benchmarks.circuits import variational_entangling_layer_2qubit
+
+    circuit, _ = variational_entangling_layer_2qubit()
+    initial = circuit.initialize_parameters(seed=42)
+    shifted = {key: [value + 1 for value in values] for key, values in initial.items()}
+
+    circuit.parameters = shifted
+
+    parameterized = [op for op in circuit.sequence(unwrapped=True) if op.params]
+    assert parameterized
+    for op in parameterized:
+        assert list(op.params) == shifted[circuit.map[id(op)]]
+
+
+def _one_hadamard_dag():
+    dag = CircuitDAG(n_emitter=1, n_photon=1, n_classical=0)
+    dag.add(ops.Hadamard(register=0, reg_type="e"))
+    return dag
+
+
+def test_draw_dag_draws_on_the_ax_it_is_given_without_a_fig():
+    dag = _one_hadamard_dag()
+    fig0, ax0 = plt.subplots()
+    try:
+        n_figures = len(plt.get_fignums())
+        fig, ax = dag.draw_dag(show=False, ax=ax0)
+        assert ax is ax0
+        assert fig is fig0
+        assert len(ax0.collections) > 0
+        assert len(plt.get_fignums()) == n_figures
+    finally:
+        plt.close("all")
+
+
+def test_draw_dag_returns_the_root_figure_for_an_ax_in_a_subfigure():
+    dag = _one_hadamard_dag()
+    root = plt.figure()
+    try:
+        axs = root.subfigures(1, 2)[0].subplots()
+        n_figures = len(plt.get_fignums())
+        fig, ax = dag.draw_dag(show=False, ax=axs)
+        assert ax is axs
+        assert fig is root
+        assert len(plt.get_fignums()) == n_figures
+    finally:
+        plt.close("all")
+
+
+def test_draw_dag_draws_on_the_fig_it_is_given_without_an_ax():
+    dag = _one_hadamard_dag()
+    fig0 = plt.figure()
+    other = plt.figure()  # the pyplot-current figure, which draw_dag should leave alone
+    try:
+        n_figures = len(plt.get_fignums())
+        fig, ax = dag.draw_dag(show=False, fig=fig0)
+        assert fig is fig0
+        assert fig0.axes == [ax]
+        assert len(ax.collections) > 0
+        assert other.axes == []
+        assert len(plt.get_fignums()) == n_figures
+    finally:
+        plt.close("all")
+
+
+def test_draw_dag_draws_on_the_current_axes_of_a_fig_given_without_an_ax():
+    dag = _one_hadamard_dag()
+    fig0, (ax_left, ax_middle, ax_right) = plt.subplots(1, 3)
+    try:
+        fig0.sca(ax_middle)
+        n_figures = len(plt.get_fignums())
+        fig, ax = dag.draw_dag(show=False, fig=fig0)
+        assert fig is fig0
+        assert ax is ax_middle
+        assert fig0.axes == [ax_left, ax_middle, ax_right]
+        assert len(ax_middle.collections) > 0
+        assert len(ax_left.collections) == 0
+        assert len(ax_right.collections) == 0
+        assert len(plt.get_fignums()) == n_figures
+    finally:
+        plt.close("all")

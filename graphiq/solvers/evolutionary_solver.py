@@ -50,6 +50,29 @@ class EvolutionarySolverSetting(RandomSearchSolverSetting):
         verbose=False,
         save_openqasm: str = "none",
     ):
+        """
+        Create an EvolutionarySolverSetting object
+
+        :param n_hof: the number of best circuits kept in the hall of fame
+        :type n_hof: int
+        :param n_stop: the number of iterations to run before stopping
+        :type n_stop: int
+        :param n_pop: the number of candidate circuits held per iteration
+        :type n_pop: int
+        :param tournament_k: the number of candidates entered in each selection tournament
+        :type tournament_k: int
+        :param selection_active: whether tournament selection is applied between iterations
+        :type selection_active: bool
+        :param use_adapt_probability: whether the transition probabilities adapt during the search
+        :type use_adapt_probability: bool
+        :param verbose: whether the solver prints the best score after each iteration
+        :type verbose: bool
+        :param save_openqasm: which circuits are saved as openQASM each iteration when the solver
+            has an IO: "hof", "pop" or "both"; "none" (or any other value) saves nothing
+        :type save_openqasm: str
+        :return: nothing
+        :rtype: None
+        """
         super().__init__(n_hof=n_hof, n_stop=n_stop, n_pop=n_pop)
         self._tournament_k = tournament_k
         self._selection_active = selection_active
@@ -130,7 +153,7 @@ class EvolutionarySolver(RandomSearchSolver):
         io: IO = None,
         n_emitter=1,
         n_photon=1,
-        solver_setting=EvolutionarySolverSetting(),
+        solver_setting=None,
         noise_model_mapping=None,
         *args,
         **kwargs,
@@ -153,9 +176,15 @@ class EvolutionarySolver(RandomSearchSolver):
         :type n_emitter: int
         :param n_photon: number of photon registers to maintain in the circuit
         :type n_photon: int
+        :param solver_setting: the solver's settings; a fresh default is built when None
+        :type solver_setting: EvolutionarySolverSetting or None
         :param noise_model_mapping: a dictionary that associates each operation type to a noise model
         :type noise_model_mapping: dict
         """
+        # built per instance: a default instance in the signature would be
+        # shared (and mutated) by every solver constructed without one
+        if solver_setting is None:
+            solver_setting = EvolutionarySolverSetting()
         super().__init__(
             target=target,
             metric=metric,
@@ -277,20 +306,24 @@ class EvolutionarySolver(RandomSearchSolver):
         :rtype: None
         """
         # TODO: check whether the input iteration is needed.
-        self.trans_probs[self.add_emitter_one_qubit_op] = max(
-            self.trans_probs[self.add_emitter_one_qubit_op]
-            - 1 / self.setting.n_stop / 3,
-            0.01,
-        )
-        self.trans_probs[self.replace_photon_one_qubit_op] = max(
-            self.trans_probs[self.replace_photon_one_qubit_op]
-            - 1 / self.setting.n_stop / 3,
-            0.01,
-        )
-        self.trans_probs[self.remove_op] = min(
-            self.trans_probs[self.remove_op] + 1 / self.setting.n_stop, 0.99
-        )
-        if self.n_emitter > 1:
+        # trans_probs may not contain every transformation; adapt only those present
+        if self.add_emitter_one_qubit_op in self.trans_probs:
+            self.trans_probs[self.add_emitter_one_qubit_op] = max(
+                self.trans_probs[self.add_emitter_one_qubit_op]
+                - 1 / self.setting.n_stop / 3,
+                0.01,
+            )
+        if self.replace_photon_one_qubit_op in self.trans_probs:
+            self.trans_probs[self.replace_photon_one_qubit_op] = max(
+                self.trans_probs[self.replace_photon_one_qubit_op]
+                - 1 / self.setting.n_stop / 3,
+                0.01,
+            )
+        if self.remove_op in self.trans_probs:
+            self.trans_probs[self.remove_op] = min(
+                self.trans_probs[self.remove_op] + 1 / self.setting.n_stop, 0.99
+            )
+        if self.n_emitter > 1 and self.add_emitter_cnot in self.trans_probs:
             self.trans_probs[self.add_emitter_cnot] = max(
                 self.trans_probs[self.add_emitter_cnot] - 1 / self.setting.n_stop / 3,
                 0.01,
@@ -467,14 +500,19 @@ class EvolutionarySolver(RandomSearchSolver):
         :type population: list
         :param iteration: iteration integer, from 0 to n_stop-1
         :type iteration: int
-        :return:
+        :return: nothing
+        :rtype: None
         """
         # get the scores from the population/hof as a list
         scores_pop = list(zip(*population))[0]
-        scores_hof = list(zip(*self.hof))[0]
+        # skip unfilled hall-of-fame slots here too; a real candidate scored inf
+        # still fills a slot and counts
+        scores_hof = [score for (score, circuit) in self.hof if circuit is not None]
 
         depth_pop = [circuit.depth for (_, circuit) in population]
-        depth_hof = [circuit.depth for (_, circuit) in self.hof]
+        # self.hof can still contain unfilled (np.inf, None) placeholder
+        # entries (e.g. whenever n_pop < n_hof), which have no circuit/depth
+        depth_hof = [circuit.depth for (_, circuit) in self.hof if circuit is not None]
 
         self.logs["population"].append(
             dict(
@@ -509,9 +547,13 @@ class EvolutionarySolver(RandomSearchSolver):
         Saves the population and/or the HoF circuits over iterations as openQASM strings.
 
         :param population: list of (score, circuit) pairs
+        :type population: list
         :param hof: list of (score, circuit) pairs
+        :type hof: list
         :param iteration: integer step in the solver algorithm
-        :return:
+        :type iteration: int
+        :return: nothing
+        :rtype: None
         """
         if self.io is None or self.setting.save_openqasm == "none":
             return
@@ -528,12 +570,37 @@ class EvolutionarySolver(RandomSearchSolver):
         return
 
     def _save_pop(self, pop, iteration):
+        """
+        Write every circuit of one iteration's population out as openQASM, one file per circuit
+        under "pop/", through the solver's IO.
+
+        :param pop: the population, as (score, circuit) pairs
+        :type pop: list[tuple]
+        :param iteration: the iteration number, used in each file name
+        :type iteration: int
+        :return: nothing
+        :rtype: None
+        """
         for i, (score, circuit) in enumerate(pop):
             name = f"pop/iteration{iteration}_pop{i}.txt"
             self.io.save_json(circuit.to_openqasm(), name)
 
     def _save_hof(self, hof, iteration):
+        """
+        Write every circuit of the hall of fame out as openQASM, one file per circuit under "hof/",
+        through the solver's IO. A slot no candidate has filled yet, (np.inf, None), is skipped.
+
+        :param hof: the hall of fame, as (score, circuit) pairs
+        :type hof: list[tuple]
+        :param iteration: the iteration number, used in each file name
+        :type iteration: int
+        :return: nothing
+        :rtype: None
+        """
         for i, (score, circuit) in enumerate(hof):
+            # a slot no candidate has filled yet holds (np.inf, None)
+            if circuit is None:
+                continue
             name = f"hof/iteration{iteration}_hof{i}.txt"
             self.io.save_json(circuit.to_openqasm(), name)
 
@@ -568,7 +635,10 @@ class EvolutionarySolver(RandomSearchSolver):
         op = self.one_qubit_ops[ind]
         noise = self._wrap_noise(op, self.noise_model_mapping["p"])
         gate = ops.OneQubitGateWrapper(op, reg_type="p", register=reg, noise=noise)
-        gate.add_labels("Fixed")
+        # keep the protection of the gate being replaced: initialization's photon gates
+        # stay out of remove_op's reach, gates without "Fixed" stay removable
+        if "Fixed" in old_op.labels:
+            gate.add_labels("Fixed")
         circuit.replace_op(node, gate)
 
     def replace_emitter_one_qubit_op(self, circuit):
@@ -771,10 +841,11 @@ class EvolutionarySolver(RandomSearchSolver):
         ]
 
         for edge in edges:
-            possible_edges = set(edges) - circuit.find_incompatible_edges(edge)
+            incompatible = circuit.find_incompatible_edges(edge)
 
-            for another_edge in possible_edges:
-                edge_pair.append((edge, another_edge))
+            for another_edge in edges:
+                if another_edge not in incompatible:
+                    edge_pair.append((edge, another_edge))
 
         return edge_pair
 
@@ -808,10 +879,11 @@ class EvolutionarySolver(RandomSearchSolver):
         ]
 
         for edge in e_edges:
-            possible_edges = set(p_edges) - circuit.find_incompatible_edges(edge)
+            incompatible = circuit.find_incompatible_edges(edge)
 
-            for another_edge in possible_edges:
-                edge_pair.append((edge, another_edge))
+            for another_edge in p_edges:
+                if another_edge not in incompatible:
+                    edge_pair.append((edge, another_edge))
 
         return edge_pair
 

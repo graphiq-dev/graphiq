@@ -136,6 +136,44 @@ def test_parser_parse_measure():
     assert parse_measure(measure_node) == expected_output
 
 
+@pytest.mark.parametrize(
+    "measure, q_index, c_index",
+    [
+        ("measure q[2] -> c[0];", 2, 0),
+        ("measure q[0] -> c[2];", 0, 2),
+        ("measure q[1] -> c[1];", 1, 1),
+    ],
+)
+def test_parser_parse_measure_keeps_the_creg_index(measure, q_index, c_index):
+    parser = Qasm(data=f"qreg q[3];\ncreg c[3];\n{measure}\n")
+    measure_node = parser.parse().children[-1]
+
+    expected_output = {
+        "type": "measure",
+        "qreg": {"name": "q", "index": q_index},
+        "creg": {"name": "c", "index": c_index},
+    }
+
+    myparser = OpenQASMParser(openqasm_str="")
+    parse_measure = myparser.use_parse("measure")
+    assert parse_measure(measure_node) == expected_output
+
+
+def test_parser_parse_measure_whole_register():
+    parser = Qasm(data="qreg q[3];\ncreg c[3];\nmeasure q -> c;\n")
+    measure_node = parser.parse().children[-1]
+
+    expected_output = {
+        "type": "measure",
+        "qreg": {"name": "q"},
+        "creg": {"name": "c"},
+    }
+
+    myparser = OpenQASMParser(openqasm_str="")
+    parse_measure = myparser.use_parse("measure")
+    assert parse_measure(measure_node) == expected_output
+
+
 def test_parser_parse_reset():
     openqasm = """
     qreg q[3];

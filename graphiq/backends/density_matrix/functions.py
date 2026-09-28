@@ -31,7 +31,8 @@ def dagger(matrix):
     Returns the hermitian conjugate of an input matrix.
     :param matrix: input matrix
     :type matrix: np.ndarray
-    :return:
+    :return: the conjugate transpose of matrix
+    :rtype: np.ndarray
     """
     return matrix.conjugate().T
 
@@ -257,7 +258,7 @@ def _get_multi_qubit_gate(n_qubits, target_gates_dict):
     :type n_qubits: int
     :param target_gates_dict: a dictionary where the key is the qubit position
         and the value is a single-qubit gate that is non-identity components of the final gate
-    :type target_gates_dct: dict
+    :type target_gates_dict: dict
     :return: the resulting matrix that acts on the whole state
     :rtype: numpy.ndarray
     """
@@ -521,9 +522,15 @@ def partial_trace(rho, keep, dims, optimize=False):
     ndim = dims.size
     nkeep = np.prod(dims[keep])
 
-    # string for initial array dimensions of form "abc...ABC...", where upper/lowercase = local Hilbert space
+    # string for initial array dimensions: lowercase letters index the rows, and the
+    # columns reuse the row letter for a traced qubit and take its uppercase letter
+    # for a kept one. A shared letter makes einsum sum the diagonal of that qubit,
+    # which is the trace; distinct letters would sum rows and columns independently.
     ssleft = "".join([string.ascii_lowercase[i] for i in range(ndim)]) + "".join(
-        [string.ascii_uppercase[i] for i in range(ndim)]
+        [
+            string.ascii_uppercase[i] if i in keep else string.ascii_lowercase[i]
+            for i in range(ndim)
+        ]
     )
 
     # string for final array dimensions is the same as initial, with upper/lowercase of dimensions to trace over omitted
@@ -531,7 +538,7 @@ def partial_trace(rho, keep, dims, optimize=False):
         [string.ascii_lowercase[i] for i in range(ndim) if i in keep]
     ) + "".join([string.ascii_uppercase[i] for i in range(ndim) if i in keep])
 
-    # e.g., "abcABC -> abAB" is partial trace over third qubit in three-qubit state
+    # e.g., "abcABc -> abAB" is partial trace over third qubit in three-qubit state
     superscript = ssleft + "->" + ssright
 
     rho_a = rho.reshape(np.tile(dims, 2))
@@ -605,7 +612,7 @@ def sqrtm_psd(input_matrix):
     assert is_psd(input_matrix)
     eig_vals, eig_vecs = eigh(input_matrix)
     eig_vals = np.maximum(eig_vals, 0)
-    return (eig_vecs * np.sqrt(eig_vals)) @ eig_vecs.T
+    return (eig_vecs * np.sqrt(eig_vals)) @ np.conjugate(eig_vecs).T
 
 
 def hermitianize(input_matrix):
@@ -652,14 +659,15 @@ def fidelity(rho, sigma):
 
         rho_final = sqrtm_psd(rho_sigma)
         f = np.real(np.trace(rho_final)) ** 2
-        if not np.isclose(f, 1.0):
+        # f is a square, so only the upper bound can fail
+        if f > 1 and not np.isclose(f, 1.0):
             raise Warning(f"Fidelity should be between 0 and 1. Value if {f}.")
         f = np.maximum(np.minimum(f, 1.0), 0.0)
         return f
 
 
 def trace_distance(rho, sigma):
-    """
+    r"""
     Return the trace distance between two hermitian matrices, $\rho$ and $\sigma$
     The trace distance is computed as:
     $$
@@ -697,7 +705,7 @@ def bipartite_partial_transpose(rho, dim1, dim2, subsys):
     :type subsys: int
 
     :raises AssertionError: if the dimension of the subsystems and the matrix dimension do not match
-    :raises ValueError: if the input matrix is not bipartite
+    :raises ValueError: if subsys is neither 0 nor 1
     :return: the partial transpose matrix of rho
     :rtype: numpy.ndarray
     """
@@ -720,7 +728,7 @@ def bipartite_partial_transpose(rho, dim1, dim2, subsys):
     )
 
     rho_pt = (
-        rho.reshape(np.array([dim1, dim1, dim2, dim2]))
+        rho.reshape(np.array([dim1, dim2, dim1, dim2]))
         .transpose(pt_index)
         .reshape(rho.shape)
     )
@@ -754,7 +762,7 @@ def project_and_remove(rho, locations):
     Return the density matrix after applying Z measurements on qubits specified by locations mask.
     It removes all these qubits under measurements.
 
-    :param rho: the density matrix to evaluate the negativity
+    :param rho: the density matrix to measure
     :type rho: numpy.ndarray
     :param locations: a list of zeros/ones
     :type locations: list or numpy.ndarray
@@ -904,6 +912,8 @@ def check_equivalent_unitaries(unitary_op1, unitary_op2):
     """
     Check if two input matrices are equivalent unitaries up to a global phase
 
+    The global phase is estimated from the largest-magnitude entry of unitary_op2.
+
     :param unitary_op1: the first input matrix
     :type unitary_op1: numpy.ndarray
     :param unitary_op2: the second input matrix
@@ -914,9 +924,11 @@ def check_equivalent_unitaries(unitary_op1, unitary_op2):
     if not (is_unitary(unitary_op1) and is_unitary(unitary_op2)):
         return False
 
-    nonzero = np.nonzero(unitary_op2)
-    row = nonzero[0][0]
-    column = nonzero[1][0]
+    # Read the phase from the largest entry of unitary_op2: an exact zero may
+    # carry round-off, and a ratio against a round-off value is not a phase.
+    # Each column of a unitary has unit norm, so its largest entry has magnitude
+    # at least 1/sqrt(n), well above round-off.
+    row, column = np.unravel_index(np.argmax(np.abs(unitary_op2)), unitary_op2.shape)
 
     # differ by a global phase
     global_phase = unitary_op1[row, column] / unitary_op2[row, column]
@@ -932,6 +944,9 @@ def amplitude_damping_operators(damping_prob):
     """
     Return two channel operators corresponding to the single-qubit amplitude damping channel.
 
+    :param damping_prob: the damping probability, in [0, 1]
+    :type damping_prob: float
+    :raises AssertionError: if damping_prob is outside [0, 1]
     :return: channel operator
     :rtype: (numpy.ndarray, numpy.ndarray)
     """

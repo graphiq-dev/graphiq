@@ -110,7 +110,12 @@ class DensityMatrixCompiler(CompilerBase):
             )
             state.apply_unitary(unitary)
 
-        elif isinstance(op, ops.ClassicalControlledPairOperationBase):
+        elif isinstance(
+            op, ops.ClassicalControlledPairOperationBase
+        ) and not isinstance(op, ops.MeasurementCNOTandReset):
+            # MeasurementCNOTandReset is itself a ClassicalControlledPairOperationBase,
+            # so it is excluded here to reach its own branch below, which resets the
+            # control qubit
             projectors = dm.projectors_zbasis(
                 n_quantum, q_index(op.control, op.control_type)
             )
@@ -175,8 +180,9 @@ class DensityMatrixCompiler(CompilerBase):
         """
         Compile one noisy gate
 
-        :param state: the density matrix representation of the state to be evolved
-        :type state: DensityMatrix
+        :param state: the QuantumState representation of the state to be evolved, where a density matrix representation
+            can be accessed
+        :type state: QuantumState
         :param op: the operation to be applied
         :type op: OperationBase
         :param n_quantum: the number of qubits
@@ -226,7 +232,7 @@ class DensityMatrixCompiler(CompilerBase):
                         self.ops[op.__class__],
                     )
 
-                outcome = state.dm.apply_measurement_controlled_gate(
+                outcome = state.rep_data.apply_measurement_controlled_gate(
                     projectors,
                     unitary,
                     measurement_determinism=self.measurement_determinism,
@@ -249,7 +255,7 @@ class DensityMatrixCompiler(CompilerBase):
                         n_quantum, q_index(op.target, op.target_type), dm.sigmax()
                     )
 
-                outcome = state.dm.apply_measurement_controlled_gate(
+                outcome = state.rep_data.apply_measurement_controlled_gate(
                     projectors,
                     unitary,
                     measurement_determinism=self.measurement_determinism,
@@ -261,18 +267,16 @@ class DensityMatrixCompiler(CompilerBase):
                 )
 
                 classical_registers[op.c_register] = outcome
-                state.dm.apply_channel(reset_kraus_ops)
+                state.rep_data.apply_channel(reset_kraus_ops)
 
             elif type(op) is ops.MeasurementZ:
-                # TODO: implement measurement-related error model
-
-                projectors = dm.projectors_zbasis(
-                    n_quantum, q_index(op.register, op.reg_type)
+                # this arm is only reached when op.noise is a replacement noise
+                # model, and no measurement-related error model is implemented,
+                # so refuse rather than measure while silently ignoring the noise
+                raise NotImplementedError(
+                    f"{type(op).__name__} carrying {type(op.noise).__name__} is not "
+                    f"implemented for {self.__class__.__name__}."
                 )
-                outcome = state.dm.apply_measurement(
-                    projectors, measurement_determinism=self.measurement_determinism
-                )
-                classical_registers[op.c_register] = outcome
 
             else:
                 raise ValueError(
@@ -305,6 +309,14 @@ class DensityMatrixCompiler(CompilerBase):
                 state, n_quantum, [q_index(op.control, op.control_type)]
             )
             target_noise.apply(state, n_quantum, [q_index(op.target, op.target_type)])
+        elif isinstance(op, ops.ClassicalControlledPairOperationBase):
+            # one leg per register, in q_registers order (control first, then
+            # target), each on its own qubit -- the same reading as a
+            # ControlledPairOperationBase's legs
+            for noise, register, reg_type in zip(
+                op.noise, op.q_registers, op.q_registers_type
+            ):
+                noise.apply(state, n_quantum, [q_index(register, reg_type)])
         else:
             raise ValueError(
                 f"Noise model not implemented for operation type {type(op)}"

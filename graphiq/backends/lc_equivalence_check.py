@@ -97,16 +97,17 @@ $$
 
 Remember that if the system of equations is overdetermined after removing linearly dependent constraints,
 then there exists no solution (other than :math:`Q=0` which is not a valid Clifford operation)
-and graph states are not equivalent for sure. It is proved that a solution for a valid
-$Q$ exists, if and only if the set
+and graph states are not equivalent for sure. For a **connected** graph, Bouchet (4.3) and (4.4)
+[Combinatorica 11(4):315, 1991] show that when the solution space has dimension greater than 4, a valid
+$Q$ exists iff one of the sums of **at most two** basis vectors
 
 $$
-    \left\{b+b^{\prime} \mid b, b^{\prime} \in B\right\}
+    \{b, b + b' \mid b, b' \in B,\ b \neq b'\}
 $$
 
-has a member that satisfies the constraint. Note that this is only true for the cases where $B$ is at least of size 4.
-However, this is rarely the case and has not practical significance. For smaller $B$, one should test all possible
-solutions (at most 16) to see if a valid $Q$ can be found.
+satisfies the constraint (the basis vectors themselves and their pairwise sums); at dimension at most 4, all
+(at most 16) elements of $B$'s span are tested instead; and the check is run per connected component, because
+local complementation preserves components and the linear system decouples over them.
 
 In order to find a basis for set B, one needs to use the $n^2 \times 4n$ coefficient matrix of the system of linear
 equations, find the linearly dependent columns (this is done in the code by a row-reduction process), and choose any
@@ -168,7 +169,7 @@ This is repeated until no more eligible element can be found in the diagonal of 
 
 """
 
-from itertools import combinations, permutations
+from itertools import chain, combinations, permutations
 
 import networkx as nx
 import numpy as np
@@ -179,8 +180,15 @@ import graphiq.backends.stabilizer.functions.linalg as slinalg
 def is_lc_equivalent(adj_matrix1, adj_matrix2, mode="deterministic", seed=0):
     r"""
     Determines whether two graph states are local-Clifford equivalent or not, given the adjacency matrices of the two.
-    It takes two adjacency matrices as input and returns a numpy.ndarray containing $n$ ($2 \times 2$ arrays
-    = clifford operations on each qubit.
+    It takes two adjacency matrices as input and returns whether a local-Clifford solution was found, together with
+    an array of $n$ ($2 \times 2$) arrays = clifford operations on each qubit (None if none was found).
+
+    The check is run once per connected component of the two graphs: Bouchet (4.3) bounds the codimension of
+    the solution space's affine subspace of valid vectors by 2 only for a connected graph, so on a graph with
+    :math:`c` components the whole-graph candidate set of sums of at most two basis vectors is incomplete (up
+    to :math:`2c` basis vectors may be needed), and the linear system decouples over components. For adjacency
+    matrices of shape ``(0, 0)`` (no nodes), returns ``(True, numpy.ndarray of shape (0, 2, 2))`` without
+    further computation.
 
     :param adj_matrix1: the adjacency matrix of the first graph. This is equal to the binary matrix for representing
         Pauli Z part of the symplectic binary representation of the stabilizer generators
@@ -188,14 +196,83 @@ def is_lc_equivalent(adj_matrix1, adj_matrix2, mode="deterministic", seed=0):
     :param adj_matrix2: the adjacency matrix of the second graph
     :type adj_matrix2: numpy.ndarray
     :param mode: the chosen mode for finding solutions. It can be either 'deterministic' (default) or 'random'.
+        'deterministic' is exact: a returned False is conclusive. 'random' is a bounded random search that can
+        return False even for graphs that are in fact LC equivalent.
+    :type mode: str
+    :param seed: an optional input to set the random seed for the random search approach
+    :type seed: int
+    :raises AssertionError: if the two adjacency matrices differ in shape, if the number of rows in the row
+        reduced matrix is less than the rank of coefficient matrix, or if the number of linearly dependent
+        columns is not equal to :math:`4n - rank` (for :math:`n` being the number of nodes in the graph)
+    :raises ValueError: if ``mode`` is neither ``"deterministic"`` nor ``"random"``
+    :return: ``(True, solution)`` if a solution is found, where ``solution`` is an array of single-qubit
+        Clifford :math:`2 \\times 2` matrices in the symplectic formalism, or ``(False, None)`` if none is found.
+        In ``'deterministic'`` mode ``False`` means the graphs are not LC equivalent; in ``'random'`` mode it
+        can also mean only that the sampling did not find a solution
+    :rtype: bool, numpy.ndarray or None
+    """
+    if mode not in ("deterministic", "random"):
+        raise ValueError(
+            'The mode should be either "random" or "deterministic" (default)'
+        )
+    assert np.shape(adj_matrix1) == np.shape(adj_matrix2), "graphs must be of same size"
+    n_nodes = np.shape(adj_matrix1)[0]
+    if n_nodes == 0:
+        return True, np.zeros((0, 2, 2), dtype=int)
+
+    # local complementation preserves connected components (Bouchet, Combinatorica 11(4):315, 1991,
+    # Section 6), so the two graphs can only be LC equivalent if they partition into the same
+    # components (as vertex sets).
+    comps1 = [
+        sorted(c) for c in nx.connected_components(nx.from_numpy_array(adj_matrix1))
+    ]
+    comps2 = [
+        sorted(c) for c in nx.connected_components(nx.from_numpy_array(adj_matrix2))
+    ]
+    if {frozenset(c) for c in comps1} != {frozenset(c) for c in comps2}:
+        return False, None
+
+    solution = np.zeros((n_nodes, 2, 2), dtype=int)
+    for idx in comps1:
+        equivalent, sub_solution = _is_lc_equivalent_connected(
+            adj_matrix1[np.ix_(idx, idx)], adj_matrix2[np.ix_(idx, idx)], mode, seed
+        )
+        if not equivalent:
+            return False, None
+        solution[idx] = sub_solution
+    return True, solution
+
+
+def _is_lc_equivalent_connected(adj_matrix1, adj_matrix2, mode, seed):
+    r"""
+    Determines whether two adjacency matrices that are each a single connected graph are local-Clifford
+    equivalent, and if so, finds the Clifford operation needed to convert one to the other.
+
+    Callers must pass connected graphs: :py:func:`is_lc_equivalent` enforces this by calling this function once
+    per connected component. When the solution space has dimension greater than 4, Bouchet (4.3) and (4.4)
+    [Combinatorica 11(4):315, 1991] show that a valid Clifford operation, when one exists, is a sum of at most
+    two vectors of any basis of that space, so only the basis vectors and their pairwise sums are tried; at
+    dimension at most 4, all (at most 16) elements of the solution space are tried instead. Section 6 (p. 324)
+    is why running this per connected component, rather than once on the whole graph, is not a restriction: local
+    complementation preserves connected components. In ``"random"`` mode, ``_random_checker`` reseeds the global
+    NumPy random stream with ``seed``; harmless on its own, but note that :py:func:`is_lc_equivalent` calls this
+    function once per component, so the stream is reseeded to the same value at the start of every component.
+
+    :param adj_matrix1: the adjacency matrix of the first graph's component. This is equal to the binary matrix
+        for representing Pauli Z part of the symplectic binary representation of the stabilizer generators
+    :type adj_matrix1: numpy.ndarray
+    :param adj_matrix2: the adjacency matrix of the second graph's component
+    :type adj_matrix2: numpy.ndarray
+    :param mode: the chosen mode for finding solutions. It can be either 'deterministic' (default) or 'random'.
+        Assumed already validated by :py:func:`is_lc_equivalent`; this function does not check it again.
     :type mode: str
     :param seed: an optional input to set the random seed for the random search approach
     :type seed: int
     :raises AssertionError: if the number of rows in the row reduced matrix is less than the rank of coefficient matrix
         or if the number of linearly dependent columns is not equal to :math:`4n - rank`
         (for :math:`n` being the number of nodes in the graph)
-    :return: If a solution is found, returns an array of single-qubit Clifford :math:`2 \\times 2` matrices
-        in the symplectic formalism. If not, graphs are not LC equivalent and returns None.
+    :return: If a solution is found, returns True and an array of single-qubit Clifford :math:`2 \\times 2`
+        matrices in the symplectic formalism. If not, components are not LC equivalent and returns False, None.
     :rtype: bool, numpy.ndarray or None
     """
 
@@ -257,24 +334,27 @@ def is_lc_equivalent(adj_matrix1, adj_matrix2, mode="deterministic", seed=0):
         else:
             return False, None
 
-    elif mode == "deterministic":
-        basis = _solution_basis_finder(reduced_coeff_matrix, col_list)
-        possible_combinations = combinations(basis, 2)
-        solution_set = []
-        for basis_combination in possible_combinations:
-            possible_solution = basis_combination[0] + basis_combination[1]
-            solution_set.append(possible_solution % 2)
-        for solution in solution_set:
+    else:
+        # mode == "deterministic" (mode is validated by the wrapper, so this is the only
+        # remaining branch). Bouchet (4.4): a valid Q, when one exists, is a sum of at most two
+        # vectors of basis B, so the candidates are the k(k-1)/2 pairwise sums of the basis
+        # vectors followed by the k basis vectors themselves. The pairwise sums go first so that
+        # a graph a pairwise sum solves gets the first such sum as its solution; the single
+        # vectors only decide the cases no pairwise sum solves. The empty sum (the zero vector)
+        # is also "a sum of <= 2 vectors of B", but it fails the per-vertex constraint (4.2) at
+        # every vertex (a_i d_i + b_i c_i = 0 mod 2, never 1), so it is skipped rather than tried.
+        basis = solution_basis
+        candidates = chain(
+            (((b1 + b2) % 2) for b1, b2 in combinations(basis, 2)),
+            (b % 2 for b in basis),
+        )
+        for solution in candidates:
             if _is_valid_clifford(solution):
                 # convert the solution to an array of n * (2 X 2) matrices
                 return True, solution.reshape(n_nodes, 2, 2)
 
         # states are NOT LC equivalent
         return False, None
-    else:
-        raise ValueError(
-            'The mode should be either "random" or "deterministic" (default)'
-        )
 
 
 def _solution_basis_finder(reduced_coeff_matrix, col_list):
@@ -286,7 +366,8 @@ def _solution_basis_finder(reduced_coeff_matrix, col_list):
     :param col_list: list of the columns' indices in the coefficient matrix that are linearly dependent.
     :type col_list: list[int] or numpy.ndarray
     :raises AssertionError: if the solution basis found is wrong
-    :return: an array containing the elements of the total Clifford operation needed to convert one graph to another.
+    :return: the basis vectors of the solution space, as an array of shape (len(col_list), number of columns of
+        reduced_coeff_matrix, 1)
     :rtype: numpy.ndarray
     """
 
@@ -467,7 +548,7 @@ def _col_finder(row_reduced_coeff_matrix):
     :type row_reduced_coeff_matrix: numpy.ndarray
     :raises ValueError: if the input row_reduced_coeff_matrix is not a binary matrix
     :return: a list of the indices of the columns which are not linearly independent
-    :rtype: numpy.ndarray
+    :rtype: list[int]
     """
     dependent_columns = []
     pivot = [0, 0]
@@ -532,8 +613,8 @@ def lc_graph_operations(adj_matrix, solution):
     :type adj_matrix: numpy.ndarray
     :param solution: an array of single-qubit Clifford :math:`2 \\times 2` matrices in the symplectic formalism
     :type solution: numpy.ndarray
-    :return: a list of the names of the operations that need to be applied on each qubit in the correct order.
-    :rtype: list[str]
+    :return: the ordered list of node indices on which to apply local complementations
+    :rtype: list[int]
     """
     # takes an adjacency matrix and the solution (Clifford operation) and returns the list of local complementations
     # needed for graph transformation.
@@ -558,9 +639,35 @@ def lc_graph_operations(adj_matrix, solution):
 
 
 def find_lc_operations(adj_matrix1, adj_matrix2, mode="deterministic", seed=0):
+    r"""
+    Finds the sequence of local complementations that transforms the first graph into the second one,
+    if the two graph states are local-Clifford equivalent.
+
+    The direction is fixed by the argument order: the returned operations are applied to the graph of
+    ``adj_matrix1`` (in the given order) to obtain the graph of ``adj_matrix2``. To obtain the reverse
+    transformation (``adj_matrix2`` into ``adj_matrix1``), call this function with the arguments swapped.
+
+    Internally, :py:func:`is_lc_equivalent` solves for the Clifford operator :math:`Q` that maps the first
+    graph state to the second, and :py:func:`lc_graph_operations` is called with ``adj_matrix1`` (the graph
+    that :math:`Q` acts on, since :math:`R = C\theta + D` must use that same :math:`\theta`).
+
+    :param adj_matrix1: the adjacency matrix of the first (initial) graph, i.e. the graph the returned
+        operations are applied to
+    :type adj_matrix1: numpy.ndarray
+    :param adj_matrix2: the adjacency matrix of the second (target) graph
+    :type adj_matrix2: numpy.ndarray
+    :param mode: the chosen mode for finding solutions, either 'deterministic' (default) or 'random'.
+    :type mode: str
+    :param seed: an optional input to set the random seed for the random search approach
+    :type seed: int
+    :raises ValueError: if the two graphs are not local-Clifford equivalent
+    :return: the ordered list of node indices on which to apply local complementations to transform the
+        first graph into the second
+    :rtype: list[int]
+    """
     equivalency, solution = is_lc_equivalent(adj_matrix1, adj_matrix2, mode, seed)
     if equivalency:
-        op_list = lc_graph_operations(adj_matrix2, solution)
+        op_list = lc_graph_operations(adj_matrix1, solution)
         return op_list
     else:
         raise ValueError("These two graphs are not local-Clifford equivalent.")
@@ -595,12 +702,16 @@ def iso_graph_finder(input_graph):
 
     :param input_graph: input graph
     :type input_graph: networkx.Graph
-    :return: the list of graphs that are isomorphic to G
+    :return: the list of graphs that are isomorphic to G, one per permutation of its sorted labels: entry k is
+        G relabelled by the k-th permutation of its sorted labels, with each label then replaced by its rank in
+        sorted order
     :rtype: list[networkx.Graph]
     """
     iso_graphs = []
     list_nodes = sorted(input_graph)
     n_nodes = len(list_nodes)
+    # adjacency-matrix row/column of each label, so labels need not be 0..n-1
+    position = {node: i for i, node in enumerate(list_nodes)}
     all_permu = list(permutations(list_nodes, len(list_nodes)))
 
     for each_permu in all_permu:
@@ -609,7 +720,7 @@ def iso_graph_finder(input_graph):
         g_copy = nx.relabel_nodes(input_graph, map_dict, copy=True)
         for node_id1 in list_nodes:
             for node_id2 in list(g_copy.neighbors(node_id1)):
-                adj_matrix[node_id1, node_id2] = 1
+                adj_matrix[position[node_id1], position[node_id2]] = 1
 
         g_copy = nx.to_networkx_graph(adj_matrix)
         iso_graphs.append(g_copy)
@@ -619,21 +730,26 @@ def iso_graph_finder(input_graph):
 
 def local_comp_graph(input_graph, node_id):
     """
-    Applies a local complementation on the node (specified by node_id) of the input graph input_graph
-    and returns the resulting graph.
+    Applies a local complementation on one node of the input graph input_graph and returns the resulting graph.
 
-    :param input_graph: input graph
+    The node is chosen by position, not by label: node_id indexes the rows of ``nx.to_numpy_array(input_graph)``,
+    i.e. the node iteration order of input_graph, and the returned graph is labelled 0..n-1 by that same position.
+    Positions and labels coincide when input_graph's nodes are 0..n-1 in ascending iteration order, as for a graph
+    built with ``nx.from_numpy_array`` or returned by this function.
+
+    :param input_graph: input graph; edge weights are ignored, so every edge counts once
     :type input_graph: networkx.Graph
-    :param node_id: the index of the node to apply tho local complementation on
+    :param node_id: the position, in input_graph's node iteration order, of the node to apply the local
+        complementation on
     :type node_id: int
-    :raises AssertionError: if the node index node_id is not in the graph
-    :return: a new transformed graph
+    :raises AssertionError: if node_id is not a position in the graph (not in 0..n-1)
+    :return: a new transformed graph, labelled 0..n-1 by position in input_graph's node iteration order
     :rtype: networkx.Graph
     """
     # TODO: integrate this with the state representation functions
     n_nodes = input_graph.number_of_nodes()
     assert n_nodes > node_id >= 0, "node index is not in the graph"
-    adj_matrix = nx.to_numpy_array(input_graph).astype(int)
+    adj_matrix = nx.to_numpy_array(input_graph, weight=None).astype(int)
     identity = np.eye(n_nodes, n_nodes)
     gamma_matrix = np.zeros((n_nodes, n_nodes))
 

@@ -101,6 +101,11 @@ def height_dict(x_matrix=None, z_matrix=None, graph=None):
     Generates the height_function dictionary for all qubits, given the x and z matrices or the graph the state
     corresponds to.
 
+    When called with ``graph=``, nodes are ordered by label (not by insertion order) to build
+    the adjacency matrix. The height function depends on this ordering, so a caller who wants
+    the minimum emitter count (rather than the value for this particular ordering) must minimize
+    over orderings itself.
+
     :param x_matrix: x matrix in the symplectic representation of the stabilizers
     :type x_matrix: np.ndarray
     :param z_matrix: z matrix in the symplectic representation of the stabilizers
@@ -113,7 +118,7 @@ def height_dict(x_matrix=None, z_matrix=None, graph=None):
     if x_matrix is None or z_matrix is None:
         if isinstance(graph, nx.classes.graph.Graph):
             n_qubits = len(graph)
-            node_list = list(graph.nodes()).sort()
+            node_list = sorted(graph.nodes())
             # nodelist is an essential kwarg in converting graph to adjacency matrix.
             z_matrix = nx.to_numpy_array(graph, nodelist=node_list)
             x_matrix = np.eye(n_qubits)
@@ -159,8 +164,8 @@ def height_plotter(h_dict):
 
     :param h_dict: the height function dict which is the output of the ``height_dict``.
     :type h_dict: dict
-    :return: maximum of height function over all qubits.
-    :rtype: int
+    :return: nothing
+    :rtype: None
     """
     h_max = h_dict[max(h_dict, key=h_dict.get)]
     positions = list(h_dict.keys())

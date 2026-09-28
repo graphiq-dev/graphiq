@@ -16,6 +16,7 @@
 Utility functionality for creating isomorphic graphs to explore alternative circuits.
 """
 
+import math
 import warnings
 from itertools import permutations
 
@@ -40,11 +41,12 @@ def iso_finder(
 ):
     """
     The function permutes the labels of the vertices of a graph to get n_iso distinct isomorphic graphs. The original
-    graph will also be returned as the first element of the list and counted toward the number of found cases.
+    graph will also be returned as the first element of the list (unless sort_emit reorders the list) and counted
+    toward the number of found cases.
     The maximum number of possible distinct cases may be less than n_iso. The graph G with the nodes relabeled using
     consecutive integers.
 
-    :param adj_matrix: initial adjacency matrix or graph
+    :param adj_matrix: initial adjacency matrix
     :type adj_matrix: numpy.ndarray
     :param n_iso: number of the isomorphic graphs to look for (including the original graph)
     :type n_iso: int
@@ -70,13 +72,12 @@ def iso_finder(
     :rtype: numpy.ndarray or tuple (numpy.ndarray, list[dict])
     """
     n_node = adj_matrix.shape[0]
-    n_max = np.math.factorial(n_node)
+    n_max = math.factorial(n_node)
     n_label = n_iso
     labels_arr = _label_finder(n_label, n_node, seed=seed, thresh=thresh)
     adj_arr = automorph_check(adj_matrix, labels_arr)
     if len(adj_arr) >= n_iso:
-        adj_arr = adj_arr[:n_iso]
-        return adj_arr
+        return _finish_iso_output(adj_matrix, adj_arr, n_iso, sort_emit, label_map)
     else:
         rel_inc = 1  # relative increase ratio of the number of non-redundant cases as the number of labeling increase
         all_checked = False
@@ -92,7 +93,9 @@ def iso_finder(
                         f"Only {len(adj_arr)} isomorphic graphs were found due to high symmetry."
                         f"This may not be the maximum value. Allow for exhaustive search to check"
                     )
-                    return adj_arr
+                    return _finish_iso_output(
+                        adj_matrix, adj_arr, n_iso, sort_emit, label_map
+                    )
 
             # update the seed used in _add_labels to get new values when we repeat it in the loop
             seed = seed + 1 if (seed is not None) else None
@@ -119,14 +122,35 @@ def iso_finder(
             )
         else:
             pass
-        if sort_emit:
-            adj_arr = np.array([x[0] for x in emitter_sorted(adj_arr[:n_iso])])
-        if label_map:
-            mapping = []
-            for new_adj in adj_arr:
-                mapping.append(get_relabel_map(adj_matrix, new_adj))
-            return adj_arr[:n_iso], mapping
-        return adj_arr[:n_iso]
+        return _finish_iso_output(adj_matrix, adj_arr, n_iso, sort_emit, label_map)
+
+
+def _finish_iso_output(adj_matrix, adj_arr, n_iso, sort_emit, label_map):
+    """
+    Truncates the adjacency matrices found by <iso_finder> to n_iso, then applies its sort_emit and label_map
+    options, so that every return path of <iso_finder> treats them the same way.
+
+    :param adj_matrix: the initial adjacency matrix given to <iso_finder>
+    :type adj_matrix: numpy.ndarray
+    :param adj_arr: the distinct relabeled adjacency matrices found
+    :type adj_arr: numpy.ndarray
+    :param n_iso: number of the isomorphic graphs to return at most
+    :type n_iso: int
+    :param sort_emit: if True the outcome is sorted by the number of emitters needed to generate each graph
+    :type sort_emit: bool
+    :param label_map: if True, a list of label maps between the initial graph and each returned one is returned too
+    :type label_map: bool
+    :return: the adjacency matrices, or a tuple of the adjacency matrices and the list of label maps if label_map
+        is True
+    :rtype: numpy.ndarray or tuple (numpy.ndarray, list[dict])
+    """
+    adj_arr = adj_arr[:n_iso]
+    if sort_emit:
+        adj_arr = np.array([x[0] for x in emitter_sorted(adj_arr)])
+    if label_map:
+        mapping = [get_relabel_map(adj_matrix, new_adj) for new_adj in adj_arr]
+        return adj_arr, mapping
+    return adj_arr
 
 
 def emitter_sorted(adj_arr):
@@ -187,16 +211,17 @@ def _label_finder(
     n_label, n_node, new_label_set=None, exhaustive=False, seed=None, thresh=None
 ):
     """
-    Finds n_label number of permutations for the sequence {0, 1, ..., n_node-1}. If exhaustive search is enabled the
-    process happens through sampling from the total set of all possible permutations (size = n_node factorial).
-    Otherwise, new permutations are generated randomly until the required number of distinct cases are found, or
-    the threshold for number of random trials is reached.
+    Finds n_label number of permutations for the sequence {0, 1, ..., n_node-1}. If exhaustive search is enabled, or
+    n_node is less than 8, the process happens through sampling from the total set of all possible permutations
+    (size = n_node factorial). Otherwise, new permutations are generated randomly until the required number of distinct
+    cases are found, or the threshold for number of random trials is reached.
 
     :param n_label: number of permutations needed
     :type n_label: int
     :param n_node: length of the initial sequence {0, 1, ..., n_node-1}
     :type n_node: int
-    :param new_label_set: a given set of permutations that the function will add the new cases to.
+    :param new_label_set: a given set of permutations that the function will add the new cases to; ignored when n_node
+        is less than 8 or exhaustive is True.
     :type new_label_set: set
     :param exhaustive: If true the permutation will be sampled from the set of all possible permutations. There might be
      a significant increase in runtime for large sequences.
@@ -209,7 +234,7 @@ def _label_finder(
     :rtype: numpy.ndarray
     """
     rng = np.random.default_rng(seed)
-    n_max = np.math.factorial(n_node)
+    n_max = math.factorial(n_node)
     if thresh is None:
         thresh = 5 * n_label
     elif thresh < n_label:
@@ -219,10 +244,20 @@ def _label_finder(
     ), f"The input number of permutations is more than the maximum possible"
     if n_node < 8 or exhaustive:
         perm = list(permutations([*range(n_node)]))
-        initial_perm = np.array([[*range(n_node)]])
-        labels_list = rng.choice(perm[1:], n_label - 1)
-        labels_list = np.concatenate((initial_perm, labels_list), axis=0)
-        return labels_list
+        # the draw is with replacement: keep the first occurrence of each permutation,
+        # then top up without replacement from the permutations not drawn
+        drawn = rng.choice(perm[1:], n_label - 1)
+        labels_list = [perm[0]]
+        seen = {perm[0]}
+        for label in map(tuple, drawn):
+            if label not in seen:
+                seen.add(label)
+                labels_list.append(label)
+        if len(labels_list) < n_label:
+            unused = [label for label in perm if label not in seen]
+            top_up = rng.choice(len(unused), n_label - len(labels_list), replace=False)
+            labels_list += [unused[i] for i in sorted(top_up)]
+        return np.array(labels_list)
     else:
         if new_label_set is None:
             new_label_set = set()
@@ -258,7 +293,7 @@ def _add_labels(labels_arr, add_n, exhaustive=False, seed=None, thresh=None):
     """
     n_node = labels_arr[0].shape[0]
     n_label = len(labels_arr)
-    n_max = np.math.factorial(n_node)
+    n_max = math.factorial(n_node)
     n_total = add_n + n_label if add_n + n_label < n_max else n_max
     label_set = set([tuple(labels) for labels in labels_arr])
     return _label_finder(
@@ -309,7 +344,8 @@ def get_relabel_map(g1, g2):
     :type g1: nx.Graph or np.ndarray
     :param g2: networkx graph or adjacency matrix
     :type g2: nx.Graph or np.ndarray
-    :return: a dictionary mapping each node of g1 to a node of g2. The map may not be unique.
+    :return: a dictionary mapping each node of g1 to a node of g2. The map may not be unique. If g1 and g2 have the same
+        adjacency matrix, the dictionary also has the entry -1: "self".
     :rtype: dict
     """
     # g1 and g2 can be adj matrices or nx graphs.
@@ -342,18 +378,24 @@ def lc_orbit_finder(
     come up with new distinct graphs in the orbit of the input graph. The comp_depth determines the maximum depth of the
      orbit explored.
 
-    :param graph: original graph
+    :param graph: original graph; its nodes must be labelled 0..n-1 in iteration order, since node labels are also
+        used as adjacency-matrix indices
     :type graph: nx.Graph
     :param comp_depth: the maximum length of the sequence of local-complementations applied on the graph; if None,
                         continue till the required number of graphs are found, or no new graphs are found.
     :type comp_depth: int
     :param orbit_size_thresh: sets a limit on the maximum number of orbit graphs to look for
     :type orbit_size_thresh: int
-    :param with_iso: if true, isomorph graphs will be kept in the orbit
+    :param with_iso: if true, isomorphic graphs will be kept in the orbit
     :type with_iso: bool
-    :param rep_allowed: if true the orbit finder does not check for iso or auto morphism; useful for large graphs.
+    :param rand: if true, the search starts from a graph obtained by applying random local complementations to
+        the original graph, instead of from the original graph itself, and the nodes are tried in a random order;
+        the returned list then starts with that graph instead of the original one
     :type rand: bool
-    :return: list of distinct graphs in the orbit of original graph
+    :param rep_allowed: if true the orbit finder does not check for iso or auto morphism; useful for large graphs.
+    :type rep_allowed: bool
+    :return: list of graphs in the orbit of original graph, starting with the graph the search starts from; the
+        graphs are distinct unless rep_allowed is true, in which case repeats may occur
     :rtype: list[nx.Graph]
     """
     orbit_list = [graph.copy()]
@@ -410,9 +452,11 @@ def rgs_orbit_finder(graph: nx.Graph):
     """
     Takes a repeater graph state, and returns the full list of distinct graphs in the orbit.
     The first graph in the list is the original graph state.
-    :param graph: original graph
+    :param graph: original graph; its nodes must be labelled 0..n-1 in iteration order, since node labels are
+        also used as adjacency-matrix indices by local_comp_graph
     :type graph: nx.Graph
-    :return: a full list of graphs in the LC orbit of the graph state
+    :return: a full list of graphs in the LC orbit of the graph state, each after the first labelled 0..n-1 by
+        position
     :rtype: list
     """
     n = len(graph)
@@ -443,9 +487,14 @@ def linear_partial_orbit(graph: nx.Graph):
     """
     Takes a linear cluster state, and returns a list of distinct graphs in the orbit. Not exhaustive.
     The first graph in the list is the original graph state.
-    :param graph: original graph
+    :param graph: original graph, a path (linear graph) whose nodes may come in any iteration order and carry any
+        labels; the local complementations are applied along the path, from whichever end comes first in graph's
+        node iteration order
     :type graph: nx.Graph
-    :return: a list of graphs in the LC orbit of the linear cluster state
+    :raises AssertionError: if graph is not a path on at least 3 nodes
+    :return: a list of graphs in the LC orbit of the linear cluster state, labelled 0..n-1 by position in graph's
+        iteration order, so the first is the original graph relabelled that way (literally the original graph when
+        graph's labels are already 0..n-1 in iteration order)
     :rtype: list
     """
     orbit_list = []
@@ -454,17 +503,40 @@ def linear_partial_orbit(graph: nx.Graph):
     # check that graph is linear
     degrees = [degree for _, degree in g.degree()]
     assert (
-        n - 1 == graph.size() and max(degrees) == 2
+        n - 1 == graph.size() and max(degrees) == 2 and nx.is_connected(g)
     ), "input graph is not a linear graph"
+    # _partial_orbit indexes nodes along the path, but local_comp_graph reads positions in
+    # iteration order, so map each path index to the position of that node, walking the path
+    # from the end that comes first in iteration order
+    position = {node: i for i, node in enumerate(g)}
+    start = next(node for node in g if g.degree(node) == 1)
+    path = [position[node] for node in nx.dfs_preorder_nodes(g, start)]
     for lc_ops in _partial_orbit(n):
         new_g = g
         for x in lc_ops:
-            new_g = local_comp_graph(new_g, x)
+            new_g = local_comp_graph(new_g, path[x])
         orbit_list.append(new_g)
     return orbit_list
 
 
 def depth_first_orbit(graph: nx.Graph):
+    """
+    Find pairwise non-isomorphic representatives from the local-complementation orbit of a
+    graph, via a depth-first search over local-complementation sequences on nodes 0 to n-1
+    (see :func:`_depth_first`), then build every graph reached along the way by re-applying,
+    from scratch, every prefix of every path the search recorded.
+
+    This is far smaller than the labelled orbit, because :func:`_depth_first` prunes against
+    every graph found in any branch: the 5-cycle returns 3 graphs where its labelled orbit has
+    132, and the 4-path returns 4 where the orbit has 11. A caller that needs specific
+    labellings rather than one representative per isomorphism class cannot use this.
+
+    :param graph: original graph
+    :type graph: nx.Graph
+    :return: one graph per isomorphism class reached, including the original graph, in no
+        particular order
+    :rtype: list[nx.Graph]
+    """
     n = len(graph)
     g = graph.copy()
     _, _, _, path_list = _depth_first(g, n)
@@ -529,9 +601,14 @@ def check_isomorphism(graph, g_list, _only_auto=False):
 
 def _equal_graphs(g1, g2):
     """
+    Check whether two graphs have the same adjacency matrix, with the nodes of each graph taken in its iteration
+    order and edge weights ignored. This compares labelled graphs; it is not an isomorphism test.
+
     :param g1: a graph
     :type g1: nx.Graph
-    :return: given two graphs this function return true if they have the same adjacency matrix.
+    :param g2: a graph
+    :type g2: nx.Graph
+    :return: True if the two graphs have the same adjacency matrix, False otherwise
     :rtype: bool
     """
     adj1 = (nx.to_numpy_array(g1)).astype(bool)
@@ -541,7 +618,21 @@ def _equal_graphs(g1, g2):
 
 def _compare_graphs_visual(g, new_g, new_labels):
     """
-    Visual demonstration of initial graph, the relabeled one.
+    Visual demonstration of initial graph, the relabeled one. It relabels g by mapping node i to new_labels[i],
+    and draws g, the relabeled graph, and new_g in three stacked panels. g is also first drawn on the current
+    axes.
+
+    :param g: the initial graph, with nodes labelled 0..n-1
+    :type g: nx.Graph
+    :param new_g: a graph to draw next to the relabeled one; every node of new_g must be one of new_labels,
+        since it is drawn with the relabeled graph's layout
+    :type new_g: nx.Graph
+    :param new_labels: the new labels, where new_labels[i] is the new label of node i
+    :type new_labels: list or numpy.ndarray
+    :raises AssertionError: if the relabeled graph's nodes, in order, are not new_labels, e.g. for repeated
+        labels, a label list of the wrong length, or a g whose nodes do not iterate as 0..n-1
+    :return: nothing
+    :rtype: None
     """
     nx.draw_networkx(g, with_labels=True, pos=nx.kamada_kawai_layout(g))
     fig, (ax1, ax2, ax3) = plt.subplots(3, figsize=(15, 25))
@@ -549,7 +640,7 @@ def _compare_graphs_visual(g, new_g, new_labels):
     n = len(new_labels)
     relabel_map_dict = dict(zip([*range(n)], new_labels))
     g_relabeled = nx.relabel_nodes(g, relabel_map_dict)
-    assert list(new_labels) == g_relabeled.nodes()
+    assert list(new_labels) == list(g_relabeled.nodes())
 
     nx.draw_networkx(
         g_relabeled,
@@ -581,6 +672,22 @@ def _compare_graphs_visual(g, new_g, new_labels):
 
 
 def _retrieve_seq(n, seq_dict=None):
+    """
+    Recursively build the sequence of node indices to locally-complement, in order, to reach
+    every new graph obtainable by local-complementation operations on n nodes -- an
+    intermediate step used by :func:`_full_seq` to build the full sequence for larger node
+    counts. The entries run from 2 up to n inclusive and never include 0 or 1: for example
+    ``_retrieve_seq(3)`` is ``[3, 2, 3, 2, 2]``.
+
+    :param n: the node count this sub-sequence is built for
+    :type n: int
+    :param seq_dict: cache of previously computed sequences, keyed by node count; a cached
+        entry is reused instead of recomputed, but this function does not write new results
+        back into it
+    :type seq_dict: dict or None
+    :return: the sequence of node indices
+    :rtype: list[int]
+    """
     # an intermediate step finder to complete the full sequence of nodes eligible for generation of new graphs by LC ops
     if seq_dict is not None:
         if n in seq_dict:
@@ -605,6 +712,19 @@ def _retrieve_seq(n, seq_dict=None):
 
 
 def _full_seq(n):
+    """
+    Build the sequence of node indices to locally-complement, in order, that yields every new
+    graph reachable via local-complementation operations confined to nodes 0 to n - 1,
+    intended for use with node counts large compared to n (at least 2 * n). A 0 is inserted
+    after every entry built from :func:`_retrieve_seq`, including the last, and [0, 1] is
+    prepended -- ``_full_seq(3)`` is ``[0, 1, 2, 0, 2, 0]``. For n of 1 or less the result is
+    just ``[0]``, with no prefix.
+
+    :param n: upper node index (exclusive) the sequence's operations are confined to
+    :type n: int
+    :return: the sequence of node indices
+    :rtype: list[int]
+    """
     # for infinite (or at least larger than 2*n) find sequence of ndes for LC operations that result in new graphs
     # obtained by operations on nodes upto 'n'.
     seq = []
@@ -625,6 +745,18 @@ def _full_seq(n):
 
 
 def _partial_orbit(n):
+    """
+    Build, for a linear graph (path graph) on n nodes, the sequence of node indices to
+    locally-complement that reaches a partial (non-exhaustive) sample of its
+    local-complementation orbit, and return every prefix of that sequence.
+
+    :param n: number of nodes in the linear graph
+    :type n: int
+    :return: prefixes of the node-index sequence; applying each prefix in order as successive
+        local complementations, starting from the original linear graph, yields one member of
+        the sampled orbit
+    :rtype: list[list[int]]
+    """
     m = int(n / 2) + 1
     if n % 2 == 0:
         seq1 = _full_seq(m - 1)
@@ -648,6 +780,39 @@ def _partial_orbit(n):
 def _depth_first(
     g0, n, g_orbit=None, path=None, path_list=None, orbit_list=None, exact=False
 ):
+    """
+    Recursively depth-first search local-complementation sequences on nodes 0 to n - 1,
+    starting from g0. At each node visited that produces a graph not isomorphic (via
+    ``nx.vf2pp_is_isomorphic``) to any graph recorded so far -- in every branch explored
+    already, not merely along the current path -- the search recurses from that new graph.
+    Because the check is global, the search keeps one representative per isomorphism class
+    rather than every labelling. The maximal node-index paths explored, together with the
+    graphs visited along each, are recorded into path_list and orbit_list. Call with only g0,
+    n and (optionally) exact -- the remaining keyword arguments initialize the search state on
+    that first call and are threaded through by the recursion afterwards.
+
+    :param g0: graph to search from at this recursion step
+    :type g0: nx.Graph
+    :param n: number of nodes to try local complementation on at each step
+    :type n: int
+    :param g_orbit: graphs visited along the current path, seeded with [g0] on the top-level
+        call
+    :type g_orbit: list[nx.Graph] or None
+    :param path: sequence of node indices local-complemented so far to reach g0
+    :type path: list[int] or None
+    :param path_list: accumulator of the maximal paths explored; a path that is a prefix of one
+        already recorded is skipped, so callers wanting the prefixes must rebuild them
+    :type path_list: list[list[int]] or None
+    :param orbit_list: accumulator of the graphs visited along each path in path_list
+    :type orbit_list: list[list[nx.Graph]] or None
+    :param exact: if True, isomorphism is checked on the subgraphs induced by
+        ``range(n + 1)`` rather than on the whole graphs. On a graph labelled 0 to n - 1 that
+        range covers every node, so the flag has no effect there; no caller sets it
+    :type exact: bool
+    :return: the updated (g_orbit, orbit_list, path, path_list), with the branch taken at this
+        recursion step backtracked out of g_orbit and path
+    :rtype: tuple[list[nx.Graph], list[list[nx.Graph]], list[int], list[list[int]]]
+    """
     if g_orbit is None and path is None and path_list is None and orbit_list is None:
         g_orbit = [g0]
         orbit_list = []

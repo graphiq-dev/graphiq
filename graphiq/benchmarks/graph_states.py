@@ -43,7 +43,7 @@ def linear_cluster_state(n_qubits):
 
 def lattice_cluster_state(dimension):
     """
-    Generates an n_side by n_side cluster state lattice
+    Generates a cluster state lattice with the number of qubits along each dimension given by dimension
 
     :param dimension: a tuple containing the number of qubits along each dimension
     :type dimension: tuple
@@ -101,7 +101,9 @@ def _gnp_random_connected_graph(n, p, np_rng):
     :type n: int
     :param p: the probability of an edge being added
     :type p: float
-    :return:
+    :param np_rng: the random number generator used to choose the edges
+    :type np_rng: numpy.random.Generator
+    :return: a random graph on n nodes; p <= 0 gives the graph with no edges and p >= 1 the complete graph
     :rtype: networkx.Graph
     """
     edges = itertools.combinations(range(n), 2)
@@ -259,7 +261,7 @@ def crazy(n_list: list, pos=False, alternate_order=False):
         edges.extend([(x, y) for x in current_nodes for y in next_col_nodes])
     g.add_edges_from(edges)
     if alternate_order:
-        from src.utils.relabel_module import relabel
+        from graphiq.utils.relabel_module import relabel
 
         nodes = []
         for k in range(0, len(n_list), 2):
@@ -272,7 +274,7 @@ def crazy(n_list: list, pos=False, alternate_order=False):
         g = nx.from_numpy_array(new_adj)
         pos_dict2 = {}
         for i, n in enumerate(range(len(pos_dict))):
-            pos_dict2[n] = pos_dict[nodes[i]]
+            pos_dict2[nodes[i]] = pos_dict[i]
         pos_dict = pos_dict2
     if pos:
         return g, pos_dict
@@ -286,7 +288,8 @@ def two_d_cluster(row_col: tuple, pos=False):
 
     :param row_col: a tuple of number of rows and columns in the cluster state
     :param pos: if True the function also returns the position dictionary for the graph
-    :return: a networkx graph that represents the crazy graph or a tuple including the graph and its node-position dict
+    :return: a networkx graph that represents the 2D cluster state or a tuple including the graph and its node-position
+        dict
     :rtype: networkx.Graph or (networkx.Graph, pos_dict)
     """
     g = nx.Graph()
@@ -331,7 +334,8 @@ def three_d_cluster(row_col_depth: tuple, pos=False):
 
     :param row_col_depth: a tuple of number of rows and columns and depth of the cluster state
     :param pos: if True the function also returns the position dictionary for the graph
-    :return: a networkx graph that represents the crazy graph or a tuple including the graph and its node-position dict
+    :return: a networkx graph that represents the 3D cluster state or a tuple including the graph and its node-position
+        dict
     :rtype: networkx.Graph or (networkx.Graph, pos_dict)
     """
     g = nx.Graph()

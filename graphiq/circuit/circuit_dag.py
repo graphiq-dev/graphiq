@@ -38,6 +38,7 @@ import numpy as np
 
 import graphiq.circuit.ops as ops
 from graphiq.circuit.circuit_base import CircuitBase
+from graphiq.noise.noise_mapping import noise_for_op, register_section
 from graphiq.noise.noise_models import NoNoise
 from graphiq.utils.circuit_comparison import compare_circuits
 from graphiq.visualizers.dag import dag_topology_pos
@@ -71,6 +72,12 @@ class CircuitDAG(CircuitBase):
         :type n_photon: int
         :param n_classical: the number of classical bits in the system
         :type n_classical: int
+        :param openqasm_imports: None or an (ordered) dictionary, where the keys are import strings for openqasm
+                                 (the values are not used)
+        :type openqasm_imports: a dictionary (with str keys) or None
+        :param openqasm_defs: None or an (ordered) dictionary, where the keys are definitions strings for openqasm gates
+                              (the values are not used)
+        :type openqasm_defs: a dictionary (with str keys) or None
         :return: nothing
         :rtype: None
         """
@@ -333,7 +340,9 @@ class CircuitDAG(CircuitBase):
         """
         remaining_nodes = set(self.dag.nodes)
         for label in labels:
-            remaining_nodes = remaining_nodes.intersection(set(self.node_dict[label]))
+            remaining_nodes = remaining_nodes.intersection(
+                set(self.node_dict.get(label, []))
+            )
         return list(remaining_nodes)
 
     def get_node_exclude_labels(self, labels):
@@ -348,7 +357,7 @@ class CircuitDAG(CircuitBase):
         all_nodes = set(self.dag.nodes)
         exclusion_nodes = set()
         for label in labels:
-            exclusion_nodes = exclusion_nodes.union(set(self.node_dict[label]))
+            exclusion_nodes = exclusion_nodes.union(set(self.node_dict.get(label, [])))
         return list(all_nodes - exclusion_nodes)
 
     def remove_op(self, node):
@@ -505,7 +514,8 @@ class CircuitDAG(CircuitBase):
 
         :param show: if True, the DAG is displayed (shown). If False, the DAG is drawn but not displayed
         :type show: bool
-        :param fig: fig on which to draw the DAG (optional)
+        :param fig: fig on which to draw the DAG (optional); without ax, the DAG is drawn on fig's current axes,
+            which is created if fig has none
         :type fig: None or matplotlib.pyplot.figure
         :param ax: ax on which to draw the DAG (optional)
         :type ax: None or matplotlib.pyplot.axes
@@ -515,8 +525,14 @@ class CircuitDAG(CircuitBase):
         # TODO: fix this such that we can see double edges properly!
         pos = dag_topology_pos(self.dag, method="topology")
 
-        if ax is None or fig is None:
-            fig, ax = plt.subplots()
+        if ax is None:
+            if fig is None:
+                fig, ax = plt.subplots()
+            else:
+                ax = fig.gca()
+        elif fig is None:
+            # ax.figure is a SubFigure when ax sits in one; its .figure is the root Figure.
+            fig = ax.figure.figure
         nx.draw(self.dag, pos=pos, ax=ax, with_labels=True)
         if show:
             plt.show()
@@ -669,16 +685,20 @@ class CircuitDAG(CircuitBase):
                 if gate_class is not None:
                     circuit.add(gate_class(register=reg, reg_type=reg_type))
                 else:
-                    circuit_list = [ops.name_to_class_map(letter) for letter in name]
-                    assert None not in circuit_list, (
-                        f"Gate not recognized, parsing invalid/"
-                        f"{name} parsed to {circuit_list}"
-                    )
-                    circuit.add(
-                        ops.OneQubitGateWrapper(
-                            circuit_list, register=reg, reg_type=reg_type
+                    # a OneQubitGateWrapper writes its gates' names with no separator, and
+                    # some names are several characters long (e.g. "sdg")
+                    circuit_list = ops._decode_wrapped_gate_name(name)
+                    assert (
+                        circuit_list is not None
+                    ), f"Gate not recognized, parsing invalid/{name}"
+                    if len(circuit_list) == 1:
+                        circuit.add(circuit_list[0](register=reg, reg_type=reg_type))
+                    else:
+                        circuit.add(
+                            ops.OneQubitGateWrapper(
+                                circuit_list, register=reg, reg_type=reg_type
+                            )
                         )
-                    )
             elif command.count("[0]") == 2:  # two-qubit gate
                 command_breakdown = command.split()
                 name = command_breakdown[0]
@@ -715,16 +735,19 @@ class CircuitDAG(CircuitBase):
         :param reg_type: 'e' to add an emitter qubit register, 'p' to add a photonic qubit register,
                          'c' to add a classical register
         :type reg_type: str
-        :return: function returns nothing
-        :rtype: None
+        :param size: the size of the register to add; this circuit class only supports registers of size 1
+        :type size: int
+        :raises ValueError: if size is not 1
+        :return: the index of the added register
+        :rtype: int
         """
         if size != 1:
             raise ValueError(
                 f"_add_register for this circuit class must only add registers of size 1"
             )
-        self._add_reg_if_absent(
-            register=len(self._registers[reg_type]), reg_type=reg_type
-        )
+        register = len(self._registers[reg_type])
+        self._add_reg_if_absent(register=register, reg_type=reg_type)
+        return register
 
     def _add_reg_if_absent(self, register, reg_type):
         """
@@ -957,7 +980,7 @@ class CircuitDAG(CircuitBase):
         :param reg_type: str indicates register type. Can be "e", "p", or "c"
         :type reg_type: str
         :return: the array of register depth of all register in the register type
-        :rtype: numpy.array
+        :rtype: list[int]
         """
         if reg_type not in self._register_depth:
             raise ValueError(f"register type {reg_type} is not in this circuit")
@@ -1020,6 +1043,13 @@ class CircuitDAG(CircuitBase):
         """
         Function to convert circuit object to json data format.
 
+        .. warning::
+            Operations for which ``ops.class_to_name_mapping`` returns None do not round-trip. These include
+            the parameterized gates (e.g. RX, RY, RZ, ParameterizedOneQubitRotation,
+            ParameterizedControlledRotationQubit) as well as MeasurementZ, PhaseDagger and Identity. Such an
+            operation is written with type None, or dropped from the op_list of a OneQubitGateWrapper, and gate
+            parameters are not stored. from_json then raises TypeError on a type None entry.
+
         :return: circuit json object
         :rtype: dict
         """
@@ -1065,8 +1095,8 @@ class CircuitDAG(CircuitBase):
 
         :param data_dict: circuit json dict
         :type data_dict: dict
-        :return: nothing
-        :rtype: None
+        :return: the circuit built from data_dict
+        :rtype: CircuitDAG
         """
         circuit = CircuitDAG(
             n_photon=data_dict["n_photons"],
@@ -1085,9 +1115,10 @@ class CircuitDAG(CircuitBase):
             else:
                 gate = ops.name_to_class_map(op["type"])
                 gate = gate()
-                gate.q_registers = op["q_registers"]
-                gate.q_registers_type = op["q_registers_type"]
-                gate.c_registers = op["c_registers"]
+                # a real JSON dump/load turns these tuples into lists
+                gate.q_registers = tuple(op["q_registers"])
+                gate.q_registers_type = tuple(op["q_registers_type"])
+                gate.c_registers = tuple(op["c_registers"])
 
             circuit.add(gate)
 
@@ -1154,8 +1185,16 @@ class CircuitDAG(CircuitBase):
         """
         Create a copy of the circuit where each gate is appended its noise model
 
-        :param noise_model_map:
-        :type noise_model_map:
+        :param noise_model_map: a nested dictionary whose outer keys are register-type sections ("e", "p", "ee",
+            "ep", ...) and whose inner dictionaries map an operation's class name to its noise model; for a
+            two-qubit operation, the section is its control type followed by its target type, and its per-leg keys
+            ``<Op>_control`` and ``<Op>_target`` are read first; only when neither is present does the bare class name
+            apply, and its noise model may then be a list of two (one per leg). Operations without an entry get
+            NoNoise. A section's ``"OneQubitGateWrapper"`` key gives each wrapper in it that key's value (a
+            single model for the whole wrapper, or a list with one per wrapped gate), and the section's per-gate
+            keys are then not read for wrappers. A OneQubitGateWrapper carrying a single model for the whole
+            wrapper keeps it, and the mapping is not applied to it
+        :type noise_model_map: dict[str, dict]
         :return: a new circuit
         :rtype: CircuitDAG
         """
@@ -1170,50 +1209,75 @@ class CircuitDAG(CircuitBase):
         return empty_circ
 
     def _noisy_gates(self, noise_model_map):
-        seq = self._slim_seq()
+        """
+        Helper function that returns the circuit's operations with a noise model attached to each
+
+        Operates on a copy, so the circuit itself is not modified. A wrapper carrying a single model for the whole
+        wrapper keeps it and is left unchanged. Otherwise, when the wrapper's section has a ``"OneQubitGateWrapper"``
+        key, the wrapper receives that value as it is, except that a NoNoise becomes one NoNoise per wrapped gate, as
+        in the wrapper's constructor; this is the noise ``SolverBase._wrap_noise`` gives a wrapper. A single model
+        under the key is applied once for the whole wrapper by ``OneQubitGateWrapper.unwrap``, which reads its "After
+        gate" parameter, so a model without one (not an addition-type model) raises KeyError when the circuit is
+        compiled. Without the key, the wrapper receives a list with one noise model per wrapped gate, in the order of
+        its ``operations``, since the wrapper pairs ``noise[i]`` with ``operations[i]``.
+        A controlled-pair operation receives its ``<Op>_control`` and ``<Op>_target`` models, or, when neither key is
+        present, its bare name's list of two models or its single model duplicated. Every other operation receives
+        the model its register section names. Operations without an entry get NoNoise. The lookup is
+        ``graphiq.noise.noise_mapping.noise_for_op``, which ``SolverBase._identify_noise`` also uses.
+
+        :param noise_model_map: a nested dict of register-type section to operation class name to noise model, as
+            accepted by ``assign_noise``
+        :type noise_model_map: dict[str, dict]
+        :raises ValueError: if a controlled-pair operation's bare noise list does not have length 2
+        :raises KeyError: if noise_model_map has no entry for an operation's register-type section
+        :return: the operations (Input and Output excluded), each carrying its noise model
+        :rtype: list[ops.OperationBase]
+        """
+        # copy first: the noise is set on the ops in place, and these must not
+        # be this circuit's own ops
+        seq = self.copy()._slim_seq()
         noisy_ops = []
         for op in seq:
-            is_controlled = False
             if isinstance(op, ops.OneQubitGateWrapper):
-                op_type_seq = [type(gate) for gate in op.unwrap()]
-                noise_list = self._find_wrapped_noise(
-                    op_type_seq, noise_model_map[op.reg_type]
-                )
-                op.noise = noise_list
+                if not isinstance(op.noise, list):
+                    # a single model for the whole wrapper is left as it is
+                    noisy_ops.append(op)
+                    continue
+                section = noise_model_map[op.reg_type]
+                if "OneQubitGateWrapper" in section:
+                    # the key's value for the whole wrapper, as
+                    # SolverBase._wrap_noise gives it
+                    noise = section["OneQubitGateWrapper"]
+                    # as in the wrapper's constructor, a single NoNoise becomes
+                    # one per wrapped gate
+                    if isinstance(noise, NoNoise):
+                        noise = len(op.operations) * [NoNoise()]
+                    op.noise = noise
+                else:
+                    op_type_seq = list(op.operations)
+                    op.noise = self._find_wrapped_noise(op_type_seq, section)
                 noisy_ops.append(op)
             else:
-                if isinstance(
-                    op,
-                    (
-                        ops.ControlledPairOperationBase,
-                        ops.ClassicalControlledPairOperationBase,
-                    ),
-                ):
-                    control_type = op.control_type
-                    target_type = op.target_type
-                    mapping = noise_model_map[control_type + target_type]
-                    is_controlled = True
-                else:
-                    mapping = noise_model_map[op.reg_type]
-                name = type(op).__name__
-                if name in mapping:
-                    noise_object = mapping[name]
-                else:
-                    noise_object = NoNoise()
-                if is_controlled:
-                    if isinstance(noise_object, list):
-                        assert (
-                            len(noise_object) == 2
-                        ), "controlled gate noise list must be of length 2"
-                        op.noise = noise_object
-                    else:
-                        op.noise = [noise_object, noise_object]
-                else:
-                    op.noise = noise_object
+                mapping = noise_model_map[register_section(op)]
+                op.noise = noise_for_op(op, mapping)
                 noisy_ops.append(op)
         return noisy_ops
 
     def _find_wrapped_noise(self, op_type_list, mapping):
+        """
+        Helper function that looks up one noise model per gate wrapped inside a OneQubitGateWrapper
+
+        A gate whose class name is absent from the mapping gets NoNoise, so the returned list always has the same
+        length as op_type_list.
+
+        :param op_type_list: the classes of the wrapped gates; ``_noisy_gates`` passes the wrapper's ``operations``,
+            in constructor order
+        :type op_type_list: list[type]
+        :param mapping: one section of a noise model map, keyed by operation class name
+        :type mapping: dict
+        :return: a noise model for each entry of op_type_list, in the same order
+        :rtype: list[graphiq.noise.noise_models.NoiseBase]
+        """
         noise_list = []
         for op_type in op_type_list:
             op_name = op_type.__name__
@@ -1224,6 +1288,12 @@ class CircuitDAG(CircuitBase):
         return noise_list
 
     def _slim_seq(self):
+        """
+        Helper function that returns the operation sequence with the Input and Output placeholders removed
+
+        :return: the operations of the circuit, in topological order, with wrappers not unwrapped
+        :rtype: list[ops.OperationBase]
+        """
         seq = self.sequence()
         length = len(seq) - 1
         for i, op in enumerate(seq[::-1]):

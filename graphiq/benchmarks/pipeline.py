@@ -12,6 +12,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""
+Utilities for assembling and running a solver benchmarking pipeline: combining solvers, targets,
+compilers and metrics into individual runs, executing those runs (optionally in parallel with
+ray), and saving the resulting data.
+"""
+
 import pandas as pd
 import time
 import psutil
@@ -27,6 +33,13 @@ from graphiq.visualizers.solver_logs import plot_solver_logs
 
 
 def metadata():
+    """
+    Collect metadata about the machine running the benchmark.
+
+    :return: a dictionary with the system name, OS version, machine architecture, processor, and
+        CPU count
+    :rtype: dict
+    """
     uname = platform.uname()
     md = dict(
         system=uname.system,
@@ -42,15 +55,19 @@ def run_combinations(solvers, targets, compilers, metrics):
     """
     Produces a benchmarking run for all possible combinations from lists of solvers, targets, compilers, and metrics.
 
-    :param solvers: a list of Solver classes (not instanced)
-    :type solvers: list
-    :param targets: a list of the target states
-    :type targets: list
-    :param compilers: list of compilers to use
+    :param solvers: a list of (Solver, solver_attr) pairs, where Solver is a solver class (not instanced) and
+        solver_attr is a dictionary of extra keyword arguments passed to its constructor
+    :type solvers: list[tuple]
+    :param targets: a list of (target, target_attr) pairs, where target is the target state and target_attr is a
+        dictionary providing the "n_photon" and "n_emitter" values passed to the solver
+    :type targets: list[tuple]
+    :param compilers: a list of compiler classes (not instanced); each is instantiated with no arguments
     :type compilers: list
-    :param metrics: list of metrics to use
+    :param metrics: a list of metric classes (not instanced); each is instantiated as Metric(target=target)
     :type metrics: list
-    :return: a list of dictionaries, each defining a single benchmarking run
+    :return: a dictionary mapping each run name ("run0", "run1", ...) to a dictionary defining a single
+        benchmarking run
+    :rtype: dict
     """
 
     runs = {}
@@ -94,7 +111,9 @@ def benchmark_run(run: dict, name: str, io: IO):
 
     t0 = time.time()
     run["solver"].io = io
-    run["solver"].save_openqasm = "both"
+    # save_openqasm is a setting; a solver without a setting saves no openQASM
+    if hasattr(run["solver"], "setting"):
+        run["solver"].setting.save_openqasm = "both"
     run["solver"].solve()
     t1 = time.time()
 
@@ -110,7 +129,7 @@ def benchmark_run(run: dict, name: str, io: IO):
         path=io.path.name,
         solver=run["solver"].__class__.__name__,
         compiler=run["compiler"].__class__.__name__,
-        metric=run["compiler"].__class__.__name__,
+        metric=run["metric"].__class__.__name__,
         # target=run["target"],  # TODO: ideally the target is a QuantumState object, and we can use the __name__ here
         time=(t1 - t0),
         circuit_cost=solver.hof[0][0],
@@ -123,8 +142,9 @@ def benchmark(runs: dict, io: IO, remote=True):
     """
     Runs a sequence of benchmark runs, either using parallel or serial processing.
 
-    :param runs: a list of runs, each being a dictionary containing the important class instances (solvers, etc.)
-    :type: list
+    :param runs: a dictionary mapping each run name to a run, each being a dictionary containing the important
+        class instances (solvers, etc.)
+    :type runs: dict
     :param io: a top-level IO object for saving benchmark data
     :type io: IO instance
     :param remote: True/False flag. If True, will run solvers in parallel using `ray`
@@ -178,7 +198,7 @@ def benchmark_run_graph_search_solver(run, name, io, circuit_format="qasm"):
     :param circuit_format: a variable define what format the circuit will be saved to
     :type circuit_format: str
     :return: dictionary storing all the results/metadata for the current run (can be added to a DataFrame)
-    :rtype: pandas.DataFrame
+    :rtype: dict
     """
     solver = run["solver"]
     t0 = time.time()
@@ -220,12 +240,15 @@ def benchmark_run_graph_search_solver(run, name, io, circuit_format="qasm"):
 
 def benchmark_graph_search_solver(runs, io, circuit_format="qasm"):
     """
-    Runs a sequence of benchmark runs, either using parallel or serial processing.
+    Runs a sequence of benchmark runs serially.
 
-    :param runs: a list of runs, each being a dictionary containing the important class instances (solvers, etc.)
-    :type: list
+    :param runs: a dictionary mapping each run name to a run, each being a dictionary containing the important
+        class instances (solvers, etc.)
+    :type runs: dict
     :param io: a top-level IO object for saving benchmark data
     :type io: IO instance
+    :param circuit_format: the format each run's circuits are saved in, either "qasm" or "json"
+    :type circuit_format: str
     :return: DataFrame summarizing the results of all benchmarking runs
     """
     futures = []
